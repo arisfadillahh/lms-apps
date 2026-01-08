@@ -1,0 +1,1511 @@
+
+> lms-app@0.1.0 dev
+> next dev
+
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /home/dev/package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * /home/dev/clevio lms 2/lms-app/package-lock.json
+
+   ▲ Next.js 16.0.1 (Turbopack)
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.100.9:3000
+   - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 2.9s
+ ○ Compiling /coach/sessions/[sessionId]/attendance ...
+ GET /admin 404 in 10.0s (compile: 9.3s, render: 706ms)
+ GET /admin 404 in 205ms (compile: 40ms, render: 165ms)
+[next-auth][warn][NEXTAUTH_URL] 
+https://next-auth.js.org/warnings#nextauth_url
+ GET /admin 404 in 331ms (compile: 29ms, render: 302ms)
+ ○ Compiling /api/auth/[...nextauth] ...
+[next-auth][warn][NEXTAUTH_URL] 
+https://next-auth.js.org/warnings#nextauth_url
+ POST /api/auth/_log 200 in 2.1s (compile: 1862ms, render: 266ms)
+ GET /api/auth/session 200 in 1424ms (compile: 1148ms, render: 276ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 15.6s (compile: 11.8s, render: 3.8s)
+ GET /api/auth/session 200 in 98ms (compile: 77ms, render: 21ms)
+ ○ Compiling /login ...
+ HEAD /login 200 in 4.5s (compile: 4.1s, render: 337ms)
+ HEAD / 307 in 1816ms (compile: 1693ms, render: 123ms)
+ ✓ Compiled in 188ms
+[next-auth][warn][NEXTAUTH_URL] 
+https://next-auth.js.org/warnings#nextauth_url
+ GET /admin 404 in 724ms (compile: 63ms, render: 661ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 721ms (compile: 400ms, render: 321ms)
+ GET /admin 404 in 253ms (compile: 9ms, render: 244ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 243ms (compile: 9ms, render: 234ms)
+ GET /admin 404 in 59ms (compile: 6ms, render: 53ms)
+ GET /admin 404 in 100ms (compile: 64ms, render: 36ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 175ms (compile: 8ms, render: 167ms)
+ GET /admin 404 in 196ms (compile: 9ms, render: 187ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 182ms (compile: 6ms, render: 176ms)
+ GET /admin 404 in 55ms (compile: 8ms, render: 47ms)
+ GET /admin 404 in 104ms (compile: 70ms, render: 34ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 178ms (compile: 7ms, render: 172ms)
+ GET /admin 404 in 191ms (compile: 7ms, render: 183ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 195ms (compile: 5ms, render: 190ms)
+ GET /admin 404 in 50ms (compile: 7ms, render: 43ms)
+ GET /admin 404 in 276ms (compile: 24ms, render: 252ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 406ms (compile: 7ms, render: 400ms)
+ GET /admin 404 in 64ms (compile: 16ms, render: 47ms)
+ GET /admin 404 in 46ms (compile: 7ms, render: 39ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 321ms (compile: 68ms, render: 253ms)
+ GET /admin 404 in 165ms (compile: 7ms, render: 159ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 120ms (compile: 5ms, render: 115ms)
+ GET /admin 404 in 185ms (compile: 9ms, render: 176ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 179ms (compile: 6ms, render: 172ms)
+ GET /admin 404 in 66ms (compile: 8ms, render: 58ms)
+ GET /admin 404 in 118ms (compile: 56ms, render: 62ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 201ms (compile: 6ms, render: 195ms)
+ GET /admin 404 in 339ms (compile: 17ms, render: 322ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 279ms (compile: 8ms, render: 271ms)
+ GET /admin 404 in 322ms (compile: 15ms, render: 308ms)
+ GET /admin 404 in 47ms (compile: 5ms, render: 42ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 315ms (compile: 15ms, render: 300ms)
+ GET /admin 404 in 275ms (compile: 8ms, render: 267ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 403ms (compile: 78ms, render: 324ms)
+ GET /admin 404 in 189ms (compile: 16ms, render: 173ms)
+ GET /admin 404 in 396ms (compile: 222ms, render: 173ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 637ms (compile: 8ms, render: 629ms)
+ GET /admin 404 in 852ms (compile: 23ms, render: 829ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 671ms (compile: 26ms, render: 645ms)
+ GET /admin 404 in 926ms (compile: 26ms, render: 900ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 1005ms (compile: 141ms, render: 864ms)
+ GET /admin 404 in 266ms (compile: 23ms, render: 244ms)
+ ○ Compiling /style-guide/sidebar ...
+ GET /admin 404 in 550ms (compile: 381ms, render: 169ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 873ms (compile: 25ms, render: 848ms)
+ GET /admin 404 in 414ms (compile: 11ms, render: 402ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 493ms (compile: 91ms, render: 402ms)
+ GET /admin 404 in 198ms (compile: 25ms, render: 173ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 335ms (compile: 6ms, render: 328ms)
+ GET /admin 404 in 138ms (compile: 14ms, render: 125ms)
+ GET /admin 404 in 786ms (compile: 403ms, render: 384ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 810ms (compile: 38ms, render: 772ms)
+ GET /admin 404 in 340ms (compile: 7ms, render: 333ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 340ms (compile: 96ms, render: 244ms)
+ GET /admin 404 in 74ms (compile: 10ms, render: 64ms)
+ GET /admin 404 in 393ms (compile: 200ms, render: 194ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 414ms (compile: 15ms, render: 398ms)
+ GET /admin 404 in 392ms (compile: 24ms, render: 368ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 410ms (compile: 12ms, render: 398ms)
+ HEAD /style-guide/sidebar 200 in 7.4s (compile: 7.1s, render: 324ms)
+ GET /admin 404 in 691ms (compile: 9ms, render: 682ms)
+ GET /admin 404 in 55ms (compile: 10ms, render: 45ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 669ms (compile: 85ms, render: 584ms)
+ GET /admin 404 in 193ms (compile: 92ms, render: 100ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 202ms (compile: 10ms, render: 191ms)
+ GET /admin 404 in 205ms (compile: 11ms, render: 194ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 222ms (compile: 7ms, render: 216ms)
+ GET /admin 404 in 76ms (compile: 9ms, render: 67ms)
+ GET /admin 404 in 133ms (compile: 79ms, render: 53ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 302ms (compile: 90ms, render: 211ms)
+ GET /admin 404 in 206ms (compile: 10ms, render: 196ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 214ms (compile: 7ms, render: 207ms)
+ GET /admin 404 in 52ms (compile: 7ms, render: 45ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 219ms (compile: 9ms, render: 210ms)
+ GET /admin 404 in 157ms (compile: 83ms, render: 73ms)
+ GET /admin 404 in 229ms (compile: 12ms, render: 218ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 228ms (compile: 7ms, render: 222ms)
+ GET /admin 404 in 57ms (compile: 8ms, render: 49ms)
+ GET /admin 404 in 115ms (compile: 82ms, render: 34ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 201ms (compile: 9ms, render: 193ms)
+ GET /admin 404 in 299ms (compile: 10ms, render: 289ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 313ms (compile: 94ms, render: 219ms)
+ GET /admin 404 in 179ms (compile: 9ms, render: 171ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 234ms (compile: 8ms, render: 227ms)
+ GET /admin 404 in 138ms (compile: 10ms, render: 128ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 200ms (compile: 6ms, render: 194ms)
+ GET /admin 404 in 54ms (compile: 8ms, render: 46ms)
+ GET /admin 404 in 212ms (compile: 107ms, render: 105ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 239ms (compile: 18ms, render: 221ms)
+ GET /admin 404 in 228ms (compile: 13ms, render: 215ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 229ms (compile: 6ms, render: 223ms)
+ GET /admin 404 in 57ms (compile: 9ms, render: 48ms)
+ GET /admin 404 in 288ms (compile: 157ms, render: 131ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 301ms (compile: 92ms, render: 209ms)
+ GET /admin 404 in 228ms (compile: 10ms, render: 218ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 237ms (compile: 7ms, render: 230ms)
+ GET /admin 404 in 66ms (compile: 8ms, render: 58ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 203ms (compile: 9ms, render: 194ms)
+ GET /admin 404 in 52ms (compile: 7ms, render: 45ms)
+ GET /admin 404 in 233ms (compile: 9ms, render: 225ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 232ms (compile: 7ms, render: 225ms)
+ GET /admin 404 in 63ms (compile: 8ms, render: 55ms)
+ GET /admin 404 in 220ms (compile: 108ms, render: 112ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 229ms (compile: 12ms, render: 217ms)
+ GET /admin 404 in 326ms (compile: 14ms, render: 313ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 341ms (compile: 68ms, render: 273ms)
+ GET /admin 404 in 79ms (compile: 10ms, render: 69ms)
+ GET /admin 404 in 52ms (compile: 8ms, render: 44ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 256ms (compile: 8ms, render: 248ms)
+ GET /admin 404 in 201ms (compile: 102ms, render: 99ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 217ms (compile: 14ms, render: 203ms)
+ GET /admin 404 in 198ms (compile: 8ms, render: 190ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 212ms (compile: 6ms, render: 206ms)
+ GET /admin 404 in 67ms (compile: 8ms, render: 59ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 208ms (compile: 10ms, render: 198ms)
+ GET /admin 404 in 50ms (compile: 7ms, render: 44ms)
+ GET /admin 404 in 268ms (compile: 9ms, render: 259ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 290ms (compile: 89ms, render: 201ms)
+ GET /admin 404 in 60ms (compile: 10ms, render: 50ms)
+ GET /admin 404 in 205ms (compile: 73ms, render: 132ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 262ms (compile: 9ms, render: 254ms)
+ GET /admin 404 in 219ms (compile: 9ms, render: 210ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 212ms (compile: 6ms, render: 205ms)
+ GET /admin 404 in 215ms (compile: 9ms, render: 206ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 212ms (compile: 10ms, render: 203ms)
+ GET /admin 404 in 204ms (compile: 7ms, render: 197ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 167ms (compile: 6ms, render: 161ms)
+ GET /admin 404 in 286ms (compile: 19ms, render: 267ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 283ms (compile: 88ms, render: 196ms)
+ GET /admin 404 in 54ms (compile: 9ms, render: 45ms)
+ GET /admin 404 in 187ms (compile: 82ms, render: 105ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 251ms (compile: 10ms, render: 241ms)
+ GET /admin 404 in 143ms (compile: 8ms, render: 135ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 209ms (compile: 6ms, render: 204ms)
+ GET /admin 404 in 68ms (compile: 10ms, render: 58ms)
+ GET /admin 404 in 195ms (compile: 92ms, render: 104ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 203ms (compile: 10ms, render: 193ms)
+ GET /admin 404 in 235ms (compile: 14ms, render: 221ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 175ms (compile: 7ms, render: 168ms)
+ GET /admin 404 in 316ms (compile: 9ms, render: 308ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 329ms (compile: 85ms, render: 243ms)
+ GET /admin 404 in 69ms (compile: 8ms, render: 61ms)
+ GET /admin 404 in 117ms (compile: 70ms, render: 47ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 224ms (compile: 8ms, render: 217ms)
+ GET /admin 404 in 221ms (compile: 10ms, render: 211ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 174ms (compile: 8ms, render: 166ms)
+ GET /admin 404 in 204ms (compile: 11ms, render: 194ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 217ms (compile: 6ms, render: 211ms)
+ GET /admin 404 in 73ms (compile: 12ms, render: 61ms)
+ GET /admin 404 in 55ms (compile: 11ms, render: 44ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 209ms (compile: 9ms, render: 200ms)
+ GET /admin 404 in 281ms (compile: 152ms, render: 129ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 292ms (compile: 90ms, render: 202ms)
+ GET /admin 404 in 231ms (compile: 10ms, render: 221ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 224ms (compile: 10ms, render: 214ms)
+ GET /admin 404 in 56ms (compile: 10ms, render: 46ms)
+ GET /admin 404 in 113ms (compile: 67ms, render: 46ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 200ms (compile: 7ms, render: 193ms)
+ GET /admin 404 in 216ms (compile: 12ms, render: 204ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 165ms (compile: 8ms, render: 157ms)
+ GET /admin 404 in 203ms (compile: 8ms, render: 195ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 212ms (compile: 7ms, render: 205ms)
+ GET /admin 404 in 53ms (compile: 12ms, render: 41ms)
+ GET /admin 404 in 136ms (compile: 88ms, render: 48ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 320ms (compile: 88ms, render: 232ms)
+ GET /admin 404 in 206ms (compile: 11ms, render: 195ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 205ms (compile: 7ms, render: 198ms)
+ GET /admin 404 in 56ms (compile: 8ms, render: 48ms)
+ GET /admin 404 in 197ms (compile: 90ms, render: 106ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 204ms (compile: 10ms, render: 194ms)
+ GET /admin 404 in 193ms (compile: 7ms, render: 186ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 202ms (compile: 6ms, render: 196ms)
+ GET /admin 404 in 69ms (compile: 8ms, render: 61ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 232ms (compile: 8ms, render: 223ms)
+ GET /admin 404 in 53ms (compile: 9ms, render: 44ms)
+ GET /admin 404 in 271ms (compile: 8ms, render: 263ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 321ms (compile: 121ms, render: 200ms)
+ GET /admin 404 in 65ms (compile: 7ms, render: 58ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 205ms (compile: 8ms, render: 197ms)
+ GET /admin 404 in 51ms (compile: 9ms, render: 42ms)
+ GET /admin 404 in 212ms (compile: 15ms, render: 197ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 159ms (compile: 7ms, render: 152ms)
+ GET /admin 404 in 207ms (compile: 7ms, render: 201ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 219ms (compile: 8ms, render: 211ms)
+ GET /admin 404 in 57ms (compile: 8ms, render: 49ms)
+ GET /admin 404 in 197ms (compile: 100ms, render: 97ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 223ms (compile: 11ms, render: 212ms)
+ GET /admin 404 in 301ms (compile: 17ms, render: 284ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 304ms (compile: 84ms, render: 220ms)
+ GET /admin 404 in 63ms (compile: 13ms, render: 50ms)
+ GET /admin 404 in 131ms (compile: 84ms, render: 47ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 247ms (compile: 16ms, render: 231ms)
+ GET /admin 404 in 189ms (compile: 12ms, render: 178ms)
+ GET /admin 404 in 60ms (compile: 9ms, render: 51ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 258ms (compile: 9ms, render: 249ms)
+ GET /admin 404 in 185ms (compile: 85ms, render: 101ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 241ms (compile: 9ms, render: 232ms)
+ GET /admin 404 in 56ms (compile: 6ms, render: 49ms)
+ GET /admin 404 in 175ms (compile: 85ms, render: 90ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 191ms (compile: 10ms, render: 181ms)
+ GET /admin 404 in 279ms (compile: 9ms, render: 270ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 286ms (compile: 88ms, render: 197ms)
+ GET /admin 404 in 52ms (compile: 7ms, render: 45ms)
+ GET /admin 404 in 206ms (compile: 100ms, render: 106ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 214ms (compile: 11ms, render: 203ms)
+ GET /admin 404 in 220ms (compile: 13ms, render: 207ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 227ms (compile: 6ms, render: 220ms)
+ GET /admin 404 in 66ms (compile: 8ms, render: 58ms)
+ GET /admin 404 in 44ms (compile: 7ms, render: 37ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 230ms (compile: 7ms, render: 223ms)
+ GET /admin 404 in 202ms (compile: 10ms, render: 192ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 168ms (compile: 6ms, render: 162ms)
+ GET /admin 404 in 327ms (compile: 12ms, render: 315ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 329ms (compile: 93ms, render: 236ms)
+ GET /admin 404 in 55ms (compile: 7ms, render: 47ms)
+ GET /admin 404 in 204ms (compile: 94ms, render: 109ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 214ms (compile: 11ms, render: 202ms)
+ GET /admin 404 in 344ms (compile: 10ms, render: 334ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 276ms (compile: 7ms, render: 269ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 189ms (compile: 8ms, render: 181ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 278ms (compile: 99ms, render: 179ms)
+[next-auth][warn][NEXTAUTH_URL] 
+https://next-auth.js.org/warnings#nextauth_url
+ GET /api/auth/session 200 in 332ms (compile: 275ms, render: 56ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 525ms (compile: 7ms, render: 518ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 180ms (compile: 11ms, render: 169ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 177ms (compile: 8ms, render: 169ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 226ms (compile: 90ms, render: 136ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 147ms (compile: 7ms, render: 140ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 193ms (compile: 11ms, render: 181ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 219ms (compile: 9ms, render: 210ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 181ms (compile: 7ms, render: 174ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 193ms (compile: 6ms, render: 187ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 253ms (compile: 70ms, render: 183ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 230ms (compile: 7ms, render: 223ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 205ms (compile: 7ms, render: 197ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 162ms (compile: 6ms, render: 156ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 144ms (compile: 6ms, render: 139ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 231ms (compile: 82ms, render: 149ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 143ms (compile: 7ms, render: 136ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 126ms (compile: 5ms, render: 121ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 137ms (compile: 7ms, render: 130ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 132ms (compile: 8ms, render: 124ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 158ms (compile: 6ms, render: 153ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 136ms (compile: 7ms, render: 129ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 218ms (compile: 87ms, render: 131ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 132ms (compile: 8ms, render: 124ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 132ms (compile: 8ms, render: 124ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 182ms (compile: 9ms, render: 173ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 142ms (compile: 6ms, render: 136ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 147ms (compile: 7ms, render: 140ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 216ms (compile: 79ms, render: 136ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 124ms (compile: 6ms, render: 118ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 141ms (compile: 6ms, render: 135ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 144ms (compile: 7ms, render: 137ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 121ms (compile: 8ms, render: 113ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 160ms (compile: 7ms, render: 153ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 231ms (compile: 89ms, render: 142ms)
+ GET /admin 404 in 124ms (compile: 27ms, render: 97ms)
+ GET /api/auth/session 200 in 113ms (compile: 94ms, render: 19ms)
+ GET / 307 in 214ms (compile: 73ms, render: 141ms)
+ GET /admin/dashboard 200 in 2.9s (compile: 1956ms, render: 937ms)
+ GET /api/auth/session 200 in 110ms (compile: 89ms, render: 20ms)
+ GET /admin/dashboard 200 in 286ms (compile: 5ms, render: 281ms)
+ GET /admin/dashboard 200 in 405ms (compile: 20ms, render: 385ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 1111ms (compile: 103ms, render: 1008ms)
+ GET /api/auth/session 200 in 103ms (compile: 85ms, render: 18ms)
+ ✓ Compiled in 391ms
+[next-auth][warn][NEXTAUTH_URL] 
+https://next-auth.js.org/warnings#nextauth_url
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 505ms (compile: 357ms, render: 148ms)
+[next-auth][warn][NEXTAUTH_URL] 
+https://next-auth.js.org/warnings#nextauth_url
+ GET /admin/dashboard 200 in 1481ms (compile: 185ms, render: 1296ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 1230ms (compile: 9ms, render: 1221ms)
+ GET /api/auth/session 200 in 128ms (compile: 96ms, render: 32ms)
+ ✓ Compiled in 139ms
+[next-auth][warn][NEXTAUTH_URL] 
+https://next-auth.js.org/warnings#nextauth_url
+[next-auth][warn][NEXTAUTH_URL] 
+https://next-auth.js.org/warnings#nextauth_url
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 1305ms (compile: 286ms, render: 1019ms)
+ GET /admin/dashboard 200 in 1343ms (compile: 633ms, render: 711ms)
+ ✓ Compiled in 0ms
+ GET /admin/dashboard 200 in 4.1s (compile: 17ms, render: 4.0s)
+ GET /api/auth/session 200 in 111ms (compile: 83ms, render: 28ms)
+ GET /admin/dashboard 200 in 548ms (compile: 8ms, render: 540ms)
+ GET /admin/dashboard 200 in 417ms (compile: 25ms, render: 392ms)
+ GET /admin/dashboard 200 in 398ms (compile: 24ms, render: 374ms)
+ ○ Compiling /admin/users ...
+ GET /admin/users 200 in 3.9s (compile: 3.1s, render: 823ms)
+ ⚠ Fast Refresh had to perform a full reload when ./clevio lms 2/lms-app/src/components/ui/sidebar.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ✓ Compiled in 51ms
+[next-auth][warn][NEXTAUTH_URL] 
+https://next-auth.js.org/warnings#nextauth_url
+ GET /admin/users 200 in 938ms (compile: 159ms, render: 779ms)
+ GET /api/auth/session 200 in 109ms (compile: 87ms, render: 22ms)
+[next-auth][warn][NEXTAUTH_URL] 
+https://next-auth.js.org/warnings#nextauth_url
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 265ms (compile: 93ms, render: 172ms)
+ GET /admin/users 200 in 555ms (compile: 89ms, render: 466ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 146ms (compile: 6ms, render: 141ms)
+ GET /admin/users 200 in 269ms (compile: 9ms, render: 260ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 496ms (compile: 223ms, render: 273ms)
+[next-auth][warn][NEXTAUTH_URL] 
+https://next-auth.js.org/warnings#nextauth_url
+ GET /admin/users 200 in 1336ms (compile: 21ms, render: 1315ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 1790ms (compile: 11ms, render: 1779ms)
+ GET /api/auth/session 200 in 123ms (compile: 96ms, render: 27ms)
+ GET /admin/leave 200 in 3.8s (compile: 2.1s, render: 1694ms)
+ GET /api/auth/session 200 in 302ms (compile: 195ms, render: 107ms)
+ GET /admin/leave 200 in 530ms (compile: 36ms, render: 493ms)
+ GET /api/auth/session 200 in 236ms (compile: 184ms, render: 52ms)
+ GET /admin/leave 200 in 564ms (compile: 16ms, render: 547ms)
+ GET /api/auth/session 200 in 174ms (compile: 119ms, render: 54ms)
+ GET /admin/leave 200 in 650ms (compile: 23ms, render: 628ms)
+ GET /api/auth/session 200 in 124ms (compile: 75ms, render: 49ms)
+ GET /admin/leave 200 in 549ms (compile: 7ms, render: 542ms)
+ GET /api/auth/session 200 in 164ms (compile: 118ms, render: 47ms)
+ GET /admin/leave 200 in 1142ms (compile: 16ms, render: 1126ms)
+ GET /api/auth/session 200 in 151ms (compile: 94ms, render: 57ms)
+ GET /admin/leave 200 in 909ms (compile: 24ms, render: 885ms)
+ GET /api/auth/session 200 in 196ms (compile: 94ms, render: 103ms)
+ ✓ Compiled in 373ms
+ ✓ Compiled in 352ms
+[next-auth][warn][NEXTAUTH_URL] 
+https://next-auth.js.org/warnings#nextauth_url
+ GET /admin/leave 200 in 1536ms (compile: 435ms, render: 1101ms)
+ GET /api/auth/session 200 in 102ms (compile: 63ms, render: 40ms)
+ GET /admin/leave 200 in 645ms (compile: 14ms, render: 631ms)
+ GET /api/auth/session 200 in 91ms (compile: 55ms, render: 36ms)
+[next-auth][warn][NEXTAUTH_URL] 
+https://next-auth.js.org/warnings#nextauth_url
+ GET /admin/users 200 in 2.1s (compile: 336ms, render: 1720ms)
+ GET /api/auth/session 200 in 94ms (compile: 67ms, render: 26ms)
+ ✓ Compiled in 1169ms
+ ✓ Compiled in 237ms
+ ✓ Compiled in 174ms
+ ✓ Compiled in 222ms
+ ✓ Compiled in 179ms
+ ✓ Compiled in 209ms
+ ✓ Compiled in 262ms
+ ✓ Compiled in 209ms
+ ✓ Compiled in 147ms
+ ✓ Compiled in 192ms
+ ✓ Compiled in 214ms
+ ✓ Compiled in 179ms
+ ✓ Compiled in 175ms
+ ✓ Compiled in 161ms
+ ✓ Compiled in 224ms
+ ✓ Compiled in 152ms
+ ✓ Compiled in 1ms
+[next-auth][warn][NEXTAUTH_URL] 
+https://next-auth.js.org/warnings#nextauth_url
+ GET /admin/users 200 in 373ms (compile: 123ms, render: 250ms)
+ GET /admin/users 200 in 99ms (compile: 7ms, render: 93ms)
+ GET /admin/users 200 in 70ms (compile: 4ms, render: 66ms)
+ GET /admin/users 200 in 90ms (compile: 5ms, render: 85ms)
+ GET /admin/users 200 in 64ms (compile: 4ms, render: 60ms)
+ GET /admin/users 200 in 82ms (compile: 6ms, render: 75ms)
+ GET /admin/users 200 in 65ms (compile: 5ms, render: 60ms)
+ GET /admin/users 200 in 79ms (compile: 4ms, render: 75ms)
+ GET /admin/users 200 in 77ms (compile: 4ms, render: 72ms)
+ GET /admin/users 200 in 76ms (compile: 4ms, render: 72ms)
+ GET /admin/users 200 in 65ms (compile: 5ms, render: 60ms)
+ GET /admin/users 200 in 85ms (compile: 4ms, render: 81ms)
+ GET /admin/users 200 in 65ms (compile: 5ms, render: 61ms)
+ GET /admin/users 200 in 84ms (compile: 7ms, render: 77ms)
+ GET /admin/users 200 in 61ms (compile: 4ms, render: 57ms)
+ GET /admin/users 200 in 77ms (compile: 6ms, render: 71ms)
+ GET /admin/users 200 in 64ms (compile: 4ms, render: 60ms)
+ GET /admin/users 200 in 70ms (compile: 4ms, render: 66ms)
+ GET /admin/users 200 in 68ms (compile: 5ms, render: 64ms)
+ GET /admin/users 200 in 110ms (compile: 4ms, render: 106ms)
+ GET /admin/users 200 in 139ms (compile: 5ms, render: 134ms)
+ GET /admin/users 200 in 177ms (compile: 15ms, render: 163ms)
+ GET /admin/users 200 in 80ms (compile: 6ms, render: 74ms)
+ GET /admin/users 200 in 60ms (compile: 4ms, render: 56ms)
+ GET /admin/users 200 in 78ms (compile: 4ms, render: 74ms)
+ GET /admin/users 200 in 69ms (compile: 4ms, render: 65ms)
+ GET /admin/users 200 in 62ms (compile: 4ms, render: 58ms)
+ GET /admin/users 200 in 74ms (compile: 5ms, render: 69ms)
+ GET /admin/users 200 in 66ms (compile: 4ms, render: 62ms)
+ GET /admin/users 200 in 84ms (compile: 6ms, render: 78ms)
+ GET /admin/users 200 in 62ms (compile: 4ms, render: 58ms)
+ GET /admin/users 200 in 77ms (compile: 4ms, render: 73ms)
+ GET /admin/users 200 in 72ms (compile: 5ms, render: 67ms)
+ GET /admin/users 200 in 79ms (compile: 5ms, render: 74ms)
+ GET /admin/users 200 in 68ms (compile: 5ms, render: 64ms)
+ GET /admin/users 200 in 77ms (compile: 4ms, render: 73ms)
+ GET /admin/users 200 in 71ms (compile: 6ms, render: 65ms)
+ GET /admin/users 200 in 81ms (compile: 7ms, render: 74ms)
+ GET /admin/users 200 in 64ms (compile: 5ms, render: 60ms)
+ GET /admin/users 200 in 78ms (compile: 4ms, render: 74ms)
+ GET /admin/users 200 in 64ms (compile: 4ms, render: 60ms)
+ GET /admin/users 200 in 84ms (compile: 8ms, render: 75ms)
+ GET /admin/users 200 in 70ms (compile: 4ms, render: 66ms)
+ GET /admin/users 200 in 89ms (compile: 5ms, render: 84ms)
+ GET /admin/users 200 in 65ms (compile: 6ms, render: 60ms)
+ GET /admin/users 200 in 78ms (compile: 7ms, render: 72ms)
+ GET /admin/users 200 in 62ms (compile: 4ms, render: 58ms)
+ GET /admin/users 200 in 76ms (compile: 6ms, render: 70ms)
+ GET /admin/users 200 in 62ms (compile: 5ms, render: 57ms)
+ GET /admin/users 200 in 75ms (compile: 4ms, render: 71ms)
+ GET /admin/users 200 in 66ms (compile: 5ms, render: 61ms)
+ GET /admin/users 200 in 78ms (compile: 4ms, render: 74ms)
+ GET /admin/users 200 in 66ms (compile: 4ms, render: 62ms)
+ GET /admin/users 200 in 75ms (compile: 7ms, render: 68ms)
+ GET /admin/users 200 in 63ms (compile: 4ms, render: 59ms)
+ GET /admin/users 200 in 75ms (compile: 4ms, render: 71ms)
+ GET /admin/users 200 in 75ms (compile: 5ms, render: 70ms)
+ GET /admin/users 200 in 75ms (compile: 6ms, render: 69ms)
+ GET /admin/users 200 in 68ms (compile: 4ms, render: 64ms)
+ GET /admin/users 200 in 75ms (compile: 4ms, render: 71ms)
+ GET /admin/users 200 in 65ms (compile: 4ms, render: 61ms)
+ GET /admin/users 200 in 77ms (compile: 4ms, render: 72ms)
+ GET /admin/users 200 in 65ms (compile: 5ms, render: 60ms)
+ GET /admin/users 200 in 89ms (compile: 5ms, render: 84ms)
+ GET /admin/users 200 in 65ms (compile: 4ms, render: 60ms)
+ GET /admin/users 200 in 88ms (compile: 5ms, render: 83ms)
+ GET /admin/users 200 in 74ms (compile: 6ms, render: 68ms)
+ GET /admin/users 200 in 78ms (compile: 5ms, render: 73ms)
+ GET /admin/users 200 in 70ms (compile: 4ms, render: 66ms)
+ GET /admin/users 200 in 76ms (compile: 5ms, render: 71ms)
+ GET /admin/users 200 in 67ms (compile: 5ms, render: 62ms)
+ GET /admin/users 200 in 78ms (compile: 4ms, render: 74ms)
+ GET /admin/users 200 in 72ms (compile: 5ms, render: 67ms)
+ GET /admin/users 200 in 81ms (compile: 4ms, render: 76ms)
+ GET /admin/users 200 in 64ms (compile: 5ms, render: 59ms)
+ GET /admin/users 200 in 81ms (compile: 4ms, render: 77ms)
+ GET /admin/users 200 in 66ms (compile: 5ms, render: 60ms)
+ GET /admin/users 200 in 83ms (compile: 4ms, render: 79ms)
+ GET /admin/users 200 in 68ms (compile: 5ms, render: 63ms)
+ GET /admin/users 200 in 81ms (compile: 4ms, render: 77ms)
+ GET /admin/users 200 in 67ms (compile: 5ms, render: 62ms)
+ GET /admin/users 200 in 82ms (compile: 5ms, render: 77ms)
+ GET /admin/users 200 in 67ms (compile: 4ms, render: 63ms)
+ GET /admin/users 200 in 82ms (compile: 5ms, render: 77ms)
+ GET /admin/users 200 in 68ms (compile: 5ms, render: 63ms)
+ GET /admin/users 200 in 84ms (compile: 5ms, render: 80ms)
+ GET /admin/users 200 in 66ms (compile: 4ms, render: 62ms)
+ GET /admin/users 200 in 80ms (compile: 4ms, render: 76ms)
+ GET /admin/users 200 in 70ms (compile: 4ms, render: 67ms)
+ GET /admin/users 200 in 88ms (compile: 5ms, render: 83ms)
+ GET /admin/users 200 in 73ms (compile: 5ms, render: 68ms)
+ GET /admin/users 200 in 79ms (compile: 4ms, render: 76ms)
+ GET /admin/users 200 in 67ms (compile: 5ms, render: 62ms)
+ GET /admin/users 200 in 79ms (compile: 6ms, render: 73ms)
+ GET /admin/users 200 in 71ms (compile: 6ms, render: 65ms)
+ GET /admin/users 200 in 83ms (compile: 5ms, render: 78ms)
+ GET /admin/users 200 in 88ms (compile: 6ms, render: 82ms)
+ GET /admin/users 200 in 92ms (compile: 5ms, render: 87ms)
+ GET /admin/users 200 in 73ms (compile: 5ms, render: 68ms)
+ GET /admin/users 200 in 86ms (compile: 5ms, render: 81ms)
+ GET /admin/users 200 in 74ms (compile: 4ms, render: 70ms)
+ GET /admin/users 200 in 88ms (compile: 5ms, render: 83ms)
+ GET /admin/users 200 in 72ms (compile: 5ms, render: 67ms)
+ GET /admin/users 200 in 79ms (compile: 4ms, render: 75ms)
+ GET /admin/users 200 in 69ms (compile: 5ms, render: 64ms)
+ GET /admin/users 200 in 85ms (compile: 5ms, render: 80ms)
+ GET /admin/users 200 in 67ms (compile: 5ms, render: 63ms)
+ GET /admin/users 200 in 95ms (compile: 5ms, render: 90ms)
+ GET /admin/users 200 in 83ms (compile: 6ms, render: 77ms)
+ GET /admin/users 200 in 92ms (compile: 5ms, render: 86ms)
+ GET /admin/users 200 in 67ms (compile: 4ms, render: 63ms)
+ GET /admin/users 200 in 93ms (compile: 7ms, render: 86ms)
+ GET /admin/users 200 in 77ms (compile: 5ms, render: 72ms)
+ GET /admin/users 200 in 84ms (compile: 5ms, render: 79ms)
+ GET /admin/users 200 in 91ms (compile: 4ms, render: 87ms)
+ GET /admin/users 200 in 100ms (compile: 6ms, render: 94ms)
+ GET /admin/users 200 in 78ms (compile: 5ms, render: 73ms)
+ GET /admin/users 200 in 92ms (compile: 7ms, render: 86ms)
+ GET /admin/users 200 in 84ms (compile: 5ms, render: 79ms)
+ GET /admin/users 200 in 86ms (compile: 5ms, render: 81ms)
+ GET /admin/users 200 in 67ms (compile: 6ms, render: 60ms)
+ GET /admin/users 200 in 89ms (compile: 4ms, render: 85ms)
+ GET /admin/users 200 in 93ms (compile: 6ms, render: 87ms)
+ GET /admin/users 200 in 78ms (compile: 4ms, render: 74ms)
+ GET /admin/users 200 in 64ms (compile: 5ms, render: 59ms)
+ GET /admin/users 200 in 81ms (compile: 4ms, render: 76ms)
+ GET /admin/users 200 in 68ms (compile: 5ms, render: 63ms)
+ GET /admin/users 200 in 76ms (compile: 6ms, render: 70ms)
+[next-auth][warn][NEXTAUTH_URL] 
+https://next-auth.js.org/warnings#nextauth_url
+ GET /api/auth/session 200 in 369ms (compile: 315ms, render: 54ms)
+ GET /admin/users 200 in 953ms (compile: 13ms, render: 940ms)
+ GET /api/auth/session 200 in 70ms (compile: 51ms, render: 19ms)
+ ○ Compiling /style-guide/lms-dashboard ...
+ ⨯ ReferenceError: Settings is not defined
+    at module evaluation (src/app/(public)/style-guide/lms-dashboard/page.tsx:499:11)
+  497 |   { icon: Award, label: 'Rubrics', active: false },
+  498 |   { icon: MessageSquare, label: 'Messages', active: false },
+> 499 |   { icon: Settings, label: 'Settings', active: false },
+      |           ^
+  500 | ];
+  501 |
+  502 | const LMSDashboard: React.FC = () => { {
+  digest: '4221608725'
+}
+ GET /style-guide/lms-dashboard 500 in 4.4s (compile: 3.5s, render: 822ms)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload when ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled in 338ms
+ GET /style-guide/lms-dashboard 200 in 519ms (compile: 103ms, render: 416ms)
+ GET /api/auth/session 200 in 116ms (compile: 90ms, render: 26ms)
+ GET /api/auth/session 200 in 19ms (compile: 4ms, render: 15ms)
+ ✓ Compiled in 192ms
+[next-auth][warn][NEXTAUTH_URL] 
+https://next-auth.js.org/warnings#nextauth_url
+ GET /style-guide/lms-dashboard 404 in 161ms (compile: 96ms, render: 66ms)
+ GET /admin/users 200 in 524ms (compile: 158ms, render: 366ms)
+ GET /style-guide/lms-dashboard 404 in 133ms (compile: 73ms, render: 60ms)
+ GET /admin/users 200 in 200ms (compile: 7ms, render: 193ms)
+ GET /style-guide/lms-dashboard 404 in 59ms (compile: 7ms, render: 52ms)
+ GET /style-guide/lms-dashboard 404 in 96ms (compile: 16ms, render: 79ms)
+ GET /admin/users 200 in 504ms (compile: 6ms, render: 498ms)
+ GET /style-guide/lms-dashboard 404 in 459ms (compile: 31ms, render: 428ms)
+ GET /style-guide/lms-dashboard 404 in 61ms (compile: 8ms, render: 53ms)
+ GET /admin/users 200 in 259ms (compile: 7ms, render: 252ms)
+ GET /style-guide/lms-dashboard 404 in 122ms (compile: 65ms, render: 56ms)
+ GET /admin/users 200 in 182ms (compile: 7ms, render: 175ms)
+ GET /style-guide/lms-dashboard 404 in 57ms (compile: 8ms, render: 49ms)
+ GET /style-guide/lms-dashboard 404 in 54ms (compile: 14ms, render: 40ms)
+ GET /admin/users 200 in 156ms (compile: 8ms, render: 148ms)
+ GET /style-guide/lms-dashboard 404 in 140ms (compile: 70ms, render: 71ms)
+ GET /admin/users 200 in 189ms (compile: 8ms, render: 180ms)
+ GET /style-guide/lms-dashboard 404 in 49ms (compile: 7ms, render: 42ms)
+ GET /style-guide/lms-dashboard 404 in 40ms (compile: 6ms, render: 35ms)
+ GET /admin/users 200 in 140ms (compile: 7ms, render: 133ms)
+ GET /style-guide/lms-dashboard 404 in 63ms (compile: 29ms, render: 35ms)
+ GET /admin/users 200 in 137ms (compile: 6ms, render: 131ms)
+ GET /style-guide/lms-dashboard 404 in 132ms (compile: 7ms, render: 125ms)
+ GET /admin/users 200 in 138ms (compile: 5ms, render: 133ms)
+ GET /style-guide/lms-dashboard 404 in 45ms (compile: 6ms, render: 39ms)
+ GET /style-guide/lms-dashboard 404 in 41ms (compile: 6ms, render: 35ms)
+ GET /admin/users 200 in 131ms (compile: 4ms, render: 127ms)
+ GET /style-guide/lms-dashboard 404 in 132ms (compile: 8ms, render: 123ms)
+ GET /admin/users 200 in 139ms (compile: 5ms, render: 134ms)
+ GET /style-guide/lms-dashboard 404 in 44ms (compile: 6ms, render: 38ms)
+ GET /style-guide/lms-dashboard 404 in 49ms (compile: 12ms, render: 37ms)
+ GET /admin/users 200 in 183ms (compile: 6ms, render: 177ms)
+ GET /style-guide/lms-dashboard 404 in 47ms (compile: 7ms, render: 40ms)
+ GET /style-guide/lms-dashboard 404 in 48ms (compile: 12ms, render: 36ms)
+ GET /admin/users 200 in 178ms (compile: 6ms, render: 172ms)
+ GET /style-guide/lms-dashboard 404 in 124ms (compile: 7ms, render: 117ms)
+ GET /style-guide/lms-dashboard 404 in 43ms (compile: 6ms, render: 37ms)
+ GET /admin/users 200 in 138ms (compile: 6ms, render: 133ms)
+ GET /style-guide/lms-dashboard 404 in 51ms (compile: 16ms, render: 35ms)
+ GET /admin/users 200 in 135ms (compile: 8ms, render: 127ms)
+ GET /style-guide/lms-dashboard 404 in 133ms (compile: 8ms, render: 125ms)
+ GET /admin/users 200 in 148ms (compile: 5ms, render: 143ms)
+ GET /style-guide/lms-dashboard 404 in 53ms (compile: 6ms, render: 47ms)
+ GET /style-guide/lms-dashboard 404 in 133ms (compile: 87ms, render: 46ms)
+ GET /admin/users 200 in 188ms (compile: 9ms, render: 179ms)
+ GET /style-guide/lms-dashboard 404 in 119ms (compile: 6ms, render: 113ms)
+ GET /style-guide/lms-dashboard 404 in 44ms (compile: 7ms, render: 37ms)
+ GET /admin/users 200 in 143ms (compile: 7ms, render: 136ms)
+ GET /style-guide/lms-dashboard 404 in 124ms (compile: 10ms, render: 114ms)
+ GET /admin/users 200 in 165ms (compile: 38ms, render: 127ms)
+ GET /style-guide/lms-dashboard 404 in 47ms (compile: 7ms, render: 40ms)
+ GET /style-guide/lms-dashboard 404 in 39ms (compile: 5ms, render: 35ms)
+ GET /admin/users 200 in 133ms (compile: 8ms, render: 125ms)
+ GET /style-guide/lms-dashboard 404 in 125ms (compile: 7ms, render: 118ms)
+ GET /admin/users 200 in 131ms (compile: 6ms, render: 126ms)
+ GET /style-guide/lms-dashboard 404 in 44ms (compile: 6ms, render: 38ms)
+ GET /style-guide/lms-dashboard 404 in 51ms (compile: 14ms, render: 37ms)
+ GET /admin/users 200 in 139ms (compile: 7ms, render: 133ms)
+ GET /style-guide/lms-dashboard 404 in 122ms (compile: 7ms, render: 115ms)
+ GET /admin/users 200 in 132ms (compile: 4ms, render: 128ms)
+ GET /style-guide/lms-dashboard 404 in 45ms (compile: 7ms, render: 38ms)
+ GET /style-guide/lms-dashboard 404 in 49ms (compile: 13ms, render: 35ms)
+ GET /admin/users 200 in 175ms (compile: 6ms, render: 169ms)
+ GET /style-guide/lms-dashboard 404 in 133ms (compile: 7ms, render: 125ms)
+ GET /admin/users 200 in 136ms (compile: 6ms, render: 130ms)
+ GET /style-guide/lms-dashboard 404 in 46ms (compile: 6ms, render: 40ms)
+ GET /style-guide/lms-dashboard 404 in 42ms (compile: 6ms, render: 36ms)
+ GET /admin/users 200 in 181ms (compile: 7ms, render: 175ms)
+ GET /style-guide/lms-dashboard 404 in 131ms (compile: 6ms, render: 125ms)
+ GET /style-guide/lms-dashboard 404 in 40ms (compile: 6ms, render: 34ms)
+ GET /admin/users 200 in 142ms (compile: 5ms, render: 137ms)
+ GET /style-guide/lms-dashboard 404 in 121ms (compile: 7ms, render: 114ms)
+ GET /admin/users 200 in 127ms (compile: 5ms, render: 121ms)
+ GET /style-guide/lms-dashboard 404 in 123ms (compile: 6ms, render: 118ms)
+ GET /style-guide/lms-dashboard 404 in 43ms (compile: 6ms, render: 37ms)
+ GET /admin/users 200 in 139ms (compile: 4ms, render: 135ms)
+ GET /style-guide/lms-dashboard 404 in 127ms (compile: 11ms, render: 116ms)
+ GET /admin/users 200 in 165ms (compile: 38ms, render: 127ms)
+ GET /style-guide/lms-dashboard 404 in 43ms (compile: 6ms, render: 36ms)
+ GET /style-guide/lms-dashboard 404 in 38ms (compile: 5ms, render: 33ms)
+ GET /admin/users 200 in 128ms (compile: 5ms, render: 123ms)
+ GET /style-guide/lms-dashboard 404 in 122ms (compile: 63ms, render: 59ms)
+ GET /admin/users 200 in 166ms (compile: 6ms, render: 159ms)
+ GET /style-guide/lms-dashboard 404 in 120ms (compile: 5ms, render: 115ms)
+ GET /style-guide/lms-dashboard 404 in 40ms (compile: 5ms, render: 34ms)
+ GET /admin/users 200 in 134ms (compile: 5ms, render: 130ms)
+ GET /style-guide/lms-dashboard 404 in 124ms (compile: 67ms, render: 56ms)
+ GET /admin/users 200 in 172ms (compile: 7ms, render: 165ms)
+ GET /style-guide/lms-dashboard 404 in 121ms (compile: 6ms, render: 115ms)
+ GET /style-guide/lms-dashboard 404 in 249ms (compile: 6ms, render: 243ms)
+ GET /admin/users 200 in 351ms (compile: 6ms, render: 345ms)
+[next-auth][warn][NEXTAUTH_URL] 
+https://next-auth.js.org/warnings#nextauth_url
+ GET /admin/users 200 in 1088ms (compile: 183ms, render: 905ms)
+ GET /admin/users 200 in 114ms (compile: 10ms, render: 104ms)
+ GET /admin/users 200 in 133ms (compile: 6ms, render: 127ms)
+ GET /style-guide/lms-dashboard 200 in 1611ms (compile: 1517ms, render: 93ms)
+ GET /admin/users 200 in 229ms (compile: 6ms, render: 223ms)
+ GET /style-guide/lms-dashboard 200 in 50ms (compile: 5ms, render: 45ms)
+ GET /admin/users 200 in 157ms (compile: 4ms, render: 152ms)
+ GET /style-guide/lms-dashboard 200 in 128ms (compile: 8ms, render: 120ms)
+ GET /admin/users 200 in 135ms (compile: 45ms, render: 90ms)
+ GET /style-guide/lms-dashboard 200 in 129ms (compile: 66ms, render: 63ms)
+ GET /admin/users 200 in 137ms (compile: 8ms, render: 129ms)
+ GET /style-guide/lms-dashboard 200 in 128ms (compile: 5ms, render: 123ms)
+ GET /admin/users 200 in 92ms (compile: 5ms, render: 87ms)
+ GET /style-guide/lms-dashboard 200 in 126ms (compile: 5ms, render: 121ms)
+ GET /admin/users 200 in 134ms (compile: 4ms, render: 129ms)
+ GET /style-guide/lms-dashboard 200 in 131ms (compile: 5ms, render: 126ms)
+ GET /style-guide/lms-dashboard 200 in 43ms (compile: 4ms, render: 39ms)
+ GET /admin/users 200 in 135ms (compile: 4ms, render: 130ms)
+ GET /style-guide/lms-dashboard 200 in 60ms (compile: 10ms, render: 49ms)
+ GET /admin/users 200 in 139ms (compile: 6ms, render: 132ms)
+ GET /style-guide/lms-dashboard 200 in 134ms (compile: 6ms, render: 128ms)
+ GET /admin/users 200 in 93ms (compile: 5ms, render: 88ms)
+ GET /style-guide/lms-dashboard 200 in 126ms (compile: 4ms, render: 122ms)
+ GET /admin/users 200 in 90ms (compile: 6ms, render: 84ms)
+ GET /style-guide/lms-dashboard 200 in 140ms (compile: 5ms, render: 135ms)
+ GET /admin/users 200 in 95ms (compile: 8ms, render: 87ms)
+ GET /style-guide/lms-dashboard 200 in 71ms (compile: 9ms, render: 61ms)
+ GET /admin/users 200 in 137ms (compile: 5ms, render: 132ms)
+ GET /style-guide/lms-dashboard 200 in 79ms (compile: 14ms, render: 65ms)
+ GET /admin/users 200 in 150ms (compile: 6ms, render: 144ms)
+ GET /style-guide/lms-dashboard 200 in 62ms (compile: 9ms, render: 53ms)
+ GET /admin/users 200 in 124ms (compile: 5ms, render: 119ms)
+ GET /style-guide/lms-dashboard 200 in 66ms (compile: 10ms, render: 56ms)
+ GET /admin/users 200 in 129ms (compile: 5ms, render: 123ms)
+ GET /style-guide/lms-dashboard 200 in 55ms (compile: 9ms, render: 46ms)
+ GET /admin/users 200 in 168ms (compile: 5ms, render: 163ms)
+ GET /style-guide/lms-dashboard 200 in 118ms (compile: 5ms, render: 113ms)
+ GET /style-guide/lms-dashboard 200 in 43ms (compile: 5ms, render: 38ms)
+ GET /admin/users 200 in 143ms (compile: 6ms, render: 137ms)
+ GET /style-guide/lms-dashboard 200 in 136ms (compile: 6ms, render: 130ms)
+ GET /admin/users 200 in 91ms (compile: 5ms, render: 86ms)
+ GET /style-guide/lms-dashboard 200 in 131ms (compile: 7ms, render: 124ms)
+ GET /admin/users 200 in 97ms (compile: 6ms, render: 91ms)
+ GET /style-guide/lms-dashboard 200 in 125ms (compile: 6ms, render: 119ms)
+ GET /admin/users 200 in 87ms (compile: 5ms, render: 83ms)
+ GET /style-guide/lms-dashboard 200 in 130ms (compile: 4ms, render: 126ms)
+ GET /admin/users 200 in 146ms (compile: 5ms, render: 141ms)
+ GET /style-guide/lms-dashboard 200 in 122ms (compile: 5ms, render: 117ms)
+ GET /style-guide/lms-dashboard 200 in 42ms (compile: 5ms, render: 37ms)
+ GET /admin/users 200 in 132ms (compile: 5ms, render: 126ms)
+ GET /style-guide/lms-dashboard 200 in 119ms (compile: 5ms, render: 114ms)
+ GET /admin/users 200 in 85ms (compile: 5ms, render: 80ms)
+ GET /style-guide/lms-dashboard 200 in 145ms (compile: 5ms, render: 140ms)
+ GET /admin/users 200 in 114ms (compile: 5ms, render: 109ms)
+ GET /style-guide/lms-dashboard 200 in 122ms (compile: 5ms, render: 116ms)
+ GET /admin/users 200 in 88ms (compile: 5ms, render: 83ms)
+ GET /style-guide/lms-dashboard 200 in 124ms (compile: 4ms, render: 120ms)
+ GET /admin/users 200 in 92ms (compile: 6ms, render: 86ms)
+ GET /style-guide/lms-dashboard 200 in 126ms (compile: 5ms, render: 121ms)
+ GET /admin/users 200 in 91ms (compile: 5ms, render: 86ms)
+ GET /style-guide/lms-dashboard 200 in 125ms (compile: 7ms, render: 118ms)
+ GET /admin/users 200 in 130ms (compile: 5ms, render: 125ms)
+ GET /style-guide/lms-dashboard 200 in 127ms (compile: 5ms, render: 121ms)
+ GET /admin/users 200 in 91ms (compile: 6ms, render: 85ms)
+ GET /style-guide/lms-dashboard 200 in 116ms (compile: 5ms, render: 111ms)
+ GET /admin/users 200 in 90ms (compile: 5ms, render: 85ms)
+ GET /style-guide/lms-dashboard 200 in 113ms (compile: 7ms, render: 106ms)
+ GET /admin/users 200 in 144ms (compile: 4ms, render: 140ms)
+ GET /style-guide/lms-dashboard 200 in 136ms (compile: 18ms, render: 118ms)
+ GET /style-guide/lms-dashboard 200 in 53ms (compile: 5ms, render: 48ms)
+ GET /admin/users 200 in 129ms (compile: 7ms, render: 122ms)
+ GET /style-guide/lms-dashboard 200 in 128ms (compile: 5ms, render: 123ms)
+ GET /admin/users 200 in 96ms (compile: 5ms, render: 91ms)
+ GET /style-guide/lms-dashboard 200 in 127ms (compile: 5ms, render: 122ms)
+ GET /admin/users 200 in 130ms (compile: 5ms, render: 125ms)
+ GET /style-guide/lms-dashboard 200 in 127ms (compile: 5ms, render: 121ms)
+ GET /admin/users 200 in 90ms (compile: 6ms, render: 84ms)
+ GET /style-guide/lms-dashboard 200 in 122ms (compile: 5ms, render: 117ms)
+ GET /admin/users 200 in 87ms (compile: 4ms, render: 83ms)
+ GET /style-guide/lms-dashboard 200 in 123ms (compile: 6ms, render: 117ms)
+ GET /admin/users 200 in 93ms (compile: 4ms, render: 89ms)
+ GET /style-guide/lms-dashboard 200 in 122ms (compile: 5ms, render: 117ms)
+ GET /admin/users 200 in 127ms (compile: 42ms, render: 85ms)
+ GET /style-guide/lms-dashboard 200 in 124ms (compile: 5ms, render: 119ms)
+ GET /admin/users 200 in 87ms (compile: 5ms, render: 83ms)
+ GET /style-guide/lms-dashboard 200 in 70ms (compile: 10ms, render: 60ms)
+ GET /admin/users 200 in 128ms (compile: 5ms, render: 123ms)
+ GET /style-guide/lms-dashboard 200 in 117ms (compile: 56ms, render: 61ms)
+ GET /admin/users 200 in 127ms (compile: 7ms, render: 120ms)
+ GET /style-guide/lms-dashboard 200 in 114ms (compile: 6ms, render: 108ms)
+ GET /admin/users 200 in 132ms (compile: 5ms, render: 127ms)
+ GET /style-guide/lms-dashboard 200 in 105ms (compile: 4ms, render: 100ms)
+ GET /style-guide/lms-dashboard 200 in 41ms (compile: 5ms, render: 36ms)
+ GET /admin/users 200 in 126ms (compile: 4ms, render: 122ms)
+ GET /style-guide/lms-dashboard 200 in 122ms (compile: 4ms, render: 118ms)
+ GET /admin/users 200 in 90ms (compile: 4ms, render: 85ms)
+ GET /style-guide/lms-dashboard 200 in 119ms (compile: 6ms, render: 114ms)
+ GET /admin/users 200 in 89ms (compile: 5ms, render: 84ms)
+ GET /style-guide/lms-dashboard 200 in 125ms (compile: 4ms, render: 120ms)
+ GET /admin/users 200 in 88ms (compile: 6ms, render: 82ms)
+ GET /style-guide/lms-dashboard 200 in 128ms (compile: 6ms, render: 122ms)
+ GET /admin/users 200 in 89ms (compile: 6ms, render: 83ms)
+ GET /style-guide/lms-dashboard 200 in 125ms (compile: 6ms, render: 119ms)
+ GET /admin/users 200 in 89ms (compile: 5ms, render: 84ms)
+ GET /style-guide/lms-dashboard 200 in 119ms (compile: 6ms, render: 113ms)
+ GET /admin/users 200 in 84ms (compile: 5ms, render: 79ms)
+ GET /style-guide/lms-dashboard 200 in 129ms (compile: 4ms, render: 125ms)
+ GET /admin/users 200 in 89ms (compile: 5ms, render: 84ms)
+ GET /style-guide/lms-dashboard 200 in 119ms (compile: 6ms, render: 113ms)
+ GET /admin/users 200 in 85ms (compile: 4ms, render: 80ms)
+ GET /style-guide/lms-dashboard 200 in 139ms (compile: 6ms, render: 133ms)
+ GET /admin/users 200 in 119ms (compile: 6ms, render: 114ms)
+ GET /style-guide/lms-dashboard 200 in 884ms (compile: 52ms, render: 832ms)
+ GET /admin/users 200 in 386ms (compile: 40ms, render: 346ms)
+ GET /admin/users 200 in 82ms (compile: 5ms, render: 77ms)
+ GET /style-guide/lms-dashboard 200 in 268ms (compile: 150ms, render: 118ms)
+ GET /admin/users 200 in 241ms (compile: 5ms, render: 236ms)
+ GET /style-guide/lms-dashboard 200 in 127ms (compile: 7ms, render: 120ms)
+ GET /admin/users 200 in 89ms (compile: 4ms, render: 85ms)
+ GET /style-guide/lms-dashboard 200 in 120ms (compile: 6ms, render: 115ms)
+ GET /admin/users 200 in 87ms (compile: 4ms, render: 82ms)
+ GET /style-guide/lms-dashboard 200 in 127ms (compile: 4ms, render: 123ms)
+ GET /admin/users 200 in 91ms (compile: 5ms, render: 86ms)
+ GET /style-guide/lms-dashboard 200 in 123ms (compile: 5ms, render: 118ms)
+ GET /admin/users 200 in 92ms (compile: 5ms, render: 87ms)
+ GET /style-guide/lms-dashboard 200 in 126ms (compile: 5ms, render: 122ms)
+ GET /admin/users 200 in 93ms (compile: 4ms, render: 89ms)
+ GET /style-guide/lms-dashboard 200 in 133ms (compile: 5ms, render: 128ms)
+ GET /admin/users 200 in 96ms (compile: 5ms, render: 91ms)
+ GET /style-guide/lms-dashboard 200 in 133ms (compile: 5ms, render: 128ms)
+ GET /admin/users 200 in 95ms (compile: 5ms, render: 90ms)
+ GET /style-guide/lms-dashboard 200 in 119ms (compile: 5ms, render: 114ms)
+ GET /admin/users 200 in 128ms (compile: 5ms, render: 123ms)
+ GET /style-guide/lms-dashboard 200 in 43ms (compile: 4ms, render: 38ms)
+ GET /style-guide/lms-dashboard 200 in 66ms (compile: 12ms, render: 54ms)
+ GET /admin/users 200 in 136ms (compile: 4ms, render: 132ms)
+ GET /style-guide/lms-dashboard 200 in 67ms (compile: 9ms, render: 58ms)
+ GET /admin/users 200 in 132ms (compile: 6ms, render: 126ms)
+ GET /style-guide/lms-dashboard 200 in 126ms (compile: 7ms, render: 118ms)
+ GET /admin/users 200 in 92ms (compile: 5ms, render: 87ms)
+ GET /style-guide/lms-dashboard 200 in 129ms (compile: 7ms, render: 122ms)
+ GET /admin/users 200 in 93ms (compile: 5ms, render: 88ms)
+ GET /style-guide/lms-dashboard 200 in 64ms (compile: 11ms, render: 54ms)
+ GET /admin/users 200 in 132ms (compile: 4ms, render: 128ms)
+ GET /style-guide/lms-dashboard 200 in 127ms (compile: 5ms, render: 122ms)
+ GET /admin/users 200 in 133ms (compile: 5ms, render: 129ms)
+ GET /style-guide/lms-dashboard 200 in 121ms (compile: 5ms, render: 116ms)
+ GET /style-guide/lms-dashboard 200 in 45ms (compile: 5ms, render: 40ms)
+ GET /admin/users 200 in 139ms (compile: 5ms, render: 135ms)
+ GET /style-guide/lms-dashboard 200 in 71ms (compile: 13ms, render: 58ms)
+ GET /admin/users 200 in 144ms (compile: 5ms, render: 139ms)
+ GET /style-guide/lms-dashboard 200 in 126ms (compile: 59ms, render: 67ms)
+ GET /admin/users 200 in 133ms (compile: 5ms, render: 128ms)
+ GET /style-guide/lms-dashboard 200 in 137ms (compile: 5ms, render: 132ms)
+ GET /admin/users 200 in 146ms (compile: 5ms, render: 141ms)
+ GET /style-guide/lms-dashboard 200 in 135ms (compile: 6ms, render: 129ms)
+ GET /style-guide/lms-dashboard 200 in 47ms (compile: 6ms, render: 41ms)
+ GET /admin/users 200 in 139ms (compile: 4ms, render: 135ms)
+ GET /style-guide/lms-dashboard 200 in 138ms (compile: 5ms, render: 133ms)
+ GET /admin/users 200 in 99ms (compile: 5ms, render: 94ms)
+ GET /style-guide/lms-dashboard 200 in 131ms (compile: 6ms, render: 124ms)
+ GET /admin/users 200 in 96ms (compile: 5ms, render: 91ms)
+ GET /style-guide/lms-dashboard 200 in 135ms (compile: 6ms, render: 129ms)
+ GET /admin/users 200 in 96ms (compile: 5ms, render: 91ms)
+ GET /style-guide/lms-dashboard 200 in 133ms (compile: 5ms, render: 128ms)
+ GET /admin/users 200 in 97ms (compile: 4ms, render: 93ms)
+ GET /style-guide/lms-dashboard 200 in 132ms (compile: 5ms, render: 127ms)
+ GET /admin/users 200 in 94ms (compile: 5ms, render: 89ms)
+ GET /style-guide/lms-dashboard 200 in 132ms (compile: 5ms, render: 127ms)
+ GET /admin/users 200 in 89ms (compile: 4ms, render: 85ms)
+ GET /style-guide/lms-dashboard 200 in 141ms (compile: 5ms, render: 136ms)
+ GET /admin/users 200 in 100ms (compile: 6ms, render: 94ms)
+ GET /style-guide/lms-dashboard 200 in 128ms (compile: 5ms, render: 123ms)
+ GET /admin/users 200 in 95ms (compile: 4ms, render: 90ms)
+ GET /style-guide/lms-dashboard 200 in 65ms (compile: 12ms, render: 52ms)
+ GET /admin/users 200 in 136ms (compile: 5ms, render: 132ms)
+ GET /style-guide/lms-dashboard 200 in 127ms (compile: 6ms, render: 122ms)
+ GET /admin/users 200 in 134ms (compile: 6ms, render: 128ms)
+ GET /style-guide/lms-dashboard 200 in 110ms (compile: 5ms, render: 105ms)
+ GET /style-guide/lms-dashboard 200 in 56ms (compile: 17ms, render: 39ms)
+ GET /admin/users 200 in 138ms (compile: 5ms, render: 133ms)
+ GET /style-guide/lms-dashboard 200 in 133ms (compile: 6ms, render: 127ms)
+ GET /admin/users 200 in 97ms (compile: 5ms, render: 91ms)
+ GET /style-guide/lms-dashboard 200 in 129ms (compile: 6ms, render: 124ms)
+ GET /admin/users 200 in 134ms (compile: 44ms, render: 89ms)
+ GET /style-guide/lms-dashboard 200 in 129ms (compile: 5ms, render: 124ms)
+ GET /admin/users 200 in 91ms (compile: 5ms, render: 86ms)
+ GET /style-guide/lms-dashboard 200 in 145ms (compile: 5ms, render: 140ms)
+ GET /admin/users 200 in 100ms (compile: 6ms, render: 95ms)
+ GET /style-guide/lms-dashboard 200 in 145ms (compile: 5ms, render: 139ms)
+ GET /admin/users 200 in 90ms (compile: 5ms, render: 85ms)
+ GET /style-guide/lms-dashboard 200 in 128ms (compile: 5ms, render: 123ms)
+ GET /admin/users 200 in 92ms (compile: 4ms, render: 87ms)
+ GET /style-guide/lms-dashboard 200 in 128ms (compile: 5ms, render: 123ms)
+ GET /admin/users 200 in 94ms (compile: 5ms, render: 90ms)
+ GET /style-guide/lms-dashboard 200 in 119ms (compile: 5ms, render: 114ms)
+ GET /admin/users 200 in 97ms (compile: 5ms, render: 92ms)
+ GET /style-guide/lms-dashboard 200 in 115ms (compile: 57ms, render: 58ms)
+ GET /admin/users 200 in 122ms (compile: 5ms, render: 117ms)
+ GET /style-guide/lms-dashboard 200 in 132ms (compile: 7ms, render: 125ms)
+ GET /admin/users 200 in 136ms (compile: 51ms, render: 85ms)
+ GET /style-guide/lms-dashboard 200 in 65ms (compile: 13ms, render: 52ms)
+ GET /admin/users 200 in 149ms (compile: 16ms, render: 133ms)
+ GET /style-guide/lms-dashboard 200 in 63ms (compile: 9ms, render: 54ms)
+ GET /admin/users 200 in 150ms (compile: 7ms, render: 144ms)
+ GET /style-guide/lms-dashboard 200 in 62ms (compile: 12ms, render: 51ms)
+ GET /admin/users 200 in 169ms (compile: 5ms, render: 164ms)
+ GET /style-guide/lms-dashboard 200 in 60ms (compile: 11ms, render: 49ms)
+ GET /admin/users 200 in 144ms (compile: 7ms, render: 137ms)
+ GET /style-guide/lms-dashboard 200 in 139ms (compile: 5ms, render: 133ms)
+ GET /admin/users 200 in 101ms (compile: 5ms, render: 96ms)
+ GET /style-guide/lms-dashboard 200 in 150ms (compile: 5ms, render: 145ms)
+ GET /admin/users 200 in 114ms (compile: 5ms, render: 109ms)
+ GET /style-guide/lms-dashboard 200 in 147ms (compile: 8ms, render: 139ms)
+ GET /admin/users 200 in 107ms (compile: 6ms, render: 101ms)
+ GET /style-guide/lms-dashboard 200 in 150ms (compile: 6ms, render: 144ms)
+ GET /admin/users 200 in 110ms (compile: 4ms, render: 106ms)
+ GET /style-guide/lms-dashboard 200 in 144ms (compile: 6ms, render: 138ms)
+ GET /admin/users 200 in 150ms (compile: 50ms, render: 100ms)
+ GET /style-guide/lms-dashboard 200 in 139ms (compile: 5ms, render: 135ms)
+ GET /admin/users 200 in 101ms (compile: 5ms, render: 96ms)
+ GET /style-guide/lms-dashboard 200 in 139ms (compile: 4ms, render: 134ms)
+ GET /admin/users 200 in 150ms (compile: 5ms, render: 145ms)
+ GET /style-guide/lms-dashboard 200 in 144ms (compile: 5ms, render: 139ms)
+ GET /admin/users 200 in 105ms (compile: 5ms, render: 100ms)
+ GET /style-guide/lms-dashboard 200 in 125ms (compile: 65ms, render: 60ms)
+ GET /admin/users 200 in 196ms (compile: 6ms, render: 190ms)
+ GET /style-guide/lms-dashboard 200 in 57ms (compile: 6ms, render: 51ms)
+ GET /style-guide/lms-dashboard 200 in 68ms (compile: 14ms, render: 54ms)
+ GET /admin/users 200 in 154ms (compile: 7ms, render: 147ms)
+ GET /style-guide/lms-dashboard 200 in 164ms (compile: 5ms, render: 159ms)
+ GET /admin/users 200 in 118ms (compile: 6ms, render: 112ms)
+ GET /style-guide/lms-dashboard 200 in 177ms (compile: 6ms, render: 171ms)
+ GET /admin/users 200 in 133ms (compile: 8ms, render: 125ms)
+ GET /style-guide/lms-dashboard 200 in 153ms (compile: 9ms, render: 143ms)
+ GET /admin/users 200 in 157ms (compile: 60ms, render: 97ms)
+ GET /style-guide/lms-dashboard 200 in 160ms (compile: 5ms, render: 154ms)
+ GET /admin/users 200 in 114ms (compile: 5ms, render: 109ms)
+ GET /style-guide/lms-dashboard 200 in 174ms (compile: 11ms, render: 163ms)
+ GET /admin/users 200 in 122ms (compile: 6ms, render: 116ms)
+ GET /style-guide/lms-dashboard 200 in 161ms (compile: 8ms, render: 154ms)
+ GET /admin/users 200 in 120ms (compile: 6ms, render: 114ms)
+ GET /style-guide/lms-dashboard 200 in 176ms (compile: 6ms, render: 170ms)
+ GET /admin/users 200 in 217ms (compile: 11ms, render: 206ms)
+ GET /style-guide/lms-dashboard 200 in 86ms (compile: 6ms, render: 80ms)
+ GET /style-guide/lms-dashboard 200 in 99ms (compile: 11ms, render: 88ms)
+ GET /admin/users 200 in 198ms (compile: 9ms, render: 188ms)
+ GET /style-guide/lms-dashboard 200 in 166ms (compile: 6ms, render: 161ms)
+ GET /admin/users 200 in 117ms (compile: 6ms, render: 111ms)
+ GET /style-guide/lms-dashboard 200 in 186ms (compile: 5ms, render: 181ms)
+ GET /admin/users 200 in 194ms (compile: 6ms, render: 188ms)
+ GET /style-guide/lms-dashboard 200 in 151ms (compile: 6ms, render: 145ms)
+ GET /style-guide/lms-dashboard 200 in 52ms (compile: 5ms, render: 47ms)
+ GET /admin/users 200 in 173ms (compile: 9ms, render: 164ms)
+ GET /style-guide/lms-dashboard 200 in 153ms (compile: 6ms, render: 147ms)
+ GET /admin/users 200 in 108ms (compile: 5ms, render: 103ms)
+ GET /style-guide/lms-dashboard 200 in 185ms (compile: 6ms, render: 179ms)
+ GET /admin/users 200 in 135ms (compile: 6ms, render: 129ms)
+ GET /style-guide/lms-dashboard 200 in 98ms (compile: 16ms, render: 82ms)
+ GET /admin/users 200 in 246ms (compile: 13ms, render: 233ms)
+ GET /style-guide/lms-dashboard 200 in 208ms (compile: 9ms, render: 199ms)
+ GET /admin/users 200 in 166ms (compile: 11ms, render: 155ms)
+ GET /style-guide/lms-dashboard 200 in 166ms (compile: 6ms, render: 160ms)
+ GET /admin/users 200 in 177ms (compile: 10ms, render: 166ms)
+ GET /style-guide/lms-dashboard 200 in 59ms (compile: 6ms, render: 53ms)
+ GET /style-guide/lms-dashboard 200 in 90ms (compile: 16ms, render: 74ms)
+ GET /admin/users 200 in 186ms (compile: 6ms, render: 181ms)
+ GET /style-guide/lms-dashboard 200 in 206ms (compile: 8ms, render: 198ms)
+ GET /admin/users 200 in 151ms (compile: 6ms, render: 144ms)
+ GET /style-guide/lms-dashboard 200 in 181ms (compile: 6ms, render: 175ms)
+ GET /admin/users 200 in 133ms (compile: 6ms, render: 127ms)
+ GET /style-guide/lms-dashboard 200 in 105ms (compile: 14ms, render: 91ms)
+ GET /admin/users 200 in 200ms (compile: 7ms, render: 193ms)
+ GET /style-guide/lms-dashboard 200 in 200ms (compile: 7ms, render: 193ms)
+ GET /admin/users 200 in 204ms (compile: 67ms, render: 137ms)
+ GET /style-guide/lms-dashboard 200 in 76ms (compile: 16ms, render: 60ms)
+ GET /admin/users 200 in 183ms (compile: 6ms, render: 177ms)
+ GET /style-guide/lms-dashboard 200 in 89ms (compile: 16ms, render: 73ms)
+ GET /admin/users 200 in 178ms (compile: 5ms, render: 173ms)
+ GET /style-guide/lms-dashboard 200 in 119ms (compile: 5ms, render: 114ms)
+ GET /admin/users 200 in 133ms (compile: 5ms, render: 128ms)
+ GET /style-guide/lms-dashboard 200 in 135ms (compile: 5ms, render: 129ms)
+ GET /style-guide/lms-dashboard 200 in 70ms (compile: 18ms, render: 51ms)
+ GET /admin/users 200 in 168ms (compile: 5ms, render: 163ms)
+ GET /style-guide/lms-dashboard 200 in 73ms (compile: 14ms, render: 60ms)
+ GET /admin/users 200 in 190ms (compile: 8ms, render: 182ms)
+ GET /style-guide/lms-dashboard 200 in 132ms (compile: 4ms, render: 128ms)
+ GET /admin/users 200 in 100ms (compile: 4ms, render: 96ms)
+ GET /style-guide/lms-dashboard 200 in 83ms (compile: 10ms, render: 73ms)
+ GET /admin/users 200 in 154ms (compile: 5ms, render: 149ms)
+ GET /style-guide/lms-dashboard 200 in 77ms (compile: 10ms, render: 67ms)
+ GET /admin/users 200 in 141ms (compile: 5ms, render: 136ms)
+ GET /style-guide/lms-dashboard 200 in 118ms (compile: 8ms, render: 110ms)
+ GET /admin/users 200 in 175ms (compile: 46ms, render: 129ms)
+ GET /style-guide/lms-dashboard 200 in 45ms (compile: 5ms, render: 40ms)
+ GET /style-guide/lms-dashboard 200 in 62ms (compile: 8ms, render: 54ms)
+ GET /admin/users 200 in 137ms (compile: 5ms, render: 132ms)
+ GET /style-guide/lms-dashboard 200 in 129ms (compile: 5ms, render: 124ms)
+ GET /admin/users 200 in 94ms (compile: 5ms, render: 88ms)
+ GET /style-guide/lms-dashboard 200 in 126ms (compile: 4ms, render: 122ms)
+ GET /admin/users 200 in 133ms (compile: 5ms, render: 128ms)
+ GET /style-guide/lms-dashboard 200 in 122ms (compile: 5ms, render: 117ms)
+ GET /style-guide/lms-dashboard 200 in 44ms (compile: 5ms, render: 39ms)
+ GET /admin/users 200 in 136ms (compile: 4ms, render: 131ms)
+ GET /style-guide/lms-dashboard 200 in 53ms (compile: 12ms, render: 41ms)
+ GET /admin/users 200 in 141ms (compile: 5ms, render: 136ms)
+ GET /style-guide/lms-dashboard 200 in 132ms (compile: 5ms, render: 127ms)
+ GET /admin/users 200 in 94ms (compile: 5ms, render: 89ms)
+ GET /style-guide/lms-dashboard 200 in 128ms (compile: 6ms, render: 122ms)
+ GET /style-guide/lms-dashboard 200 in 50ms (compile: 5ms, render: 45ms)
+ GET /admin/users 200 in 142ms (compile: 4ms, render: 138ms)
+ GET /style-guide/lms-dashboard 200 in 52ms (compile: 13ms, render: 39ms)
+ GET /admin/users 200 in 135ms (compile: 6ms, render: 128ms)
+ GET /style-guide/lms-dashboard 200 in 122ms (compile: 5ms, render: 117ms)
+ GET /admin/users 200 in 127ms (compile: 41ms, render: 86ms)
+ GET /style-guide/lms-dashboard 200 in 72ms (compile: 11ms, render: 61ms)
+ GET /admin/users 200 in 133ms (compile: 5ms, render: 128ms)
+ GET /style-guide/lms-dashboard 200 in 69ms (compile: 9ms, render: 60ms)
+ GET /admin/users 200 in 132ms (compile: 5ms, render: 127ms)
+ GET /style-guide/lms-dashboard 200 in 63ms (compile: 11ms, render: 52ms)
+ GET /admin/users 200 in 132ms (compile: 5ms, render: 127ms)
+ GET /style-guide/lms-dashboard 200 in 69ms (compile: 9ms, render: 60ms)
+ GET /admin/users 200 in 137ms (compile: 7ms, render: 130ms)
+ GET /style-guide/lms-dashboard 200 in 128ms (compile: 4ms, render: 124ms)
+ GET /style-guide/lms-dashboard 200 in 47ms (compile: 5ms, render: 43ms)
+ GET /admin/users 200 in 144ms (compile: 5ms, render: 139ms)
+ GET /style-guide/lms-dashboard 200 in 65ms (compile: 12ms, render: 53ms)
+ GET /admin/users 200 in 136ms (compile: 5ms, render: 131ms)
+ GET /style-guide/lms-dashboard 200 in 130ms (compile: 5ms, render: 125ms)
+ GET /admin/users 200 in 91ms (compile: 5ms, render: 86ms)
+ GET /style-guide/lms-dashboard 200 in 128ms (compile: 4ms, render: 124ms)
+ GET /admin/users 200 in 92ms (compile: 5ms, render: 87ms)
+ GET /style-guide/lms-dashboard 200 in 125ms (compile: 5ms, render: 120ms)
+ GET /admin/users 200 in 132ms (compile: 5ms, render: 128ms)
+ GET /style-guide/lms-dashboard 200 in 51ms (compile: 5ms, render: 46ms)
+ GET /style-guide/lms-dashboard 200 in 52ms (compile: 13ms, render: 39ms)
+ GET /admin/users 200 in 142ms (compile: 7ms, render: 135ms)
+ GET /style-guide/lms-dashboard 200 in 129ms (compile: 6ms, render: 123ms)
+ GET /admin/users 200 in 93ms (compile: 5ms, render: 88ms)
+ GET /style-guide/lms-dashboard 200 in 126ms (compile: 4ms, render: 122ms)
+ GET /admin/users 200 in 135ms (compile: 5ms, render: 131ms)
+ GET /style-guide/lms-dashboard 200 in 121ms (compile: 5ms, render: 116ms)
+ GET /style-guide/lms-dashboard 200 in 43ms (compile: 5ms, render: 38ms)
+ GET /admin/users 200 in 134ms (compile: 5ms, render: 129ms)
+ GET /style-guide/lms-dashboard 200 in 51ms (compile: 10ms, render: 41ms)
+ GET /admin/users 200 in 130ms (compile: 5ms, render: 126ms)
+ GET /style-guide/lms-dashboard 200 in 136ms (compile: 6ms, render: 130ms)
+ GET /admin/users 200 in 103ms (compile: 4ms, render: 99ms)
+ GET /style-guide/lms-dashboard 200 in 146ms (compile: 5ms, render: 141ms)
+ GET /admin/users 200 in 106ms (compile: 5ms, render: 101ms)
+ GET /style-guide/lms-dashboard 200 in 134ms (compile: 5ms, render: 129ms)
+ GET /admin/users 200 in 92ms (compile: 5ms, render: 87ms)
+ GET /style-guide/lms-dashboard 200 in 129ms (compile: 5ms, render: 125ms)
+ GET /admin/users 200 in 92ms (compile: 5ms, render: 88ms)
+ GET /style-guide/lms-dashboard 200 in 135ms (compile: 6ms, render: 129ms)
+ GET /admin/users 200 in 144ms (compile: 41ms, render: 103ms)
+ GET /style-guide/lms-dashboard 200 in 132ms (compile: 5ms, render: 127ms)
+ GET /admin/users 200 in 93ms (compile: 5ms, render: 88ms)
+ GET /style-guide/lms-dashboard 200 in 140ms (compile: 6ms, render: 134ms)
+ GET /admin/users 200 in 110ms (compile: 5ms, render: 105ms)
+ GET /style-guide/lms-dashboard 200 in 137ms (compile: 8ms, render: 130ms)
+ GET /admin/users 200 in 141ms (compile: 5ms, render: 135ms)
+ GET /style-guide/lms-dashboard 200 in 132ms (compile: 5ms, render: 126ms)
+ GET /style-guide/lms-dashboard 200 in 51ms (compile: 8ms, render: 43ms)
+ GET /admin/users 200 in 147ms (compile: 5ms, render: 142ms)
+ GET /style-guide/lms-dashboard 200 in 62ms (compile: 11ms, render: 51ms)
+ GET /admin/users 200 in 135ms (compile: 5ms, render: 130ms)
+ GET /style-guide/lms-dashboard 200 in 122ms (compile: 5ms, render: 117ms)
+ GET /admin/users 200 in 89ms (compile: 5ms, render: 83ms)
+ GET /style-guide/lms-dashboard 200 in 124ms (compile: 5ms, render: 119ms)
+ GET /admin/users 200 in 90ms (compile: 5ms, render: 85ms)
+ GET /style-guide/lms-dashboard 200 in 126ms (compile: 5ms, render: 121ms)
+ GET /admin/users 200 in 89ms (compile: 5ms, render: 84ms)
+ GET /style-guide/lms-dashboard 200 in 162ms (compile: 5ms, render: 157ms)
+ GET /style-guide/lms-dashboard 200 in 437ms (compile: 43ms, render: 394ms)
+ GET /admin/users 200 in 598ms (compile: 5ms, render: 593ms)
+ GET /style-guide/lms-dashboard 200 in 892ms (compile: 46ms, render: 845ms)
+ GET /admin/users 200 in 890ms (compile: 819ms, render: 71ms)
+ GET /style-guide/lms-dashboard 200 in 64ms (compile: 11ms, render: 52ms)
+ GET /admin/users 200 in 149ms (compile: 19ms, render: 130ms)
+ GET /style-guide/lms-dashboard 200 in 162ms (compile: 5ms, render: 157ms)
+ GET /admin/users 200 in 126ms (compile: 6ms, render: 120ms)
+ GET /style-guide/lms-dashboard 200 in 126ms (compile: 5ms, render: 122ms)
+ GET /admin/users 200 in 131ms (compile: 5ms, render: 127ms)
+ GET /style-guide/lms-dashboard 200 in 107ms (compile: 4ms, render: 103ms)
+ GET /style-guide/lms-dashboard 200 in 409ms (compile: 4ms, render: 405ms)
+ GET /admin/users 200 in 508ms (compile: 5ms, render: 503ms)
+ GET /admin/users 200 in 164ms (compile: 11ms, render: 153ms)
+ GET /admin/users 200 in 112ms (compile: 8ms, render: 104ms)
+ GET /admin/users 200 in 113ms (compile: 7ms, render: 105ms)
+ GET /admin/users 200 in 119ms (compile: 7ms, render: 111ms)
+ GET /admin/users 200 in 110ms (compile: 6ms, render: 104ms)
+ GET /admin/users 200 in 107ms (compile: 5ms, render: 101ms)
+[next-auth][warn][NEXTAUTH_URL] 
+https://next-auth.js.org/warnings#nextauth_url
+ GET /api/auth/session 200 in 390ms (compile: 242ms, render: 148ms)
+ GET /api/auth/session 200 in 24ms (compile: 5ms, render: 19ms)
+ GET /admin/users 200 in 166ms (compile: 16ms, render: 150ms)
+ GET /admin/users 200 in 98ms (compile: 6ms, render: 92ms)
+ GET /admin/users 200 in 106ms (compile: 5ms, render: 100ms)
+ GET /admin/users 200 in 79ms (compile: 5ms, render: 74ms)
+ GET /admin/users 200 in 88ms (compile: 7ms, render: 81ms)
+ GET /admin/users 200 in 71ms (compile: 4ms, render: 68ms)
+ GET /admin/users 200 in 128ms (compile: 5ms, render: 123ms)
+ GET /admin/users 200 in 98ms (compile: 6ms, render: 92ms)
+ GET /admin/users 200 in 86ms (compile: 6ms, render: 80ms)
+ GET /admin/users 200 in 70ms (compile: 4ms, render: 66ms)
+ GET /admin/users 200 in 91ms (compile: 6ms, render: 85ms)
+ GET /admin/users 200 in 105ms (compile: 4ms, render: 101ms)
+ GET /admin/users 200 in 223ms (compile: 50ms, render: 172ms)
+ ✓ Compiled in 348ms
+ GET /admin/users 200 in 86ms (compile: 5ms, render: 81ms)
+ GET /admin/users 200 in 88ms (compile: 4ms, render: 85ms)
+ GET /admin/users 200 in 76ms (compile: 5ms, render: 71ms)
+ GET /admin/users 200 in 88ms (compile: 5ms, render: 83ms)
+ GET /admin/users 200 in 86ms (compile: 5ms, render: 80ms)
+ GET /admin/users 200 in 84ms (compile: 4ms, render: 79ms)
+ GET /admin/users 200 in 62ms (compile: 4ms, render: 59ms)
+ GET /admin/users 200 in 81ms (compile: 6ms, render: 75ms)
+ GET /admin/users 200 in 66ms (compile: 4ms, render: 62ms)
+ GET /admin/users 200 in 78ms (compile: 5ms, render: 73ms)
+ GET /admin/users 200 in 66ms (compile: 5ms, render: 61ms)
+ GET /admin/users 200 in 85ms (compile: 4ms, render: 80ms)
+ GET /admin/users 200 in 63ms (compile: 5ms, render: 58ms)
+ GET /admin/users 200 in 86ms (compile: 4ms, render: 81ms)
+ GET /admin/users 200 in 105ms (compile: 7ms, render: 98ms)
+ GET /admin/users 200 in 82ms (compile: 8ms, render: 74ms)
+ GET /admin/users 200 in 71ms (compile: 7ms, render: 64ms)
+ GET /admin/users 200 in 75ms (compile: 4ms, render: 71ms)
+ ✓ Compiled in 365ms
+ ✓ Compiled in 297ms
+ ✓ Compiled in 472ms
+ GET /api/auth/session 200 in 199ms (compile: 149ms, render: 51ms)
+ GET /api/auth/session 200 in 58ms (compile: 5ms, render: 53ms)
+ GET /admin/users 200 in 1218ms (compile: 18ms, render: 1199ms)
+ GET /api/auth/session 200 in 126ms (compile: 67ms, render: 59ms)
+ GET /api/auth/session 200 in 55ms (compile: 6ms, render: 49ms)
+ GET /api/auth/session 200 in 80ms (compile: 57ms, render: 23ms)
+ GET /api/auth/session 200 in 32ms (compile: 4ms, render: 28ms)
+ GET /style-guide/lms-dashboard 200 in 634ms (compile: 108ms, render: 525ms)
+ GET /api/auth/session 200 in 123ms (compile: 86ms, render: 37ms)
+ GET /api/auth/session 200 in 24ms (compile: 4ms, render: 20ms)
+ ✓ Compiled in 224ms
+ GET /style-guide/lms-dashboard 200 in 390ms (compile: 221ms, render: 170ms)
+ GET /admin/users 200 in 354ms (compile: 16ms, render: 338ms)
+ ✓ Compiled in 249ms
+ GET /api/auth/session 200 in 128ms (compile: 78ms, render: 50ms)
+ GET /api/auth/session 200 in 41ms (compile: 6ms, render: 36ms)
+ GET /api/auth/session 200 in 130ms (compile: 95ms, render: 35ms)
+ GET /api/auth/session 200 in 35ms (compile: 5ms, render: 30ms)
+ GET /style-guide/lms-dashboard 200 in 568ms (compile: 115ms, render: 453ms)
+ GET /api/auth/session 200 in 119ms (compile: 81ms, render: 39ms)
+ GET /api/auth/session 200 in 23ms (compile: 5ms, render: 17ms)
+ ⨯ ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx:3:1
+Module not found: Can't resolve '@/components/demo/BundleShowcase'
+[0m [90m 1 |[39m [32m"use client"[39m[33m;[39m
+ [90m 2 |[39m
+[31m[1m>[22m[39m[90m 3 |[39m [36mimport[39m { [33mBundleShowcaseDashboard[39m } [36mfrom[39m [32m'@/components/demo/BundleShowcase'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 4 |[39m
+ [90m 5 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mLmsDashboardShowcasePage[39m() {
+ [90m 6 |[39m   [36mreturn[39m ([0m
+
+Import map: aliased to relative './src/components/demo/BundleShowcase' inside of [project]/clevio lms 2/lms-app
+
+
+Import traces:
+  Client Component Browser:
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Client Component Browser]
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Client Component SSR]
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx:3:1
+Module not found: Can't resolve '@/components/demo/BundleShowcase'
+[0m [90m 1 |[39m [32m"use client"[39m[33m;[39m
+ [90m 2 |[39m
+[31m[1m>[22m[39m[90m 3 |[39m [36mimport[39m { [33mBundleShowcaseDashboard[39m } [36mfrom[39m [32m'@/components/demo/BundleShowcase'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 4 |[39m
+ [90m 5 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mLmsDashboardShowcasePage[39m() {
+ [90m 6 |[39m   [36mreturn[39m ([0m
+
+Import map: aliased to relative './src/components/demo/BundleShowcase' inside of [project]/clevio lms 2/lms-app
+
+
+Import traces:
+  Client Component Browser:
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Client Component Browser]
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Client Component SSR]
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx:3:1
+Module not found: Can't resolve '@/components/demo/BundleShowcase'
+[0m [90m 1 |[39m [32m"use client"[39m[33m;[39m
+ [90m 2 |[39m
+[31m[1m>[22m[39m[90m 3 |[39m [36mimport[39m { [33mBundleShowcaseDashboard[39m } [36mfrom[39m [32m'@/components/demo/BundleShowcase'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 4 |[39m
+ [90m 5 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mLmsDashboardShowcasePage[39m() {
+ [90m 6 |[39m   [36mreturn[39m ([0m
+
+Import map: aliased to relative './src/components/demo/BundleShowcase' inside of [project]/clevio lms 2/lms-app
+
+
+Import traces:
+  Client Component Browser:
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Client Component Browser]
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Client Component SSR]
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx:3:1
+Module not found: Can't resolve '@/components/demo/BundleShowcase'
+[0m [90m 1 |[39m [32m"use client"[39m[33m;[39m
+ [90m 2 |[39m
+[31m[1m>[22m[39m[90m 3 |[39m [36mimport[39m { [33mBundleShowcaseDashboard[39m } [36mfrom[39m [32m'@/components/demo/BundleShowcase'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 4 |[39m
+ [90m 5 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mLmsDashboardShowcasePage[39m() {
+ [90m 6 |[39m   [36mreturn[39m ([0m
+
+Import map: aliased to relative './src/components/demo/BundleShowcase' inside of [project]/clevio lms 2/lms-app
+
+
+Import traces:
+  Client Component Browser:
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Client Component Browser]
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Client Component SSR]
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx:3:1
+Module not found: Can't resolve '@/components/demo/BundleShowcase'
+[0m [90m 1 |[39m [32m"use client"[39m[33m;[39m
+ [90m 2 |[39m
+[31m[1m>[22m[39m[90m 3 |[39m [36mimport[39m { [33mBundleShowcaseDashboard[39m } [36mfrom[39m [32m'@/components/demo/BundleShowcase'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 4 |[39m
+ [90m 5 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mLmsDashboardShowcasePage[39m() {
+ [90m 6 |[39m   [36mreturn[39m ([0m
+
+Import map: aliased to relative './src/components/demo/BundleShowcase' inside of [project]/clevio lms 2/lms-app
+
+
+Import traces:
+  Client Component Browser:
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Client Component Browser]
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Client Component SSR]
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx:3:1
+Module not found: Can't resolve '@/components/demo/BundleShowcase'
+[0m [90m 1 |[39m [32m"use client"[39m[33m;[39m
+ [90m 2 |[39m
+[31m[1m>[22m[39m[90m 3 |[39m [36mimport[39m { [33mBundleShowcaseDashboard[39m } [36mfrom[39m [32m'@/components/demo/BundleShowcase'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 4 |[39m
+ [90m 5 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mLmsDashboardShowcasePage[39m() {
+ [90m 6 |[39m   [36mreturn[39m ([0m
+
+Import map: aliased to relative './src/components/demo/BundleShowcase' inside of [project]/clevio lms 2/lms-app
+
+
+Import traces:
+  Client Component Browser:
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Client Component Browser]
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Client Component SSR]
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx:3:1
+Module not found: Can't resolve '@/components/demo/BundleShowcase'
+[0m [90m 1 |[39m [32m"use client"[39m[33m;[39m
+ [90m 2 |[39m
+[31m[1m>[22m[39m[90m 3 |[39m [36mimport[39m { [33mBundleShowcaseDashboard[39m } [36mfrom[39m [32m'@/components/demo/BundleShowcase'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 4 |[39m
+ [90m 5 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mLmsDashboardShowcasePage[39m() {
+ [90m 6 |[39m   [36mreturn[39m ([0m
+
+Import map: aliased to relative './src/components/demo/BundleShowcase' inside of [project]/clevio lms 2/lms-app
+
+
+Import traces:
+  Client Component Browser:
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Client Component Browser]
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Client Component SSR]
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx:3:1
+Module not found: Can't resolve '@/components/demo/BundleShowcase'
+[0m [90m 1 |[39m [32m"use client"[39m[33m;[39m
+ [90m 2 |[39m
+[31m[1m>[22m[39m[90m 3 |[39m [36mimport[39m { [33mBundleShowcaseDashboard[39m } [36mfrom[39m [32m'@/components/demo/BundleShowcase'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 4 |[39m
+ [90m 5 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mLmsDashboardShowcasePage[39m() {
+ [90m 6 |[39m   [36mreturn[39m ([0m
+
+Import map: aliased to relative './src/components/demo/BundleShowcase' inside of [project]/clevio lms 2/lms-app
+
+
+Import traces:
+  Client Component Browser:
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Client Component Browser]
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Client Component SSR]
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx:3:1
+Module not found: Can't resolve '@/components/demo/BundleShowcase'
+[0m [90m 1 |[39m [32m"use client"[39m[33m;[39m
+ [90m 2 |[39m
+[31m[1m>[22m[39m[90m 3 |[39m [36mimport[39m { [33mBundleShowcaseDashboard[39m } [36mfrom[39m [32m'@/components/demo/BundleShowcase'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 4 |[39m
+ [90m 5 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mLmsDashboardShowcasePage[39m() {
+ [90m 6 |[39m   [36mreturn[39m ([0m
+
+Import map: aliased to relative './src/components/demo/BundleShowcase' inside of [project]/clevio lms 2/lms-app
+
+
+Import traces:
+  Client Component Browser:
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Client Component Browser]
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Client Component SSR]
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx:3:1
+Module not found: Can't resolve '@/components/demo/BundleShowcase'
+[0m [90m 1 |[39m [32m"use client"[39m[33m;[39m
+ [90m 2 |[39m
+[31m[1m>[22m[39m[90m 3 |[39m [36mimport[39m { [33mBundleShowcaseDashboard[39m } [36mfrom[39m [32m'@/components/demo/BundleShowcase'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 4 |[39m
+ [90m 5 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mLmsDashboardShowcasePage[39m() {
+ [90m 6 |[39m   [36mreturn[39m ([0m
+
+Import map: aliased to relative './src/components/demo/BundleShowcase' inside of [project]/clevio lms 2/lms-app
+
+
+Import traces:
+  Client Component Browser:
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Client Component Browser]
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Client Component SSR]
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx:3:1
+Module not found: Can't resolve '@/components/demo/BundleShowcase'
+[0m [90m 1 |[39m [32m"use client"[39m[33m;[39m
+ [90m 2 |[39m
+[31m[1m>[22m[39m[90m 3 |[39m [36mimport[39m { [33mBundleShowcaseDashboard[39m } [36mfrom[39m [32m'@/components/demo/BundleShowcase'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 4 |[39m
+ [90m 5 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mLmsDashboardShowcasePage[39m() {
+ [90m 6 |[39m   [36mreturn[39m ([0m
+
+Import map: aliased to relative './src/components/demo/BundleShowcase' inside of [project]/clevio lms 2/lms-app
+
+
+Import traces:
+  Client Component Browser:
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Client Component Browser]
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Client Component SSR]
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx:3:1
+Module not found: Can't resolve '@/components/demo/BundleShowcase'
+[0m [90m 1 |[39m [32m"use client"[39m[33m;[39m
+ [90m 2 |[39m
+[31m[1m>[22m[39m[90m 3 |[39m [36mimport[39m { [33mBundleShowcaseDashboard[39m } [36mfrom[39m [32m'@/components/demo/BundleShowcase'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 4 |[39m
+ [90m 5 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mLmsDashboardShowcasePage[39m() {
+ [90m 6 |[39m   [36mreturn[39m ([0m
+
+Import map: aliased to relative './src/components/demo/BundleShowcase' inside of [project]/clevio lms 2/lms-app
+
+
+Import traces:
+  Client Component Browser:
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Client Component Browser]
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Client Component SSR]
+    ./clevio lms 2/lms-app/src/app/(public)/style-guide/lms-dashboard/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ✓ Compiled in 229ms
+ ✓ Compiled in 282ms
+ GET /admin/users 200 in 221ms (compile: 8ms, render: 213ms)
+ GET /style-guide/lms-dashboard 200 in 234ms (compile: 118ms, render: 115ms)
+ GET /style-guide/lms-dashboard 200 in 337ms (compile: 8ms, render: 329ms)
+ GET /api/auth/session 200 in 165ms (compile: 106ms, render: 59ms)
+ GET /api/auth/session 200 in 24ms (compile: 7ms, render: 17ms)
+ GET /api/auth/session 200 in 131ms (compile: 109ms, render: 22ms)
+ GET /api/auth/session 200 in 17ms (compile: 4ms, render: 13ms)
+ GET /admin/users 200 in 1047ms (compile: 22ms, render: 1025ms)
+ GET /api/auth/session 200 in 144ms (compile: 110ms, render: 34ms)
+ GET /api/auth/session 200 in 22ms (compile: 5ms, render: 17ms)
+[next-auth][warn][NEXTAUTH_URL] 
+https://next-auth.js.org/warnings#nextauth_url
+ GET / 307 in 299ms (compile: 120ms, render: 180ms)
+ GET /login 200 in 237ms (compile: 50ms, render: 187ms)
+ GET /api/auth/session 200 in 114ms (compile: 86ms, render: 28ms)
+ GET /api/auth/providers 200 in 128ms (compile: 86ms, render: 42ms)
+ GET /api/auth/csrf 200 in 18ms (compile: 5ms, render: 13ms)
+ POST /api/auth/callback/credentials 200 in 613ms (compile: 6ms, render: 607ms)
+ GET /api/auth/session 200 in 42ms (compile: 22ms, render: 19ms)
+ GET /api/auth/session 200 in 21ms (compile: 4ms, render: 16ms)
+ GET /coach/dashboard 200 in 2.4s (compile: 1609ms, render: 768ms)
+ GET /coach/dashboard 200 in 554ms (compile: 9ms, render: 545ms)
+ GET /coach/classes/359a6a6b-c611-4a81-bea8-1c5b0803aa52 200 in 4.5s (compile: 2.4s, render: 2.1s)
+ GET /api/auth/session 200 in 103ms (compile: 73ms, render: 31ms)
+[next-auth][warn][NEXTAUTH_URL] 
+https://next-auth.js.org/warnings#nextauth_url
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 1917ms (compile: 374ms, render: 1543ms)
+ GET /coach/sessions/81d37a62-7891-43ea-8b0e-e1a9d00f5ce9/attendance 200 in 703ms (compile: 67ms, render: 637ms)
+ GET /api/auth/session 200 in 153ms (compile: 99ms, render: 54ms)
+ GET /api/auth/session 200 in 47ms (compile: 6ms, render: 41ms)
+ GET /api/auth/session 200 in 116ms (compile: 87ms, render: 29ms)
+ GET /api/auth/session 200 in 35ms (compile: 5ms, render: 30ms)
+ GET /style-guide/lms-dashboard 200 in 296ms (compile: 33ms, render: 263ms)
+ GET /api/auth/session 200 in 130ms (compile: 106ms, render: 24ms)
+ GET /api/auth/session 200 in 29ms (compile: 5ms, render: 24ms)
+ GET /api/auth/session 200 in 166ms (compile: 136ms, render: 30ms)
+ GET /api/auth/session 200 in 122ms (compile: 93ms, render: 29ms)
+ GET /api/auth/session 200 in 146ms (compile: 87ms, render: 58ms)
+ GET /admin/users 200 in 1422ms (compile: 24ms, render: 1398ms)
+ GET /api/auth/session 200 in 153ms (compile: 92ms, render: 60ms)
+ GET /api/auth/csrf 200 in 175ms (compile: 149ms, render: 26ms)
+ POST /api/auth/signout 200 in 51ms (compile: 9ms, render: 42ms)
+ GET /login 200 in 170ms (compile: 16ms, render: 154ms)
+ GET /api/auth/session 200 in 76ms (compile: 9ms, render: 67ms)
+ GET /api/auth/providers 200 in 154ms (compile: 98ms, render: 56ms)
+ GET /api/auth/csrf 200 in 55ms (compile: 7ms, render: 47ms)
+ POST /api/auth/callback/credentials 200 in 1020ms (compile: 10ms, render: 1010ms)
+ GET /api/auth/session 200 in 154ms (compile: 110ms, render: 43ms)
+ GET /api/auth/session 200 in 36ms (compile: 6ms, render: 30ms)
+ GET /coach/dashboard 200 in 1818ms (compile: 15ms, render: 1803ms)
+ GET /coach/dashboard 200 in 1664ms (compile: 13ms, render: 1651ms)
+ GET /coach/classes/a1a70303-cf22-4381-9f18-34d9644e0d39 200 in 1481ms (compile: 131ms, render: 1350ms)
+ GET /api/auth/session 200 in 109ms (compile: 78ms, render: 31ms)
+ GET /coach/sessions/db86685e-1960-4e1d-8c2b-8629ac3cabf7/attendance 200 in 1035ms (compile: 123ms, render: 912ms)
+ GET /api/auth/session 200 in 129ms (compile: 101ms, render: 28ms)
+ GET /admin/classes 200 in 2.7s (compile: 2.2s, render: 523ms)
+ GET /admin/classes/a1a70303-cf22-4381-9f18-34d9644e0d39 200 in 4.7s (compile: 3.0s, render: 1688ms)
+ ○ Compiling /api/admin/exkul/competencies ...
+ POST /api/admin/exkul/competencies 200 in 2.2s (compile: 1736ms, render: 495ms)
+ POST /api/admin/exkul/competencies 200 in 4.0s (compile: 3.4s, render: 545ms)
+ GET /admin/curriculum 200 in 3.0s (compile: 2.1s, render: 949ms)
+ GET /admin/classes 200 in 788ms (compile: 23ms, render: 765ms)
+ GET /admin/classes/a1a70303-cf22-4381-9f18-34d9644e0d39 200 in 751ms (compile: 114ms, render: 637ms)
+ POST /api/admin/classes/a1a70303-cf22-4381-9f18-34d9644e0d39/enroll 201 in 3.1s (compile: 2.6s, render: 497ms)
+Error: Route "/api/admin/sessions/[id]/substitute" used `params.id`. `params` is a Promise and must be unwrapped with `await` or `React.use()` before accessing its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
+    at POST (src/app/api/admin/sessions/[id]/substitute/route.ts:38:58)
+  36 |   }
+  37 |
+> 38 |   await sessionsDao.assignSubstituteCoach(context.params.id, substituteCoachId ?? null);
+     |                                                          ^
+  39 |   return NextResponse.json({ success: true });
+  40 | }
+  41 |
+Error: Failed to assign substitute coach: invalid input syntax for type uuid: "undefined"
+    at Module.assignSubstituteCoach (src/lib/dao/sessionsDao.ts:152:11)
+    at async POST (src/app/api/admin/sessions/[id]/substitute/route.ts:38:3)
+  150 |
+  151 |   if (error) {
+> 152 |     throw new Error(`Failed to assign substitute coach: ${error.message}`);
+      |           ^
+  153 |   }
+  154 | }
+  155 |
+ POST /api/admin/sessions/a3666439-d12a-4fcb-9de5-70eddf914555/substitute 500 in 3.2s (compile: 2.5s, render: 758ms)
+Error: Route "/api/admin/sessions/[id]/substitute" used `params.id`. `params` is a Promise and must be unwrapped with `await` or `React.use()` before accessing its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
+    at POST (src/app/api/admin/sessions/[id]/substitute/route.ts:38:58)
+  36 |   }
+  37 |
+> 38 |   await sessionsDao.assignSubstituteCoach(context.params.id, substituteCoachId ?? null);
+     |                                                          ^
+  39 |   return NextResponse.json({ success: true });
+  40 | }
+  41 |
+Error: Failed to assign substitute coach: invalid input syntax for type uuid: "undefined"
+    at Module.assignSubstituteCoach (src/lib/dao/sessionsDao.ts:152:11)
+    at async POST (src/app/api/admin/sessions/[id]/substitute/route.ts:38:3)
+  150 |
+  151 |   if (error) {
+> 152 |     throw new Error(`Failed to assign substitute coach: ${error.message}`);
+      |           ^
+  153 |   }
+  154 | }
+  155 |
+ POST /api/admin/sessions/db86685e-1960-4e1d-8c2b-8629ac3cabf7/substitute 500 in 1857ms (compile: 815ms, render: 1042ms)
+ GET /admin/curriculum 200 in 1023ms (compile: 19ms, render: 1004ms)
+ GET /api/auth/session 200 in 135ms (compile: 100ms, render: 36ms)
+ GET /api/auth/session 200 in 188ms (compile: 105ms, render: 83ms)
+ ✓ Compiled in 108ms
+ GET /coach/sessions/db86685e-1960-4e1d-8c2b-8629ac3cabf7/attendance 200 in 469ms (compile: 110ms, render: 359ms)
+ GET /admin/curriculum 200 in 480ms (compile: 218ms, render: 263ms)
+ ✓ Compiled in 101ms
+ GET /coach/sessions/db86685e-1960-4e1d-8c2b-8629ac3cabf7/attendance 200 in 305ms (compile: 99ms, render: 206ms)
+ GET /admin/curriculum 200 in 538ms (compile: 21ms, render: 518ms)
+ GET /api/auth/session 200 in 221ms (compile: 147ms, render: 74ms)
+ GET /admin/curriculum 200 in 2.4s (compile: 35ms, render: 2.4s)
+ GET /api/auth/session 200 in 132ms (compile: 86ms, render: 47ms)

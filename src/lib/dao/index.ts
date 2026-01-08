@@ -1,0 +1,14 @@
+export * as usersDao from './usersDao';
+export * as classesDao from './classesDao';
+export * as sessionsDao from './sessionsDao';
+export * as attendanceDao from './attendanceDao';
+export * as materialsDao from './materialsDao';
+export * as rubricsDao from './rubricsDao';
+export * as reportsDao from './reportsDao';
+export * as makeUpTasksDao from './makeUpTasksDao';
+export * as blocksDao from './blocksDao';
+export * as levelsDao from './levelsDao';
+export * as lessonTemplatesDao from './lessonTemplatesDao';
+export * as classLessonsDao from './classLessonsDao';
+export * as coachLeaveDao from './coachLeaveDao';
+export * as exkulCompetenciesDao from './exkulCompetenciesDao';

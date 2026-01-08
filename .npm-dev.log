@@ -1,0 +1,635 @@
+
+> lms-app@0.1.0 dev
+> next dev
+
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /home/dev/package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * /home/dev/clevio lms 2/lms-app/package-lock.json
+
+   ▲ Next.js 16.0.1 (Turbopack)
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.100.161:3000
+   - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 3s
+ ○ Compiling /admin/classes/[id] ...
+ GET /admin/classes/359a6a6b-c611-4a81-bea8-1c5b0803aa52 200 in 16.7s (compile: 13.5s, render: 3.2s)
+ GET /api/auth/session 200 in 3.9s (compile: 3.8s, render: 80ms)
+ POST /api/admin/classes/359a6a6b-c611-4a81-bea8-1c5b0803aa52/lessons/auto-assign 400 in 2.4s (compile: 2.3s, render: 51ms)
+ GET /admin/classes/359a6a6b-c611-4a81-bea8-1c5b0803aa52 200 in 2.0s (compile: 81ms, render: 1934ms)
+ GET /api/auth/session 200 in 95ms (compile: 73ms, render: 23ms)
+ POST /api/admin/classes/359a6a6b-c611-4a81-bea8-1c5b0803aa52/lessons/auto-assign 400 in 79ms (compile: 60ms, render: 18ms)
+ GET /api/admin/classes/359a6a6b-c611-4a81-bea8-1c5b0803aa52/lessons/auto-assign 405 in 113ms (compile: 96ms, render: 17ms)
+ GET /api/admin/classes/359a6a6b-c611-4a81-bea8-1c5b0803aa52/lessons/auto-assign 405 in 91ms (compile: 79ms, render: 12ms)
+ GET /api/admin/classes/359a6a6b-c611-4a81-bea8-1c5b0803aa52/lessons/auto-assign 405 in 102ms (compile: 92ms, render: 10ms)
+ GET /api/admin/classes/invalid/lessons/auto-assign 405 in 101ms (compile: 94ms, render: 7ms)
+ GET /api/admin/classes/bbf5d919-51ff-40e1-9e3a-5059d2381b73/lessons/auto-assign 405 in 80ms (compile: 61ms, render: 19ms)
+ POST /api/admin/classes/359a6a6b-c611-4a81-bea8-1c5b0803aa52/lessons/auto-assign 400 in 116ms (compile: 86ms, render: 30ms)
+ POST /api/admin/classes/359a6a6b-c611-4a81-bea8-1c5b0803aa52/lessons/auto-assign 400 in 112ms (compile: 93ms, render: 19ms)
+ POST /api/admin/classes/359a6a6b-c611-4a81-bea8-1c5b0803aa52/lessons/auto-assign 400 in 37ms (compile: 7ms, render: 29ms)
+ POST /api/admin/classes/359a6a6b-c611-4a81-bea8-1c5b0803aa52/lessons/auto-assign 400 in 108ms (compile: 83ms, render: 25ms)
+ GET /admin/classes/359a6a6b-c611-4a81-bea8-1c5b0803aa52 200 in 1493ms (compile: 46ms, render: 1447ms)
+ GET /api/auth/session 200 in 95ms (compile: 75ms, render: 21ms)
+ POST /api/admin/classes/359a6a6b-c611-4a81-bea8-1c5b0803aa52/lessons/auto-assign 400 in 82ms (compile: 66ms, render: 16ms)
+ POST /api/admin/classes/359a6a6b-c611-4a81-bea8-1c5b0803aa52/lessons/auto-assign 400 in 84ms (compile: 63ms, render: 22ms)
+ POST /api/admin/classes/359a6a6b-c611-4a81-bea8-1c5b0803aa52/lessons/auto-assign 400 in 101ms (compile: 79ms, render: 22ms)
+ GET /api/auth/session 200 in 161ms (compile: 117ms, render: 43ms)
+ POST /api/admin/classes/359a6a6b-c611-4a81-bea8-1c5b0803aa52/lessons/auto-assign 200 in 1149ms (compile: 353ms, render: 797ms)
+ GET /admin/classes/359a6a6b-c611-4a81-bea8-1c5b0803aa52 200 in 1354ms (compile: 91ms, render: 1263ms)
+ GET /api/auth/session 200 in 116ms (compile: 82ms, render: 33ms)
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:19:1
+Module not found: Can't resolve './AutoAssignLessonsButton'
+[0m [90m 17 |[39m [36mimport[39m [33mGenerateSessionsForm[39m [36mfrom[39m [32m'./GenerateSessionsForm'[39m[33m;[39m
+ [90m 18 |[39m [36mimport[39m [33mEkskulCompetencyEditor[39m [36mfrom[39m [32m'./EkskulCompetencyEditor'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 19 |[39m [36mimport[39m [33mAutoAssignLessonsButton[39m [36mfrom[39m [32m'./AutoAssignLessonsButton'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m [36mimport[39m [33mManualLessonAssignForm[39m [36mfrom[39m [32m'./ManualLessonAssignForm'[39m[33m;[39m
+ [90m 21 |[39m [36mimport[39m [33mBlockScheduleEditor[39m [36mfrom[39m [32m'./BlockScheduleEditor'[39m[33m;[39m
+ [90m 22 |[39m[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:19:1
+Module not found: Can't resolve './AutoAssignLessonsButton'
+[0m [90m 17 |[39m [36mimport[39m [33mGenerateSessionsForm[39m [36mfrom[39m [32m'./GenerateSessionsForm'[39m[33m;[39m
+ [90m 18 |[39m [36mimport[39m [33mEkskulCompetencyEditor[39m [36mfrom[39m [32m'./EkskulCompetencyEditor'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 19 |[39m [36mimport[39m [33mAutoAssignLessonsButton[39m [36mfrom[39m [32m'./AutoAssignLessonsButton'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m [36mimport[39m [33mManualLessonAssignForm[39m [36mfrom[39m [32m'./ManualLessonAssignForm'[39m[33m;[39m
+ [90m 21 |[39m [36mimport[39m [33mBlockScheduleEditor[39m [36mfrom[39m [32m'./BlockScheduleEditor'[39m[33m;[39m
+ [90m 22 |[39m[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:19:1
+Module not found: Can't resolve './AutoAssignLessonsButton'
+[0m [90m 17 |[39m [36mimport[39m [33mGenerateSessionsForm[39m [36mfrom[39m [32m'./GenerateSessionsForm'[39m[33m;[39m
+ [90m 18 |[39m [36mimport[39m [33mEkskulCompetencyEditor[39m [36mfrom[39m [32m'./EkskulCompetencyEditor'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 19 |[39m [36mimport[39m [33mAutoAssignLessonsButton[39m [36mfrom[39m [32m'./AutoAssignLessonsButton'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m [36mimport[39m [33mManualLessonAssignForm[39m [36mfrom[39m [32m'./ManualLessonAssignForm'[39m[33m;[39m
+ [90m 21 |[39m [36mimport[39m [33mBlockScheduleEditor[39m [36mfrom[39m [32m'./BlockScheduleEditor'[39m[33m;[39m
+ [90m 22 |[39m[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:19:1
+Module not found: Can't resolve './AutoAssignLessonsButton'
+[0m [90m 17 |[39m [36mimport[39m [33mGenerateSessionsForm[39m [36mfrom[39m [32m'./GenerateSessionsForm'[39m[33m;[39m
+ [90m 18 |[39m [36mimport[39m [33mEkskulCompetencyEditor[39m [36mfrom[39m [32m'./EkskulCompetencyEditor'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 19 |[39m [36mimport[39m [33mAutoAssignLessonsButton[39m [36mfrom[39m [32m'./AutoAssignLessonsButton'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m [36mimport[39m [33mManualLessonAssignForm[39m [36mfrom[39m [32m'./ManualLessonAssignForm'[39m[33m;[39m
+ [90m 21 |[39m [36mimport[39m [33mBlockScheduleEditor[39m [36mfrom[39m [32m'./BlockScheduleEditor'[39m[33m;[39m
+ [90m 22 |[39m[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:19:1
+Module not found: Can't resolve './AutoAssignLessonsButton'
+[0m [90m 17 |[39m [36mimport[39m [33mGenerateSessionsForm[39m [36mfrom[39m [32m'./GenerateSessionsForm'[39m[33m;[39m
+ [90m 18 |[39m [36mimport[39m [33mEkskulCompetencyEditor[39m [36mfrom[39m [32m'./EkskulCompetencyEditor'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 19 |[39m [36mimport[39m [33mAutoAssignLessonsButton[39m [36mfrom[39m [32m'./AutoAssignLessonsButton'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m [36mimport[39m [33mManualLessonAssignForm[39m [36mfrom[39m [32m'./ManualLessonAssignForm'[39m[33m;[39m
+ [90m 21 |[39m [36mimport[39m [33mBlockScheduleEditor[39m [36mfrom[39m [32m'./BlockScheduleEditor'[39m[33m;[39m
+ [90m 22 |[39m[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:19:1
+Module not found: Can't resolve './AutoAssignLessonsButton'
+[0m [90m 17 |[39m [36mimport[39m [33mGenerateSessionsForm[39m [36mfrom[39m [32m'./GenerateSessionsForm'[39m[33m;[39m
+ [90m 18 |[39m [36mimport[39m [33mEkskulCompetencyEditor[39m [36mfrom[39m [32m'./EkskulCompetencyEditor'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 19 |[39m [36mimport[39m [33mAutoAssignLessonsButton[39m [36mfrom[39m [32m'./AutoAssignLessonsButton'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m [36mimport[39m [33mManualLessonAssignForm[39m [36mfrom[39m [32m'./ManualLessonAssignForm'[39m[33m;[39m
+ [90m 21 |[39m [36mimport[39m [33mBlockScheduleEditor[39m [36mfrom[39m [32m'./BlockScheduleEditor'[39m[33m;[39m
+ [90m 22 |[39m[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:19:1
+Module not found: Can't resolve './AutoAssignLessonsButton'
+[0m [90m 17 |[39m [36mimport[39m [33mGenerateSessionsForm[39m [36mfrom[39m [32m'./GenerateSessionsForm'[39m[33m;[39m
+ [90m 18 |[39m [36mimport[39m [33mEkskulCompetencyEditor[39m [36mfrom[39m [32m'./EkskulCompetencyEditor'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 19 |[39m [36mimport[39m [33mAutoAssignLessonsButton[39m [36mfrom[39m [32m'./AutoAssignLessonsButton'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m [36mimport[39m [33mManualLessonAssignForm[39m [36mfrom[39m [32m'./ManualLessonAssignForm'[39m[33m;[39m
+ [90m 21 |[39m [36mimport[39m [33mBlockScheduleEditor[39m [36mfrom[39m [32m'./BlockScheduleEditor'[39m[33m;[39m
+ [90m 22 |[39m[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:19:1
+Module not found: Can't resolve './AutoAssignLessonsButton'
+[0m [90m 17 |[39m [36mimport[39m [33mGenerateSessionsForm[39m [36mfrom[39m [32m'./GenerateSessionsForm'[39m[33m;[39m
+ [90m 18 |[39m [36mimport[39m [33mEkskulCompetencyEditor[39m [36mfrom[39m [32m'./EkskulCompetencyEditor'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 19 |[39m [36mimport[39m [33mAutoAssignLessonsButton[39m [36mfrom[39m [32m'./AutoAssignLessonsButton'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m [36mimport[39m [33mManualLessonAssignForm[39m [36mfrom[39m [32m'./ManualLessonAssignForm'[39m[33m;[39m
+ [90m 21 |[39m [36mimport[39m [33mBlockScheduleEditor[39m [36mfrom[39m [32m'./BlockScheduleEditor'[39m[33m;[39m
+ [90m 22 |[39m[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:19:1
+Module not found: Can't resolve './AutoAssignLessonsButton'
+[0m [90m 17 |[39m [36mimport[39m [33mGenerateSessionsForm[39m [36mfrom[39m [32m'./GenerateSessionsForm'[39m[33m;[39m
+ [90m 18 |[39m [36mimport[39m [33mEkskulCompetencyEditor[39m [36mfrom[39m [32m'./EkskulCompetencyEditor'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 19 |[39m [36mimport[39m [33mAutoAssignLessonsButton[39m [36mfrom[39m [32m'./AutoAssignLessonsButton'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m [36mimport[39m [33mManualLessonAssignForm[39m [36mfrom[39m [32m'./ManualLessonAssignForm'[39m[33m;[39m
+ [90m 21 |[39m [36mimport[39m [33mBlockScheduleEditor[39m [36mfrom[39m [32m'./BlockScheduleEditor'[39m[33m;[39m
+ [90m 22 |[39m[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:19:1
+Module not found: Can't resolve './AutoAssignLessonsButton'
+[0m [90m 17 |[39m [36mimport[39m [33mGenerateSessionsForm[39m [36mfrom[39m [32m'./GenerateSessionsForm'[39m[33m;[39m
+ [90m 18 |[39m [36mimport[39m [33mEkskulCompetencyEditor[39m [36mfrom[39m [32m'./EkskulCompetencyEditor'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 19 |[39m [36mimport[39m [33mAutoAssignLessonsButton[39m [36mfrom[39m [32m'./AutoAssignLessonsButton'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m [36mimport[39m [33mManualLessonAssignForm[39m [36mfrom[39m [32m'./ManualLessonAssignForm'[39m[33m;[39m
+ [90m 21 |[39m [36mimport[39m [33mBlockScheduleEditor[39m [36mfrom[39m [32m'./BlockScheduleEditor'[39m[33m;[39m
+ [90m 22 |[39m[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:19:1
+Module not found: Can't resolve './AutoAssignLessonsButton'
+[0m [90m 17 |[39m [36mimport[39m [33mGenerateSessionsForm[39m [36mfrom[39m [32m'./GenerateSessionsForm'[39m[33m;[39m
+ [90m 18 |[39m [36mimport[39m [33mEkskulCompetencyEditor[39m [36mfrom[39m [32m'./EkskulCompetencyEditor'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 19 |[39m [36mimport[39m [33mAutoAssignLessonsButton[39m [36mfrom[39m [32m'./AutoAssignLessonsButton'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m [36mimport[39m [33mManualLessonAssignForm[39m [36mfrom[39m [32m'./ManualLessonAssignForm'[39m[33m;[39m
+ [90m 21 |[39m [36mimport[39m [33mBlockScheduleEditor[39m [36mfrom[39m [32m'./BlockScheduleEditor'[39m[33m;[39m
+ [90m 22 |[39m[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:19:1
+Module not found: Can't resolve './AutoAssignLessonsButton'
+[0m [90m 17 |[39m [36mimport[39m [33mGenerateSessionsForm[39m [36mfrom[39m [32m'./GenerateSessionsForm'[39m[33m;[39m
+ [90m 18 |[39m [36mimport[39m [33mEkskulCompetencyEditor[39m [36mfrom[39m [32m'./EkskulCompetencyEditor'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 19 |[39m [36mimport[39m [33mAutoAssignLessonsButton[39m [36mfrom[39m [32m'./AutoAssignLessonsButton'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m [36mimport[39m [33mManualLessonAssignForm[39m [36mfrom[39m [32m'./ManualLessonAssignForm'[39m[33m;[39m
+ [90m 21 |[39m [36mimport[39m [33mBlockScheduleEditor[39m [36mfrom[39m [32m'./BlockScheduleEditor'[39m[33m;[39m
+ [90m 22 |[39m[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:19:1
+Module not found: Can't resolve './AutoAssignLessonsButton'
+[0m [90m 17 |[39m [36mimport[39m [33mGenerateSessionsForm[39m [36mfrom[39m [32m'./GenerateSessionsForm'[39m[33m;[39m
+ [90m 18 |[39m [36mimport[39m [33mEkskulCompetencyEditor[39m [36mfrom[39m [32m'./EkskulCompetencyEditor'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 19 |[39m [36mimport[39m [33mAutoAssignLessonsButton[39m [36mfrom[39m [32m'./AutoAssignLessonsButton'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m [36mimport[39m [33mManualLessonAssignForm[39m [36mfrom[39m [32m'./ManualLessonAssignForm'[39m[33m;[39m
+ [90m 21 |[39m [36mimport[39m [33mBlockScheduleEditor[39m [36mfrom[39m [32m'./BlockScheduleEditor'[39m[33m;[39m
+ [90m 22 |[39m[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:19:1
+Module not found: Can't resolve './AutoAssignLessonsButton'
+[0m [90m 17 |[39m [36mimport[39m [33mGenerateSessionsForm[39m [36mfrom[39m [32m'./GenerateSessionsForm'[39m[33m;[39m
+ [90m 18 |[39m [36mimport[39m [33mEkskulCompetencyEditor[39m [36mfrom[39m [32m'./EkskulCompetencyEditor'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 19 |[39m [36mimport[39m [33mAutoAssignLessonsButton[39m [36mfrom[39m [32m'./AutoAssignLessonsButton'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m [36mimport[39m [33mManualLessonAssignForm[39m [36mfrom[39m [32m'./ManualLessonAssignForm'[39m[33m;[39m
+ [90m 21 |[39m [36mimport[39m [33mBlockScheduleEditor[39m [36mfrom[39m [32m'./BlockScheduleEditor'[39m[33m;[39m
+ [90m 22 |[39m[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:19:1
+Module not found: Can't resolve './AutoAssignLessonsButton'
+[0m [90m 17 |[39m [36mimport[39m [33mGenerateSessionsForm[39m [36mfrom[39m [32m'./GenerateSessionsForm'[39m[33m;[39m
+ [90m 18 |[39m [36mimport[39m [33mEkskulCompetencyEditor[39m [36mfrom[39m [32m'./EkskulCompetencyEditor'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 19 |[39m [36mimport[39m [33mAutoAssignLessonsButton[39m [36mfrom[39m [32m'./AutoAssignLessonsButton'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m [36mimport[39m [33mManualLessonAssignForm[39m [36mfrom[39m [32m'./ManualLessonAssignForm'[39m[33m;[39m
+ [90m 21 |[39m [36mimport[39m [33mBlockScheduleEditor[39m [36mfrom[39m [32m'./BlockScheduleEditor'[39m[33m;[39m
+ [90m 22 |[39m[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:19:1
+Module not found: Can't resolve './AutoAssignLessonsButton'
+[0m [90m 17 |[39m [36mimport[39m [33mGenerateSessionsForm[39m [36mfrom[39m [32m'./GenerateSessionsForm'[39m[33m;[39m
+ [90m 18 |[39m [36mimport[39m [33mEkskulCompetencyEditor[39m [36mfrom[39m [32m'./EkskulCompetencyEditor'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 19 |[39m [36mimport[39m [33mAutoAssignLessonsButton[39m [36mfrom[39m [32m'./AutoAssignLessonsButton'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m [36mimport[39m [33mManualLessonAssignForm[39m [36mfrom[39m [32m'./ManualLessonAssignForm'[39m[33m;[39m
+ [90m 21 |[39m [36mimport[39m [33mBlockScheduleEditor[39m [36mfrom[39m [32m'./BlockScheduleEditor'[39m[33m;[39m
+ [90m 22 |[39m[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:19:1
+Module not found: Can't resolve './AutoAssignLessonsButton'
+[0m [90m 17 |[39m [36mimport[39m [33mGenerateSessionsForm[39m [36mfrom[39m [32m'./GenerateSessionsForm'[39m[33m;[39m
+ [90m 18 |[39m [36mimport[39m [33mEkskulCompetencyEditor[39m [36mfrom[39m [32m'./EkskulCompetencyEditor'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 19 |[39m [36mimport[39m [33mAutoAssignLessonsButton[39m [36mfrom[39m [32m'./AutoAssignLessonsButton'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m [36mimport[39m [33mManualLessonAssignForm[39m [36mfrom[39m [32m'./ManualLessonAssignForm'[39m[33m;[39m
+ [90m 21 |[39m [36mimport[39m [33mBlockScheduleEditor[39m [36mfrom[39m [32m'./BlockScheduleEditor'[39m[33m;[39m
+ [90m 22 |[39m[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:19:1
+Module not found: Can't resolve './AutoAssignLessonsButton'
+[0m [90m 17 |[39m [36mimport[39m [33mGenerateSessionsForm[39m [36mfrom[39m [32m'./GenerateSessionsForm'[39m[33m;[39m
+ [90m 18 |[39m [36mimport[39m [33mEkskulCompetencyEditor[39m [36mfrom[39m [32m'./EkskulCompetencyEditor'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 19 |[39m [36mimport[39m [33mAutoAssignLessonsButton[39m [36mfrom[39m [32m'./AutoAssignLessonsButton'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m [36mimport[39m [33mManualLessonAssignForm[39m [36mfrom[39m [32m'./ManualLessonAssignForm'[39m[33m;[39m
+ [90m 21 |[39m [36mimport[39m [33mBlockScheduleEditor[39m [36mfrom[39m [32m'./BlockScheduleEditor'[39m[33m;[39m
+ [90m 22 |[39m[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ✓ Compiled in 361ms
+ ✓ Compiled in 241ms
+ GET /admin/classes/359a6a6b-c611-4a81-bea8-1c5b0803aa52 200 in 753ms (compile: 320ms, render: 433ms)
+ GET /admin/classes/359a6a6b-c611-4a81-bea8-1c5b0803aa52 200 in 940ms (compile: 323ms, render: 616ms)
+ GET /admin/classes/359a6a6b-c611-4a81-bea8-1c5b0803aa52 200 in 2.7s (compile: 69ms, render: 2.6s)
+ GET /api/auth/session 200 in 88ms (compile: 53ms, render: 36ms)
+ GET /admin/classes 200 in 2.7s (compile: 2.3s, render: 421ms)
+ GET /admin/classes/bbf5d919-51ff-40e1-9e3a-5059d2381b73 200 in 1231ms (compile: 80ms, render: 1151ms)
+ GET /admin/classes/bbf5d919-51ff-40e1-9e3a-5059d2381b73 200 in 1932ms (compile: 101ms, render: 1831ms)
+ GET /api/auth/session 200 in 109ms (compile: 74ms, render: 35ms)
+ GET /admin/classes 200 in 750ms (compile: 18ms, render: 731ms)
+ GET /admin/classes/bbf5d919-51ff-40e1-9e3a-5059d2381b73 200 in 1270ms (compile: 82ms, render: 1187ms)
+ GET /admin/curriculum 200 in 3.0s (compile: 1783ms, render: 1246ms)
+ GET /admin/curriculum/e5008277-30eb-4ff7-b5ed-ac666026a2dd/blocks 200 in 3.9s (compile: 3.1s, render: 829ms)
+ GET /admin/classes 200 in 512ms (compile: 25ms, render: 487ms)
+ ✓ Compiled in 342ms
+ GET /admin/classes 200 in 737ms (compile: 251ms, render: 487ms)
+ GET /admin/classes 200 in 98ms (compile: 12ms, render: 87ms)
+ GET /admin/classes 200 in 114ms (compile: 9ms, render: 105ms)
+ GET /admin/classes 200 in 105ms (compile: 5ms, render: 100ms)
+ POST /api/admin/classes 201 in 2.9s (compile: 1760ms, render: 1124ms)
+ GET /admin/classes 200 in 334ms (compile: 12ms, render: 322ms)
+ GET /admin/classes/24fa410c-a9dd-47d0-b283-d1f4d6067535 200 in 3.8s (compile: 346ms, render: 3.4s)
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:14:1
+Module not found: Can't resolve '@/lib/services/lessonAutoAssign'
+[0m [90m 12 |[39m } [36mfrom[39m [32m'@/lib/dao'[39m[33m;[39m
+ [90m 13 |[39m [36mimport[39m type { [33mClassLessonRecord[39m } [36mfrom[39m [32m'@/lib/dao/classLessonsDao'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 14 |[39m [36mimport[39m { autoAssignLessonsForClass } [36mfrom[39m [32m'@/lib/services/lessonAutoAssign'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 15 |[39m
+ [90m 16 |[39m [36mimport[39m [33mAssignSubstituteForm[39m [36mfrom[39m [32m'./AssignSubstituteForm'[39m[33m;[39m
+ [90m 17 |[39m [36mimport[39m [33mEnrollCoderForm[39m [36mfrom[39m [32m'./EnrollCoderForm'[39m[33m;[39m[0m
+
+Import map: aliased to relative './src/lib/services/lessonAutoAssign' inside of [project]/clevio lms 2/lms-app
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:14:1
+Module not found: Can't resolve '@/lib/services/lessonAutoAssign'
+[0m [90m 12 |[39m } [36mfrom[39m [32m'@/lib/dao'[39m[33m;[39m
+ [90m 13 |[39m [36mimport[39m type { [33mClassLessonRecord[39m } [36mfrom[39m [32m'@/lib/dao/classLessonsDao'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 14 |[39m [36mimport[39m { autoAssignLessonsForClass } [36mfrom[39m [32m'@/lib/services/lessonAutoAssign'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 15 |[39m
+ [90m 16 |[39m [36mimport[39m [33mAssignSubstituteForm[39m [36mfrom[39m [32m'./AssignSubstituteForm'[39m[33m;[39m
+ [90m 17 |[39m [36mimport[39m [33mEnrollCoderForm[39m [36mfrom[39m [32m'./EnrollCoderForm'[39m[33m;[39m[0m
+
+Import map: aliased to relative './src/lib/services/lessonAutoAssign' inside of [project]/clevio lms 2/lms-app
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:14:1
+Module not found: Can't resolve '@/lib/services/lessonAutoAssign'
+[0m [90m 12 |[39m } [36mfrom[39m [32m'@/lib/dao'[39m[33m;[39m
+ [90m 13 |[39m [36mimport[39m type { [33mClassLessonRecord[39m } [36mfrom[39m [32m'@/lib/dao/classLessonsDao'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 14 |[39m [36mimport[39m { autoAssignLessonsForClass } [36mfrom[39m [32m'@/lib/services/lessonAutoAssign'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 15 |[39m
+ [90m 16 |[39m [36mimport[39m [33mAssignSubstituteForm[39m [36mfrom[39m [32m'./AssignSubstituteForm'[39m[33m;[39m
+ [90m 17 |[39m [36mimport[39m [33mEnrollCoderForm[39m [36mfrom[39m [32m'./EnrollCoderForm'[39m[33m;[39m[0m
+
+Import map: aliased to relative './src/lib/services/lessonAutoAssign' inside of [project]/clevio lms 2/lms-app
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:14:1
+Module not found: Can't resolve '@/lib/services/lessonAutoAssign'
+[0m [90m 12 |[39m } [36mfrom[39m [32m'@/lib/dao'[39m[33m;[39m
+ [90m 13 |[39m [36mimport[39m type { [33mClassLessonRecord[39m } [36mfrom[39m [32m'@/lib/dao/classLessonsDao'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 14 |[39m [36mimport[39m { autoAssignLessonsForClass } [36mfrom[39m [32m'@/lib/services/lessonAutoAssign'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 15 |[39m
+ [90m 16 |[39m [36mimport[39m [33mAssignSubstituteForm[39m [36mfrom[39m [32m'./AssignSubstituteForm'[39m[33m;[39m
+ [90m 17 |[39m [36mimport[39m [33mEnrollCoderForm[39m [36mfrom[39m [32m'./EnrollCoderForm'[39m[33m;[39m[0m
+
+Import map: aliased to relative './src/lib/services/lessonAutoAssign' inside of [project]/clevio lms 2/lms-app
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:14:1
+Module not found: Can't resolve '@/lib/services/lessonAutoAssign'
+[0m [90m 12 |[39m } [36mfrom[39m [32m'@/lib/dao'[39m[33m;[39m
+ [90m 13 |[39m [36mimport[39m type { [33mClassLessonRecord[39m } [36mfrom[39m [32m'@/lib/dao/classLessonsDao'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 14 |[39m [36mimport[39m { autoAssignLessonsForClass } [36mfrom[39m [32m'@/lib/services/lessonAutoAssign'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 15 |[39m
+ [90m 16 |[39m [36mimport[39m [33mAssignSubstituteForm[39m [36mfrom[39m [32m'./AssignSubstituteForm'[39m[33m;[39m
+ [90m 17 |[39m [36mimport[39m [33mEnrollCoderForm[39m [36mfrom[39m [32m'./EnrollCoderForm'[39m[33m;[39m[0m
+
+Import map: aliased to relative './src/lib/services/lessonAutoAssign' inside of [project]/clevio lms 2/lms-app
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:14:1
+Module not found: Can't resolve '@/lib/services/lessonAutoAssign'
+[0m [90m 12 |[39m } [36mfrom[39m [32m'@/lib/dao'[39m[33m;[39m
+ [90m 13 |[39m [36mimport[39m type { [33mClassLessonRecord[39m } [36mfrom[39m [32m'@/lib/dao/classLessonsDao'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 14 |[39m [36mimport[39m { autoAssignLessonsForClass } [36mfrom[39m [32m'@/lib/services/lessonAutoAssign'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 15 |[39m
+ [90m 16 |[39m [36mimport[39m [33mAssignSubstituteForm[39m [36mfrom[39m [32m'./AssignSubstituteForm'[39m[33m;[39m
+ [90m 17 |[39m [36mimport[39m [33mEnrollCoderForm[39m [36mfrom[39m [32m'./EnrollCoderForm'[39m[33m;[39m[0m
+
+Import map: aliased to relative './src/lib/services/lessonAutoAssign' inside of [project]/clevio lms 2/lms-app
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:14:1
+Module not found: Can't resolve '@/lib/services/lessonAutoAssign'
+[0m [90m 12 |[39m } [36mfrom[39m [32m'@/lib/dao'[39m[33m;[39m
+ [90m 13 |[39m [36mimport[39m type { [33mClassLessonRecord[39m } [36mfrom[39m [32m'@/lib/dao/classLessonsDao'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 14 |[39m [36mimport[39m { autoAssignLessonsForClass } [36mfrom[39m [32m'@/lib/services/lessonAutoAssign'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 15 |[39m
+ [90m 16 |[39m [36mimport[39m [33mAssignSubstituteForm[39m [36mfrom[39m [32m'./AssignSubstituteForm'[39m[33m;[39m
+ [90m 17 |[39m [36mimport[39m [33mEnrollCoderForm[39m [36mfrom[39m [32m'./EnrollCoderForm'[39m[33m;[39m[0m
+
+Import map: aliased to relative './src/lib/services/lessonAutoAssign' inside of [project]/clevio lms 2/lms-app
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:14:1
+Module not found: Can't resolve '@/lib/services/lessonAutoAssign'
+[0m [90m 12 |[39m } [36mfrom[39m [32m'@/lib/dao'[39m[33m;[39m
+ [90m 13 |[39m [36mimport[39m type { [33mClassLessonRecord[39m } [36mfrom[39m [32m'@/lib/dao/classLessonsDao'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 14 |[39m [36mimport[39m { autoAssignLessonsForClass } [36mfrom[39m [32m'@/lib/services/lessonAutoAssign'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 15 |[39m
+ [90m 16 |[39m [36mimport[39m [33mAssignSubstituteForm[39m [36mfrom[39m [32m'./AssignSubstituteForm'[39m[33m;[39m
+ [90m 17 |[39m [36mimport[39m [33mEnrollCoderForm[39m [36mfrom[39m [32m'./EnrollCoderForm'[39m[33m;[39m[0m
+
+Import map: aliased to relative './src/lib/services/lessonAutoAssign' inside of [project]/clevio lms 2/lms-app
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:14:1
+Module not found: Can't resolve '@/lib/services/lessonAutoAssign'
+[0m [90m 12 |[39m } [36mfrom[39m [32m'@/lib/dao'[39m[33m;[39m
+ [90m 13 |[39m [36mimport[39m type { [33mClassLessonRecord[39m } [36mfrom[39m [32m'@/lib/dao/classLessonsDao'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 14 |[39m [36mimport[39m { autoAssignLessonsForClass } [36mfrom[39m [32m'@/lib/services/lessonAutoAssign'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 15 |[39m
+ [90m 16 |[39m [36mimport[39m [33mAssignSubstituteForm[39m [36mfrom[39m [32m'./AssignSubstituteForm'[39m[33m;[39m
+ [90m 17 |[39m [36mimport[39m [33mEnrollCoderForm[39m [36mfrom[39m [32m'./EnrollCoderForm'[39m[33m;[39m[0m
+
+Import map: aliased to relative './src/lib/services/lessonAutoAssign' inside of [project]/clevio lms 2/lms-app
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:14:1
+Module not found: Can't resolve '@/lib/services/lessonAutoAssign'
+[0m [90m 12 |[39m } [36mfrom[39m [32m'@/lib/dao'[39m[33m;[39m
+ [90m 13 |[39m [36mimport[39m type { [33mClassLessonRecord[39m } [36mfrom[39m [32m'@/lib/dao/classLessonsDao'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 14 |[39m [36mimport[39m { autoAssignLessonsForClass } [36mfrom[39m [32m'@/lib/services/lessonAutoAssign'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 15 |[39m
+ [90m 16 |[39m [36mimport[39m [33mAssignSubstituteForm[39m [36mfrom[39m [32m'./AssignSubstituteForm'[39m[33m;[39m
+ [90m 17 |[39m [36mimport[39m [33mEnrollCoderForm[39m [36mfrom[39m [32m'./EnrollCoderForm'[39m[33m;[39m[0m
+
+Import map: aliased to relative './src/lib/services/lessonAutoAssign' inside of [project]/clevio lms 2/lms-app
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:14:1
+Module not found: Can't resolve '@/lib/services/lessonAutoAssign'
+[0m [90m 12 |[39m } [36mfrom[39m [32m'@/lib/dao'[39m[33m;[39m
+ [90m 13 |[39m [36mimport[39m type { [33mClassLessonRecord[39m } [36mfrom[39m [32m'@/lib/dao/classLessonsDao'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 14 |[39m [36mimport[39m { autoAssignLessonsForClass } [36mfrom[39m [32m'@/lib/services/lessonAutoAssign'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 15 |[39m
+ [90m 16 |[39m [36mimport[39m [33mAssignSubstituteForm[39m [36mfrom[39m [32m'./AssignSubstituteForm'[39m[33m;[39m
+ [90m 17 |[39m [36mimport[39m [33mEnrollCoderForm[39m [36mfrom[39m [32m'./EnrollCoderForm'[39m[33m;[39m[0m
+
+Import map: aliased to relative './src/lib/services/lessonAutoAssign' inside of [project]/clevio lms 2/lms-app
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:14:1
+Module not found: Can't resolve '@/lib/services/lessonAutoAssign'
+[0m [90m 12 |[39m } [36mfrom[39m [32m'@/lib/dao'[39m[33m;[39m
+ [90m 13 |[39m [36mimport[39m type { [33mClassLessonRecord[39m } [36mfrom[39m [32m'@/lib/dao/classLessonsDao'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 14 |[39m [36mimport[39m { autoAssignLessonsForClass } [36mfrom[39m [32m'@/lib/services/lessonAutoAssign'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 15 |[39m
+ [90m 16 |[39m [36mimport[39m [33mAssignSubstituteForm[39m [36mfrom[39m [32m'./AssignSubstituteForm'[39m[33m;[39m
+ [90m 17 |[39m [36mimport[39m [33mEnrollCoderForm[39m [36mfrom[39m [32m'./EnrollCoderForm'[39m[33m;[39m[0m
+
+Import map: aliased to relative './src/lib/services/lessonAutoAssign' inside of [project]/clevio lms 2/lms-app
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:14:1
+Module not found: Can't resolve '@/lib/services/lessonAutoAssign'
+[0m [90m 12 |[39m } [36mfrom[39m [32m'@/lib/dao'[39m[33m;[39m
+ [90m 13 |[39m [36mimport[39m type { [33mClassLessonRecord[39m } [36mfrom[39m [32m'@/lib/dao/classLessonsDao'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 14 |[39m [36mimport[39m { autoAssignLessonsForClass } [36mfrom[39m [32m'@/lib/services/lessonAutoAssign'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 15 |[39m
+ [90m 16 |[39m [36mimport[39m [33mAssignSubstituteForm[39m [36mfrom[39m [32m'./AssignSubstituteForm'[39m[33m;[39m
+ [90m 17 |[39m [36mimport[39m [33mEnrollCoderForm[39m [36mfrom[39m [32m'./EnrollCoderForm'[39m[33m;[39m[0m
+
+Import map: aliased to relative './src/lib/services/lessonAutoAssign' inside of [project]/clevio lms 2/lms-app
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:14:1
+Module not found: Can't resolve '@/lib/services/lessonAutoAssign'
+[0m [90m 12 |[39m } [36mfrom[39m [32m'@/lib/dao'[39m[33m;[39m
+ [90m 13 |[39m [36mimport[39m type { [33mClassLessonRecord[39m } [36mfrom[39m [32m'@/lib/dao/classLessonsDao'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 14 |[39m [36mimport[39m { autoAssignLessonsForClass } [36mfrom[39m [32m'@/lib/services/lessonAutoAssign'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 15 |[39m
+ [90m 16 |[39m [36mimport[39m [33mAssignSubstituteForm[39m [36mfrom[39m [32m'./AssignSubstituteForm'[39m[33m;[39m
+ [90m 17 |[39m [36mimport[39m [33mEnrollCoderForm[39m [36mfrom[39m [32m'./EnrollCoderForm'[39m[33m;[39m[0m
+
+Import map: aliased to relative './src/lib/services/lessonAutoAssign' inside of [project]/clevio lms 2/lms-app
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:14:1
+Module not found: Can't resolve '@/lib/services/lessonAutoAssign'
+[0m [90m 12 |[39m } [36mfrom[39m [32m'@/lib/dao'[39m[33m;[39m
+ [90m 13 |[39m [36mimport[39m type { [33mClassLessonRecord[39m } [36mfrom[39m [32m'@/lib/dao/classLessonsDao'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 14 |[39m [36mimport[39m { autoAssignLessonsForClass } [36mfrom[39m [32m'@/lib/services/lessonAutoAssign'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 15 |[39m
+ [90m 16 |[39m [36mimport[39m [33mAssignSubstituteForm[39m [36mfrom[39m [32m'./AssignSubstituteForm'[39m[33m;[39m
+ [90m 17 |[39m [36mimport[39m [33mEnrollCoderForm[39m [36mfrom[39m [32m'./EnrollCoderForm'[39m[33m;[39m[0m
+
+Import map: aliased to relative './src/lib/services/lessonAutoAssign' inside of [project]/clevio lms 2/lms-app
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ⨯ ./clevio lms 2/lms-app/src/app/(admin)/admin/classes/[id]/page.tsx:14:1
+Module not found: Can't resolve '@/lib/services/lessonAutoAssign'
+[0m [90m 12 |[39m } [36mfrom[39m [32m'@/lib/dao'[39m[33m;[39m
+ [90m 13 |[39m [36mimport[39m type { [33mClassLessonRecord[39m } [36mfrom[39m [32m'@/lib/dao/classLessonsDao'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 14 |[39m [36mimport[39m { autoAssignLessonsForClass } [36mfrom[39m [32m'@/lib/services/lessonAutoAssign'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 15 |[39m
+ [90m 16 |[39m [36mimport[39m [33mAssignSubstituteForm[39m [36mfrom[39m [32m'./AssignSubstituteForm'[39m[33m;[39m
+ [90m 17 |[39m [36mimport[39m [33mEnrollCoderForm[39m [36mfrom[39m [32m'./EnrollCoderForm'[39m[33m;[39m[0m
+
+Import map: aliased to relative './src/lib/services/lessonAutoAssign' inside of [project]/clevio lms 2/lms-app
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ✓ Compiled in 572ms
+ GET /admin/classes/24fa410c-a9dd-47d0-b283-d1f4d6067535 200 in 3.1s (compile: 282ms, render: 2.9s)
+ GET /admin/classes/24fa410c-a9dd-47d0-b283-d1f4d6067535 200 in 2.4s (compile: 261ms, render: 2.1s)
+ GET /admin/classes/24fa410c-a9dd-47d0-b283-d1f4d6067535 200 in 3.2s (compile: 328ms, render: 2.9s)
+ GET /admin/classes/24fa410c-a9dd-47d0-b283-d1f4d6067535 200 in 2.6s (compile: 289ms, render: 2.4s)
+ GET /api/auth/session 200 in 144ms (compile: 80ms, render: 63ms)
+ GET /admin/classes/24fa410c-a9dd-47d0-b283-d1f4d6067535 200 in 1970ms (compile: 103ms, render: 1866ms)
+ GET /api/auth/session 200 in 115ms (compile: 82ms, render: 33ms)
+ GET /admin/classes 200 in 1006ms (compile: 8ms, render: 998ms)
+ GET /admin/curriculum 200 in 2.6s (compile: 303ms, render: 2.3s)
+ GET /admin/classes 200 in 202ms (compile: 6ms, render: 196ms)
+ GET /admin/classes 200 in 219ms (compile: 7ms, render: 212ms)
+[AdminClassDetailPage] Failed to auto-assign lessons before render Error: Failed to create class block: duplicate key value violates unique constraint "class_blocks_class_id_block_id_key"
+    at Module.createClassBlock (src/lib/dao/classesDao.ts:174:11)
+    at async instantiateBlockFromTemplate (src/lib/services/lessonAutoAssign.ts:210:17)
+    at async ensureLessonCapacity (src/lib/services/lessonAutoAssign.ts:98:5)
+    at async autoAssignLessonsForClass (src/lib/services/lessonAutoAssign.ts:29:58)
+    at async AdminClassDetailPage (src/app/(admin)/admin/classes/[id]/page.tsx:57:7)
+  172 |
+  173 |   if (error) {
+> 174 |     throw new Error(`Failed to create class block: ${error.message}`);
+      |           ^
+  175 |   }
+  176 |
+  177 |   return data;
+ GET /admin/classes/bbf5d919-51ff-40e1-9e3a-5059d2381b73 200 in 2.9s (compile: 100ms, render: 2.8s)
+ GET /admin/classes/24fa410c-a9dd-47d0-b283-d1f4d6067535 200 in 1534ms (compile: 88ms, render: 1445ms)
+ GET /api/auth/session 200 in 147ms (compile: 89ms, render: 58ms)
+ GET /admin/classes/24fa410c-a9dd-47d0-b283-d1f4d6067535 200 in 1462ms (compile: 99ms, render: 1363ms)
+ GET /api/auth/session 200 in 100ms (compile: 68ms, render: 32ms)
+ GET /api/auth/csrf 200 in 143ms (compile: 104ms, render: 39ms)
+ POST /api/auth/signout 200 in 26ms (compile: 7ms, render: 19ms)
+ GET /login 200 in 2.2s (compile: 1886ms, render: 334ms)
+ GET /api/auth/session 200 in 124ms (compile: 86ms, render: 39ms)
+ GET /api/auth/providers 200 in 109ms (compile: 62ms, render: 47ms)
+ GET /api/auth/csrf 200 in 43ms (compile: 10ms, render: 32ms)
+ POST /api/auth/callback/credentials 200 in 2.3s (compile: 10ms, render: 2.3s)
+ GET /api/auth/session 200 in 115ms (compile: 90ms, render: 25ms)
+ GET /api/auth/session 200 in 29ms (compile: 9ms, render: 20ms)
+ GET /coach/dashboard 200 in 2.8s (compile: 1919ms, render: 872ms)
+ GET /coach/dashboard 200 in 511ms (compile: 13ms, render: 498ms)
+ GET /coach/classes/24fa410c-a9dd-47d0-b283-d1f4d6067535 200 in 4.3s (compile: 3.2s, render: 1070ms)
+ GET /api/auth/session 200 in 136ms (compile: 103ms, render: 32ms)

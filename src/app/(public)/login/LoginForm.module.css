@@ -1,0 +1,158 @@
+.container {
+  margin: 4rem auto;
+  max-width: 24rem;
+  width: 100%;
+}
+
+.card {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 2rem;
+  background: #ffffff;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.error {
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  color: #374151;
+  font-size: 0.95rem;
+}
+
+.input {
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.75rem 0.85rem;
+  font-size: 1rem;
+  color: #0f172a;
+  background: #ffffff;
+  caret-color: #2563eb;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input::placeholder {
+  color: #9ca3af;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.errorText {
+  font-size: 0.8rem;
+  color: #b91c1c;
+}
+
+.button {
+  margin-top: 0.5rem;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.button:hover {
+  background: #1d4ed8;
+}
+
+.button:disabled {
+  background: #93c5fd;
+  cursor: not-allowed;
+}
+
+.divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 0.5rem 0;
+}
+
+.devReset {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.75rem 0 0.25rem;
+}
+
+.devResetHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.devResetTitle {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.devResetBadge {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #4b5563;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.helperText {
+  font-size: 0.85rem;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.secondaryButton {
+  align-self: flex-start;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  background: #f9fafb;
+  color: #111827;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.secondaryButton:hover {
+  background: #f3f4f6;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+}
+
+.secondaryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.successText {
+  font-size: 0.85rem;
+  color: #0f9d58;
+}

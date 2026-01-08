@@ -1,12 +1,13 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 import type { LevelRecord } from '@/lib/dao/levelsDao';
 import type { UserRecord } from '@/lib/dao/usersDao';
+import type { BlockRecord } from '@/lib/dao/blocksDao';
 import { createClassSchema } from '@/lib/validation/admin';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
@@ -20,9 +21,10 @@ type CoachOption = Pick<UserRecord, 'id' | 'full_name' | 'is_active'>;
 type CreateClassFormProps = {
   coaches: CoachOption[];
   levels: LevelRecord[];
+  levelBlocks: Record<string, BlockRecord[]>;
 };
 
-export default function CreateClassForm({ coaches, levels }: CreateClassFormProps) {
+export default function CreateClassForm({ coaches, levels, levelBlocks }: CreateClassFormProps) {
   const router = useRouter();
   const activeCoaches = useMemo(() => coaches.filter((coach) => coach.is_active), [coaches]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -34,16 +36,30 @@ export default function CreateClassForm({ coaches, levels }: CreateClassFormProp
     watch,
     formState: { errors, isSubmitting },
     reset,
+    setValue,
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       type: 'WEEKLY',
       scheduleDay: 'MONDAY',
       scheduleTime: '16:00',
+      initialBlockId: '',
     } as FormValues,
   });
 
   const selectedType = watch('type');
+  const selectedLevelId = watch('levelId');
+
+  const availableBlocks = useMemo(() => {
+    if (selectedType !== 'WEEKLY' || !selectedLevelId) {
+      return [];
+    }
+    return levelBlocks[selectedLevelId] ?? [];
+  }, [levelBlocks, selectedLevelId, selectedType]);
+
+  useEffect(() => {
+    setValue('initialBlockId', '' as FormValues['initialBlockId']);
+  }, [selectedLevelId, selectedType, setValue]);
 
   const onSubmit = async (values: FormValues) => {
     setErrorMessage(null);
@@ -68,7 +84,7 @@ export default function CreateClassForm({ coaches, levels }: CreateClassFormProp
       }
 
       setSuccessMessage('Class created');
-      reset({ ...values, name: '', zoomLink: '', startDate: '', endDate: '' });
+      reset({ ...values, name: '', zoomLink: '', startDate: '', initialBlockId: '' });
       router.refresh();
     } catch (error) {
       console.error('Create class error', error);
@@ -124,6 +140,27 @@ export default function CreateClassForm({ coaches, levels }: CreateClassFormProp
         ) : (
           <input type="hidden" value="" {...register('levelId')} />
         )}
+        {selectedType === 'WEEKLY' ? (
+          <div style={fieldStyle}>
+            <label style={labelStyle}>Mulai dari Block</label>
+            {selectedLevelId ? (
+              <select style={inputStyle} {...register('initialBlockId')}>
+                <option value="">Gunakan block pertama level</option>
+                {(availableBlocks ?? []).map((block) => (
+                  <option key={block.id} value={block.id}>
+                    {block.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input type="hidden" value="" {...register('initialBlockId')} />
+            )}
+            {errors.initialBlockId ? <span style={errorStyle}>{errors.initialBlockId.message}</span> : null}
+            {!selectedLevelId ? <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Pilih level untuk menentukan block awal.</span> : null}
+          </div>
+        ) : (
+          <input type="hidden" value="" {...register('initialBlockId')} />
+        )}
         <div style={fieldStyle}>
           <label style={labelStyle}>Schedule Day</label>
           <input style={inputStyle} type="text" placeholder="e.g. MONDAY" {...register('scheduleDay')} />
@@ -143,11 +180,6 @@ export default function CreateClassForm({ coaches, levels }: CreateClassFormProp
           <label style={labelStyle}>Start Date</label>
           <input style={inputStyle} type="date" {...register('startDate')} />
           {errors.startDate ? <span style={errorStyle}>{errors.startDate.message}</span> : null}
-        </div>
-        <div style={fieldStyle}>
-          <label style={labelStyle}>End Date</label>
-          <input style={inputStyle} type="date" {...register('endDate')} />
-          {errors.endDate ? <span style={errorStyle}>{errors.endDate.message}</span> : null}
         </div>
         <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
           <button

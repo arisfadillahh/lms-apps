@@ -2,7 +2,7 @@
 
 import { addDays } from 'date-fns';
 
-import { blocksDao, classLessonsDao, classesDao, lessonTemplatesDao, sessionsDao } from '@/lib/dao';
+import { blocksDao, classLessonsDao, classesDao, coderProgressDao, lessonTemplatesDao, sessionsDao } from '@/lib/dao';
 import type { ClassLessonRecord } from '@/lib/dao/classLessonsDao';
 import type { ClassRecord } from '@/lib/dao/classesDao';
 import type { LessonTemplateRecord } from '@/lib/dao/lessonTemplatesDao';
@@ -70,6 +70,8 @@ async function ensureLessonCapacity(
 ): Promise<EnsureResult> {
   let blocks = await classesDao.getClassBlocks(klass.id);
   const lessonsByBlock = await loadLessons(blocks);
+  const lessonTemplateCache = new Map<string, LessonTemplateRecord[]>();
+  await syncLessonsWithTemplates(blocks, lessonsByBlock, lessonTemplateCache);
 
   const sessionAlreadyUsed = collectAssignedSessionIds(lessonsByBlock);
   const unassignedSessions = sessions.filter((session) => !sessionAlreadyUsed.has(session.id));
@@ -85,11 +87,11 @@ async function ensureLessonCapacity(
       status: 'CURRENT',
       lessonsByBlock,
       blocks,
+      lessonTemplateCache,
     });
   }
 
   let lessonQueue = buildLessonQueue(blocks, lessonsByBlock);
-  const lessonTemplateCache = new Map<string, LessonTemplateRecord[]>();
 
   let templateIndex = getNextTemplateIndex(blocks, blockTemplates);
   while (lessonQueue.length < unassignedSessions.length && blockTemplates.length > 0) {
@@ -253,6 +255,53 @@ async function instantiateBlockFromTemplate({
   blocks.push(normalizedBlock);
 }
 
+async function syncLessonsWithTemplates(
+  blocks: ClassBlockRow[],
+  lessonsByBlock: Map<string, ClassLessonRecord[]>,
+  lessonTemplateCache: Map<string, LessonTemplateRecord[]>,
+): Promise<void> {
+  await Promise.all(
+    blocks.map(async (block) => {
+      if (!block.block_id) {
+        lessonsByBlock.set(block.id, lessonsByBlock.get(block.id) ?? []);
+        return;
+      }
+      const templateLessons = await getLessonTemplates(block.block_id, lessonTemplateCache);
+      if (templateLessons.length === 0) {
+        return;
+      }
+      const existing = lessonsByBlock.get(block.id) ?? [];
+      const existingTemplateIds = new Set(
+        existing
+          .map((lesson) => lesson.lesson_template_id)
+          .filter((value): value is string => Boolean(value)),
+      );
+
+      const missing = templateLessons.filter((lesson) => !existingTemplateIds.has(lesson.id));
+      if (missing.length === 0) {
+        return;
+      }
+
+      const created = await classLessonsDao.createClassLessons(
+        missing.map((lesson) => ({
+          class_block_id: block.id,
+          lesson_template_id: lesson.id,
+          title: lesson.title,
+          summary: lesson.summary ?? null,
+          order_index: lesson.order_index,
+          make_up_instructions: lesson.make_up_instructions ?? null,
+          slide_url: lesson.slide_url ?? null,
+          coach_example_url: lesson.example_url ?? null,
+          coach_example_storage_path: lesson.example_storage_path ?? null,
+        })),
+      );
+
+      const updated = [...existing, ...created].sort((a, b) => a.order_index - b.order_index);
+      lessonsByBlock.set(block.id, updated);
+    }),
+  );
+}
+
 async function getLessonTemplates(
   templateId: string,
   cache?: Map<string, LessonTemplateRecord[]>,
@@ -327,6 +376,7 @@ async function syncBlockStatuses(
   }
 
   const updates: Promise<void>[] = [];
+  const completedBlocks: ClassBlockRow[] = [];
   blockStates.forEach((state, index) => {
     let desired: ClassBlockRow['status'];
     if (index < currentIndex) {
@@ -339,11 +389,20 @@ async function syncBlockStatuses(
 
     if (state.block.status !== desired) {
       updates.push(classesDao.updateClassBlock(state.block.id, { status: desired }));
+      if (desired === 'COMPLETED') {
+        completedBlocks.push(state.block);
+      }
       state.block.status = desired;
     }
   });
 
   await Promise.all(updates);
+
+  if (completedBlocks.length > 0) {
+    await Promise.all(
+      completedBlocks.map((block) => coderProgressDao.markBlockCompletedForClass(block.class_id, block.block_id ?? null)),
+    );
+  }
 }
 
 function formatDateOnly(date: Date): string {

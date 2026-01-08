@@ -11,15 +11,16 @@ import {
   exkulCompetenciesDao,
 } from '@/lib/dao';
 import type { ClassLessonRecord } from '@/lib/dao/classLessonsDao';
+import type { SessionRecord } from '@/lib/dao/sessionsDao';
 import { autoAssignLessonsForClass } from '@/lib/services/lessonAutoAssign';
 
 import AssignSubstituteForm from './AssignSubstituteForm';
+import CancelSessionButton from './CancelSessionButton';
 import EnrollCoderForm from './EnrollCoderForm';
-import GenerateSessionsForm from './GenerateSessionsForm';
 import EkskulCompetencyEditor from './EkskulCompetencyEditor';
-import LessonAutoAssignNotice from './LessonAutoAssignNotice';
-import ManualLessonAssignForm from './ManualLessonAssignForm';
 import BlockScheduleEditor from './BlockScheduleEditor';
+import RemoveCoderButton from './RemoveCoderButton';
+import SetCoderStatusButton from './SetCoderStatusButton';
 
 type ClassBlockRow = Awaited<ReturnType<typeof classesDao.getClassBlocks>>[number];
 type BlockSummary = {
@@ -62,7 +63,7 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
 
   const [sessions, enrollments, coaches, coders] = await Promise.all([
     sessionsDao.listSessionsByClass(classIdParam),
-    classesDao.listEnrollmentsByClass(classIdParam),
+    classesDao.listEnrollmentsByClass(classIdParam, { includeInactive: true }),
     usersDao.listUsersByRole('COACH'),
     usersDao.listUsersByRole('CODER'),
   ]);
@@ -120,25 +121,6 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
     klass.type === 'EKSKUL'
       ? await exkulCompetenciesDao.listBySessionIds(sessions.map((session) => session.id))
       : {};
-
-  const manualSessionOptions = sessions.map((session) => {
-    const assignedLesson = lessonBySessionId.get(session.id);
-    const sessionLabel = `${new Date(session.date_time).toLocaleString()}`;
-    return {
-      id: session.id,
-      label: assignedLesson ? `${sessionLabel} • ${assignedLesson.title}` : `${sessionLabel} • belum ada lesson`,
-    };
-  });
-
-  const manualBlockOptions = sortedBlocks.map((entry, index) => ({
-    id: entry.block.id,
-    label: `${index + 1}. ${entry.block.block_name ?? 'Block'} (${entry.assignedLessons}/${entry.totalLessons})`,
-    lessons: entry.lessons.map((lesson, lessonIndex) => ({
-      id: lesson.id,
-      title: `${lessonIndex + 1}. ${lesson.title}`,
-      status: lesson.session_id ? 'Terjadwal' : 'Belum dipasangkan',
-    })),
-  }));
 
   return (
     <div style={pageContainerStyle}>
@@ -202,25 +184,6 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
             />
           </div>
 
-          <div style={blockActionsRowStyle}>
-            <LessonAutoAssignNotice />
-            <p style={{ color: '#6b7280', fontSize: '0.85rem' }}>
-              Form lompat di bawah membantu memilih sesi dan lesson spesifik jika ingin skip block/lesson tertentu tanpa memengaruhi assignment
-              otomatis lainnya.
-            </p>
-          </div>
-
-          {manualBlockOptions.length > 0 ? (
-            <div style={manualOverrideCardStyle}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a' }}>Lompat blok / lesson</h3>
-              <p style={{ color: '#64748b', fontSize: '0.85rem', lineHeight: 1.4 }}>
-                Pilih tanggal sesi, block tujuan, dan lesson yang ingin digunakan. Cocok untuk skip block atau loncat materi tanpa menghapus data.
-              </p>
-
-              <ManualLessonAssignForm sessionOptions={manualSessionOptions} blockOptions={manualBlockOptions} />
-            </div>
-          ) : null}
-
         </section>
       ) : (
         <section style={{ background: '#ffffff', borderRadius: '0.75rem', border: '1px solid #e5e7eb' }}>
@@ -252,8 +215,6 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
         </section>
       )}
 
-      <GenerateSessionsForm classId={classIdParam} />
-
       <section style={{ background: '#ffffff', borderRadius: '0.75rem', border: '1px solid #e5e7eb' }}>
         <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0' }}>
           <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>Sessions</h2>
@@ -282,7 +243,10 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
                   <td style={tdStyle}>{session.status}</td>
                   <td style={tdStyle}>{session.substitute_coach_id ? coachMap.get(session.substitute_coach_id) ?? 'Coach' : '—'}</td>
                   <td style={tdStyle}>
-                    <AssignSubstituteForm sessionId={session.id} coaches={coaches} currentSubstituteId={session.substitute_coach_id} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                      <AssignSubstituteForm sessionId={session.id} coaches={coaches} currentSubstituteId={session.substitute_coach_id} />
+                      <CancelSessionButton sessionId={session.id} currentStatus={session.status as SessionRecord['status']} />
+                    </div>
                   </td>
                 </tr>
               ))
@@ -304,12 +268,14 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
             <tr>
               <th style={thStyle}>Coder</th>
               <th style={thStyle}>Enrolled At</th>
+              <th style={thStyle}>Status</th>
+              <th style={thStyle}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {enrollments.length === 0 ? (
               <tr>
-                <td colSpan={2} style={{ padding: '1rem', textAlign: 'center', color: '#6b7280' }}>
+                <td colSpan={4} style={{ padding: '1rem', textAlign: 'center', color: '#6b7280' }}>
                   No coders enrolled yet.
                 </td>
               </tr>
@@ -318,6 +284,28 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
                 <tr key={enrollment.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
                   <td style={tdStyle}>{coderMap.get(enrollment.coder_id) ?? 'Coder'}</td>
                   <td style={tdStyle}>{enrollment.enrolled_at ? new Date(enrollment.enrolled_at).toLocaleDateString() : '—'}</td>
+                  <td style={tdStyle}>
+                    {enrollment.status === 'ACTIVE' ? (
+                      <span style={{ color: '#15803d', fontWeight: 600 }}>Active</span>
+                    ) : (
+                      <span style={{ color: '#b45309', fontWeight: 600 }}>Inactive</span>
+                    )}
+                  </td>
+                  <td style={tdStyle}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      {enrollment.status === 'ACTIVE' ? (
+                        <>
+                          <SetCoderStatusButton classId={classIdParam} coderId={enrollment.coder_id} targetStatus="INACTIVE" />
+                          <RemoveCoderButton classId={classIdParam} coderId={enrollment.coder_id} />
+                        </>
+                      ) : (
+                        <>
+                          <SetCoderStatusButton classId={classIdParam} coderId={enrollment.coder_id} targetStatus="ACTIVE" />
+                          <RemoveCoderButton classId={classIdParam} coderId={enrollment.coder_id} />
+                        </>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               ))
             )}
@@ -443,22 +431,6 @@ const blockSummaryGridStyle: CSSProperties = {
   gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
   gap: '1.25rem',
   padding: '1.5rem',
-};
-
-const blockActionsRowStyle: CSSProperties = {
-  borderTop: '1px solid #e2e8f0',
-  padding: '1.25rem 1.5rem',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.75rem',
-};
-
-const manualOverrideCardStyle: CSSProperties = {
-  borderTop: '1px solid #e2e8f0',
-  padding: '1.5rem',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.6rem',
 };
 
 const statusBadgeStyle = (status: string): CSSProperties => ({

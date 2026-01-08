@@ -60,7 +60,7 @@ function computeSessionDates(first: Date, count: number): Date[] {
   return dates;
 }
 
-export async function autoPlanWeeklyClass(classRecord: ClassRow): Promise<AutoPlanResult> {
+export async function autoPlanWeeklyClass(classRecord: ClassRow, preferredStartBlockId?: string): Promise<AutoPlanResult> {
   if (classRecord.type !== 'WEEKLY') {
     return { skipped: true, reason: 'Not a weekly class' };
   }
@@ -86,18 +86,31 @@ export async function autoPlanWeeklyClass(classRecord: ClassRow): Promise<AutoPl
     }
   }
 
-  // fetch first block template for level
-  const { data: blockTemplate, error: blockError } = await supabase
+  // fetch block template for level
+  let { data: blockTemplate, error: blockError } = await supabase
     .from('blocks')
-    .select('id, estimated_sessions, order_index')
-    .eq('level_id', classRecord.level_id)
-    .order('order_index', { ascending: true })
-    .limit(1)
+    .select('id, estimated_sessions, order_index, level_id')
+    .eq('id', preferredStartBlockId ?? '')
     .maybeSingle();
 
   if (blockError) {
     throw new Error(`Failed to lookup block template: ${blockError.message}`);
   }
+
+  if (!blockTemplate || blockTemplate.level_id !== classRecord.level_id) {
+    const { data: firstBlock, error: firstError } = await supabase
+      .from('blocks')
+      .select('id, estimated_sessions, order_index')
+      .eq('level_id', classRecord.level_id)
+      .order('order_index', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (firstError) {
+      throw new Error(`Failed to lookup block template: ${firstError.message}`);
+    }
+    blockTemplate = firstBlock;
+  }
+
   if (!blockTemplate) {
     return { skipped: true, reason: 'No block template found for level' };
   }

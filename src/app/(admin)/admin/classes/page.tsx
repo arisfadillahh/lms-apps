@@ -1,7 +1,9 @@
 import type { CSSProperties } from 'react';
 import Link from 'next/link';
 
-import { classesDao, levelsDao, usersDao } from '@/lib/dao';
+import DeleteClassButton from './DeleteClassButton';
+
+import { blocksDao, classesDao, levelsDao, usersDao } from '@/lib/dao';
 
 import CreateClassForm from './CreateClassForm';
 
@@ -11,6 +13,16 @@ export default async function AdminClassesPage() {
     usersDao.listUsersByRole('COACH'),
     levelsDao.listLevels(),
   ]);
+
+  const blockEntries = await Promise.all(
+    levels.map(async (level) => {
+      const blocks = await blocksDao.listBlocksByLevel(level.id);
+      return [level.id, blocks] as const;
+    }),
+  );
+  const levelBlocks: Record<string, Awaited<ReturnType<typeof blocksDao.listBlocksByLevel>>> = Object.fromEntries(
+    blockEntries,
+  );
 
   const coachMap = new Map(coaches.map((coach) => [coach.id, coach.full_name]));
   const levelMap = new Map(levels.map((level) => [level.id, level.name]));
@@ -23,7 +35,7 @@ export default async function AdminClassesPage() {
           Create classes, assign a primary coach, and configure schedules. Session generation and enrollment management is available per class.
         </p>
       </div>
-      <CreateClassForm coaches={coaches} levels={levels} />
+      <CreateClassForm coaches={coaches} levels={levels} levelBlocks={levelBlocks} />
       <section style={{ background: '#ffffff', borderRadius: '0.75rem', border: '1px solid #e5e7eb' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead style={{ background: '#f1f5f9', textAlign: 'left' }}>
@@ -61,12 +73,15 @@ export default async function AdminClassesPage() {
                     </td>
                     <td style={tdStyle}>
                       {hasValidId ? (
-                        <Link
-                          href={`/admin/classes/${klass.id}`}
-                          style={{ color: '#2563eb', fontWeight: 500 }}
-                        >
-                          Manage
-                        </Link>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <Link
+                            href={`/admin/classes/${klass.id}`}
+                            style={{ color: '#2563eb', fontWeight: 500 }}
+                          >
+                            Manage
+                          </Link>
+                          <DeleteClassButton classId={klass.id} className={klass.name} />
+                        </div>
                       ) : (
                         <span style={{ color: '#b91c1c', fontWeight: 500 }}>ID tidak valid</span>
                       )}

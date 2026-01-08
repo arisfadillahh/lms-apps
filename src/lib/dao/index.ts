@@ -12,3 +12,4 @@ export * as lessonTemplatesDao from './lessonTemplatesDao';
 export * as classLessonsDao from './classLessonsDao';
 export * as coachLeaveDao from './coachLeaveDao';
 export * as exkulCompetenciesDao from './exkulCompetenciesDao';
+export * as coderProgressDao from './coderProgressDao';

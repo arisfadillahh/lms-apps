@@ -38,12 +38,21 @@ export const createClassSchema = z.object({
   scheduleDay: z.string().min(2),
   scheduleTime: z.string().regex(/^\d{2}:\d{2}$/),
   zoomLink: z.string().url(),
+  initialBlockId: z
+    .union([z.string().uuid(), z.literal('')])
+    .transform((value) => (value === '' ? undefined : value))
+    .optional(),
   startDate: z
     .string()
     .refine((value) => !Number.isNaN(Date.parse(value)), { message: 'Invalid start date' }),
   endDate: z
-    .string()
-    .refine((value) => !Number.isNaN(Date.parse(value)), { message: 'Invalid end date' }),
+    .union([
+      z.string().refine((value) => !Number.isNaN(Date.parse(value)), { message: 'Invalid end date' }),
+      z
+        .literal('')
+        .transform(() => undefined),
+    ])
+    .optional(),
 });
 
 export type CreateClassInput = z.infer<typeof createClassSchema>;
@@ -68,6 +77,11 @@ export const assignSubstituteSchema = z.object({
 
 export const enrollCoderSchema = z.object({
   coderId: z.string().uuid(),
+});
+
+export const updateEnrollmentStatusSchema = z.object({
+  coderId: z.string().uuid(),
+  status: z.enum(['ACTIVE', 'INACTIVE']),
 });
 
 export const createBlockTemplateSchema = z.object({

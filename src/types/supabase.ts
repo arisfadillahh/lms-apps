@@ -301,6 +301,51 @@ export interface Database {
         },
       ];
     };
+    coder_block_progress: {
+      Row: {
+        id: string;
+        coder_id: string;
+        level_id: string;
+        block_id: string;
+        journey_order: number;
+        status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+        completed_at: string | null;
+        created_at: string;
+        updated_at: string;
+      };
+      Insert: {
+        id?: string;
+        coder_id: string;
+        level_id: string;
+        block_id: string;
+        journey_order: number;
+        status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+        completed_at?: string | null;
+        created_at?: string;
+        updated_at?: string;
+      };
+      Update: Partial<Database['public']['Tables']['coder_block_progress']['Insert']>;
+      Relationships: [
+        {
+          foreignKeyName: 'coder_block_progress_block_id_fkey';
+          columns: ['block_id'];
+          referencedRelation: 'blocks';
+          referencedColumns: ['id'];
+        },
+        {
+          foreignKeyName: 'coder_block_progress_coder_id_fkey';
+          columns: ['coder_id'];
+          referencedRelation: 'users';
+          referencedColumns: ['id'];
+        },
+        {
+          foreignKeyName: 'coder_block_progress_level_id_fkey';
+          columns: ['level_id'];
+          referencedRelation: 'levels';
+          referencedColumns: ['id'];
+        },
+      ];
+    };
       enrollments: {
         Row: {
           id: string;

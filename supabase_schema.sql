@@ -42,6 +42,14 @@ begin
 end
 $$;
 
+-- Enum used for coder journeys
+do $$
+begin
+  if not exists (select 1 from pg_type where typname = 'coder_block_status_enum') then
+    create type public.coder_block_status_enum as enum ('PENDING', 'IN_PROGRESS', 'COMPLETED');
+  end if;
+end $$;
+
 -- Helper function to keep updated_at current
 create or replace function public.set_updated_at_timestamp()
 returns trigger as $$
@@ -130,7 +138,7 @@ create table public.class_blocks (
   start_date date not null,
   end_date date not null,
   pitching_day_date date,
-  created_at timestamptz not null default now(),
+  created_at timestamptz not null default now()
 );
 
 create index class_blocks_class_id_idx on public.class_blocks (class_id);
@@ -227,6 +235,26 @@ create table public.class_lessons (
 create index class_lessons_class_block_idx on public.class_lessons (class_block_id, order_index);
 create trigger trg_class_lessons_updated_at
 before update on public.class_lessons
+for each row execute function public.set_updated_at_timestamp();
+
+-- Coder Block Progress ========================================================================
+create table public.coder_block_progress (
+  id uuid primary key default gen_random_uuid(),
+  coder_id uuid not null references public.users(id) on delete cascade,
+  level_id uuid not null references public.levels(id) on delete cascade,
+  block_id uuid not null references public.blocks(id) on delete cascade,
+  journey_order integer not null check (journey_order >= 0),
+  status public.coder_block_status_enum not null default 'PENDING',
+  completed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (coder_id, block_id),
+  unique (coder_id, level_id, journey_order)
+);
+
+create index coder_block_progress_coder_level_idx on public.coder_block_progress (coder_id, level_id, status);
+create trigger trg_coder_block_progress_updated_at
+before update on public.coder_block_progress
 for each row execute function public.set_updated_at_timestamp();
 
 -- Make-up Tasks =================================================================================

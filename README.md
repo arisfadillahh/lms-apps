@@ -27,6 +27,16 @@ If a username is not found inside Supabase (or Supabase isn&apos;t wired up yet)
 
 Set the appropriate Supabase environment variables once your backend is ready and create real users from the Admin dashboard.
 
+### Refreshing class data (dev)
+
+To wipe stale classes and seed fresh future-dated dummy schedules, sign in as an Admin and run:
+
+```bash
+curl -X POST http://localhost:3000/api/admin/dev/reset-classes
+```
+
+This clears every class (and cascaded sessions/enrollments) before inserting a small set of up-to-date samples.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

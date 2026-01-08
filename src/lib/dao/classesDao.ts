@@ -29,7 +29,7 @@ export type CreateClassInput = {
   scheduleTime: string;
   zoomLink: string;
   startDate: string;
-  endDate: string;
+  endDate?: string;
 };
 
 export async function createClass(input: CreateClassInput): Promise<ClassRecord> {
@@ -43,7 +43,7 @@ export async function createClass(input: CreateClassInput): Promise<ClassRecord>
     schedule_time: input.scheduleTime,
     zoom_link: input.zoomLink,
     start_date: input.startDate,
-    end_date: input.endDate,
+    end_date: input.endDate ?? input.startDate,
   };
 
   const { data, error } = await supabase.from('classes').insert(payload).select('*').single();
@@ -186,6 +186,15 @@ export async function deleteClassBlock(id: string): Promise<void> {
   }
 }
 
+export async function deleteClass(id: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase.from('classes').delete().eq('id', id);
+
+  if (error) {
+    throw new Error(`Failed to delete class: ${error.message}`);
+  }
+}
+
 export async function updateClassBlock(
   id: string,
   updates: Partial<{
@@ -245,19 +254,55 @@ export async function enrollCoder(input: EnrollCoderInput): Promise<EnrollmentRe
   return data;
 }
 
-export async function listEnrollmentsByClass(classId: string): Promise<EnrollmentRecord[]> {
+type ListEnrollmentOptions = {
+  includeInactive?: boolean;
+};
+
+export async function listEnrollmentsByClass(classId: string, options: ListEnrollmentOptions = {}): Promise<EnrollmentRecord[]> {
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
+  let query = supabase
     .from('enrollments')
     .select('*')
     .eq('class_id', classId)
     .order('enrolled_at', { ascending: true });
+
+  if (!options.includeInactive) {
+    query = query.eq('status', 'ACTIVE');
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`Failed to list enrollments: ${error.message}`);
   }
 
   return data ?? [];
+}
+
+export async function updateEnrollmentStatus(classId: string, coderId: string, status: EnrollmentRecord['status']): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from('enrollments')
+    .update({ status })
+    .eq('class_id', classId)
+    .eq('coder_id', coderId);
+
+  if (error) {
+    throw new Error(`Failed to update enrollment status: ${error.message}`);
+  }
+}
+
+export async function deleteEnrollment(classId: string, coderId: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from('enrollments')
+    .delete()
+    .eq('class_id', classId)
+    .eq('coder_id', coderId);
+
+  if (error) {
+    throw new Error(`Failed to remove enrollment: ${error.message}`);
+  }
 }
 
 export async function listClassesForCoach(coachId: string): Promise<ClassRecord[]> {

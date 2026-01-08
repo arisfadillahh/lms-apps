@@ -157,7 +157,7 @@ export default function LoginForm() {
 
         <div className={styles.devReset}>
           <div className={styles.devResetHeader}>
-            <p className={styles.devResetTitle}>Reset Admin (testing)</p>
+            <p className={styles.devResetTitle}>Reset Admin cuy(testing)</p>
             <span className={styles.devResetBadge}>Dev only</span>
           </div>
           <p className={styles.helperText}>Gunakan jika lupa password admin saat testing. Nonaktif di production.</p>

@@ -3,6 +3,7 @@ import Credentials from 'next-auth/providers/credentials';
 
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { verifyPassword } from '@/lib/passwords';
+import { normalizeLocalhostUrl } from '@/lib/runtimeUrl';
 import type { TablesRow } from '@/types/supabase';
 import type { Role } from '@/types/supabase';
 
@@ -10,6 +11,16 @@ type UserRecord = Pick<
   TablesRow<'users'>,
   'id' | 'username' | 'password_hash' | 'full_name' | 'role' | 'is_active'
 >;
+
+const normalizedNextAuthUrl = normalizeLocalhostUrl(process.env.NEXTAUTH_URL);
+if (normalizedNextAuthUrl) {
+  process.env.NEXTAUTH_URL = normalizedNextAuthUrl;
+}
+
+const normalizedPublicAppUrl = normalizeLocalhostUrl(process.env.NEXT_PUBLIC_APP_URL);
+if (normalizedPublicAppUrl) {
+  process.env.NEXT_PUBLIC_APP_URL = normalizedPublicAppUrl;
+}
 
 const nextAuthSecret = process.env.NEXTAUTH_SECRET;
 if (!nextAuthSecret) {
@@ -42,7 +53,7 @@ export const authOptions: NextAuthOptions = {
         const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
         if (!supabaseUrl || !serviceRoleKey) {
-          const fallback = findFallbackUser(username, password);
+          const fallback = findDevFallbackUser(username, password);
           if (fallback) {
             return fallback;
           }
@@ -67,6 +78,10 @@ export const authOptions: NextAuthOptions = {
 
         const user = (data ?? null) as UserRecord | null;
         if (!user) {
+          const fallback = findDevFallbackUser(username, password);
+          if (fallback) {
+            return fallback;
+          }
           return null;
         }
 
@@ -201,4 +216,11 @@ function normalizeRole(role: string): Role | null {
   }
   const alias = ROLE_ALIASES[role.toLowerCase()];
   return alias ?? null;
+}
+
+function findDevFallbackUser(username: string, password: string) {
+  if (process.env.NODE_ENV === 'production') {
+    return null;
+  }
+  return findFallbackUser(username, password);
 }

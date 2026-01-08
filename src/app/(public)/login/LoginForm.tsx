@@ -19,6 +19,18 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  CredentialsSignin: 'Username atau password salah.',
+  AccessDenied: 'Akun tidak diizinkan untuk masuk.',
+};
+
+function resolveAuthErrorMessage(code?: string | null): string {
+  if (!code) {
+    return AUTH_ERROR_MESSAGES.CredentialsSignin;
+  }
+  return AUTH_ERROR_MESSAGES[code] ?? code;
+}
+
 export default function LoginForm() {
   const router = useRouter();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -51,7 +63,7 @@ export default function LoginForm() {
       });
 
       if (!result || result.error) {
-        setErrorMessage(result?.error ?? 'Invalid username or password');
+        setErrorMessage(resolveAuthErrorMessage(result?.error));
         return;
       }
 

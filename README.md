@@ -18,14 +18,14 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ### Development credentials
 
-If you haven&apos;t connected Supabase yet (i.e. `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are missing),
-the app falls back to in-memory demo accounts:
+For local testing the app ships with demo accounts that are always available in development builds.
+If a username is not found inside Supabase (or Supabase isn&apos;t wired up yet) the credentials below can be used:
 
 - `admin` / `admin123`
 - `coach` / `coach123`
 - `coder` / `coder123`
 
-Set the appropriate Supabase environment variables once your backend is ready and the real credential flow will take over automatically.
+Set the appropriate Supabase environment variables once your backend is ready and create real users from the Admin dashboard.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

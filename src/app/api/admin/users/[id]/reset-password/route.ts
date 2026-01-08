@@ -9,15 +9,15 @@ import type { Role } from '@/types/supabase';
 
 const RESETTABLE_ROLES: Role[] = ['CODER', 'COACH'];
 
-interface RouteContext {
-  params: { id: string };
-}
+type RouteParams = { id: string };
+type RouteContext = { params: RouteParams | Promise<RouteParams> };
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
   const session = await getSessionOrThrow();
   await assertRole(session, 'ADMIN');
 
-  const userId = context.params.id;
+  const params = await context.params;
+  const userId = params.id;
   const user = await usersDao.getUserById(userId);
   if (!user) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });

@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from 'react';
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 
 interface UploadMaterialFormProps {
@@ -18,6 +19,7 @@ type FormValues = {
 };
 
 export default function UploadMaterialForm({ classId, sessions }: UploadMaterialFormProps) {
+  const router = useRouter();
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -57,6 +59,7 @@ export default function UploadMaterialForm({ classId, sessions }: UploadMaterial
       }
 
       setStatusMessage('Material uploaded');
+      router.refresh();
       reset();
     });
   };

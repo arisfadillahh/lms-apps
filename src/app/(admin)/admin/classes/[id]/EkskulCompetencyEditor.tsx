@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from 'react';
 import { useEffect, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 
 type EkskulCompetencyEditorProps = {
   sessionId: string;
@@ -10,6 +11,7 @@ type EkskulCompetencyEditorProps = {
 };
 
 export default function EkskulCompetencyEditor({ sessionId, sessionDate, initialCompetencies }: EkskulCompetencyEditorProps) {
+  const router = useRouter();
   const [value, setValue] = useState(initialCompetencies.join('\n'));
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -48,6 +50,7 @@ export default function EkskulCompetencyEditor({ sessionId, sessionDate, initial
         }
 
         setStatusMessage('Tersimpan');
+        router.refresh();
         setTimeout(() => setStatusMessage(null), 2500);
       } catch (error) {
         console.error('Save competencies error', error);

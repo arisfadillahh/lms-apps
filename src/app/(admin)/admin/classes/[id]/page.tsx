@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -21,6 +21,7 @@ import EkskulCompetencyEditor from './EkskulCompetencyEditor';
 import BlockScheduleEditor from './BlockScheduleEditor';
 import RemoveCoderButton from './RemoveCoderButton';
 import SetCoderStatusButton from './SetCoderStatusButton';
+import SessionRowActions from './SessionRowActions';
 
 type ClassBlockRow = Awaited<ReturnType<typeof classesDao.getClassBlocks>>[number];
 type BlockSummary = {
@@ -60,6 +61,9 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
       console.error('[AdminClassDetailPage] Failed to auto-assign lessons before render', error);
     }
   }
+
+  // Auto-update past sessions status from SCHEDULED to COMPLETED
+  await sessionsDao.autoCompletePastSessions(classIdParam);
 
   const [sessions, enrollments, coaches, coders] = await Promise.all([
     sessionsDao.listSessionsByClass(classIdParam),
@@ -205,7 +209,7 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
                   initialCompetencies={
                     Array.isArray(competenciesMap[sessionItem.id]?.competencies)
                       ? (competenciesMap[sessionItem.id]?.competencies as unknown[])
-                          .map((item) => String(item))
+                        .map((item) => String(item))
                       : []
                   }
                 />
@@ -225,8 +229,8 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
             <tr>
               <th style={thStyle}>Date</th>
               <th style={thStyle}>Status</th>
-              <th style={thStyle}>Substitute</th>
-              <th style={thStyle}>Action</th>
+              <th style={thStyle}>Substitute Teacher</th>
+              <th style={{ ...thStyle, textAlign: 'center' }}>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -241,12 +245,23 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
                 <tr key={session.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
                   <td style={tdStyle}>{new Date(session.date_time).toLocaleString()}</td>
                   <td style={tdStyle}>{session.status}</td>
-                  <td style={tdStyle}>{session.substitute_coach_id ? coachMap.get(session.substitute_coach_id) ?? 'Coach' : '—'}</td>
                   <td style={tdStyle}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                      <AssignSubstituteForm sessionId={session.id} coaches={coaches} currentSubstituteId={session.substitute_coach_id} />
-                      <CancelSessionButton sessionId={session.id} currentStatus={session.status as SessionRecord['status']} />
-                    </div>
+                    <SessionRowActions
+                      sessionId={session.id}
+                      coaches={coaches}
+                      currentSubstituteId={session.substitute_coach_id}
+                      currentStatus={session.status as 'SCHEDULED' | 'COMPLETED' | 'CANCELLED'}
+                      showDropdownOnly
+                    />
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>
+                    <SessionRowActions
+                      sessionId={session.id}
+                      coaches={coaches}
+                      currentSubstituteId={session.substitute_coach_id}
+                      currentStatus={session.status as 'SCHEDULED' | 'COMPLETED' | 'CANCELLED'}
+                      showButtonsOnly
+                    />
                   </td>
                 </tr>
               ))

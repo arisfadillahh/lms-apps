@@ -161,3 +161,31 @@ export async function updateSessionStatus(sessionId: string, status: SessionReco
     throw new Error(`Failed to update session status: ${error.message}`);
   }
 }
+
+/**
+ * Automatically update past sessions that are still SCHEDULED to COMPLETED.
+ * This should be called on page load to ensure sessions are up-to-date.
+ */
+export async function autoCompletePastSessions(classId?: string): Promise<number> {
+  const supabase = getSupabaseAdmin();
+  const now = new Date().toISOString();
+
+  let query = supabase
+    .from('sessions')
+    .update({ status: 'COMPLETED' })
+    .eq('status', 'SCHEDULED')
+    .lt('date_time', now);
+
+  if (classId) {
+    query = query.eq('class_id', classId);
+  }
+
+  const { error, count } = await query.select('id');
+
+  if (error) {
+    console.error('Failed to auto-complete past sessions:', error.message);
+    return 0;
+  }
+
+  return count ?? 0;
+}

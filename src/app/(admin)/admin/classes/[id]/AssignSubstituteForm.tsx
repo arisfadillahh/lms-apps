@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from 'react';
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 
 import type { UserRecord } from '@/lib/dao/usersDao';
 
@@ -9,9 +10,11 @@ interface AssignSubstituteFormProps {
   sessionId: string;
   coaches: UserRecord[];
   currentSubstituteId: string | null;
+  renderSaveButton?: (props: { onSave: () => void; isPending: boolean }) => React.ReactNode;
 }
 
-export default function AssignSubstituteForm({ sessionId, coaches, currentSubstituteId }: AssignSubstituteFormProps) {
+export default function AssignSubstituteForm({ sessionId, coaches, currentSubstituteId, renderSaveButton }: AssignSubstituteFormProps) {
+  const router = useRouter();
   const [value, setValue] = useState<string>(currentSubstituteId ?? '');
   const [message, setMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -36,6 +39,7 @@ export default function AssignSubstituteForm({ sessionId, coaches, currentSubsti
         }
 
         setMessage('Saved');
+        router.refresh();
         setTimeout(() => setMessage(null), 3000);
       } catch (error) {
         console.error('Assign substitute error', error);
@@ -59,14 +63,18 @@ export default function AssignSubstituteForm({ sessionId, coaches, currentSubsti
           </option>
         ))}
       </select>
-      <button
-        type="button"
-        onClick={handleSubmit}
-        style={buttonStyle}
-        disabled={isPending}
-      >
-        {isPending ? 'Saving…' : 'Save'}
-      </button>
+      {renderSaveButton ? (
+        renderSaveButton({ onSave: handleSubmit, isPending })
+      ) : (
+        <button
+          type="button"
+          onClick={handleSubmit}
+          style={buttonStyle}
+          disabled={isPending}
+        >
+          {isPending ? 'Saving…' : 'Save'}
+        </button>
+      )}
       {message ? <span style={{ color: '#15803d', fontSize: '0.75rem' }}>{message}</span> : null}
       {errorMessage ? <span style={{ color: '#b91c1c', fontSize: '0.75rem' }}>{errorMessage}</span> : null}
     </div>
@@ -89,3 +97,4 @@ const buttonStyle: CSSProperties = {
   fontSize: '0.85rem',
   cursor: 'pointer',
 };
+

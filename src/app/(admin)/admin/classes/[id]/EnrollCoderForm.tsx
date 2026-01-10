@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from 'react';
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 
 import type { UserRecord } from '@/lib/dao/usersDao';
 
@@ -11,6 +12,7 @@ interface EnrollCoderFormProps {
 }
 
 export default function EnrollCoderForm({ classId, coders }: EnrollCoderFormProps) {
+  const router = useRouter();
   const [selectedCoder, setSelectedCoder] = useState<string>('');
   const [message, setMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -41,6 +43,7 @@ export default function EnrollCoderForm({ classId, coders }: EnrollCoderFormProp
 
         setMessage('Coder enrolled');
         setSelectedCoder('');
+        router.refresh();
       } catch (error) {
         console.error('Enroll coder error', error);
         setErrorMessage('Unexpected error enrolling coder');

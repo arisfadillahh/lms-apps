@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from 'react';
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 
 const GRADES: Array<'A' | 'B' | 'C'> = ['A', 'B', 'C'];
 
@@ -16,6 +17,7 @@ type WeeklyRubricFormProps = {
 };
 
 export default function WeeklyRubricForm({ classId, blockId, coders, competencies, positiveCharacters }: WeeklyRubricFormProps) {
+  const router = useRouter();
   const [coderId, setCoderId] = useState(coders[0]?.id ?? '');
   const [grades, setGrades] = useState<Record<string, 'A' | 'B' | 'C'>>(() => {
     const initial: Record<string, 'A' | 'B' | 'C'> = {};
@@ -75,6 +77,7 @@ export default function WeeklyRubricForm({ classId, blockId, coders, competencie
       }
 
       setStatusMessage('Rubric submitted');
+      router.refresh();
     });
   };
 

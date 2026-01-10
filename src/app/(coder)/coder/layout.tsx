@@ -20,12 +20,17 @@ export default async function CoderLayout({ children }: { children: ReactNode })
       <aside
         style={{
           width: '220px',
+          height: '100vh',
           background: '#1d4ed8',
           color: '#fff',
           padding: '1.5rem 1rem',
           display: 'flex',
           flexDirection: 'column',
           gap: '1.5rem',
+          position: 'fixed',
+          left: 0,
+          top: 0,
+          overflowY: 'auto',
         }}
       >
         <div>
@@ -59,6 +64,7 @@ export default async function CoderLayout({ children }: { children: ReactNode })
       <main
         style={{
           flex: 1,
+          marginLeft: '220px',
           padding: '2rem 2.5rem',
           background: 'transparent',
           color: 'var(--color-text-primary)',

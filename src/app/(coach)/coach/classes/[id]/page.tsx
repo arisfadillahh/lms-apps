@@ -5,7 +5,7 @@ import { addDays, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, parse, 
 import { getSessionOrThrow } from '@/lib/auth';
 import { attendanceDao, classLessonsDao, classesDao, lessonTemplatesDao, materialsDao, sessionsDao, usersDao } from '@/lib/dao';
 import UploadMaterialForm from './UploadMaterialForm';
-import LessonPlanItem from './LessonPlanItem';
+import LessonPlanSection from './LessonPlanSection';
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -26,6 +26,9 @@ export default async function CoachClassPage({ params, searchParams }: PageProps
   if (!isValidUuid(classIdParam)) {
     return renderInvalidClassMessage(classIdParam);
   }
+
+  // Auto-update past sessions status from SCHEDULED to COMPLETED
+  await sessionsDao.autoCompletePastSessions(classIdParam);
 
   const [classRecord, sessions, enrollments, materials] = await Promise.all([
     classesDao.getClassById(classIdParam),
@@ -98,11 +101,12 @@ export default async function CoachClassPage({ params, searchParams }: PageProps
   }
 
   const monthKeySet = new Set(sortedSessions.map((sessionItem) => format(new Date(sessionItem.date_time), 'yyyy-MM')));
-  const referenceDate = sortedSessions.length > 0 ? new Date(sortedSessions[0].date_time) : now;
-  monthKeySet.add(format(referenceDate, 'yyyy-MM'));
+  // Always add current month so calendar can show it
+  monthKeySet.add(format(now, 'yyyy-MM'));
   const availableMonthKeys = Array.from(monthKeySet).sort();
 
-  const defaultMonthKey = format(referenceDate, 'yyyy-MM');
+  // Default to current month (now) instead of first session
+  const defaultMonthKey = format(now, 'yyyy-MM');
   const requestedMonthKey = resolvedSearch.month && /^\d{4}-\d{2}$/.test(resolvedSearch.month)
     ? resolvedSearch.month
     : defaultMonthKey;
@@ -206,32 +210,60 @@ export default async function CoachClassPage({ params, searchParams }: PageProps
             </p>
           ) : null}
           {nextSession ? (
-            <Link
-              href={`/coach/sessions/${nextSession.id}/attendance`}
-              scroll={false}
-              style={{
-                border: '1px solid var(--color-border)',
-                borderRadius: 'var(--radius-lg)',
-                padding: '1rem 1.25rem',
-                background: 'rgba(37, 99, 235, 0.05)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: '1rem',
-                textDecoration: 'none',
-              }}
-            >
-              <div>
-                <p style={{ fontSize: '0.9rem', color: '#64748b' }}>Sesi berikutnya</p>
-                <strong style={{ fontSize: '1.05rem', color: '#0f172a' }}>
-                  {new Date(nextSession.date_time).toLocaleString()}
-                </strong>
-                <p style={{ fontSize: '0.85rem', color: '#475569', marginTop: '0.35rem' }}>
-                  Status: <StatusBadge status={nextSession.status} />
-                </p>
+            nextSession.status === 'CANCELLED' ? (
+              <div
+                style={{
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '1rem 1.25rem',
+                  background: '#f1f5f9',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  opacity: 0.6,
+                  cursor: 'not-allowed',
+                }}
+              >
+                <div>
+                  <p style={{ fontSize: '0.9rem', color: '#64748b' }}>Sesi berikutnya</p>
+                  <strong style={{ fontSize: '1.05rem', color: '#0f172a' }}>
+                    {new Date(nextSession.date_time).toLocaleString()}
+                  </strong>
+                  <p style={{ fontSize: '0.85rem', color: '#475569', marginTop: '0.35rem' }}>
+                    Status: <StatusBadge status={nextSession.status} />
+                  </p>
+                </div>
+                <span style={{ color: '#94a3b8', fontWeight: 600 }}>Sesi Dibatalkan</span>
               </div>
-              <span style={{ color: '#2563eb', fontWeight: 600 }}>Open Administration →</span>
-            </Link>
+            ) : (
+              <Link
+                href={`/coach/sessions/${nextSession.id}/attendance`}
+                scroll={false}
+                style={{
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '1rem 1.25rem',
+                  background: 'rgba(37, 99, 235, 0.05)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  textDecoration: 'none',
+                }}
+              >
+                <div>
+                  <p style={{ fontSize: '0.9rem', color: '#64748b' }}>Sesi berikutnya</p>
+                  <strong style={{ fontSize: '1.05rem', color: '#0f172a' }}>
+                    {new Date(nextSession.date_time).toLocaleString()}
+                  </strong>
+                  <p style={{ fontSize: '0.85rem', color: '#475569', marginTop: '0.35rem' }}>
+                    Status: <StatusBadge status={nextSession.status} />
+                  </p>
+                </div>
+                <span style={{ color: '#2563eb', fontWeight: 600 }}>Open Administration →</span>
+              </Link>
+            )
           ) : (
             <p style={{ color: '#64748b' }}>Belum ada sesi mendatang.</p>
           )}
@@ -245,40 +277,11 @@ export default async function CoachClassPage({ params, searchParams }: PageProps
             <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Slide deck pembelajaran dan contoh game yang hanya dapat diakses coach.</p>
           </div>
         </div>
-        {blockLessons.length === 0 ? (
-          <p style={{ color: '#6b7280' }}>Belum ada block yang diinstansiasi.</p>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {blockLessons.map(({ block, lessons }) => (
-              <div key={block.id} style={lessonBlockStyle}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                    <strong style={{ color: '#0f172a' }}>{block.block_name ?? 'Block'}</strong>
-                    <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.8rem', color: '#64748b', flexWrap: 'wrap' }}>
-                      <span>{formatDate(block.start_date)} – {formatDate(block.end_date)}</span>
-                      <span>Status: {block.status}</span>
-                    </div>
-                  </div>
-                  <span style={lessonBlockStatusBadge(block.status)}>{block.status}</span>
-                </div>
-
-                {lessons.length === 0 ? (
-                  <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Lesson template belum tersedia.</p>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {lessons.map(({ lesson, template }) => {
-                      const highlight =
-                        lesson.id === currentLessonId ? 'current' : lesson.id === nextLessonId ? 'next' : undefined;
-                      return (
-                        <LessonPlanItem key={lesson.id} lesson={lesson} template={template} highlight={highlight} />
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+        <LessonPlanSection
+          blockLessons={blockLessons}
+          currentLessonId={currentLessonId}
+          nextLessonId={nextLessonId}
+        />
       </section>
 
       <section id="calendar" style={cardStyle}>
@@ -342,18 +345,36 @@ export default async function CoachClassPage({ params, searchParams }: PageProps
                       <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Tidak ada sesi</span>
                     ) : (
                       daySessions.map((sessionItem) => (
-                        <Link
-                          key={sessionItem.id}
-                          href={`/coach/sessions/${sessionItem.id}/attendance`}
-                          scroll={false}
-                          style={calendarSessionCardStyle}
-                        >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
-                            <span style={{ fontWeight: 600 }}>{format(new Date(sessionItem.date_time), 'HH:mm')}</span>
-                            <StatusBadge status={sessionItem.status} />
+                        sessionItem.status === 'CANCELLED' ? (
+                          <div
+                            key={sessionItem.id}
+                            style={{
+                              ...calendarSessionCardStyle,
+                              opacity: 0.5,
+                              cursor: 'not-allowed',
+                              background: '#f1f5f9',
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                              <span style={{ fontWeight: 600 }}>{format(new Date(sessionItem.date_time), 'HH:mm')}</span>
+                              <StatusBadge status={sessionItem.status} />
+                            </div>
+                            <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>Dibatalkan</span>
                           </div>
-                          <span style={{ fontSize: '0.75rem', color: '#2563eb', fontWeight: 600 }}>Open Administration</span>
-                        </Link>
+                        ) : (
+                          <Link
+                            key={sessionItem.id}
+                            href={`/coach/sessions/${sessionItem.id}/attendance`}
+                            scroll={false}
+                            style={calendarSessionCardStyle}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                              <span style={{ fontWeight: 600 }}>{format(new Date(sessionItem.date_time), 'HH:mm')}</span>
+                              <StatusBadge status={sessionItem.status} />
+                            </div>
+                            <span style={{ fontSize: '0.75rem', color: '#2563eb', fontWeight: 600 }}>Open Administration</span>
+                          </Link>
+                        )
                       ))
                     )}
                   </div>

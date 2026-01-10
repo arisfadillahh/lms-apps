@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from 'react';
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface Attendee {
   coderId: string;
@@ -20,6 +21,7 @@ interface AttendanceListProps {
 type AttendanceStatus = 'PRESENT' | 'ABSENT';
 
 export default function AttendanceList({ sessionId, attendees }: AttendanceListProps) {
+  const router = useRouter();
   const [records, setRecords] = useState(() =>
     attendees.map((attendee) => ({
       coderId: attendee.coderId,
@@ -38,9 +40,9 @@ export default function AttendanceList({ sessionId, attendees }: AttendanceListP
       prev.map((record) =>
         record.coderId === coderId
           ? {
-              ...record,
-              ...updates,
-            }
+            ...record,
+            ...updates,
+          }
           : record,
       ),
     );
@@ -77,6 +79,7 @@ export default function AttendanceList({ sessionId, attendees }: AttendanceListP
       updateRecord(coderId, { status, reason: status === 'ABSENT' ? reason?.trim() ?? '' : '' });
       setEditingId(null);
       setStatusMessage('Attendance saved');
+      router.refresh();
     });
   };
 

@@ -18,6 +18,8 @@ const WEEKDAY_CODES: Record<number, string> = {
   6: 'SA',
 };
 
+import { DAY_CODE_MAP } from '@/lib/constants/scheduleConstants';
+
 function toWeekdayCode(date: Date): string {
   return WEEKDAY_CODES[date.getDay()];
 }
@@ -164,28 +166,91 @@ export async function updateSessionStatus(sessionId: string, status: SessionReco
 
 /**
  * Automatically update past sessions that are still SCHEDULED to COMPLETED.
- * This should be called on page load to ensure sessions are up-to-date.
+ * DEPRECATED: We no longer auto-complete sessions. This function now does nothing.
  */
 export async function autoCompletePastSessions(classId?: string): Promise<number> {
+  // Logic removed intentionally to keep past sessions active.
+  return 0;
+}
+
+function normalizeScheduleDay(scheduleDay: string) {
+  const normalized = scheduleDay.trim().toUpperCase();
+  return DAY_CODE_MAP[normalized] ?? null;
+}
+
+function alignDateToWeekday(start: Date, targetIndex: number): Date {
+  const aligned = new Date(start);
+  const currentIndex = aligned.getDay();
+  const delta = (targetIndex - currentIndex + 7) % 7;
+  aligned.setDate(aligned.getDate() + delta);
+  return aligned;
+}
+
+function toDateOnly(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+/**
+ * Ensures that there are sessions generated for at least `weeksAhead` weeks from now.
+ * This effectively implements "Rolling Sessions".
+ */
+export async function ensureFutureSessions(classId: string, weeksAhead = 12): Promise<number> {
   const supabase = getSupabaseAdmin();
-  const now = new Date().toISOString();
+  const classRecord = await getClassById(classId);
+  if (!classRecord) return 0;
 
-  let query = supabase
+  // 1. Determine target end date (now + weeksAhead)
+  const now = new Date();
+  const targetDate = addDays(now, weeksAhead * 7);
+
+  // 2. Fetch the last scheduled session
+  const { data: lastSession } = await supabase
     .from('sessions')
-    .update({ status: 'COMPLETED' })
-    .eq('status', 'SCHEDULED')
-    .lt('date_time', now);
+    .select('date_time')
+    .eq('class_id', classId)
+    .order('date_time', { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-  if (classId) {
-    query = query.eq('class_id', classId);
+  let startDate: Date;
+  if (lastSession) {
+    const lastDate = parseISO(lastSession.date_time);
+    if (isAfter(lastDate, targetDate)) {
+      // We already have enough sessions
+      return 0;
+    }
+    // Start generating from the week AFTER the last session
+    startDate = addDays(lastDate, 7); // Rough jump, logic below will align
+  } else {
+    // No sessions at all? Start from class start_date or now
+    const classStart = new Date(classRecord.start_date);
+    startDate = isAfter(classStart, now) ? classStart : now;
   }
 
-  const { error, count } = await query.select('id');
-
-  if (error) {
-    console.error('Failed to auto-complete past sessions:', error.message);
+  // 3. Prepare parameters for generation
+  const scheduleInfo = normalizeScheduleDay(classRecord.schedule_day);
+  if (!scheduleInfo) {
+    console.warn(`[ensureFutureSessions] Invalid schedule day for class ${classId}: ${classRecord.schedule_day}`);
     return 0;
   }
 
-  return count ?? 0;
+  // Align startDate to the correct weekday
+  const alignedStartDate = alignDateToWeekday(startDate, scheduleInfo.index);
+
+  // If aligned start date is already beyond target, stop.
+  if (isAfter(alignedStartDate, targetDate)) {
+    return 0;
+  }
+
+  // 4. Generate sessions from alignedStartDate to targetDate
+  // generateSessions expects string dates
+  const newSessions = await generateSessions({
+    classId: classRecord.id,
+    startDate: toDateOnly(alignedStartDate),
+    endDate: toDateOnly(targetDate),
+    byDay: [scheduleInfo.code],
+    time: classRecord.schedule_time,
+  });
+
+  return newSessions.length;
 }

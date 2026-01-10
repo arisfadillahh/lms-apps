@@ -5,11 +5,28 @@ import type { TablesInsert, TablesRow, TablesUpdate } from '@/types/supabase';
 
 export type ClassLessonRecord = TablesRow<'class_lessons'>;
 
-export async function listLessonsByClassBlock(classBlockId: string): Promise<ClassLessonRecord[]> {
+export type ClassLessonWithTemplate = ClassLessonRecord & {
+  template_title: string;
+  template_summary: string | null;
+  template_slide_url: string | null;
+  template_make_up_instructions: string | null;
+  template_duration_minutes: number | null;
+};
+
+export async function listLessonsByClassBlock(classBlockId: string): Promise<ClassLessonWithTemplate[]> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from('class_lessons')
-    .select('*')
+    .select(`
+      *,
+      lesson_templates!inner(
+        title,
+        summary,
+        slide_url,
+        make_up_instructions,
+        duration_minutes
+      )
+    `)
     .eq('class_block_id', classBlockId)
     .order('order_index', { ascending: true });
 
@@ -17,7 +34,21 @@ export async function listLessonsByClassBlock(classBlockId: string): Promise<Cla
     throw new Error(`Failed to list class lessons: ${error.message}`);
   }
 
-  return data ?? [];
+  // Map the joined data to a flat structure with template_ prefix for clarity
+  return (data ?? []).map((row: any) => ({
+    ...row,
+    // Override with template values (live reference)
+    title: row.lesson_templates?.title ?? row.title,
+    summary: row.lesson_templates?.summary ?? row.summary,
+    slide_url: row.lesson_templates?.slide_url ?? row.slide_url,
+    make_up_instructions: row.lesson_templates?.make_up_instructions ?? row.make_up_instructions,
+    // Also expose template_ prefixed for explicit access
+    template_title: row.lesson_templates?.title ?? null,
+    template_summary: row.lesson_templates?.summary ?? null,
+    template_slide_url: row.lesson_templates?.slide_url ?? null,
+    template_make_up_instructions: row.lesson_templates?.make_up_instructions ?? null,
+    template_duration_minutes: row.lesson_templates?.duration_minutes ?? null,
+  }));
 }
 
 export async function createClassLessons(

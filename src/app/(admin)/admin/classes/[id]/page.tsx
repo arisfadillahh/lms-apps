@@ -62,8 +62,8 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
     }
   }
 
-  // Auto-update past sessions status from SCHEDULED to COMPLETED
-  await sessionsDao.autoCompletePastSessions(classIdParam);
+  // Ensure future sessions exist (Rolling 12 sessions)
+  await sessionsDao.ensureFutureSessions(classIdParam);
 
   const [sessions, enrollments, coaches, coders] = await Promise.all([
     sessionsDao.listSessionsByClass(classIdParam),

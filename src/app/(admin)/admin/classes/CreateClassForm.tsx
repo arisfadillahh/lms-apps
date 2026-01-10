@@ -162,8 +162,16 @@ export default function CreateClassForm({ coaches, levels, levelBlocks }: Create
           <input type="hidden" value="" {...register('initialBlockId')} />
         )}
         <div style={fieldStyle}>
-          <label style={labelStyle}>Schedule Day</label>
-          <input style={inputStyle} type="text" placeholder="e.g. MONDAY" {...register('scheduleDay')} />
+          <label style={labelStyle}>Hari Jadwal</label>
+          <select style={inputStyle} {...register('scheduleDay')}>
+            <option value="MONDAY">Senin</option>
+            <option value="TUESDAY">Selasa</option>
+            <option value="WEDNESDAY">Rabu</option>
+            <option value="THURSDAY">Kamis</option>
+            <option value="FRIDAY">Jumat</option>
+            <option value="SATURDAY">Sabtu</option>
+            <option value="SUNDAY">Minggu</option>
+          </select>
           {errors.scheduleDay ? <span style={errorStyle}>{errors.scheduleDay.message}</span> : null}
         </div>
         <div style={fieldStyle}>

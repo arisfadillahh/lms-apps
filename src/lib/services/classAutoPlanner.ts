@@ -5,29 +5,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { classLessonsDao, lessonTemplatesDao, sessionsDao } from '@/lib/dao';
 import { createClassBlock, updateClass } from '@/lib/dao/classesDao';
 
-const DAY_CODE_MAP: Record<string, { code: 'SU' | 'MO' | 'TU' | 'WE' | 'TH' | 'FR' | 'SA'; index: number }> = {
-  SU: { code: 'SU', index: 0 },
-  SUN: { code: 'SU', index: 0 },
-  SUNDAY: { code: 'SU', index: 0 },
-  MO: { code: 'MO', index: 1 },
-  MON: { code: 'MO', index: 1 },
-  MONDAY: { code: 'MO', index: 1 },
-  TU: { code: 'TU', index: 2 },
-  TUE: { code: 'TU', index: 2 },
-  TUESDAY: { code: 'TU', index: 2 },
-  WE: { code: 'WE', index: 3 },
-  WED: { code: 'WE', index: 3 },
-  WEDNESDAY: { code: 'WE', index: 3 },
-  TH: { code: 'TH', index: 4 },
-  THU: { code: 'TH', index: 4 },
-  THURSDAY: { code: 'TH', index: 4 },
-  FR: { code: 'FR', index: 5 },
-  FRI: { code: 'FR', index: 5 },
-  FRIDAY: { code: 'FR', index: 5 },
-  SA: { code: 'SA', index: 6 },
-  SAT: { code: 'SA', index: 6 },
-  SATURDAY: { code: 'SA', index: 6 },
-};
+import { DAY_CODE_MAP } from '@/lib/constants/scheduleConstants';
 
 type ClassRow = TablesRow<'classes'>;
 
@@ -86,40 +64,19 @@ export async function autoPlanWeeklyClass(classRecord: ClassRow, preferredStartB
     }
   }
 
-  // fetch block template for level
-  let { data: blockTemplate, error: blockError } = await supabase
+  // Fetch ALL blocks from the level (curriculum)
+  const { data: allBlocks, error: blocksError } = await supabase
     .from('blocks')
-    .select('id, estimated_sessions, order_index, level_id')
-    .eq('id', preferredStartBlockId ?? '')
-    .maybeSingle();
+    .select('id, estimated_sessions, order_index, level_id, name')
+    .eq('level_id', classRecord.level_id)
+    .order('order_index', { ascending: true });
 
-  if (blockError) {
-    throw new Error(`Failed to lookup block template: ${blockError.message}`);
+  if (blocksError) {
+    throw new Error(`Failed to fetch level blocks: ${blocksError.message}`);
   }
 
-  if (!blockTemplate || blockTemplate.level_id !== classRecord.level_id) {
-    const { data: firstBlock, error: firstError } = await supabase
-      .from('blocks')
-      .select('id, estimated_sessions, order_index')
-      .eq('level_id', classRecord.level_id)
-      .order('order_index', { ascending: true })
-      .limit(1)
-      .maybeSingle();
-    if (firstError) {
-      throw new Error(`Failed to lookup block template: ${firstError.message}`);
-    }
-    blockTemplate = firstBlock;
-  }
-
-  if (!blockTemplate) {
-    return { skipped: true, reason: 'No block template found for level' };
-  }
-
-  const lessonTemplates = await lessonTemplatesDao.listLessonsByBlock(blockTemplate.id);
-
-  let sessionsRequired = blockTemplate.estimated_sessions ?? lessonTemplates.length;
-  if (!sessionsRequired || sessionsRequired <= 0) {
-    sessionsRequired = Math.max(lessonTemplates.length, 1);
+  if (!allBlocks || allBlocks.length === 0) {
+    return { skipped: true, reason: 'No blocks found for level' };
   }
 
   const scheduleInfo = normalizeScheduleDay(classRecord.schedule_day);
@@ -127,53 +84,92 @@ export async function autoPlanWeeklyClass(classRecord: ClassRow, preferredStartB
     return { skipped: true, reason: `Invalid schedule day "${classRecord.schedule_day}"` };
   }
 
+  // Determine starting block index
+  let startingBlockIndex = 0;
+  if (preferredStartBlockId) {
+    const preferredIndex = allBlocks.findIndex((b) => b.id === preferredStartBlockId);
+    if (preferredIndex >= 0) {
+      startingBlockIndex = preferredIndex;
+    }
+  }
+
   const classStart = new Date(classRecord.start_date ?? new Date().toISOString());
-  const firstSessionDate = alignDateToWeekday(classStart, scheduleInfo.index);
-  const sessionDates = computeSessionDates(firstSessionDate, sessionsRequired);
-  const lastSessionDate = sessionDates[sessionDates.length - 1];
+  let currentStartDate = alignDateToWeekday(classStart, scheduleInfo.index);
+  let totalSessionsCreated = 0;
+  let firstBlockId: string | null = null;
 
-  // generate sessions
-  const generatedSessions = await sessionsDao.generateSessions({
-    classId: classRecord.id,
-    startDate: toDateOnly(firstSessionDate),
-    endDate: toDateOnly(lastSessionDate),
-    byDay: [scheduleInfo.code],
-    time: classRecord.schedule_time,
-    zoomLinkSnapshot: undefined,
-  });
+  // Create class_blocks for ALL blocks in the level
+  for (let i = 0; i < allBlocks.length; i++) {
+    const blockIndex = (startingBlockIndex + i) % allBlocks.length;
+    const block = allBlocks[blockIndex];
+    const isFirst = i === 0;
 
-  const blockStartDate = toDateOnly(firstSessionDate);
-  const blockEndDate = toDateOnly(lastSessionDate);
+    const lessonTemplates = await lessonTemplatesDao.listLessonsByBlock(block.id);
+    let sessionsRequired = block.estimated_sessions ?? lessonTemplates.length;
+    if (!sessionsRequired || sessionsRequired <= 0) {
+      sessionsRequired = Math.max(lessonTemplates.length, 1);
+    }
 
-  const classBlock = await createClassBlock({
-    classId: classRecord.id,
-    blockId: blockTemplate.id,
-    startDate: blockStartDate,
-    endDate: blockEndDate,
-    pitchingDayDate: blockEndDate,
-    status: 'CURRENT',
-  });
+    const sessionDates = computeSessionDates(currentStartDate, sessionsRequired);
+    const lastSessionDate = sessionDates[sessionDates.length - 1];
 
-  if (lessonTemplates.length > 0) {
-    await classLessonsDao.createClassLessons(
-      lessonTemplates.map((lesson) => ({
-        class_block_id: classBlock.id,
-        lesson_template_id: lesson.id,
-        title: lesson.title,
-        summary: lesson.summary ?? null,
-        order_index: lesson.order_index,
-        make_up_instructions: lesson.make_up_instructions ?? null,
-        slide_url: lesson.slide_url ?? null,
-        coach_example_url: lesson.example_url ?? null,
-        coach_example_storage_path: lesson.example_storage_path ?? null,
-      })),
-    );
+    const blockStartDate = toDateOnly(currentStartDate);
+    const blockEndDate = toDateOnly(lastSessionDate);
+
+    // Determine status: first block is CURRENT, rest are UPCOMING
+    const status: 'CURRENT' | 'UPCOMING' = isFirst ? 'CURRENT' : 'UPCOMING';
+
+    const classBlock = await createClassBlock({
+      classId: classRecord.id,
+      blockId: block.id,
+      startDate: blockStartDate,
+      endDate: blockEndDate,
+      pitchingDayDate: blockEndDate,
+      status,
+    });
+
+    if (isFirst) {
+      firstBlockId = classBlock.id;
+    }
+
+    // Create class_lessons for this block
+    if (lessonTemplates.length > 0) {
+      await classLessonsDao.createClassLessons(
+        lessonTemplates.map((lesson) => ({
+          class_block_id: classBlock.id,
+          lesson_template_id: lesson.id,
+          title: lesson.title,
+          summary: lesson.summary ?? null,
+          order_index: lesson.order_index,
+          make_up_instructions: lesson.make_up_instructions ?? null,
+          slide_url: lesson.slide_url ?? null,
+          coach_example_url: lesson.example_url ?? null,
+          coach_example_storage_path: lesson.example_storage_path ?? null,
+        })),
+      );
+    }
+
+    // Move start date to after this block ends
+    currentStartDate = addDays(lastSessionDate, 7);
+    totalSessionsCreated += sessionsRequired;
   }
 
-  // extend class end date if needed to cover block schedule
-  if (classRecord.end_date && new Date(classRecord.end_date) < lastSessionDate) {
-    await updateClass(classRecord.id, { endDate: blockEndDate });
+  // Ensure 12 weeks buffer of sessions
+  await sessionsDao.ensureFutureSessions(classRecord.id);
+
+  // Extend class end date if needed
+  const lastBlock = allBlocks[(startingBlockIndex + allBlocks.length - 1) % allBlocks.length];
+  const lessonTemplatesLast = await lessonTemplatesDao.listLessonsByBlock(lastBlock.id);
+  let lastBlockSessions = lastBlock.estimated_sessions ?? lessonTemplatesLast.length;
+  if (!lastBlockSessions || lastBlockSessions <= 0) {
+    lastBlockSessions = Math.max(lessonTemplatesLast.length, 1);
+  }
+  // Calculate approximate end date of the last block
+  const totalWeeks = allBlocks.reduce((sum, b) => sum + (b.estimated_sessions ?? 1), 0);
+  const approxEndDate = addDays(classStart, totalWeeks * 7);
+  if (classRecord.end_date && new Date(classRecord.end_date) < approxEndDate) {
+    await updateClass(classRecord.id, { endDate: toDateOnly(approxEndDate) });
   }
 
-  return { skipped: false, blockId: classBlock.id, sessionsCreated: generatedSessions.length };
+  return { skipped: false, blockId: firstBlockId ?? '', sessionsCreated: totalSessionsCreated };
 }

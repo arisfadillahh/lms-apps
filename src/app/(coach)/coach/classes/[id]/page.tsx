@@ -27,8 +27,8 @@ export default async function CoachClassPage({ params, searchParams }: PageProps
     return renderInvalidClassMessage(classIdParam);
   }
 
-  // Auto-update past sessions status from SCHEDULED to COMPLETED
-  await sessionsDao.autoCompletePastSessions(classIdParam);
+  // Ensure future sessions exist (Rolling 12 sessions)
+  await sessionsDao.ensureFutureSessions(classIdParam);
 
   const [classRecord, sessions, enrollments, materials] = await Promise.all([
     classesDao.getClassById(classIdParam),

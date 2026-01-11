@@ -126,20 +126,20 @@ const formStyle: CSSProperties = {
 
 const labelStyle: CSSProperties = {
   fontSize: '0.85rem',
-  color: 'var(--color-text-secondary)',
+  color: '#334155', // Slate-700
   fontWeight: 500,
 };
 
 const inputStyle: CSSProperties = {
   padding: '0.55rem 0.75rem',
   borderRadius: '0.5rem',
-  border: `1px solid var(--color-border)`,
+  border: `1px solid #cbd5e1`,
   fontSize: '0.9rem',
-  color: 'var(--color-text-primary)',
-  background: 'var(--color-bg-surface)',
+  color: '#0f172a',
+  background: '#ffffff',
 };
 
 const errorStyle: CSSProperties = {
   fontSize: '0.75rem',
-  color: 'var(--color-danger)',
+  color: '#ef4444', // Red-500
 };

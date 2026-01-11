@@ -24,7 +24,7 @@ export default async function AdminCurriculumPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
       <header>
-        <h1 style={{ fontSize: '1.6rem', fontWeight: 600, marginBottom: '0.75rem' }}>Curriculum Planner</h1>
+        <h1 style={{ fontSize: '1.6rem', fontWeight: 600, marginBottom: '0.75rem' }}>Perencanaan Kurikulum</h1>
         <p style={{ color: '#64748b', maxWidth: '48rem' }}>
           Kelola block dan lesson template per level. Perubahan langsung berdampak ke kelas yang menggunakan level tersebut.
         </p>
@@ -43,8 +43,8 @@ export default async function AdminCurriculumPage() {
               ) : null}
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-              <Link href={`/admin/curriculum/${level.id}/blocks`} style={manageLinkStyle}>
-                📚 Manage blocks →
+              <Link href={`/admin/curriculum/${level.id}/blocks`} style={primaryActionStyle}>
+                Kelola Block →
               </Link>
               <DeleteLevelButton levelId={level.id} levelName={level.name} />
             </div>
@@ -85,8 +85,15 @@ const levelItemStyle: CSSProperties = {
   gap: '0.75rem',
 };
 
-const manageLinkStyle: CSSProperties = {
-  color: '#2563eb',
+const primaryActionStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  padding: '0.6rem 1rem',
+  background: '#2563eb',
+  color: '#ffffff',
   fontWeight: 600,
   textDecoration: 'none',
+  borderRadius: '0.5rem',
+  fontSize: '0.9rem',
+  transition: 'background 0.2s',
 };

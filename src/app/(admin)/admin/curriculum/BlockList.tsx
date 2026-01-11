@@ -1,5 +1,6 @@
-"use client";
+'use client';
 
+import Link from 'next/link';
 import { useState, type CSSProperties, type ReactNode } from 'react';
 
 type BlockListItem = {
@@ -8,7 +9,7 @@ type BlockListItem = {
   summary?: string | null;
   order: number;
   lessonCount: number;
-  lessonDetail: ReactNode;
+  manageUrl: string;
   editDetail: ReactNode;
   deleteAction?: ReactNode;
 };
@@ -18,9 +19,7 @@ type BlockListProps = {
 };
 
 export default function BlockList({ items }: BlockListProps) {
-  const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
   const [activeEditId, setActiveEditId] = useState<string | null>(null);
-  const lessonModal = items.find((item) => item.id === activeLessonId) ?? null;
   const editModal = items.find((item) => item.id === activeEditId) ?? null;
 
   return (
@@ -36,11 +35,16 @@ export default function BlockList({ items }: BlockListProps) {
               <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Total lesson: {item.lessonCount}</span>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-              <button type="button" onClick={() => setActiveLessonId(item.id)} style={pillButtonStyle}>
-                Detail lesson
-              </button>
-              <button type="button" onClick={() => setActiveEditId(item.id)} style={pillButtonStyle}>
-                Edit block
+              <Link href={item.manageUrl} style={primaryButtonStyle}>
+                Kelola Lesson
+              </Link>
+              <button
+                type="button"
+                onClick={() => setActiveEditId(item.id)}
+                style={iconButtonStyle}
+                title="Edit informasi block"
+              >
+                ✏️
               </button>
               {item.deleteAction ?? null}
             </div>
@@ -48,11 +52,6 @@ export default function BlockList({ items }: BlockListProps) {
         ))}
       </ul>
 
-      {lessonModal ? (
-        <Modal onClose={() => setActiveLessonId(null)} title={`Lesson • ${lessonModal.title}`}>
-          {lessonModal.lessonDetail}
-        </Modal>
-      ) : null}
       {editModal ? (
         <Modal onClose={() => setActiveEditId(null)} title={`Edit block • ${editModal.title}`}>
           {editModal.editDetail}
@@ -99,15 +98,34 @@ const listItemStyle: CSSProperties = {
   flexWrap: 'wrap',
 };
 
-const pillButtonStyle: CSSProperties = {
-  padding: '0.35rem 0.75rem',
-  borderRadius: '999px',
-  border: '1px solid #cbd5f5',
-  background: '#f8fafc',
-  color: '#0f172a',
+const primaryButtonStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  padding: '0.4rem 0.85rem',
+  borderRadius: '0.5rem',
+  background: '#2563eb',
+  color: '#ffffff',
   fontWeight: 600,
   cursor: 'pointer',
   fontSize: '0.85rem',
+  border: 'none',
+  transition: 'background 0.2s',
+  textDecoration: 'none',
+};
+
+const iconButtonStyle: CSSProperties = {
+  padding: '0.4rem',
+  borderRadius: '0.5rem',
+  border: '1px solid #cbd5f5',
+  background: '#f8fafc',
+  color: '#0f172a',
+  cursor: 'pointer',
+  fontSize: '1rem',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '32px',
+  height: '32px',
 };
 
 const overlayStyle: CSSProperties = {

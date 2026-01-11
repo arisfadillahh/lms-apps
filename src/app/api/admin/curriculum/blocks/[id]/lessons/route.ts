@@ -36,13 +36,13 @@ export async function POST(request: Request, context: RouteContext) {
   const normalizedInput =
     body && typeof body === 'object'
       ? (() => {
-          const candidate = { ...(body as Record<string, unknown>) };
-          if (typeof candidate.slideUrl === 'string') {
-            const normalized = normalizeSlideUrl(candidate.slideUrl);
-            candidate.slideUrl = normalized ?? undefined;
-          }
-          return candidate;
-        })()
+        const candidate = { ...(body as Record<string, unknown>) };
+        if (typeof candidate.slideUrl === 'string') {
+          const normalized = normalizeSlideUrl(candidate.slideUrl);
+          candidate.slideUrl = normalized ?? undefined;
+        }
+        return candidate;
+      })()
       : body;
 
   const parsed = createLessonTemplateSchema.safeParse({
@@ -54,17 +54,24 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: 'Validation failed', details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const lesson = await lessonTemplatesDao.createLessonTemplate({
-    blockId: parsed.data.blockId,
-    title: parsed.data.title,
-    summary: parsed.data.summary ?? null,
-    slideUrl: parsed.data.slideUrl ?? null,
-    orderIndex: parsed.data.orderIndex,
-    durationMinutes: parsed.data.durationMinutes ?? null,
-    makeUpInstructions: parsed.data.makeUpInstructions ?? null,
-  });
+  try {
+    const lesson = await lessonTemplatesDao.createLessonTemplate({
+      blockId: parsed.data.blockId,
+      title: parsed.data.title,
+      summary: parsed.data.summary ?? null,
+      slideUrl: parsed.data.slideUrl || null,
+      exampleUrl: null, // Initialize as null
+      exampleStoragePath: null, // Initialize as null
+      orderIndex: parsed.data.orderIndex,
+      durationMinutes: parsed.data.durationMinutes ?? null,
+      makeUpInstructions: parsed.data.makeUpInstructions || null,
+    });
 
-  return NextResponse.json({ lesson }, { status: 201 });
+    return NextResponse.json({ lesson }, { status: 201 });
+  } catch (error: any) {
+    console.error('API Route Error:', error);
+    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  }
 }
 
 function isValidUuid(value: string): boolean {

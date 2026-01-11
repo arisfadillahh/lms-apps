@@ -7,7 +7,6 @@ import { blocksDao, lessonTemplatesDao, levelsDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
 
 import BlockList from '../../BlockList';
-import BlockTemplateCard from '../../BlockTemplateCard';
 import CreateBlockForm from '../../CreateBlockForm';
 import DeleteBlockButton from '../../DeleteBlockButton';
 import UpdateBlockForm from '../../UpdateBlockForm';
@@ -29,10 +28,11 @@ export default async function LevelBlocksPage({ params }: { params: Promise<{ le
   }
 
   const blocks = await blocksDao.listBlocksByLevel(levelId);
+  // Lesson counts are still useful
   const blockDetails = await Promise.all(
     blocks.map(async (block) => ({
       block,
-      lessons: await lessonTemplatesDao.listLessonsByBlock(block.id),
+      lessonCount: (await lessonTemplatesDao.listLessonsByBlock(block.id)).length,
     })),
   );
 
@@ -53,13 +53,13 @@ export default async function LevelBlocksPage({ params }: { params: Promise<{ le
         <p style={{ color: '#64748b' }}>Belum ada block pada level ini.</p>
       ) : (
         <BlockList
-          items={blockDetails.map(({ block, lessons }) => ({
+          items={blockDetails.map(({ block, lessonCount }) => ({
             id: block.id,
             title: block.name,
             order: block.order_index,
             summary: block.summary,
-            lessonCount: lessons.length,
-            lessonDetail: <BlockTemplateCard block={block} lessons={lessons} />,
+            lessonCount,
+            manageUrl: `/admin/curriculum/${levelId}/blocks/${block.id}`,
             editDetail: <UpdateBlockForm block={block} />,
             deleteAction: <DeleteBlockButton blockId={block.id} blockName={block.name} />,
           }))}

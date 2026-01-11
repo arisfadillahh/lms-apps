@@ -3,9 +3,11 @@
 import type { CSSProperties } from 'react';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { Pencil, Save, X, ExternalLink } from 'lucide-react';
 
 import type { LessonTemplateRecord } from '@/lib/dao/lessonTemplatesDao';
 import LessonExampleUploader from '@/components/admin/LessonExampleUploader';
+import DeleteLessonButton from './DeleteLessonButton';
 
 type LessonTemplateRowProps = {
   lesson: LessonTemplateRecord;
@@ -97,9 +99,10 @@ export default function LessonTemplateRow({ lesson }: LessonTemplateRowProps) {
         <div style={headerRowStyle}>
           <strong style={{ color: 'var(--color-text-primary)' }}>{lesson.title}</strong>
           {editing ? (
-            <div style={{ display: 'flex', gap: '0.35rem' }}>
-              <button type="button" onClick={handleSave} style={iconButtonStyle} disabled={isPending}>
-                💾
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button type="button" onClick={handleSave} style={actionButtonStyle} disabled={isPending} title="Simpan">
+                <Save size={16} />
+                <span>Simpan</span>
               </button>
               <button
                 type="button"
@@ -107,40 +110,54 @@ export default function LessonTemplateRow({ lesson }: LessonTemplateRowProps) {
                   setEditing(false);
                   resetForm();
                 }}
-                style={iconButtonStyle}
+                style={cancelButtonStyle}
                 disabled={isPending}
+                title="Batal"
               >
-                ✕
+                <X size={16} />
               </button>
+              <div style={separatorStyle} />
+              <DeleteLessonButton lessonId={lesson.id} lessonTitle={lesson.title} />
             </div>
           ) : (
-            <button type="button" onClick={() => setEditing(true)} style={iconButtonStyle}>
-              ✏️
+            <button type="button" onClick={() => setEditing(true)} style={editButtonStyle} title="Edit lesson">
+              <Pencil size={14} />
+              <span>Edit</span>
             </button>
           )}
         </div>
         {editing ? (
-          <>
-            <input type="text" value={title} onChange={(event) => setTitle(event.target.value)} style={inputStyle} />
-            <textarea
-              value={summary}
-              rows={2}
-              onChange={(event) => setSummary(event.target.value)}
-              style={{ ...inputStyle, resize: 'vertical' }}
-            />
-            <input
-              type="url"
-              value={slideUrl}
-              onChange={(event) => setSlideUrl(event.target.value)}
-              placeholder="https://docs.google.com/presentation/..."
-              style={inputStyle}
-            />
-          </>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={fieldGroupStyle}>
+              <label style={labelStyle}>Judul Lesson</label>
+              <input type="text" value={title} onChange={(event) => setTitle(event.target.value)} style={inputStyle} />
+            </div>
+            <div style={fieldGroupStyle}>
+              <label style={labelStyle}>Ringkasan</label>
+              <textarea
+                value={summary}
+                rows={2}
+                onChange={(event) => setSummary(event.target.value)}
+                style={{ ...inputStyle, resize: 'vertical' }}
+              />
+            </div>
+            <div style={fieldGroupStyle}>
+              <label style={labelStyle}>URL Slide</label>
+              <input
+                type="url"
+                value={slideUrl}
+                onChange={(event) => setSlideUrl(event.target.value)}
+                placeholder="https://docs.google.com/presentation/..."
+                style={inputStyle}
+              />
+            </div>
+          </div>
         ) : (
           <>
             {lesson.summary ? <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>{lesson.summary}</p> : null}
             {lesson.slide_url ? (
               <a href={lesson.slide_url} target="_blank" rel="noreferrer" style={linkStyle}>
+                <ExternalLink size={12} style={{ marginRight: '0.25rem' }} />
                 Buka Slide
               </a>
             ) : (
@@ -166,31 +183,38 @@ export default function LessonTemplateRow({ lesson }: LessonTemplateRowProps) {
       </div>
       <div style={{ minWidth: '220px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         {editing ? (
-          <>
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <input
-                type="number"
-                value={orderIndex}
-                onChange={(event) => setOrderIndex(event.target.value)}
-                style={inputStyle}
-              />
-              <input
-                type="number"
-                value={durationMinutes}
-                onChange={(event) => setDurationMinutes(event.target.value)}
-                style={inputStyle}
-                placeholder="Durasi"
-                min={0}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <div style={{ ...fieldGroupStyle, flex: '1', minWidth: '80px' }}>
+                <label style={labelStyle}>Urutan</label>
+                <input
+                  type="number"
+                  value={orderIndex}
+                  onChange={(event) => setOrderIndex(event.target.value)}
+                  style={{ ...inputStyle, width: '100%' }}
+                />
+              </div>
+              <div style={{ ...fieldGroupStyle, flex: '1', minWidth: '100px' }}>
+                <label style={labelStyle}>Durasi (menit)</label>
+                <input
+                  type="number"
+                  value={durationMinutes}
+                  onChange={(event) => setDurationMinutes(event.target.value)}
+                  style={{ ...inputStyle, width: '100%' }}
+                  min={0}
+                />
+              </div>
+            </div>
+            <div style={fieldGroupStyle}>
+              <label style={labelStyle}>Instruksi Make-Up</label>
+              <textarea
+                value={makeUpInstructions}
+                onChange={(event) => setMakeUpInstructions(event.target.value)}
+                rows={2}
+                style={{ ...inputStyle, resize: 'vertical' }}
               />
             </div>
-            <textarea
-              value={makeUpInstructions}
-              onChange={(event) => setMakeUpInstructions(event.target.value)}
-              rows={2}
-              style={{ ...inputStyle, resize: 'vertical' }}
-              placeholder="Instruksi make-up"
-            />
-          </>
+          </div>
         ) : null}
         {message ? <span style={{ fontSize: '0.75rem', color: 'var(--color-success)' }}>{message}</span> : null}
         {errorMessage ? <span style={{ fontSize: '0.75rem', color: 'var(--color-danger)' }}>{errorMessage}</span> : null}
@@ -221,15 +245,22 @@ const containerStyle: CSSProperties = {
 const inputStyle: CSSProperties = {
   padding: '0.45rem 0.6rem',
   borderRadius: '0.5rem',
-  border: `1px solid var(--color-border)`,
+  border: `1px solid #cbd5e1`,
   fontSize: '0.85rem',
-  color: 'var(--color-text-primary)',
-  background: 'var(--color-bg-surface)',
+  color: '#0f172a',
+  background: '#ffffff',
+};
+
+const separatorStyle: CSSProperties = {
+  width: '1px',
+  height: '24px',
+  background: '#e2e8f0',
+  margin: '0 0.25rem',
 };
 
 const linkStyle: CSSProperties = {
   fontSize: '0.8rem',
-  color: 'var(--color-accent)',
+  color: '#2563eb',
   fontWeight: 600,
 };
 
@@ -240,11 +271,56 @@ const headerRowStyle: CSSProperties = {
   gap: '0.5rem',
 };
 
-const iconButtonStyle: CSSProperties = {
-  border: 'none',
-  background: 'transparent',
+const editButtonStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.35rem',
+  padding: '0.4rem 0.75rem',
+  border: '1px solid #d4dbe6',
+  borderRadius: '0.5rem',
+  background: '#f8fafc',
   cursor: 'pointer',
-  fontSize: '1rem',
+  fontSize: '0.8rem',
+  color: '#475569',
+  transition: 'all 0.15s ease',
+};
+
+const actionButtonStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.35rem',
+  padding: '0.4rem 0.75rem',
+  border: 'none',
+  borderRadius: '0.5rem',
+  background: '#2563eb',
+  cursor: 'pointer',
+  fontSize: '0.8rem',
+  color: '#ffffff',
+  fontWeight: 500,
+};
+
+const cancelButtonStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '0.4rem',
+  border: '1px solid #d4dbe6',
+  borderRadius: '0.5rem',
+  background: '#ffffff',
+  cursor: 'pointer',
+  color: '#64748b',
+};
+
+const fieldGroupStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.25rem',
+};
+
+const labelStyle: CSSProperties = {
+  fontSize: '0.75rem',
+  fontWeight: 600,
+  color: '#334155',
 };
 
 const exampleRowStyle: CSSProperties = {

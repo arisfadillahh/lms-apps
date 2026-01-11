@@ -14,16 +14,8 @@ export default function BlockTemplateCard({ block, lessons }: BlockTemplateCardP
   const sortedLessons = [...lessons].sort((a, b) => a.order_index - b.order_index);
   return (
     <section style={cardStyle}>
-      <div style={cardHeaderStyle}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 600 }}>{block.name}</h3>
-          {block.summary ? <p style={{ color: '#475569', fontSize: '0.9rem' }}>{block.summary}</p> : null}
-        </div>
-      </div>
-      <div style={metaRowStyle}>
-        <span>Order: {block.order_index}</span>
-        <span>Jumlah lesson: {sortedLessons.length}</span>
-        <span>Terakhir diupdate: {new Date(block.updated_at).toLocaleDateString()}</span>
+      <div style={emptyStyle}>
+        Total {sortedLessons.length} lesson • Terakhir diupdate {new Date(block.updated_at).toLocaleDateString()}
       </div>
 
       <BlockLessonList blockId={block.id} lessons={sortedLessons} />
@@ -115,10 +107,10 @@ const lessonListStyle: CSSProperties = {
 };
 
 const emptyStyle: CSSProperties = {
-  padding: '0.9rem 1rem',
-  borderRadius: '0.7rem',
-  border: `1px dashed var(--color-border)`,
-  color: 'var(--color-text-muted)',
+  padding: '0.75rem 1rem',
+  borderRadius: '0.5rem',
+  color: '#64748b',
   fontSize: '0.85rem',
-  background: 'rgba(37, 99, 235, 0.05)',
+  background: '#f1f5f9',
+  marginBottom: '1rem',
 };

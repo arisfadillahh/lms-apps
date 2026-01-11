@@ -115,16 +115,16 @@ const rowStyle: CSSProperties = {
 const labelStyle: CSSProperties = {
   fontSize: '0.85rem',
   fontWeight: 500,
-  color: 'var(--color-text-secondary)',
+  color: '#334155', // Slate-700, darker than before
 };
 
 const inputStyle: CSSProperties = {
   padding: '0.5rem 0.65rem',
   borderRadius: '0.5rem',
-  border: `1px solid var(--color-border)`,
+  border: `1px solid #cbd5e1`, // Slate-300
   fontSize: '0.9rem',
-  color: 'var(--color-text-primary)',
-  background: 'var(--color-bg-surface)',
+  color: '#0f172a', // Slate-900
+  background: '#ffffff',
 };
 
 const textareaStyle: CSSProperties = {
@@ -137,8 +137,8 @@ const buttonStyle: CSSProperties = {
   padding: '0.5rem 1.1rem',
   borderRadius: '0.5rem',
   border: 'none',
-  background: 'var(--color-accent)',
-  color: '#fff',
+  background: '#2563eb',
+  color: '#ffffff',
   fontWeight: 600,
   cursor: 'pointer',
 };

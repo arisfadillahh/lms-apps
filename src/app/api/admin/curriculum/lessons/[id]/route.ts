@@ -31,17 +31,17 @@ export async function PATCH(request: Request, context: RouteContext) {
   const normalizedBody =
     body && typeof body === 'object'
       ? (() => {
-          const candidate = { ...(body as Record<string, unknown>) };
-          if (typeof candidate.slideUrl === 'string') {
-            const normalized = normalizeSlideUrl(candidate.slideUrl);
-            if (normalized) {
-              candidate.slideUrl = normalized;
-            } else {
-              delete candidate.slideUrl;
-            }
+        const candidate = { ...(body as Record<string, unknown>) };
+        if (typeof candidate.slideUrl === 'string') {
+          const normalized = normalizeSlideUrl(candidate.slideUrl);
+          if (normalized) {
+            candidate.slideUrl = normalized;
+          } else {
+            delete candidate.slideUrl;
           }
-          return candidate;
-        })()
+        }
+        return candidate;
+      })()
       : body;
 
   const parsed = updateLessonTemplateSchema.safeParse(normalizedBody);
@@ -72,6 +72,28 @@ export async function PATCH(request: Request, context: RouteContext) {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to update lesson';
     return NextResponse.json({ error: message }, { status: 400 });
+  }
+
+}
+
+export async function DELETE(request: Request, context: RouteContext) {
+  const session = await getSessionOrThrow();
+  await assertRole(session, 'ADMIN');
+
+  const resolvedParams = await context.params;
+  const rawId = resolvedParams.id ?? '';
+  const lessonId = decodeURIComponent(rawId).trim();
+
+  if (!isValidUuid(lessonId)) {
+    return NextResponse.json({ error: 'Invalid lesson id' }, { status: 400 });
+  }
+
+  try {
+    await lessonTemplatesDao.deleteLessonTemplate(lessonId);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to delete lesson';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 

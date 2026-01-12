@@ -8,10 +8,10 @@ import { Home, BookOpen, FileUp, FileText, User } from 'lucide-react';
 import SignOutButton from '@/components/SignOutButton';
 
 const NAV_LINKS = [
-    { href: '/coder/dashboard', label: 'Beranda', icon: Home },
+    { href: '/coder/dashboard', label: 'Dashboard', icon: Home },
     { href: '/coder/materials', label: 'Materi', icon: BookOpen },
     { href: '/coder/makeup', label: 'Tugas Susulan', icon: FileUp },
-    { href: '/coder/reports', label: 'Laporan', icon: FileText },
+    { href: '/coder/reports', label: 'Rapor', icon: FileText },
 ];
 
 type CoderSidebarProps = {

@@ -58,10 +58,7 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
 
             if (!res.ok) throw new Error(data.error || 'Upload gagal');
 
-            // Update di DB (via update profile API too or separate? Usually upload just returns path)
-            // The instruction said existing API /profile/update takes avatarPath.
-            // Let's call update profile with new path
-            await updateLinkAvatar(data.path);
+            await updateLinkAvatar(data.filePath);
 
             setProfileMessage({ type: 'success', text: 'Foto profil diperbarui' });
             router.refresh();
@@ -144,23 +141,104 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
         }
     };
 
+    // --- Inline Styles for Robustness ---
+    const cardStyle = {
+        background: '#ffffff',
+        borderRadius: '16px',
+        padding: '2rem',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        marginBottom: '2rem'
+    };
+
+    const sectionTitleStyle = {
+        fontSize: '1.25rem',
+        fontWeight: 700,
+        color: '#1e293b',
+        marginBottom: '1.5rem',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem'
+    };
+
+    const inputGroupStyle = {
+        marginBottom: '1rem'
+    };
+
+    const labelStyle = {
+        display: 'block',
+        fontSize: '0.875rem',
+        fontWeight: 500,
+        color: '#334155',
+        marginBottom: '0.5rem'
+    };
+
+    const inputStyle = {
+        width: '100%',
+        padding: '0.5rem 1rem',
+        borderRadius: '0.75rem',
+        border: '1px solid #cbd5e1',
+        fontSize: '1rem',
+        color: '#1e293b',
+        outline: 'none',
+        transition: 'all 0.2s',
+        background: '#fff'
+    };
+
+    const buttonStyle = {
+        padding: '0.625rem 1.5rem',
+        borderRadius: '0.75rem',
+        fontWeight: 600,
+        fontSize: '0.875rem',
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        border: 'none'
+    };
+
+    const primaryButtonStyle = {
+        ...buttonStyle,
+        background: '#2563eb',
+        color: '#ffffff',
+        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+    };
+
+    const darkButtonStyle = {
+        ...buttonStyle,
+        background: '#1e293b',
+        color: '#ffffff',
+        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+    };
+
     return (
-        <div className="max-w-4xl w-full mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div style={{ maxWidth: '896px', width: '100%', margin: '0 auto', gap: '2rem', display: 'flex', flexDirection: 'column' }}>
 
             {/* 1. Identity Card */}
-            <section className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm">
-                <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                    👤 Identitas Diri
+            <section style={cardStyle}>
+                <h2 style={sectionTitleStyle}>
+                    <span>👤</span> Identitas Diri
                 </h2>
 
-                <div className="flex flex-col md:flex-row gap-8 items-start">
+                <div style={{ display: 'flex', flexDirection: 'row', gap: '2rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+
                     {/* Avatar Section */}
-                    <div className="flex-shrink-0 flex flex-col items-center gap-4">
-                        <div className="relative group w-32 h-32 rounded-full overflow-hidden bg-slate-100 ring-4 ring-white shadow-md">
+                    <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+                        <div style={{
+                            position: 'relative',
+                            width: '8rem',
+                            height: '8rem',
+                            borderRadius: '9999px',
+                            overflow: 'hidden',
+                            background: '#f1f5f9',
+                            border: '4px solid white',
+                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                        }}>
                             {user.avatarPath ? (
-                                <img src={user.avatarPath} alt="Avatar" className="w-full h-full object-cover" />
+                                <img src={user.avatarPath} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-blue-100 text-blue-500 text-4xl font-bold">
+                                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#dbeafe', color: '#3b82f6', fontSize: '2.25rem', fontWeight: 'bold' }}>
                                     {user.fullName.charAt(0)}
                                 </div>
                             )}
@@ -168,7 +246,22 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
                             {/* Overlay Upload */}
                             <div
                                 onClick={() => fileInputRef.current?.click()}
-                                className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-white font-medium text-sm backdrop-blur-sm"
+                                style={{
+                                    position: 'absolute',
+                                    inset: 0,
+                                    background: 'rgba(0,0,0,0.4)',
+                                    opacity: 0,
+                                    transition: 'opacity 0.2s',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: 'white',
+                                    fontSize: '0.875rem',
+                                    fontWeight: 500
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                                onMouseLeave={(e) => e.currentTarget.style.opacity = '0'}
                             >
                                 Ganti Foto
                             </div>
@@ -182,7 +275,7 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
                         />
                         <button
                             onClick={() => fileInputRef.current?.click()}
-                            className="text-sm font-semibold text-blue-600 hover:text-blue-700 hover:underline"
+                            style={{ fontSize: '0.875rem', fontWeight: 600, color: '#2563eb', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
                             disabled={isUploading}
                         >
                             {isUploading ? 'Mengupload...' : 'Upload Foto Baru'}
@@ -190,38 +283,37 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
                     </div>
 
                     {/* Form Section */}
-                    <form onSubmit={handleUpdateProfile} className="flex-1 w-full space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Nama Lengkap</label>
+                    <form onSubmit={handleUpdateProfile} style={{ flex: 1, width: '100%' }}>
+                        <div style={inputGroupStyle}>
+                            <label style={labelStyle}>Nama Lengkap</label>
                             <input
                                 type="text"
                                 value={fullName}
                                 onChange={e => setFullName(e.target.value)}
-                                className="w-full px-4 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-800"
+                                style={inputStyle}
                                 placeholder="Masukkan nama lengkap"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
-                            <input
-                                type="text"
-                                value={user.role}
-                                disabled
-                                className="w-full px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 cursor-not-allowed font-mono text-sm"
                             />
                         </div>
 
                         {profileMessage && (
-                            <div className={`p-3 rounded-lg text-sm font-medium ${profileMessage.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                            <div style={{
+                                padding: '0.75rem',
+                                borderRadius: '0.5rem',
+                                fontSize: '0.875rem',
+                                fontWeight: 500,
+                                marginBottom: '1rem',
+                                background: profileMessage.type === 'success' ? '#f0fdf4' : '#fef2f2',
+                                color: profileMessage.type === 'success' ? '#15803d' : '#b91c1c'
+                            }}>
                                 {profileMessage.text}
                             </div>
                         )}
 
-                        <div className="pt-2">
+                        <div style={{ paddingTop: '0.5rem' }}>
                             <button
                                 type="submit"
                                 disabled={isUpdatingProfile}
-                                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2"
+                                style={{ ...primaryButtonStyle, opacity: isUpdatingProfile ? 0.7 : 1 }}
                             >
                                 {isUpdatingProfile ? 'Menyimpan...' : 'Simpan Perubahan'}
                             </button>
@@ -231,43 +323,43 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
             </section>
 
             {/* 2. Security Card */}
-            <section className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm">
-                <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                    🔒 Keamanan & Password
+            <section style={cardStyle}>
+                <h2 style={sectionTitleStyle}>
+                    <span>🔒</span> Keamanan & Password
                 </h2>
 
-                <form onSubmit={handleChangePassword} className="max-w-md space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Password Saat Ini</label>
+                <form onSubmit={handleChangePassword} style={{ maxWidth: '28rem' }}>
+                    <div style={inputGroupStyle}>
+                        <label style={labelStyle}>Password Saat Ini</label>
                         <input
                             type="password"
                             value={currentPassword}
                             onChange={e => setCurrentPassword(e.target.value)}
-                            className="w-full px-4 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-800"
+                            style={inputStyle}
                             placeholder="Masukkan password lama"
                             required
                         />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Password Baru</label>
+                            <label style={labelStyle}>Password Baru</label>
                             <input
                                 type="password"
                                 value={newPassword}
                                 onChange={e => setNewPassword(e.target.value)}
-                                className="w-full px-4 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-800"
+                                style={inputStyle}
                                 placeholder="Minimal 6 karakter"
                                 required
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Konfirmasi Password</label>
+                            <label style={labelStyle}>Konfirmasi Password</label>
                             <input
                                 type="password"
                                 value={confirmPassword}
                                 onChange={e => setConfirmPassword(e.target.value)}
-                                className="w-full px-4 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-800"
+                                style={inputStyle}
                                 placeholder="Ulangi password baru"
                                 required
                             />
@@ -275,16 +367,24 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
                     </div>
 
                     {passwordMessage && (
-                        <div className={`p-3 rounded-lg text-sm font-medium ${passwordMessage.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                        <div style={{
+                            padding: '0.75rem',
+                            borderRadius: '0.5rem',
+                            fontSize: '0.875rem',
+                            fontWeight: 500,
+                            marginBottom: '1rem',
+                            background: passwordMessage.type === 'success' ? '#f0fdf4' : '#fef2f2',
+                            color: passwordMessage.type === 'success' ? '#15803d' : '#b91c1c'
+                        }}>
                             {passwordMessage.text}
                         </div>
                     )}
 
-                    <div className="pt-2">
+                    <div style={{ paddingTop: '0.5rem' }}>
                         <button
                             type="submit"
                             disabled={isChangingPassword}
-                            className="px-6 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+                            style={{ ...darkButtonStyle, opacity: isChangingPassword ? 0.7 : 1 }}
                         >
                             {isChangingPassword ? 'Memproses...' : 'Update Password'}
                         </button>

@@ -10,12 +10,25 @@ type UserSession = {
     avatarPath?: string | null;
 };
 
+import { usePathname } from 'next/navigation';
+
 export default function DashboardHeader({ user }: { user: UserSession }) {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
-    // const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const pathname = usePathname();
 
-    // Get firstname for greeting
-    const firstName = user.fullName.split(' ')[0];
+    // Determine Page Title
+    const getPageTitle = (path: string) => {
+        if (path.includes('/dashboard')) return 'Dashboard';
+        if (path.includes('/materials')) return 'Materi';
+        if (path.includes('/makeup')) return 'Tugas Susulan';
+        if (path.includes('/reports')) return 'Rapor';
+        if (path.includes('/rubrics')) return 'Rubrik';
+        if (path.includes('/leave')) return 'Pengajuan Izin';
+        if (path.includes('/profile')) return 'Profile & Keamanan';
+        return 'Dashboard'; // Fallback
+    };
+
+    const pageTitle = getPageTitle(pathname);
 
     return (
         <header
@@ -29,23 +42,14 @@ export default function DashboardHeader({ user }: { user: UserSession }) {
             }}
         >
 
-            {/* Left: Greeting */}
+            {/* Left: Page Title */}
             <div className="flex flex-col animate-in fade-in slide-in-from-left-4 duration-500">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} className="flex items-center gap-2">
-                    <h1
-                        className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight"
-                        style={{ fontSize: '1.8rem', fontWeight: 800, color: '#1e293b', margin: 0 }}
-                    >
-                        Hello, {firstName}!
-                    </h1>
-                    <span style={{ fontSize: '1.8rem' }} className="text-2xl md:text-3xl animate-bounce-slow">👋</span>
-                </div>
-                <p
-                    className="text-slate-500 text-sm md:text-base mt-1 font-medium"
-                    style={{ color: '#64748b', fontSize: '1rem', marginTop: '0.25rem', fontWeight: 500 }}
+                <h1
+                    className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight"
+                    style={{ fontSize: '1.8rem', fontWeight: 800, color: '#1e293b', margin: 0 }}
                 >
-                    Let's continue your learning journey today.
-                </p>
+                    {pageTitle}
+                </h1>
             </div>
 
             {/* Right: Actions */}
@@ -89,7 +93,7 @@ export default function DashboardHeader({ user }: { user: UserSession }) {
                                 <img src={user.avatarPath} alt={user.fullName} className="w-full h-full object-cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             ) : (
                                 <div style={{ width: '100%', height: '100%', background: '#dbeafe', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.25rem' }}>
-                                    {firstName.charAt(0)}
+                                    {user.fullName.charAt(0)}
                                 </div>
                             )}
                         </div>

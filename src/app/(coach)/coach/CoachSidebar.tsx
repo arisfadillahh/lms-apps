@@ -8,7 +8,7 @@ import { Home, ClipboardCheck, FileUp, CalendarOff } from 'lucide-react';
 import SignOutButton from '@/components/SignOutButton';
 
 const NAV_LINKS = [
-    { href: '/coach/dashboard', label: 'Beranda', icon: Home },
+    { href: '/coach/dashboard', label: 'Dashboard', icon: Home },
     { href: '/coach/rubrics', label: 'Rubrik', icon: ClipboardCheck },
     { href: '/coach/makeup', label: 'Tugas Susulan', icon: FileUp },
     { href: '/coach/leave', label: 'Pengajuan Izin', icon: CalendarOff },

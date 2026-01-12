@@ -18,10 +18,10 @@ export default async function CoachProfilePage() {
     };
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-slate-800">Profile & Keamanan</h1>
-                <p className="text-slate-500">Kelola informasi pribadi dan keamanan akun Coach</p>
+        <div style={{ maxWidth: '960px', margin: '0 auto', padding: '2rem 1rem' }}>
+            <div style={{ marginBottom: '2rem' }}>
+                <h1 style={{ fontSize: '1.875rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.5rem' }}>Profile & Keamanan</h1>
+                <p style={{ color: '#64748b' }}>Kelola informasi pribadi dan keamanan akun Coach</p>
             </div>
 
             <ProfileForm user={userProfile} />

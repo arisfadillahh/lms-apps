@@ -84,6 +84,22 @@ export async function setActive(userId: string, isActive: boolean): Promise<void
   }
 }
 
+export async function updateUser(userId: string, updates: { full_name?: string; avatar_path?: string }): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  // Filter out undefined values
+  const payload: any = {};
+  if (updates.full_name !== undefined) payload.full_name = updates.full_name;
+  if (updates.avatar_path !== undefined) payload.avatar_path = updates.avatar_path;
+
+  if (Object.keys(payload).length === 0) return;
+
+  const { error } = await supabase.from('users').update(payload).eq('id', userId);
+
+  if (error) {
+    throw new Error(`Failed to update user profile: ${error.message}`);
+  }
+}
+
 export async function listUsers(): Promise<UserSummary[]> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase

@@ -24,52 +24,23 @@ export default async function CoachDashboardPage() {
     return (
         <div style={{ fontFamily: 'system-ui, sans-serif', color: '#1e293b', paddingBottom: '40px' }}>
 
-            {/* Hero Section */}
-            <div
-                style={{
-                    background: 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)',
-                    borderRadius: '16px',
-                    padding: '32px',
-                    color: 'white',
-                    boxShadow: '0 10px 25px -5px rgba(37, 99, 235, 0.4)',
-                    marginBottom: '32px',
-                    position: 'relative',
-                    overflow: 'hidden'
-                }}
-            >
-                <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px' }}>
-                        <div>
-                            <h1 style={{ fontSize: '28px', fontWeight: '800', marginBottom: '8px', color: 'white' }}>
-                                Halo, {session.user.fullName.split(' ')[0]}! 👋
-                            </h1>
-                            <p style={{ color: 'rgba(255,255,255,0.9)', fontSize: '16px', maxWidth: '600px', lineHeight: '1.5' }}>
-                                {todaySessions.length > 0
-                                    ? `Ada ${todaySessions.length} kelas yang harus diajar hari ini. Semangat mengajar!`
-                                    : 'Hari ini kosong dari jadwal mengajar. Waktu yang tepat untuk evaluasi rubrik.'}
-                            </p>
+            {/* Top Action Bar */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
+                <CalendarModal
+                    sessions={activeSessions}
+                    triggerClassName=""
+                    triggerText={
+                        <div style={{
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            background: 'white', color: '#2563eb', border: '1px solid #e2e8f0',
+                            padding: '10px 20px', borderRadius: '12px', fontWeight: '600',
+                            cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 4px -1px rgba(0,0,0,0.05)'
+                        }} className="hover:bg-slate-50">
+                            <span style={{ fontSize: '18px' }}>📅</span>
+                            <span>Buka Kalender</span>
                         </div>
-
-                        {/* Calendar Button Restored */}
-                        <div>
-                            <CalendarModal
-                                sessions={activeSessions}
-                                triggerClassName=""
-                                triggerText={
-                                    <div style={{
-                                        display: 'flex', alignItems: 'center', gap: '8px',
-                                        background: 'white', color: '#2563eb',
-                                        padding: '12px 24px', borderRadius: '12px', fontWeight: '700',
-                                        cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
-                                    }}>
-                                        <span style={{ fontSize: '20px' }}>📅</span>
-                                        <span>Buka Kalender</span>
-                                    </div>
-                                }
-                            />
-                        </div>
-                    </div>
-                </div>
+                    }
+                />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>

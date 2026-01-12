@@ -58,16 +58,8 @@ export default async function CoderDashboardPage() {
         <BannerCarousel banners={activeBanners} />
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <header>
-          <h1 style={{ fontSize: 'clamp(1.5rem, 4vw, 2rem)', fontWeight: 700, marginBottom: '0.5rem', color: '#0f172a' }}>
-            Halo, {session.user.fullName} 👋
-          </h1>
-          <p style={{ color: '#64748b', fontSize: 'clamp(0.9rem, 2.5vw, 1.1rem)' }}>
-            Selamat datang kembali! Yuk cek progress dan persiapan kelasmu hari ini.
-          </p>
-        </header>
-
+      {/* Header section removed (moved to layout) */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '-1rem' }}>
         {/* Learning Journey Button - Moved here */}
         <div style={{ flexShrink: 0 }}>
           {journeyProgress.length > 0 && <JourneyModal courses={upcomingBlocks.map(b => ({
@@ -81,28 +73,19 @@ export default async function CoderDashboardPage() {
       </div>
 
       {upcomingBlocks.length > 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           {upcomingBlocks.map(({ classId, className, block, journeyBlocks }) => {
-            // Create a Course object matching JourneyCourse type for the modal
-            // const journeyCourse = { // This is no longer needed here as the modal is moved
-            //   classId,
-            //   name: className,
-            //   completedBlocks: journeyProgress.find(p => p.classId === classId)?.completedBlocks || 0,
-            //   totalBlocks: journeyProgress.find(p => p.classId === classId)?.totalBlocks || null,
-            //   journeyBlocks: journeyBlocks
-            // };
-
             return (
               <div key={`${classId}-${block.blockId}`} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
                 {/* 1. SECTION: BLOCK INFO (CARD UTAMA) */}
                 <section style={cardStyle}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
                     <div>
                       <p style={{ fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: '0.25rem' }}>
                         {className}
                       </p>
-                      <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                      <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
                         Block: {block.name}
                       </h2>
                     </div>
@@ -118,39 +101,36 @@ export default async function CoderDashboardPage() {
                     {/* Column 1: Info Dasar */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                       <div>
-                        <p style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, marginBottom: '0.25rem' }}>📅 JADWAL BLOCK</p>
-                        <p style={{ fontSize: '0.95rem', color: '#334155', fontWeight: 500 }}>
+                        <p style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600, marginBottom: '0.25rem' }}>📅 JADWAL BLOCK</p>
+                        <p style={{ fontSize: '0.95rem', color: '#334155', fontWeight: 600 }}>
                           {new Date(block.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long' })} - {new Date(block.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                         </p>
                       </div>
                       <div>
-                        <p style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, marginBottom: '0.25rem' }}>⏱️ DURASI</p>
-                        <p style={{ fontSize: '0.95rem', color: '#334155', fontWeight: 500 }}>
+                        <p style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600, marginBottom: '0.25rem' }}>⏱️ DURASI</p>
+                        <p style={{ fontSize: '0.95rem', color: '#334155', fontWeight: 600 }}>
                           {block.estimatedSessions !== null ? `${block.estimatedSessions} Pertemuan` : '—'}
                         </p>
                       </div>
-
-                      {/* Completed Lessons List */}
-
                     </div>
 
                     {/* Column 2: Next Lesson (Highlight) */}
                     {block.nextLesson ? (
-                      <div style={{ background: '#eff6ff', borderRadius: '12px', padding: '1.25rem', border: '1px solid #dbeafe', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <p style={{ fontSize: '0.75rem', color: '#1d4ed8', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>
+                      <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <p style={{ fontSize: '0.75rem', color: '#3b82f6', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>
                           📚 Sesi Selanjutnya
                         </p>
-                        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e40af', lineHeight: '1.4', marginBottom: '0.5rem' }}>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', lineHeight: '1.4', marginBottom: '0.5rem' }}>
                           {block.nextLesson.title}
                         </h3>
                         {block.nextLesson.summary && (
-                          <p style={{ fontSize: '0.85rem', color: '#1e3a8a', lineHeight: '1.5', opacity: 0.9 }}>
+                          <p style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: '1.5' }}>
                             {block.nextLesson.summary}
                           </p>
                         )}
                       </div>
                     ) : (
-                      <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '1.25rem', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontStyle: 'italic' }}>
+                      <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontStyle: 'italic' }}>
                         Belum ada jadwal sesi berikutnya
                       </div>
                     )}
@@ -161,7 +141,7 @@ export default async function CoderDashboardPage() {
                 {/* 2. SECTION: SOFTWARE (CARD TERPISAH) */}
                 {block.software && block.software.length > 0 && (
                   <section>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#1e293b', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       📦 Software
                     </h3>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
@@ -169,7 +149,7 @@ export default async function CoderDashboardPage() {
                         <div key={sw.id} style={softwareCardStyle}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div>
-                              <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>{sw.name}</h4>
+                              <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>{sw.name}</h4>
                               {sw.version && <span style={{ fontSize: '0.8rem', color: '#64748b', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', display: 'inline-block' }}>v{sw.version}</span>}
                             </div>
                             <SoftwareDetailModal software={sw} />
@@ -187,7 +167,7 @@ export default async function CoderDashboardPage() {
 
       {/* Progress Section (Keep as secondary info) */}
       <section style={cardStyle}>
-        <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem', color: '#0f172a' }}>📊 Ringkasan Progress</h2>
+        <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem', color: '#1e293b' }}>📊 Ringkasan Progress</h2>
 
         {/* Desktop Table */}
         <div style={{ display: 'block', overflowX: 'auto' }} className="hidden-mobile">
@@ -209,7 +189,7 @@ export default async function CoderDashboardPage() {
                 </tr>
               ) : (
                 progress.map((item) => (
-                  <tr key={item.classId} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  <tr key={item.classId} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={tdStyle}>
                       <span style={{ fontWeight: 600, color: '#334155' }}>{item.name}</span>
                     </td>
@@ -289,42 +269,37 @@ function statusBadgeStyle(status: 'UPCOMING' | 'CURRENT' | 'COMPLETED'): CSSProp
     return {
       ...base,
       background: '#eff6ff',
-      color: '#1d4ed8',
-      border: '1px solid #dbeafe'
+      color: '#3b82f6',
     };
   }
   if (status === 'COMPLETED') {
     return {
       ...base,
       background: '#f0fdf4',
-      color: '#15803d',
-      border: '1px solid #bbf7d0'
+      color: '#22c55e',
     };
   }
   return {
     ...base,
     background: '#f1f5f9',
-    color: '#475569',
-    border: '1px solid #e2e8f0'
+    color: '#64748b',
   };
 }
 
 const cardStyle: CSSProperties = {
   background: '#ffffff',
-  borderRadius: '1rem',
-  border: '1px solid #e2e8f0',
-  padding: '1.5rem',
-  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+  borderRadius: '1.25rem', // More rounded
+  border: 'none', // Removed border
+  padding: '1.75rem', // More padding
+  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02)', // Soft shadow
 };
 
 const softwareCardStyle: CSSProperties = {
   background: '#ffffff',
-  borderRadius: '1rem',
-  border: '1px solid #e2e8f0',
+  borderRadius: '1.25rem',
+  border: 'none',
   padding: '1.5rem',
-  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-  // display: 'flex', 
-  // flexDirection: 'column', 
+  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02)',
 };
 
 const mobileCardStyle: CSSProperties = {

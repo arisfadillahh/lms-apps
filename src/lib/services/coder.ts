@@ -1,4 +1,4 @@
-import { attendanceDao, classLessonsDao, classesDao, materialsDao, rubricsDao, sessionsDao } from '@/lib/dao';
+import { attendanceDao, classLessonsDao, classesDao, lessonTemplatesDao, materialsDao, rubricsDao, sessionsDao } from '@/lib/dao';
 import { getSoftwareByBlockId } from '@/lib/dao/blockSoftwareDao';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 
@@ -157,8 +157,8 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
             status: currentOrUpcoming.status,
             startDate: currentOrUpcoming.start_date,
             endDate: currentOrUpcoming.end_date,
-            estimatedSessions: (await classLessonsDao.listLessonsByClassBlock(currentOrUpcoming.block_id))
-              .reduce((acc, l) => acc + (l.template_estimated_meeting_count || 1), 0),
+            estimatedSessions: (await lessonTemplatesDao.listLessonsByBlock(currentOrUpcoming.block_id))
+              .reduce((acc, l) => acc + (l.estimated_meeting_count || 1), 0),
             software: software.map(s => ({
               id: s.id,
               name: s.name,
@@ -181,8 +181,8 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
             status: wrapAround.status,
             startDate: wrapAround.start_date,
             endDate: wrapAround.end_date,
-            estimatedSessions: (await classLessonsDao.listLessonsByClassBlock(wrapAround.block_id))
-              .reduce((acc, l) => acc + (l.template_estimated_meeting_count || 1), 0),
+            estimatedSessions: (await lessonTemplatesDao.listLessonsByBlock(wrapAround.block_id))
+              .reduce((acc, l) => acc + (l.estimated_meeting_count || 1), 0),
             software: software.map(s => ({
               id: s.id,
               name: s.name,

@@ -5,6 +5,7 @@ import { getSessionOrThrow } from '@/lib/auth';
 import { getCoderProgress } from '@/lib/services/coder';
 
 import JourneyModal from './JourneyModal';
+import SoftwareDetailModal from './SoftwareDetailModal';
 import JourneyMap from './JourneyMap';
 
 export default async function CoderDashboardPage() {
@@ -147,72 +148,12 @@ export default async function CoderDashboardPage() {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
                       {block.software.map(sw => (
                         <div key={sw.id} style={softwareCardStyle}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div>
                               <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>{sw.name}</h4>
                               {sw.version && <span style={{ fontSize: '0.8rem', color: '#64748b', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', display: 'inline-block' }}>v{sw.version}</span>}
                             </div>
-                            {sw.installation_url && (
-                              <a
-                                href={sw.installation_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{
-                                  background: '#2563eb',
-                                  color: 'white',
-                                  padding: '8px 16px',
-                                  borderRadius: '8px',
-                                  fontSize: '0.85rem',
-                                  fontWeight: 600,
-                                  textDecoration: 'none',
-                                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                                  transition: 'background 0.2s'
-                                }}
-                              >
-                                Download ⬇️
-                              </a>
-                            )}
-                          </div>
-
-                          {sw.description && (
-                            <div style={{ fontSize: '0.9rem', color: '#475569', marginBottom: '1rem', lineHeight: '1.5', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
-                              {sw.description}
-                            </div>
-                          )}
-
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            {sw.installation_instructions && (
-                              <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                                <p style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700, marginBottom: '0.35rem', textTransform: 'uppercase' }}>Cara Install</p>
-                                <p style={{ fontSize: '0.85rem', color: '#334155', whiteSpace: 'pre-line', lineHeight: '1.5' }}>{sw.installation_instructions}</p>
-                              </div>
-                            )}
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                              {sw.minimum_specs && Object.keys(sw.minimum_specs).length > 0 && (
-                                <div style={{ background: '#fffbeb', padding: '0.85rem', borderRadius: '8px', border: '1px solid #fcd34d' }}>
-                                  <p style={{ fontSize: '0.75rem', color: '#92400e', fontWeight: 700, marginBottom: '0.35rem', textTransform: 'uppercase' }}>Spek Minimum</p>
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '0.8rem' }}>
-                                    {Object.entries(sw.minimum_specs).map(([key, value]) => value && (
-                                      <div key={key} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ color: '#b45309', textTransform: 'capitalize' }}>{key}</span>
-                                      </div>
-                                    ))}
-                                    {/* Render values in a cleaner way if needed, for now stacked is fine or value only */}
-                                    {Object.entries(sw.minimum_specs).map(([key, value]) => value && (
-                                      <span key={`${key}-val`} style={{ color: '#78350f', fontWeight: 500 }}>{value}</span>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-
-                              {sw.access_info && (
-                                <div style={{ background: '#ecfdf5', padding: '0.85rem', borderRadius: '8px', border: '1px solid #6ee7b7' }}>
-                                  <p style={{ fontSize: '0.75rem', color: '#065f46', fontWeight: 700, marginBottom: '0.35rem', textTransform: 'uppercase' }}>Info Akses</p>
-                                  <p style={{ fontSize: '0.85rem', color: '#047857', lineHeight: '1.4' }}>{sw.access_info}</p>
-                                </div>
-                              )}
-                            </div>
+                            <SoftwareDetailModal software={sw} />
                           </div>
                         </div>
                       ))}
@@ -363,8 +304,9 @@ const softwareCardStyle: CSSProperties = {
   border: '1px solid #e2e8f0',
   padding: '1.5rem',
   boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-  display: 'flex',
-  flexDirection: 'column',
+  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+  // display: 'flex', 
+  // flexDirection: 'column', 
 };
 
 const mobileCardStyle: CSSProperties = {

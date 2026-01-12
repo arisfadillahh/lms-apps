@@ -1,4 +1,4 @@
-import { attendanceDao, classLessonsDao, classesDao, lessonTemplatesDao, materialsDao, rubricsDao, sessionsDao } from '@/lib/dao';
+import { attendanceDao, classLessonsDao, classesDao, coderProgressDao, lessonTemplatesDao, materialsDao, rubricsDao, sessionsDao } from '@/lib/dao';
 import { getSoftwareByBlockId } from '@/lib/dao/blockSoftwareDao';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 
@@ -68,17 +68,38 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
       const sessions = await sessionsDao.listSessionsByClass(klass.id);
       const lessonMap = klass.level_id ? await computeLessonSchedule(klass.id, klass.level_id) : new Map();
 
+      // Fetch personalized journey order
+      const journey = klass.level_id ? await coderProgressDao.getCoderJourney(coderId, klass.level_id) : [];
+      const journeyOrderMap = new Map(journey.map(j => [j.block_id, j.journey_order]));
+
       const completedBlocks = submissions.filter((submission) => submission.block_id).length;
       const totalBlocks = klass.type === 'WEEKLY' ? blocks.length : null;
       const currentBlock = blocks.find((block) => block.status === 'CURRENT');
       const upcomingBlock = blocks.find((block) => block.status === 'UPCOMING');
 
-      // Sort blocks by order_index or start_date
+      // Sort blocks by journey_order if available, else standard order
       const sortedBlocks = [...blocks].sort((a, b) => {
+        const orderA = journeyOrderMap.get(a.block_id);
+        const orderB = journeyOrderMap.get(b.block_id);
+
+        if (orderA !== undefined && orderB !== undefined) {
+          return orderA - orderB;
+        }
+        if (orderA !== undefined) return -1;
+        if (orderB !== undefined) return 1;
+
+        // Fallback: Priority to Date (Chronological)
+        const dateA = new Date(a.start_date).getTime();
+        const dateB = new Date(b.start_date).getTime();
+        if (dateA !== dateB) {
+          return dateA - dateB;
+        }
+
+        // Tie-breaker
         if (a.block_order_index != null && b.block_order_index != null) {
           return a.block_order_index - b.block_order_index;
         }
-        return new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
+        return 0;
       });
 
       const pendingBlocks =
@@ -92,8 +113,7 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
           }))
           : [];
 
-      // Note: wrap-around journey order is handled at enrollment time in coderProgressDao
-      // This display uses class block order for consistency
+      // Use the sorted index as the display order
       const journeyBlocks = sortedBlocks.map((block, index) => ({
         blockId: block.block_id,
         name: block.block_name ?? 'Block',

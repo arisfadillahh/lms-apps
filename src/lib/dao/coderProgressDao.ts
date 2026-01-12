@@ -14,40 +14,66 @@ export async function ensureJourneyForCoder({ coderId, levelId, blocks, entryBlo
   }
 
   const supabase = getSupabaseAdmin();
-  const existing = await supabase
+
+  // Fetch fully to check order
+  const { data: existing, error } = await supabase
     .from('coder_block_progress')
-    .select('id')
+    .select('*')
     .eq('coder_id', coderId)
     .eq('level_id', levelId)
-    .limit(1);
+    .order('journey_order', { ascending: true });
 
-  if (existing.error) {
-    throw new Error(`Failed to check coder progress: ${existing.error.message}`);
+  if (error) {
+    throw new Error(`Failed to check coder progress: ${error.message}`);
   }
 
-  if ((existing.data ?? []).length > 0) {
-    return;
-  }
-
-  // Get blocks ordered by order_index (curriculum order)
   const orderedBlockIds = computeJourneyOrder(blocks);
-
-  // Find the starting point (entry block)
   const entryIndex = entryBlockId ? orderedBlockIds.indexOf(entryBlockId) : 0;
   const startIndex = entryIndex >= 0 ? entryIndex : 0;
 
-  // Apply wrap-around: reorder starting from entry block
-  // Example: if entryBlockId is at index 2 (block 3), journey becomes [block3, block4, block5, block1, block2]
+  // Calculate intended order
   const wrappedBlockIds = [
     ...orderedBlockIds.slice(startIndex),
     ...orderedBlockIds.slice(0, startIndex),
   ];
 
+  // Self-Correction Logic:
+  // If progress exists but order START is different from requested entryBlockId, we re-shuffle
+  if (existing && existing.length > 0) {
+    if (!entryBlockId) return; // No specific request, keep existing
+
+    const currentStartBlockId = existing[0].block_id;
+    if (currentStartBlockId === entryBlockId) {
+      return; // Already correct
+    }
+
+    console.log(`[Journey] Detected order mismatch for coder ${coderId}. Resetting order to start from ${entryBlockId}.`);
+
+    // Force Reset: Delete all and re-create to ensure clean state
+    await supabase
+      .from('coder_block_progress')
+      .delete()
+      .eq('coder_id', coderId)
+      .eq('level_id', levelId);
+  }
+
+  // If we just deleted, existing is now "considered empty" effectively for our purpose
+  // We just proceed to insert the fresh wrappedBlockIds payload.
+
+  // Note: If we didn't delete (existing mismatch), we continue to insert.
+  // But wait! If existing was correct, we returned above.
+  // If existing was incorrect, we deleted it.
+  // What if existing matched but incomplete? Or something else?
+  // Our logic above: if existing > 0 and correct -> return.
+  // if existing > 0 and incorrect -> delete -> now we need to insert.
+
+  // So we just need to proceed to insert payload normally here.
+
   const payload = wrappedBlockIds.map((blockId, index) => ({
     coder_id: coderId,
     level_id: levelId,
     block_id: blockId,
-    journey_order: index,  // 0, 1, 2, 3, 4 based on wrapped order
+    journey_order: index,
     status: (index === 0 ? 'IN_PROGRESS' : 'PENDING') as 'IN_PROGRESS' | 'PENDING' | 'COMPLETED',
   }));
 
@@ -181,4 +207,26 @@ function groupBy<T, K>(items: T[], getKey: (item: T) => K): Map<K, T[]> {
     map.get(key)!.push(item);
     return map;
   }, new Map<K, T[]>());
+}
+
+export type CoderJourneyRecord = {
+  block_id: string;
+  journey_order: number;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+};
+
+export async function getCoderJourney(coderId: string, levelId: string): Promise<CoderJourneyRecord[]> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('coder_block_progress')
+    .select('block_id, journey_order, status')
+    .eq('coder_id', coderId)
+    .eq('level_id', levelId)
+    .order('journey_order', { ascending: true });
+
+  if (error) {
+    console.error(`Failed to fetch coder journey: ${error.message}`);
+    return [];
+  }
+  return data ?? [];
 }

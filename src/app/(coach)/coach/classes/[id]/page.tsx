@@ -1,11 +1,14 @@
 import type { CSSProperties } from 'react';
 import Link from 'next/link';
-import { addDays, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, parse, startOfMonth, startOfWeek } from 'date-fns';
+import { format, isSameDay } from 'date-fns';
 
 import { getSessionOrThrow } from '@/lib/auth';
-import { attendanceDao, classLessonsDao, classesDao, lessonTemplatesDao, materialsDao, sessionsDao, usersDao } from '@/lib/dao';
+import { attendanceDao, classesDao, materialsDao, sessionsDao, usersDao } from '@/lib/dao';
+import { computeLessonSchedule, formatLessonTitle, getLessonSlotsForLevel } from '@/lib/services/lessonScheduler';
 import UploadMaterialForm from './UploadMaterialForm';
 import LessonPlanSection from './LessonPlanSection';
+import LessonScheduleTable from '@/components/coach/LessonScheduleTable';
+import CalendarModal from '@/components/coach/CalendarModal';
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -37,25 +40,13 @@ export default async function CoachClassPage({ params, searchParams }: PageProps
     materialsDao.listMaterialsByClass(classIdParam),
   ]);
 
-  const classBlocks = await classesDao.getClassBlocks(classIdParam);
-  const blockLessons = await Promise.all(
-    classBlocks.map(async (block) => {
-      const [lessons, templateLessons] = await Promise.all([
-        classLessonsDao.listLessonsByClassBlock(block.id),
-        block.block_id ? lessonTemplatesDao.listLessonsByBlock(block.block_id) : [],
-      ]);
-      const templateById = new Map(templateLessons.map((template) => [template.id, template]));
-      const orderedLessons = lessons.slice().sort((a, b) => a.order_index - b.order_index);
-      const lessonsWithTemplate = orderedLessons.map((lesson) => ({
-        lesson,
-        template: lesson.lesson_template_id ? templateById.get(lesson.lesson_template_id) ?? null : null,
-      }));
-      return {
-        block,
-        lessons: lessonsWithTemplate,
-      };
-    }),
-  );
+  // Use computed lesson schedule instead of class_lessons
+  const lessonScheduleMap = await computeLessonSchedule(classIdParam, classRecord?.level_id ?? null);
+
+  // Get all lesson slots for display purposes
+  const allLessonSlots = classRecord?.level_id
+    ? await getLessonSlotsForLevel(classRecord.level_id)
+    : [];
 
   if (!classRecord || classRecord.coach_id !== session.user.id) {
     return (
@@ -78,70 +69,55 @@ export default async function CoachClassPage({ params, searchParams }: PageProps
   const nextSession = upcomingSessions[0] ?? null;
   const sessionToday = sortedSessions.find((sessionItem) => isSameDay(new Date(sessionItem.date_time), now));
 
-  const orderedLessonsFlat = blockLessons.flatMap(({ lessons }) => lessons.map(({ lesson }) => lesson));
-  const sessionToLessonId = new Map<string, string>();
-  orderedLessonsFlat.forEach((lessonItem) => {
-    if (lessonItem.session_id) {
-      sessionToLessonId.set(lessonItem.session_id, lessonItem.id);
-    }
-  });
-  const currentLessonId = sessionToday ? sessionToLessonId.get(sessionToday.id) ?? null : null;
-  let nextLessonId: string | null = null;
-  if (currentLessonId) {
-    const idx = orderedLessonsFlat.findIndex((entry) => entry.id === currentLessonId);
-    if (idx >= 0 && idx + 1 < orderedLessonsFlat.length) {
-      nextLessonId = orderedLessonsFlat[idx + 1].id;
-    }
-  }
-  if (!nextLessonId && nextSession) {
-    nextLessonId = sessionToLessonId.get(nextSession.id) ?? null;
-  }
-  if (!nextLessonId && orderedLessonsFlat.length > 0) {
-    nextLessonId = orderedLessonsFlat[0].id;
-  }
+  // Build lessons array for LessonScheduleTable using computed schedule
+  const computedLessonsForTable = sortedSessions.map((sessionItem) => {
+    const slot = lessonScheduleMap.get(sessionItem.id);
+    if (!slot) return null;
+    return {
+      id: slot.lessonTemplate.id,
+      title: formatLessonTitle(slot),
+      session_id: sessionItem.id,
+      slide_url: slot.lessonTemplate.slide_url,
+      coach_example_url: slot.lessonTemplate.example_url,
+      block_title: slot.block.name,
+    };
+  }).filter((l): l is NonNullable<typeof l> => l !== null);
 
-  const monthKeySet = new Set(sortedSessions.map((sessionItem) => format(new Date(sessionItem.date_time), 'yyyy-MM')));
-  // Always add current month so calendar can show it
-  monthKeySet.add(format(now, 'yyyy-MM'));
-  const availableMonthKeys = Array.from(monthKeySet).sort();
+  // Helper to generate unique ID for lesson slots (handles multi-part lessons)
+  const getSlotId = (slot: { lessonTemplate: { id: string }, partNumber: number }) =>
+    `${slot.lessonTemplate.id}-${slot.partNumber}`;
 
-  // Default to current month (now) instead of first session
-  const defaultMonthKey = format(now, 'yyyy-MM');
-  const requestedMonthKey = resolvedSearch.month && /^\d{4}-\d{2}$/.test(resolvedSearch.month)
-    ? resolvedSearch.month
-    : defaultMonthKey;
+  // For legacy LessonPlanSection - build a compatible structure
+  const blockLessons = allLessonSlots.length > 0 ? [{
+    block: {
+      id: 'computed',
+      block_name: 'Computed Schedule',
+      status: 'CURRENT' as const,
+      start_date: classRecord?.start_date ?? null,
+      end_date: classRecord?.end_date ?? null,
+    },
+    lessons: allLessonSlots.map((slot) => ({
+      lesson: {
+        id: getSlotId(slot),
+        title: formatLessonTitle(slot),
+        order_index: slot.globalIndex,
+        session_id: null,
+        slide_url: slot.lessonTemplate.slide_url,
+        coach_example_url: slot.lessonTemplate.example_url,
+      },
+      template: slot.lessonTemplate,
+    })),
+  }] : [];
 
-  const monthDate = parse(`${requestedMonthKey}-01`, 'yyyy-MM-dd', new Date());
-  const monthStart = startOfMonth(monthDate);
-  const monthEnd = endOfMonth(monthDate);
-  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
-  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+  // Current/Next lesson logic
+  const currentLesson = sessionToday ? lessonScheduleMap.get(sessionToday.id) : null;
+  const nextLesson = nextSession ? lessonScheduleMap.get(nextSession.id) : null;
 
-  const calendarDays: Date[] = [];
-  for (let cursor = calendarStart; cursor <= calendarEnd; cursor = addDays(cursor, 1)) {
-    calendarDays.push(cursor);
-  }
+  const currentLessonId = currentLesson ? getSlotId(currentLesson) : null;
+  const nextLessonId = nextLesson ? getSlotId(nextLesson) : (allLessonSlots[0] ? getSlotId(allLessonSlots[0]) : null);
 
-  const sessionsByDateKey = new Map<string, typeof sortedSessions>();
-  sortedSessions.forEach((sessionItem) => {
-    const key = format(new Date(sessionItem.date_time), 'yyyy-MM-dd');
-    if (!sessionsByDateKey.has(key)) {
-      sessionsByDateKey.set(key, []);
-    }
-    sessionsByDateKey.get(key)!.push(sessionItem);
-  });
-  sessionsByDateKey.forEach((list, key) => {
-    sessionsByDateKey.set(
-      key,
-      list.sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime()),
-    );
-  });
 
-  const currentMonthLabel = format(monthStart, 'MMMM yyyy');
-  const currentMonthIndex = Math.max(availableMonthKeys.indexOf(requestedMonthKey), 0);
-  const prevMonthKey = currentMonthIndex > 0 ? availableMonthKeys[currentMonthIndex - 1] : null;
-  const nextMonthKeyNav = currentMonthIndex < availableMonthKeys.length - 1 ? availableMonthKeys[currentMonthIndex + 1] : null;
-
+  /* Attendance Records Logic */
   const attendanceRecords = sortedSessions.length
     ? await attendanceDao.listAttendanceForSessions(sortedSessions.map((sessionItem) => sessionItem.id))
     : [];
@@ -164,6 +140,7 @@ export default async function CoachClassPage({ params, searchParams }: PageProps
       statuses,
     };
   });
+
 
   return (
     <div
@@ -194,15 +171,26 @@ export default async function CoachClassPage({ params, searchParams }: PageProps
         </div>
       </header>
 
+      {/* ... (Skipping Section 1 & 2 for brevity in replacement if possible, but safer to replace whole block if overlaps) */}
+      {/* Re-writing the render part to ensure context matches */}
+
       <section style={cardStyle}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>Upcoming Session</h2>
-            {sessions.length > 0 ? (
-              <Link href="#calendar" scroll={false} style={{ color: '#2563eb', fontWeight: 600 }}>
-                Buka kalender
-              </Link>
-            ) : null}
+            <CalendarModal sessions={sortedSessions}>
+              <button style={{
+                color: '#2563eb',
+                fontWeight: 600,
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0,
+                fontSize: 'inherit'
+              }}>
+                📅 Buka kalender
+              </button>
+            </CalendarModal>
           </div>
           {sessionToday ? (
             <p style={{ color: '#2563eb', fontWeight: 600 }}>
@@ -270,121 +258,24 @@ export default async function CoachClassPage({ params, searchParams }: PageProps
         </div>
       </section>
 
+      {/* New Table View */}
+      <LessonScheduleTable sessions={sortedSessions} lessons={computedLessonsForTable} />
+
       <section style={cardStyle}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
           <div>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>Lesson Plan</h2>
-            <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Slide deck pembelajaran dan contoh game yang hanya dapat diakses coach.</p>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>Materi Kurikulum</h2>
+            <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Slide deck pembelajaran dan contoh game.</p>
           </div>
         </div>
         <LessonPlanSection
-          blockLessons={blockLessons}
+          blockLessons={blockLessons as any}
           currentLessonId={currentLessonId}
           nextLessonId={nextLessonId}
         />
       </section>
 
-      <section id="calendar" style={cardStyle}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-          {prevMonthKey ? (
-            <Link href={`?month=${prevMonthKey}#calendar`} scroll={false} style={calendarNavButtonStyle}>
-              ←
-            </Link>
-          ) : (
-            <span style={calendarNavButtonDisabledStyle}>←</span>
-          )}
-          <h2 style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>{currentMonthLabel}</h2>
-          {nextMonthKeyNav ? (
-            <Link href={`?month=${nextMonthKeyNav}#calendar`} scroll={false} style={calendarNavButtonStyle}>
-              →
-            </Link>
-          ) : (
-            <span style={calendarNavButtonDisabledStyle}>→</span>
-          )}
-        </div>
-        <div style={calendarLegendStyle}>
-          <LegendSwatch color="var(--color-accent)" label="Terjadwal" />
-          <LegendSwatch color="var(--color-success)" label="Selesai" />
-          <LegendSwatch color="var(--color-danger)" label="Dibatalkan" />
-        </div>
-        {sortedSessions.length === 0 ? (
-          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
-            Belum ada sesi yang dijadwalkan. Silakan generate sesi dari halaman admin.
-          </p>
-        ) : null}
-        <div style={calendarScrollContainerStyle}>
-          <div style={calendarGridStyle}>
-            {WEEKDAY_LABELS.map((label) => (
-              <div key={label} style={calendarDayHeaderStyle}>
-                {label}
-              </div>
-            ))}
-            {calendarDays.map((day) => {
-              const dayKey = format(day, 'yyyy-MM-dd');
-              const daySessions = sessionsByDateKey.get(dayKey) ?? [];
-              const isCurrentMonth = isSameMonth(day, monthDate);
-              const isCurrentDay = isSameDay(day, now);
-              const containsCurrentSession = daySessions.some((sessionItem) => sessionItem.id === (sessionToday?.id ?? ''));
-
-              return (
-                <div
-                  key={dayKey}
-                  style={{
-                    ...calendarCellStyle,
-                    opacity: isCurrentMonth ? 1 : 0.45,
-                    borderColor: containsCurrentSession ? '#2563eb' : 'var(--color-border)',
-                    background: isCurrentDay ? 'rgba(37, 99, 235, 0.12)' : 'var(--color-bg-surface)',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: 600 }}>{format(day, 'd')}</span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{format(day, 'EEE')}</span>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
-                    {daySessions.length === 0 ? (
-                      <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Tidak ada sesi</span>
-                    ) : (
-                      daySessions.map((sessionItem) => (
-                        sessionItem.status === 'CANCELLED' ? (
-                          <div
-                            key={sessionItem.id}
-                            style={{
-                              ...calendarSessionCardStyle,
-                              opacity: 0.5,
-                              cursor: 'not-allowed',
-                              background: '#f1f5f9',
-                            }}
-                          >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
-                              <span style={{ fontWeight: 600 }}>{format(new Date(sessionItem.date_time), 'HH:mm')}</span>
-                              <StatusBadge status={sessionItem.status} />
-                            </div>
-                            <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>Dibatalkan</span>
-                          </div>
-                        ) : (
-                          <Link
-                            key={sessionItem.id}
-                            href={`/coach/sessions/${sessionItem.id}/attendance`}
-                            scroll={false}
-                            style={calendarSessionCardStyle}
-                          >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
-                              <span style={{ fontWeight: 600 }}>{format(new Date(sessionItem.date_time), 'HH:mm')}</span>
-                              <StatusBadge status={sessionItem.status} />
-                            </div>
-                            <span style={{ fontSize: '0.75rem', color: '#2563eb', fontWeight: 600 }}>Open Administration</span>
-                          </Link>
-                        )
-                      ))
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
+      {/* RECAP ATTENDANCE below */}
       {sortedSessions.length > 0 ? (
         <section style={cardStyle}>
           <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>Rekap Kehadiran</h2>

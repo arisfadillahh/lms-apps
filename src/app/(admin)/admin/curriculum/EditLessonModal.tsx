@@ -144,7 +144,7 @@ export default function EditLessonModal({ lesson, open, onOpenChange }: EditLess
                                 />
                             </div>
                             <div style={fieldGroupStyle}>
-                                <label style={labelStyle}>Durasi (menit)</label>
+                                <label style={labelStyle}>Jumlah Pertemuan (Sesi)</label>
                                 <input
                                     type="number"
                                     value={durationMinutes}

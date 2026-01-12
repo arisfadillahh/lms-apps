@@ -68,6 +68,12 @@ export async function PATCH(request: Request, context: RouteContext) {
       await classLessonsDao.syncTemplateLessonSlide(lessonId, lesson.slide_url);
     }
 
+    if (lesson.block_id) {
+      // Propagate changes (especially duration/title) to active classes
+      const { syncClassesForBlockTemplate } = await import('@/lib/services/lessonRebalancer');
+      await syncClassesForBlockTemplate(lesson.block_id);
+    }
+
     return NextResponse.json({ lesson });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to update lesson';

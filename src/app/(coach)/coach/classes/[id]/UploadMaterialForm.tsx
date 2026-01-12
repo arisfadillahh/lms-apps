@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form';
 interface UploadMaterialFormProps {
   classId: string;
   sessions: { id: string; date_time: string }[];
+  defaultSessionId?: string;
 }
 
 type FormValues = {
@@ -18,7 +19,7 @@ type FormValues = {
   visibleFromSessionId?: string;
 };
 
-export default function UploadMaterialForm({ classId, sessions }: UploadMaterialFormProps) {
+export default function UploadMaterialForm({ classId, sessions, defaultSessionId }: UploadMaterialFormProps) {
   const router = useRouter();
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -30,7 +31,7 @@ export default function UploadMaterialForm({ classId, sessions }: UploadMaterial
       description: '',
       fileUrl: '',
       coachNote: '',
-      visibleFromSessionId: '',
+      visibleFromSessionId: defaultSessionId || '',
     },
   });
 

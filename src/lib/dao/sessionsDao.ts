@@ -164,6 +164,17 @@ export async function updateSessionStatus(sessionId: string, status: SessionReco
   }
 }
 
+export async function updateSession(sessionId: string, payload: TablesUpdate<'sessions'>): Promise<SessionRecord> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase.from('sessions').update(payload).eq('id', sessionId).select().single();
+
+  if (error) {
+    throw new Error(`Failed to update session: ${error.message}`);
+  }
+
+  return data;
+}
+
 /**
  * Automatically update past sessions that are still SCHEDULED to COMPLETED.
  * DEPRECATED: We no longer auto-complete sessions. This function now does nothing.
@@ -251,6 +262,11 @@ export async function ensureFutureSessions(classId: string, weeksAhead = 12): Pr
     byDay: [scheduleInfo.code],
     time: classRecord.schedule_time,
   });
+
+  // 5. Rebalance lessons to ensure continuity (Self-Healing)
+  // We dynamically import to avoid circular dependencies if rebalancer uses sessionsDao
+  const { reassignLessonsToSessions } = await import('@/lib/services/lessonRebalancer');
+  await reassignLessonsToSessions(classId);
 
   return newSessions.length;
 }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { CSSProperties } from 'react';
@@ -5,6 +6,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 
 import type { UserRecord } from '@/lib/dao/usersDao';
+import EditSessionDateModal from './EditSessionDateModal';
 
 type SessionStatus = 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
 
@@ -13,6 +15,7 @@ interface SessionRowActionsProps {
     coaches: UserRecord[];
     currentSubstituteId: string | null;
     currentStatus: SessionStatus;
+    currentDate: string;
     showDropdownOnly?: boolean;
     showButtonsOnly?: boolean;
 }
@@ -22,6 +25,7 @@ export default function SessionRowActions({
     coaches,
     currentSubstituteId,
     currentStatus,
+    currentDate,
     showDropdownOnly,
     showButtonsOnly,
 }: SessionRowActionsProps) {
@@ -29,6 +33,7 @@ export default function SessionRowActions({
     const [substituteValue, setSubstituteValue] = useState<string>(currentSubstituteId ?? '');
     const [isSaving, startSaveTransition] = useTransition();
     const [isCancelling, startCancelTransition] = useTransition();
+    const [isRescheduling, setIsRescheduling] = useState(false);
     const [saveMessage, setSaveMessage] = useState<string | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -50,18 +55,20 @@ export default function SessionRowActions({
                 setSaveMessage('Saved');
                 router.refresh();
                 setTimeout(() => setSaveMessage(null), 2000);
-            } catch {
-                setErrorMessage('Error');
+                setTimeout(() => setIsRescheduling(false), 1000); // Close modal on success
+            } catch (err) {
+                console.error(err);
+                setErrorMessage('Error connecting to server');
             }
         });
     };
 
     const isCancelled = currentStatus === 'CANCELLED';
-    const cancelLabel = isCancelled ? 'Pulihkan' : 'Batalkan Sesi';
+    const cancelLabel = isCancelled ? 'Pulihkan' : 'Liburkan Kelas';
     const targetStatus: SessionStatus = isCancelled ? 'SCHEDULED' : 'CANCELLED';
 
     const handleCancel = () => {
-        if (!isCancelled && !window.confirm('Batalkan sesi ini?')) return;
+        if (!isCancelled && !window.confirm('Liburkan kelas ini?')) return;
         setErrorMessage(null);
         startCancelTransition(async () => {
             try {
@@ -83,6 +90,27 @@ export default function SessionRowActions({
     };
 
     const isPending = isSaving || isCancelling;
+
+    const RescheduleButton = () => (
+        <button
+            type="button"
+            onClick={() => setIsRescheduling(true)}
+            disabled={isPending}
+            style={{ ...buttonStyle, background: '#fff', border: '1px solid #cbd5e1', color: '#334155', minWidth: 'auto' }}
+            title="Reschedule Session"
+        >
+            📅
+        </button>
+    );
+
+    const Modal = () => (
+        <EditSessionDateModal
+            sessionId={sessionId}
+            currentDate={currentDate}
+            isOpen={isRescheduling}
+            onClose={() => setIsRescheduling(false)}
+        />
+    );
 
     // Show only dropdown
     if (showDropdownOnly) {
@@ -106,68 +134,76 @@ export default function SessionRowActions({
     // Show only buttons
     if (showButtonsOnly) {
         return (
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                <button
-                    type="button"
-                    onClick={handleCancel}
-                    disabled={isCancelling}
-                    style={{ ...buttonStyle, ...cancelButtonStyle, opacity: isCancelling ? 0.6 : 1 }}
-                >
-                    {isCancelling ? '...' : cancelLabel}
-                </button>
-                <button
-                    type="button"
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    style={{ ...buttonStyle, ...saveButtonStyle, opacity: isSaving ? 0.6 : 1 }}
-                >
-                    {isSaving ? 'Saving…' : 'Save'}
-                </button>
-                {saveMessage ? <span style={{ color: '#15803d', fontSize: '0.75rem' }}>{saveMessage}</span> : null}
-                {errorMessage ? <span style={{ color: '#b91c1c', fontSize: '0.75rem' }}>{errorMessage}</span> : null}
-            </div>
+            <>
+                <Modal />
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                    <RescheduleButton />
+                    <button
+                        type="button"
+                        onClick={handleCancel}
+                        disabled={isCancelling}
+                        style={{ ...buttonStyle, ...cancelButtonStyle, opacity: isCancelling ? 0.6 : 1 }}
+                    >
+                        {isCancelling ? '...' : cancelLabel}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        style={{ ...buttonStyle, ...saveButtonStyle, opacity: isSaving ? 0.6 : 1 }}
+                    >
+                        {isSaving ? 'Saving…' : 'Save'}
+                    </button>
+                    {saveMessage ? <span style={{ color: '#15803d', fontSize: '0.75rem' }}>{saveMessage}</span> : null}
+                    {errorMessage ? <span style={{ color: '#b91c1c', fontSize: '0.75rem' }}>{errorMessage}</span> : null}
+                </div>
+            </>
         );
     }
 
     // Default: show both
     return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'flex-end' }}>
-            {/* Dropdown */}
-            <select
-                value={substituteValue}
-                onChange={(e) => setSubstituteValue(e.target.value)}
-                style={selectStyle}
-                disabled={isPending}
-            >
-                <option value="">None</option>
-                {coaches.map((coach) => (
-                    <option key={coach.id} value={coach.id}>{coach.full_name}</option>
-                ))}
-            </select>
+        <>
+            <Modal />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                {/* Dropdown */}
+                <select
+                    value={substituteValue}
+                    onChange={(e) => setSubstituteValue(e.target.value)}
+                    style={selectStyle}
+                    disabled={isPending}
+                >
+                    <option value="">None</option>
+                    {coaches.map((coach) => (
+                        <option key={coach.id} value={coach.id}>{coach.full_name}</option>
+                    ))}
+                </select>
 
-            {/* Action buttons with equal width */}
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button
-                    type="button"
-                    onClick={handleCancel}
-                    disabled={isCancelling}
-                    style={{ ...buttonStyle, ...cancelButtonStyle, opacity: isCancelling ? 0.6 : 1 }}
-                >
-                    {isCancelling ? '...' : cancelLabel}
-                </button>
-                <button
-                    type="button"
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    style={{ ...buttonStyle, ...saveButtonStyle, opacity: isSaving ? 0.6 : 1 }}
-                >
-                    {isSaving ? 'Saving…' : 'Save'}
-                </button>
+                {/* Action buttons */}
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <RescheduleButton />
+                    <button
+                        type="button"
+                        onClick={handleCancel}
+                        disabled={isCancelling}
+                        style={{ ...buttonStyle, ...cancelButtonStyle, opacity: isCancelling ? 0.6 : 1 }}
+                    >
+                        {isCancelling ? '...' : cancelLabel}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        style={{ ...buttonStyle, ...saveButtonStyle, opacity: isSaving ? 0.6 : 1 }}
+                    >
+                        {isSaving ? 'Saving…' : 'Save'}
+                    </button>
+                </div>
+
+                {saveMessage ? <span style={{ color: '#15803d', fontSize: '0.75rem' }}>{saveMessage}</span> : null}
+                {errorMessage ? <span style={{ color: '#b91c1c', fontSize: '0.75rem' }}>{errorMessage}</span> : null}
             </div>
-
-            {saveMessage ? <span style={{ color: '#15803d', fontSize: '0.75rem' }}>{saveMessage}</span> : null}
-            {errorMessage ? <span style={{ color: '#b91c1c', fontSize: '0.75rem' }}>{errorMessage}</span> : null}
-        </div>
+        </>
     );
 }
 

@@ -155,36 +155,12 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
               label="Blok saat ini"
               summary={currentBlockSummary}
               emphasis
-              action={
-                currentBlockSummary ? (
-                  <BlockScheduleEditor
-                    classId={classIdParam}
-                    availableBlocks={availableBlockTemplates}
-                    defaultStartDate={currentBlockSummary.block.start_date ?? klass.start_date}
-                    defaultBlockId={currentBlockSummary.block.block_id ?? undefined}
-                    triggerLabel="Edit block ini"
-                    triggerContent={<span aria-hidden="true">✏️</span>}
-                    buttonStyleOverride={blockActionButtonStyle}
-                  />
-                ) : null
-              }
+              action={null}
             />
             <BlockInfoCard
               label="Blok berikutnya"
               summary={nextBlockSummary}
-              action={
-                nextBlockSummary ? (
-                  <BlockScheduleEditor
-                    classId={classIdParam}
-                    availableBlocks={availableBlockTemplates}
-                    defaultStartDate={nextBlockSummary.block.start_date ?? klass.start_date}
-                    defaultBlockId={nextBlockSummary.block.block_id ?? undefined}
-                    triggerLabel="Edit blok ini"
-                    triggerContent={<span aria-hidden="true">✏️</span>}
-                    buttonStyleOverride={blockActionButtonStyle}
-                  />
-                ) : null
-              }
+              action={null}
             />
           </div>
 
@@ -251,6 +227,7 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
                       coaches={coaches}
                       currentSubstituteId={session.substitute_coach_id}
                       currentStatus={session.status as 'SCHEDULED' | 'COMPLETED' | 'CANCELLED'}
+                      currentDate={session.date_time}
                       showDropdownOnly
                     />
                   </td>
@@ -260,6 +237,7 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
                       coaches={coaches}
                       currentSubstituteId={session.substitute_coach_id}
                       currentStatus={session.status as 'SCHEDULED' | 'COMPLETED' | 'CANCELLED'}
+                      currentDate={session.date_time}
                       showButtonsOnly
                     />
                   </td>
@@ -385,9 +363,7 @@ function BlockInfoCard({ label, summary, emphasis, action }: BlockInfoCardProps)
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginTop: '0.8rem' }}>
-        <p style={{ color: '#1f2937', fontSize: '0.9rem', fontWeight: 600 }}>
-          Lesson terpasang: {assignedLessons}/{totalLessons}
-        </p>
+
         <p style={{ color: '#475569', fontSize: '0.85rem' }}>{nextLessonDescription}</p>
         {block.pitching_day_date ? (
           <p style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Pitching day: {formatDate(block.pitching_day_date)}</p>

@@ -34,38 +34,59 @@ export default function SessionActions({
 
   return (
     <>
-      <div style={actionsRowStyle}>
-        <a
-          href={zoomLink}
-          target="_blank"
-          rel="noreferrer"
-          style={{ ...primaryButtonStyle, background: '#2563eb', borderColor: '#2563eb' }}
-        >
-          Mulai kelas
-        </a>
-        <a
-          href={DRIVE_UPLOAD_URL}
-          target="_blank"
-          rel="noreferrer"
-          style={{ ...primaryButtonStyle, background: '#16a34a', borderColor: '#16a34a' }}
-        >
-          Upload dokumentasi
-        </a>
-        <button
-          type="button"
-          onClick={handleOpenSlides}
-          disabled={!slideUrl}
-          style={{
-            ...primaryButtonStyle,
-            background: slideUrl ? '#9333ea' : '#e5e7eb',
-            borderColor: slideUrl ? '#9333ea' : '#e5e7eb',
-            color: slideUrl ? '#fff' : '#94a3b8',
-            cursor: slideUrl ? 'pointer' : 'not-allowed',
-          }}
-        >
-          {slideUrl ? 'Buka slide' : 'Slide belum tersedia'}
-        </button>
-        {canComplete ? <MarkSessionCompleteButton sessionId={sessionId} /> : null}
+      <div style={actionsGridStyle}>
+        {/* Main Action Card */}
+        <div style={actionCardStyle}>
+          <div style={iconWrapperStyle}>🎥</div>
+          <div style={{ flex: 1 }}>
+            <h3 style={cardTitleStyle}>Kelas Online</h3>
+            <p style={cardDescStyle}>Mulai kelas via Zoom</p>
+          </div>
+          <a
+            href={zoomLink}
+            target="_blank"
+            rel="noreferrer"
+            style={launchButtonStyle}
+          >
+            Mulai Kelas
+          </a>
+        </div>
+
+        {/* Slides Card */}
+        <div style={actionCardStyle}>
+          <div style={{ ...iconWrapperStyle, background: 'rgba(147, 51, 234, 0.1)', color: '#9333ea' }}>📑</div>
+          <div style={{ flex: 1 }}>
+            <h3 style={cardTitleStyle}>Materi & Slide</h3>
+            <p style={cardDescStyle}>{slideTitle ? 'Tersedia' : 'Belum tersedia'}</p>
+          </div>
+          <button
+            type="button"
+            onClick={handleOpenSlides}
+            disabled={!slideUrl}
+            style={{
+              ...launchButtonStyle,
+              background: slideUrl ? '#9333ea' : '#e2e8f0',
+              color: slideUrl ? '#fff' : '#94a3b8',
+              cursor: slideUrl ? 'pointer' : 'not-allowed',
+            }}
+          >
+            Buka Slide
+          </button>
+        </div>
+
+        {/* Status Card */}
+        {canComplete ? (
+          <div style={actionCardStyle}>
+            <div style={{ ...iconWrapperStyle, background: 'rgba(234, 179, 8, 0.1)', color: '#ca8a04' }}>✓</div>
+            <div style={{ flex: 1 }}>
+              <h3 style={cardTitleStyle}>Status Sesi</h3>
+              <p style={cardDescStyle}>Tandai selesai jika sudah</p>
+            </div>
+            <div style={{ transform: 'scale(0.95)', transformOrigin: 'right center' }}>
+              <MarkSessionCompleteButton sessionId={sessionId} />
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {showSlides && slideUrl ? (
@@ -100,11 +121,63 @@ export default function SessionActions({
   );
 }
 
-const actionsRowStyle: React.CSSProperties = {
+const actionsGridStyle: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+  gap: '1rem',
+  marginBottom: '1rem',
+};
+
+const actionCardStyle: React.CSSProperties = {
+  background: '#ffffff',
+  border: '1px solid #e2e8f0',
+  borderRadius: '0.85rem',
+  padding: '1.25rem',
   display: 'flex',
-  flexWrap: 'wrap',
-  gap: '0.75rem',
   alignItems: 'center',
+  gap: '1rem',
+  boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+};
+
+const iconWrapperStyle: React.CSSProperties = {
+  width: '3rem',
+  height: '3rem',
+  borderRadius: '0.75rem',
+  background: 'rgba(37, 99, 235, 0.1)',
+  color: '#2563eb',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: '1.5rem',
+};
+
+const cardTitleStyle: React.CSSProperties = {
+  fontSize: '1rem',
+  fontWeight: 600,
+  color: '#0f172a',
+  marginBottom: '0.2rem',
+};
+
+const cardDescStyle: React.CSSProperties = {
+  fontSize: '0.85rem',
+  color: '#64748b',
+  lineHeight: 1.3,
+};
+
+const launchButtonStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '0.5rem 1rem',
+  borderRadius: '0.5rem',
+  background: '#2563eb',
+  color: '#fff',
+  fontWeight: 600,
+  fontSize: '0.9rem',
+  textDecoration: 'none',
+  border: 'none',
+  cursor: 'pointer',
+  whiteSpace: 'nowrap',
 };
 
 const primaryButtonStyle: React.CSSProperties = {

@@ -1,11 +1,17 @@
+
 import { classesDao, sessionsDao } from '@/lib/dao';
 import type { ClassBlockRecord } from '@/lib/dao/classesDao';
+import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 
 type CoachClassSummary = {
   classId: string;
   name: string;
   type: 'WEEKLY' | 'EKSKUL';
   nextSessionDate?: string | null;
+  nextLesson?: {
+    title: string;
+    slideUrl?: string | null;
+  } | null;
   currentBlock?: { name?: string | null; startDate: string; endDate: string } | null;
   upcomingBlock?: { name?: string | null; startDate: string; endDate: string } | null;
 };
@@ -29,25 +35,80 @@ export async function getCoachClassesWithBlocks(coachId: string): Promise<CoachC
 
   return Promise.all(
     classes.map(async (klass) => {
-      const [blocks, sessions] = await Promise.all([
+      const [blocks, sessions, lessonMap] = await Promise.all([
         classesDao.getClassBlocks(klass.id),
         sessionsDao.listSessionsByClass(klass.id),
+        computeLessonSchedule(klass.id, klass.level_id),
       ]);
 
       const currentBlock = pickBlock(blocks, 'CURRENT');
       const upcomingBlock = pickBlock(blocks, 'UPCOMING');
+
       const nextSession = sessions
         .filter((session) => new Date(session.date_time) >= new Date())
         .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime())[0];
+
+      let nextLesson = null;
+      if (nextSession && nextSession.status !== 'CANCELLED') {
+        const slot = lessonMap.get(nextSession.id);
+        if (slot) {
+          nextLesson = {
+            title: formatLessonTitle(slot),
+            slideUrl: slot.lessonTemplate.slide_url,
+          };
+        }
+      }
 
       return {
         classId: klass.id,
         name: klass.name,
         type: klass.type,
         nextSessionDate: nextSession?.date_time ?? null,
+        nextLesson,
         currentBlock,
         upcomingBlock,
       };
     }),
   );
+}
+
+export type ExtendedSession = import('@/lib/dao/sessionsDao').SessionRecord & {
+  class_name?: string;
+  lesson?: {
+    title: string;
+    block_name: string;
+    slide_url: string | null;
+    example_url: string | null;
+  } | null;
+};
+
+export async function getAllCoachSessions(coachId: string): Promise<ExtendedSession[]> {
+  const classes = await classesDao.listClassesForCoach(coachId);
+
+  const results = await Promise.all(
+    classes.map(async (klass) => {
+      const [sessions, lessonMap] = await Promise.all([
+        sessionsDao.listSessionsByClass(klass.id),
+        computeLessonSchedule(klass.id, klass.level_id),
+      ]);
+
+      return sessions.map((session) => {
+        const lessonSlot = session.status !== 'CANCELLED' ? lessonMap.get(session.id) : null;
+        return {
+          ...session,
+          class_name: klass.name,
+          lesson: lessonSlot
+            ? {
+              title: formatLessonTitle(lessonSlot),
+              block_name: lessonSlot.block.name ?? 'Unknown Block',
+              slide_url: lessonSlot.lessonTemplate.slide_url,
+              example_url: lessonSlot.lessonTemplate.example_url,
+            }
+            : null,
+        };
+      });
+    }),
+  );
+
+  return results.flat();
 }

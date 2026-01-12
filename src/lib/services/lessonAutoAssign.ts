@@ -17,13 +17,27 @@ export async function autoAssignLessonsForClass(classId: string): Promise<{ assi
     return { assigned: 0 };
   }
 
-  const [sessions, blockTemplates] = await Promise.all([
+  const [allSessions, blockTemplates] = await Promise.all([
     sessionsDao.listSessionsByClass(classId),
     blocksDao.listBlocksByLevel(klass.level_id),
   ]);
 
   if (blockTemplates.length === 0) {
     return { assigned: 0 };
+  }
+
+  // Filter out CANCELLED sessions - lessons should only be assigned to active sessions
+  // This ensures when a session is cancelled (holiday), lessons shift to the next available session
+  const sessions = allSessions.filter(s => s.status !== 'CANCELLED');
+
+  // FORCE RESCHEDULE: Unassign all FUTURE scheduled sessions to ensure strict curriculum order
+  const now = new Date();
+  const futureSessions = sessions.filter(
+    (s) => new Date(s.date_time) > now && s.status === 'SCHEDULED'
+  );
+
+  if (futureSessions.length > 0) {
+    await classLessonsDao.unassignLessonsFromSessions(futureSessions.map(s => s.id));
   }
 
   const { blocks, lessonsByBlock, unassignedSessions } = await ensureLessonCapacity(
@@ -33,19 +47,23 @@ export async function autoAssignLessonsForClass(classId: string): Promise<{ assi
   );
 
   if (unassignedSessions.length === 0) {
+    console.log("No unassigned sessions found.");
     await syncBlockStatuses(blocks, lessonsByBlock, sessions);
     return { assigned: 0 };
   }
 
   const lessonQueue = buildLessonQueue(blocks, lessonsByBlock);
+  console.log(`Debug Queue: ${lessonQueue.length} lessons. Unassigned Sessions: ${unassignedSessions.length}`);
+
   let assigned = 0;
 
   for (const session of unassignedSessions) {
     const lesson = lessonQueue.shift();
     if (!lesson) {
+      console.log("Queue exhausted.");
       break;
     }
-
+    console.log(`Assigning lesson ${lesson.title} to session ${session.id}`);
     await classLessonsDao.assignLessonToSession(lesson.id, session.id, session.date_time);
     lesson.session_id = session.id;
     lesson.unlock_at = session.date_time;
@@ -153,19 +171,21 @@ async function loadLessons(blocks: ClassBlockRow[]): Promise<Map<string, ClassLe
   return lessonsByBlock;
 }
 
+
 function buildLessonQueue(
   blocks: ClassBlockRow[],
   lessonsByBlock: Map<string, ClassLessonRecord[]>,
 ): ClassLessonRecord[] {
   return blocks
     .slice()
-    .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())
+    .sort((a, b) => (a.block_order_index ?? 0) - (b.block_order_index ?? 0))
     .flatMap((block) => {
       const lessons = lessonsByBlock.get(block.id) ?? [];
       return lessons.slice().sort((a, b) => a.order_index - b.order_index);
     })
     .filter((lesson) => !lesson.session_id);
 }
+
 
 type InstantiateInput = {
   klass: ClassRecord;
@@ -230,19 +250,32 @@ async function instantiateBlockFromTemplate({
     return;
   }
 
-  const createdLessons = await classLessonsDao.createClassLessons(
-    templateLessons.map((lesson) => ({
-      class_block_id: block.id,
-      lesson_template_id: lesson.id,
-      title: lesson.title,
-      summary: lesson.summary ?? null,
-      order_index: lesson.order_index,
-      make_up_instructions: lesson.make_up_instructions ?? null,
-      slide_url: lesson.slide_url ?? null,
-      coach_example_url: lesson.example_url ?? null,
-      coach_example_storage_path: lesson.example_storage_path ?? null,
-    })),
-  );
+  const createdLessonsPayload = templateLessons.flatMap((lesson) => {
+    const sessionCount = Math.max(1, lesson.duration_minutes || 1);
+    const parts = [];
+
+    for (let i = 1; i <= sessionCount; i++) {
+      let title = lesson.title;
+      if (sessionCount > 1) {
+        title = `${lesson.title} (Part ${i})`;
+      }
+
+      parts.push({
+        class_block_id: block.id,
+        lesson_template_id: lesson.id,
+        title: title,
+        summary: lesson.summary ?? null,
+        order_index: lesson.order_index, // Keep same order index, handled by array order
+        make_up_instructions: lesson.make_up_instructions ?? null,
+        slide_url: lesson.slide_url ?? null,
+        coach_example_url: lesson.example_url ?? null,
+        coach_example_storage_path: lesson.example_storage_path ?? null,
+      });
+    }
+    return parts;
+  });
+
+  const createdLessons = await classLessonsDao.createClassLessons(createdLessonsPayload);
 
   const normalizedBlock: ClassBlockRow = {
     ...block,
@@ -271,31 +304,40 @@ async function syncLessonsWithTemplates(
         return;
       }
       const existing = lessonsByBlock.get(block.id) ?? [];
-      const existingTemplateIds = new Set(
-        existing
-          .map((lesson) => lesson.lesson_template_id)
-          .filter((value): value is string => Boolean(value)),
-      );
+      const newLessonsPayload: any[] = [];
 
-      const missing = templateLessons.filter((lesson) => !existingTemplateIds.has(lesson.id));
-      if (missing.length === 0) {
+      for (const lesson of templateLessons) {
+        const expectedCount = Math.max(1, lesson.duration_minutes || 1);
+        const existingMatches = existing.filter((l) => l.lesson_template_id === lesson.id);
+
+        if (existingMatches.length < expectedCount) {
+          // We need to create the missing parts
+          for (let i = existingMatches.length + 1; i <= expectedCount; i++) {
+            let title = lesson.title;
+            if (expectedCount > 1) {
+              title = `${lesson.title} (Part ${i})`;
+            }
+
+            newLessonsPayload.push({
+              class_block_id: block.id,
+              lesson_template_id: lesson.id,
+              title: title,
+              summary: lesson.summary ?? null,
+              order_index: lesson.order_index,
+              make_up_instructions: lesson.make_up_instructions ?? null,
+              slide_url: lesson.slide_url ?? null,
+              coach_example_url: lesson.example_url ?? null,
+              coach_example_storage_path: lesson.example_storage_path ?? null,
+            });
+          }
+        }
+      }
+
+      if (newLessonsPayload.length === 0) {
         return;
       }
 
-      const created = await classLessonsDao.createClassLessons(
-        missing.map((lesson) => ({
-          class_block_id: block.id,
-          lesson_template_id: lesson.id,
-          title: lesson.title,
-          summary: lesson.summary ?? null,
-          order_index: lesson.order_index,
-          make_up_instructions: lesson.make_up_instructions ?? null,
-          slide_url: lesson.slide_url ?? null,
-          coach_example_url: lesson.example_url ?? null,
-          coach_example_storage_path: lesson.example_storage_path ?? null,
-        })),
-      );
-
+      const created = await classLessonsDao.createClassLessons(newLessonsPayload);
       const updated = [...existing, ...created].sort((a, b) => a.order_index - b.order_index);
       lessonsByBlock.set(block.id, updated);
     }),
@@ -333,7 +375,7 @@ function computeNextBlockStartDate(blocks: ClassBlockRow[], klass: ClassRecord):
   }
   const sorted = blocks
     .slice()
-    .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
+    .sort((a, b) => (a.block_order_index ?? 0) - (b.block_order_index ?? 0));
   const last = sorted[sorted.length - 1];
   const base = last.end_date ?? last.start_date ?? klass.start_date;
   const baseDate = base ? new Date(base) : new Date(klass.start_date);
@@ -353,7 +395,8 @@ async function syncBlockStatuses(
   const now = Date.now();
   const sortedBlocks = blocks
     .slice()
-    .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
+    .sort((a, b) => (a.block_order_index ?? 0) - (b.block_order_index ?? 0));
+
 
   const blockStates = sortedBlocks.map((block) => {
     const lessons = lessonsByBlock.get(block.id) ?? [];

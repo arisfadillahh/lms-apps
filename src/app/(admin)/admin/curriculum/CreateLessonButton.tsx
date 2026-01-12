@@ -173,8 +173,8 @@ export default function CreateLessonButton({ blockId, suggestedOrderIndex }: Cre
                                 {errors.orderIndex ? <span style={errorStyle}>{errors.orderIndex.message}</span> : null}
                             </div>
                             <div style={fieldGroupStyle}>
-                                <label style={labelStyle}>Durasi (menit)</label>
-                                <input type="number" style={inputStyle} {...register('durationMinutes')} />
+                                <label style={labelStyle}>Jumlah Pertemuan (Sesi)</label>
+                                <input type="number" result="durationMinutes" style={inputStyle} {...register('durationMinutes')} min={1} defaultValue={1} />
                             </div>
                         </div>
 

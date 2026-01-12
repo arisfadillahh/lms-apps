@@ -168,7 +168,7 @@ const FALLBACK_USERS: FallbackUser[] = [
     fullName: 'Demo Admin',
   },
   {
-    id: 'dev-coach',
+    id: 'e52e909d-0925-460d-88f6-592a8325d70f',
     username: process.env.DEV_COACH_USERNAME ?? 'coach',
     password: process.env.DEV_COACH_PASSWORD ?? 'coach123',
     role: 'COACH',

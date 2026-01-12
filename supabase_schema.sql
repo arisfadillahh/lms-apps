@@ -228,7 +228,6 @@ create table public.class_lessons (
   coach_example_storage_path text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique (class_block_id, order_index),
   unique (session_id)
 );
 

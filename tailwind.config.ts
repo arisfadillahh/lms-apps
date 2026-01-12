@@ -12,5 +12,6 @@ const config: Config = {
   },
   plugins: [],
 };
+// Trigger rebuild for new coach routes
 
 export default config;

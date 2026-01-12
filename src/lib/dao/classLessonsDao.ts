@@ -192,3 +192,15 @@ export async function syncTemplateLessonSlide(lessonTemplateId: string, slideUrl
     throw new Error(`Failed to sync template lesson slide: ${error.message}`);
   }
 }
+
+export async function unassignLessonsFromSessions(sessionIds: string[]): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from('class_lessons')
+    .update({ session_id: null, unlock_at: null })
+    .in('session_id', sessionIds);
+
+  if (error) {
+    throw new Error(`Failed to unassign lessons from sessions: ${error.message}`);
+  }
+}

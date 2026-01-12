@@ -28,10 +28,10 @@ export default function CancelSessionButton({ sessionId, currentStatus }: Cancel
 
   const isCancelled = currentStatus === 'CANCELLED';
   const targetStatus: SessionStatus = isCancelled ? 'SCHEDULED' : 'CANCELLED';
-  const label = isCancelled ? 'Pulihkan Sesi' : 'Batalkan Sesi';
+  const label = isCancelled ? 'Pulihkan Sesi' : 'Liburkan Sesi';
 
-  const handleUpdate = () => {
-    if (!isCancelled && !window.confirm('Batalkan sesi ini? Coach dan coder akan melihat status CANCELLED.')) {
+  const handleUpdate = async () => {
+    if (!isCancelled && !window.confirm('Liburkan sesi ini? Coach dan coder akan melihat status CANCELLED.')) {
       return;
     }
     setErrorMessage(null);

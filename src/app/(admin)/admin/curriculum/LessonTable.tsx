@@ -28,7 +28,7 @@ export default function LessonTable({ lessons }: LessonTableProps) {
                         <tr style={headerRowStyle}>
                             <th style={{ ...thStyle, width: '60px' }}>#</th>
                             <th style={thStyle}>Judul</th>
-                            <th style={{ ...thStyle, width: '100px' }}>Durasi</th>
+                            <th style={thStyle}>Jml Pertemuan</th>
                             <th style={thStyle}>Slide</th>
                             <th style={thStyle}>Contoh Game</th>
                             <th style={{ ...thStyle, width: '120px', textAlign: 'center' }}>Aksi</th>

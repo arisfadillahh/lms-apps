@@ -98,21 +98,7 @@ export default async function CoderDashboardPage() {
                       </div>
 
                       {/* Completed Lessons List */}
-                      {block.completedLessons && block.completedLessons.length > 0 && (
-                        <div style={{ marginTop: '0.5rem', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
-                          <p style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, marginBottom: '0.5rem' }}>✅ SESI SELESAI</p>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            {block.completedLessons.map((lesson, idx) => (
-                              <div key={idx} style={{ fontSize: '0.9rem', color: '#334155' }}>
-                                <div style={{ fontWeight: 500 }}>{lesson.title}</div>
-                                <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                                  {new Date(lesson.completedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+
                     </div>
 
                     {/* Column 2: Next Lesson (Highlight) */}
@@ -303,7 +289,6 @@ const softwareCardStyle: CSSProperties = {
   borderRadius: '1rem',
   border: '1px solid #e2e8f0',
   padding: '1.5rem',
-  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
   boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
   // display: 'flex', 
   // flexDirection: 'column', 

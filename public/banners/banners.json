@@ -6,7 +6,7 @@
       "linkUrl": "https://clev.io/chat",
       "title": "a",
       "order": 0,
-      "isActive": false
+      "isActive": true
     },
     {
       "id": "6226cdbc-9ff9-4fb9-a634-65744c2e35c9",
@@ -14,7 +14,7 @@
       "linkUrl": "https://clev.io/chat",
       "title": "b",
       "order": 1,
-      "isActive": false
+      "isActive": true
     }
   ]
 }

@@ -52,7 +52,7 @@ export default async function CoderDashboardPage() {
   const activeBanners = banners.filter(b => b.isActive);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
       {/* Banner Carousel */}
       {activeBanners.length > 0 && (
         <BannerCarousel banners={activeBanners} />

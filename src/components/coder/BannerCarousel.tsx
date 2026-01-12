@@ -105,7 +105,6 @@ export default function BannerCarousel({ banners }: BannerCarouselProps) {
 const containerStyle: React.CSSProperties = {
     position: 'relative',
     width: '100%',
-    maxWidth: '1280px',
     aspectRatio: '1280 / 320',
     borderRadius: '1rem',
     overflow: 'hidden',

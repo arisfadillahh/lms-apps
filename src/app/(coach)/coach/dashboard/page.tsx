@@ -141,10 +141,10 @@ export default async function CoachDashboardPage() {
                     </h2>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         {classes.map(cls => (
-                            <Link key={cls.classId} href={`/coach/classes/${cls.classId}`} style={{ display: 'block' }}>
+                            <div key={cls.classId} style={{ position: 'relative' }}>
                                 <div style={{
                                     background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '20px',
-                                    transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                                    transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', position: 'relative'
                                 }} className="hover:shadow-lg hover:border-blue-300">
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                                         <span style={{
@@ -160,7 +160,12 @@ export default async function CoachDashboardPage() {
                                             </span>
                                         )}
                                     </div>
-                                    <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', marginBottom: '12px' }}>{cls.name}</h3>
+                                    <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', marginBottom: '12px' }}>
+                                        <Link href={`/coach/classes/${cls.classId}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                                            <span style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1 }} aria-hidden="true" />
+                                            {cls.name}
+                                        </Link>
+                                    </h3>
 
                                     {/* Next Session */}
                                     <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
@@ -176,8 +181,72 @@ export default async function CoachDashboardPage() {
                                             <div style={{ color: '#cbd5e1', fontSize: '14px', fontStyle: 'italic' }}>Belum ada jadwal</div>
                                         )}
                                     </div>
+
+                                    {/* Next Lesson */}
+                                    {cls.nextLesson && (
+                                        <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px', marginTop: '12px', position: 'relative', zIndex: 2 }}>
+                                            <div style={{ fontSize: '11px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '6px' }}>
+                                                📚 Materi Berikutnya
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                <span style={{ color: '#1e40af', fontWeight: '600', fontSize: '14px' }}>{cls.nextLesson.title}</span>
+                                                {cls.nextLesson.slideUrl && (
+                                                    <a
+                                                        href={cls.nextLesson.slideUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        style={{ background: '#dbeafe', color: '#1d4ed8', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', textDecoration: 'none' }}
+                                                    >
+                                                        Buka Slide ↗
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Software Info */}
+                                    {cls.currentBlock?.software && cls.currentBlock.software.length > 0 && (
+                                        <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px', marginTop: '12px', position: 'relative', zIndex: 2 }}>
+                                            <div style={{ fontSize: '11px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px' }}>
+                                                📦 Software yang Digunakan
+                                            </div>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                                {cls.currentBlock.software.map(sw => (
+                                                    <span
+                                                        key={sw.id}
+                                                        style={{
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '4px',
+                                                            background: '#f0fdf4',
+                                                            color: '#15803d',
+                                                            padding: '4px 10px',
+                                                            borderRadius: '6px',
+                                                            fontSize: '12px',
+                                                            fontWeight: '600',
+                                                        }}
+                                                        title={sw.access_info || undefined}
+                                                    >
+                                                        {sw.name}
+                                                        {sw.version && <span style={{ opacity: 0.7, fontSize: '10px' }}>v{sw.version}</span>}
+                                                        {sw.installation_url && (
+                                                            <a
+                                                                href={sw.installation_url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                style={{ color: '#15803d', marginLeft: '2px' }}
+                                                                title="Download"
+                                                            >
+                                                                ↗
+                                                            </a>
+                                                        )}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                            </Link>
+                            </div>
                         ))}
 
                         {classes.length === 0 && (

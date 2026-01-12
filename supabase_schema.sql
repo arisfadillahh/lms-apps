@@ -388,3 +388,33 @@ create table public.whatsapp_message_logs (
 );
 
 create index whatsapp_message_logs_created_at_idx on public.whatsapp_message_logs (created_at desc);
+
+-- Software =====================================================================================
+create table public.software (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  description text,
+  version text,
+  installation_url text,
+  installation_instructions text,
+  minimum_specs jsonb,
+  access_info text,
+  icon_url text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create trigger trg_software_updated_at
+before update on public.software
+for each row execute function public.set_updated_at_timestamp();
+
+-- Block Software (many-to-many) ================================================================
+create table public.block_software (
+  id uuid primary key default gen_random_uuid(),
+  block_id uuid not null references public.blocks(id) on delete cascade,
+  software_id uuid not null references public.software(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (block_id, software_id)
+);
+
+create index block_software_block_id_idx on public.block_software (block_id);

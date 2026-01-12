@@ -10,7 +10,7 @@ export type ClassLessonWithTemplate = ClassLessonRecord & {
   template_summary: string | null;
   template_slide_url: string | null;
   template_make_up_instructions: string | null;
-  template_duration_minutes: number | null;
+  template_estimated_meeting_count: number | null;
 };
 
 export async function listLessonsByClassBlock(classBlockId: string): Promise<ClassLessonWithTemplate[]> {
@@ -24,7 +24,7 @@ export async function listLessonsByClassBlock(classBlockId: string): Promise<Cla
         summary,
         slide_url,
         make_up_instructions,
-        duration_minutes
+        estimated_meeting_count
       )
     `)
     .eq('class_block_id', classBlockId)
@@ -47,7 +47,7 @@ export async function listLessonsByClassBlock(classBlockId: string): Promise<Cla
     template_summary: row.lesson_templates?.summary ?? null,
     template_slide_url: row.lesson_templates?.slide_url ?? null,
     template_make_up_instructions: row.lesson_templates?.make_up_instructions ?? null,
-    template_duration_minutes: row.lesson_templates?.duration_minutes ?? null,
+    template_estimated_meeting_count: row.lesson_templates?.estimated_meeting_count ?? null,
   }));
 }
 

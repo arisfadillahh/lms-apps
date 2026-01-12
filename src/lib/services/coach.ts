@@ -2,6 +2,15 @@
 import { classesDao, sessionsDao } from '@/lib/dao';
 import type { ClassBlockRecord } from '@/lib/dao/classesDao';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
+import { getSoftwareByBlockId } from '@/lib/dao/blockSoftwareDao';
+
+type SoftwareInfo = {
+  id: string;
+  name: string;
+  version: string | null;
+  installation_url: string | null;
+  access_info: string | null;
+};
 
 type CoachClassSummary = {
   classId: string;
@@ -12,7 +21,13 @@ type CoachClassSummary = {
     title: string;
     slideUrl?: string | null;
   } | null;
-  currentBlock?: { name?: string | null; startDate: string; endDate: string } | null;
+  currentBlock?: {
+    id?: string;
+    name?: string | null;
+    startDate: string;
+    endDate: string;
+    software?: SoftwareInfo[];
+  } | null;
   upcomingBlock?: { name?: string | null; startDate: string; endDate: string } | null;
 };
 
@@ -24,6 +39,7 @@ function pickBlock(blocks: (ClassBlockRecord & { block_name?: string | null })[]
     return null;
   }
   return {
+    id: block.block_id,
     name: block.block_name ?? null,
     startDate: block.start_date,
     endDate: block.end_date,
@@ -41,8 +57,24 @@ export async function getCoachClassesWithBlocks(coachId: string): Promise<CoachC
         computeLessonSchedule(klass.id, klass.level_id),
       ]);
 
-      const currentBlock = pickBlock(blocks, 'CURRENT');
+      const currentBlockData = pickBlock(blocks, 'CURRENT');
       const upcomingBlock = pickBlock(blocks, 'UPCOMING');
+
+      // Fetch software for current block
+      let currentBlock = null;
+      if (currentBlockData) {
+        const software = currentBlockData.id ? await getSoftwareByBlockId(currentBlockData.id) : [];
+        currentBlock = {
+          ...currentBlockData,
+          software: software.map(s => ({
+            id: s.id,
+            name: s.name,
+            version: s.version,
+            installation_url: s.installation_url,
+            access_info: s.access_info,
+          })),
+        };
+      }
 
       const nextSession = sessions
         .filter((session) => new Date(session.date_time) >= new Date())

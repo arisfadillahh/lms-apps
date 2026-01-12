@@ -20,9 +20,9 @@ export type SessionLessonMapping = {
 
 /**
  * Builds an expanded list of lesson slots based on curriculum.
- * Each lesson template is expanded based on its duration_minutes value.
- * duration_minutes = 1 → 1 slot
- * duration_minutes = 2 → 2 slots (Part 1, Part 2)
+ * Each lesson template is expanded based on its estimated_meeting_count value.
+ * estimated_meeting_count = 1 → 1 slot
+ * estimated_meeting_count = 2 → 2 slots (Part 1, Part 2)
  * etc.
  */
 async function buildLessonSlots(levelId: string): Promise<LessonSlot[]> {
@@ -36,7 +36,7 @@ async function buildLessonSlots(levelId: string): Promise<LessonSlot[]> {
         const lessons = await lessonTemplatesDao.listLessonsByBlock(block.id);
 
         for (const lesson of lessons) {
-            const totalParts = Math.max(1, lesson.duration_minutes ?? 1);
+            const totalParts = Math.max(1, lesson.estimated_meeting_count ?? 1);
 
             for (let part = 1; part <= totalParts; part++) {
                 slots.push({

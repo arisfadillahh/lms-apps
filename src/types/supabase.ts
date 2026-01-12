@@ -57,31 +57,31 @@ export interface Database {
       };
       blocks: {
         Row: {
-      id: string;
-      level_id: string;
-      name: string;
-      summary: string | null;
-      order_index: number;
-      estimated_sessions: number | null;
-      is_published: boolean;
-      created_at: string;
-      updated_at: string;
-    };
-    Insert: {
-      id?: string;
-      level_id: string;
-      name: string;
-      summary?: string | null;
-      order_index: number;
-      estimated_sessions?: number | null;
-      is_published?: boolean;
-      created_at?: string;
-      updated_at?: string;
-    };
-    Update: Partial<Database['public']['Tables']['blocks']['Insert']>;
-    Relationships: [
-      {
-        foreignKeyName: 'blocks_level_id_fkey';
+          id: string;
+          level_id: string;
+          name: string;
+          summary: string | null;
+          order_index: number;
+          estimated_sessions: number | null;
+          is_published: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          level_id: string;
+          name: string;
+          summary?: string | null;
+          order_index: number;
+          estimated_sessions?: number | null;
+          is_published?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['blocks']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'blocks_level_id_fkey';
             columns: ['level_id'];
             referencedRelation: 'levels';
             referencedColumns: ['id'];
@@ -165,55 +165,55 @@ export interface Database {
           {
             foreignKeyName: 'class_blocks_class_id_fkey';
             columns: ['class_id'];
-          referencedRelation: 'classes';
-          referencedColumns: ['id'];
-        },
-      ];
-    };
-    lesson_templates: {
-      Row: {
-        id: string;
-        block_id: string;
-        title: string;
-        summary: string | null;
-        slide_url: string | null;
-        example_url: string | null;
-        example_storage_path: string | null;
-        order_index: number;
-        duration_minutes: number | null;
-        make_up_instructions: string | null;
-        created_at: string;
-        updated_at: string;
+            referencedRelation: 'classes';
+            referencedColumns: ['id'];
+          },
+        ];
       };
-      Insert: {
-        id?: string;
-        block_id: string;
-        title: string;
-        summary?: string | null;
-        slide_url?: string | null;
-        example_url?: string | null;
-        example_storage_path?: string | null;
-        order_index: number;
-        duration_minutes?: number | null;
-        make_up_instructions?: string | null;
-        created_at?: string;
-        updated_at?: string;
+      lesson_templates: {
+        Row: {
+          id: string;
+          block_id: string;
+          title: string;
+          summary: string | null;
+          slide_url: string | null;
+          example_url: string | null;
+          example_storage_path: string | null;
+          order_index: number;
+          estimated_meeting_count: number | null;
+          make_up_instructions: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          block_id: string;
+          title: string;
+          summary?: string | null;
+          slide_url?: string | null;
+          example_url?: string | null;
+          example_storage_path?: string | null;
+          order_index: number;
+          estimated_meeting_count?: number | null;
+          make_up_instructions?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['lesson_templates']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'lesson_templates_block_id_fkey';
+            columns: ['block_id'];
+            referencedRelation: 'blocks';
+            referencedColumns: ['id'];
+          },
+        ];
       };
-      Update: Partial<Database['public']['Tables']['lesson_templates']['Insert']>;
-      Relationships: [
-        {
-          foreignKeyName: 'lesson_templates_block_id_fkey';
-          columns: ['block_id'];
-          referencedRelation: 'blocks';
-          referencedColumns: ['id'];
-        },
-      ];
-    };
-    sessions: {
-      Row: {
-        id: string;
-        class_id: string;
-        date_time: string;
+      sessions: {
+        Row: {
+          id: string;
+          class_id: string;
+          date_time: string;
           zoom_link_snapshot: string;
           status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
           substitute_coach_id: string | null;
@@ -242,110 +242,110 @@ export interface Database {
             foreignKeyName: 'sessions_substitute_coach_id_fkey';
             columns: ['substitute_coach_id'];
             referencedRelation: 'users';
-          referencedColumns: ['id'];
-        },
-      ];
-    };
-    class_lessons: {
-      Row: {
-        id: string;
-        class_block_id: string;
-        lesson_template_id: string | null;
-        title: string;
-        summary: string | null;
-        order_index: number;
-        session_id: string | null;
-        unlock_at: string | null;
-        make_up_instructions: string | null;
-        slide_url: string | null;
-        coach_example_url: string | null;
-        coach_example_storage_path: string | null;
-        created_at: string;
-        updated_at: string;
+            referencedColumns: ['id'];
+          },
+        ];
       };
-      Insert: {
-        id?: string;
-        class_block_id: string;
-        lesson_template_id?: string | null;
-        title: string;
-        summary?: string | null;
-        order_index: number;
-        session_id?: string | null;
-        unlock_at?: string | null;
-        make_up_instructions?: string | null;
-        slide_url?: string | null;
-        coach_example_url?: string | null;
-        coach_example_storage_path?: string | null;
-        created_at?: string;
-        updated_at?: string;
+      class_lessons: {
+        Row: {
+          id: string;
+          class_block_id: string;
+          lesson_template_id: string | null;
+          title: string;
+          summary: string | null;
+          order_index: number;
+          session_id: string | null;
+          unlock_at: string | null;
+          make_up_instructions: string | null;
+          slide_url: string | null;
+          coach_example_url: string | null;
+          coach_example_storage_path: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          class_block_id: string;
+          lesson_template_id?: string | null;
+          title: string;
+          summary?: string | null;
+          order_index: number;
+          session_id?: string | null;
+          unlock_at?: string | null;
+          make_up_instructions?: string | null;
+          slide_url?: string | null;
+          coach_example_url?: string | null;
+          coach_example_storage_path?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['class_lessons']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'class_lessons_class_block_id_fkey';
+            columns: ['class_block_id'];
+            referencedRelation: 'class_blocks';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'class_lessons_lesson_template_id_fkey';
+            columns: ['lesson_template_id'];
+            referencedRelation: 'lesson_templates';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'class_lessons_session_id_fkey';
+            columns: ['session_id'];
+            referencedRelation: 'sessions';
+            referencedColumns: ['id'];
+          },
+        ];
       };
-      Update: Partial<Database['public']['Tables']['class_lessons']['Insert']>;
-      Relationships: [
-        {
-          foreignKeyName: 'class_lessons_class_block_id_fkey';
-          columns: ['class_block_id'];
-          referencedRelation: 'class_blocks';
-          referencedColumns: ['id'];
-        },
-        {
-          foreignKeyName: 'class_lessons_lesson_template_id_fkey';
-          columns: ['lesson_template_id'];
-          referencedRelation: 'lesson_templates';
-          referencedColumns: ['id'];
-        },
-        {
-          foreignKeyName: 'class_lessons_session_id_fkey';
-          columns: ['session_id'];
-          referencedRelation: 'sessions';
-          referencedColumns: ['id'];
-        },
-      ];
-    };
-    coder_block_progress: {
-      Row: {
-        id: string;
-        coder_id: string;
-        level_id: string;
-        block_id: string;
-        journey_order: number;
-        status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
-        completed_at: string | null;
-        created_at: string;
-        updated_at: string;
+      coder_block_progress: {
+        Row: {
+          id: string;
+          coder_id: string;
+          level_id: string;
+          block_id: string;
+          journey_order: number;
+          status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+          completed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          coder_id: string;
+          level_id: string;
+          block_id: string;
+          journey_order: number;
+          status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['coder_block_progress']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'coder_block_progress_block_id_fkey';
+            columns: ['block_id'];
+            referencedRelation: 'blocks';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'coder_block_progress_coder_id_fkey';
+            columns: ['coder_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'coder_block_progress_level_id_fkey';
+            columns: ['level_id'];
+            referencedRelation: 'levels';
+            referencedColumns: ['id'];
+          },
+        ];
       };
-      Insert: {
-        id?: string;
-        coder_id: string;
-        level_id: string;
-        block_id: string;
-        journey_order: number;
-        status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
-        completed_at?: string | null;
-        created_at?: string;
-        updated_at?: string;
-      };
-      Update: Partial<Database['public']['Tables']['coder_block_progress']['Insert']>;
-      Relationships: [
-        {
-          foreignKeyName: 'coder_block_progress_block_id_fkey';
-          columns: ['block_id'];
-          referencedRelation: 'blocks';
-          referencedColumns: ['id'];
-        },
-        {
-          foreignKeyName: 'coder_block_progress_coder_id_fkey';
-          columns: ['coder_id'];
-          referencedRelation: 'users';
-          referencedColumns: ['id'];
-        },
-        {
-          foreignKeyName: 'coder_block_progress_level_id_fkey';
-          columns: ['level_id'];
-          referencedRelation: 'levels';
-          referencedColumns: ['id'];
-        },
-      ];
-    };
       enrollments: {
         Row: {
           id: string;
@@ -754,6 +754,65 @@ export interface Database {
         };
         Update: Partial<Database['public']['Tables']['whatsapp_message_logs']['Insert']>;
         Relationships: [];
+      };
+      software: {
+        Row: {
+          id: string;
+          name: string;
+          description: string | null;
+          version: string | null;
+          installation_url: string | null;
+          installation_instructions: string | null;
+          minimum_specs: Json | null;
+          access_info: string | null;
+          icon_url: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description?: string | null;
+          version?: string | null;
+          installation_url?: string | null;
+          installation_instructions?: string | null;
+          minimum_specs?: Json | null;
+          access_info?: string | null;
+          icon_url?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['software']['Insert']>;
+        Relationships: [];
+      };
+      block_software: {
+        Row: {
+          id: string;
+          block_id: string;
+          software_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          block_id: string;
+          software_id: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['block_software']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'block_software_block_id_fkey';
+            columns: ['block_id'];
+            referencedRelation: 'blocks';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'block_software_software_id_fkey';
+            columns: ['software_id'];
+            referencedRelation: 'software';
+            referencedColumns: ['id'];
+          },
+        ];
       };
     };
     Views: {};

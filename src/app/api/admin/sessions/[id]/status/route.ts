@@ -15,7 +15,7 @@ const updateSessionStatusSchema = z.object({
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
   const session = await getSessionOrThrow();
-  await assertRole(session, 'ADMIN');
+  await assertRole(session, ['ADMIN', 'COACH']);
 
   const params = await context.params;
   const sessionId = params.id;

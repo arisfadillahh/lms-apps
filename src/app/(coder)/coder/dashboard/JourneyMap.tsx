@@ -11,7 +11,7 @@ type JourneyBlock = {
   orderIndex: number | null;
 };
 
-type JourneyCourse = {
+export type JourneyCourse = {
   classId: string;
   name: string;
   completedBlocks: number;

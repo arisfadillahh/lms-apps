@@ -1,10 +1,11 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 import type { BlockRecord } from '@/lib/dao/blocksDao';
+import BlockSoftwareSelector from './BlockSoftwareSelector';
 
 type UpdateBlockFormProps = {
   block: BlockRecord;
@@ -19,6 +20,28 @@ export default function UpdateBlockForm({ block }: UpdateBlockFormProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // Software state
+  const [selectedSoftwareIds, setSelectedSoftwareIds] = useState<string[]>([]);
+  const [softwareLoaded, setSoftwareLoaded] = useState(false);
+
+  // Load current software for this block
+  useEffect(() => {
+    async function loadSoftware() {
+      try {
+        const response = await fetch(`/api/admin/curriculum/blocks/${block.id}/software`);
+        if (response.ok) {
+          const data = await response.json();
+          setSelectedSoftwareIds(data.map((s: { id: string }) => s.id));
+        }
+      } catch (error) {
+        console.error('Failed to load block software', error);
+      } finally {
+        setSoftwareLoaded(true);
+      }
+    }
+    loadSoftware();
+  }, [block.id]);
+
   const handleSubmit = () => {
     setMessage(null);
     setErrorMessage(null);
@@ -29,24 +52,28 @@ export default function UpdateBlockForm({ block }: UpdateBlockFormProps) {
     if (summary.trim() !== (block.summary ?? '')) payload.summary = summary.trim() || undefined;
     if (Number(orderIndex) !== block.order_index) payload.orderIndex = Number(orderIndex);
 
-    if (Object.keys(payload).length === 0) {
-      setMessage('Tidak ada perubahan');
-      setTimeout(() => setMessage(null), 2000);
-      return;
-    }
-
     startTransition(async () => {
       try {
-        const response = await fetch(`/api/admin/curriculum/blocks/${block.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        if (!response.ok) {
-          const data = await response.json().catch(() => ({}));
-          setErrorMessage(data.error ?? 'Gagal menyimpan perubahan');
-          return;
+        // Update block details if changed
+        if (Object.keys(payload).length > 0) {
+          const response = await fetch(`/api/admin/curriculum/blocks/${block.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            setErrorMessage(data.error ?? 'Gagal menyimpan perubahan');
+            return;
+          }
         }
+
+        // Update software
+        await fetch(`/api/admin/curriculum/blocks/${block.id}/software`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ softwareIds: selectedSoftwareIds }),
+        });
 
         setMessage('Perubahan disimpan');
         router.refresh();
@@ -79,7 +106,21 @@ export default function UpdateBlockForm({ block }: UpdateBlockFormProps) {
           />
         </div>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+
+      {/* Software Selection */}
+      <div style={{ ...rowStyle, marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0' }}>
+        <label style={labelStyle}>Software yang Digunakan</label>
+        {softwareLoaded ? (
+          <BlockSoftwareSelector
+            selectedIds={selectedSoftwareIds}
+            onChange={setSelectedSoftwareIds}
+          />
+        ) : (
+          <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Memuat...</span>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem' }}>
         <button
           type="button"
           onClick={handleSubmit}
@@ -142,3 +183,4 @@ const buttonStyle: CSSProperties = {
   fontWeight: 600,
   cursor: 'pointer',
 };
+

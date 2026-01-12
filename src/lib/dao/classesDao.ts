@@ -337,3 +337,19 @@ export async function listClassesForCoder(coderId: string): Promise<ClassRecord[
   const rows = (data ?? []) as Array<{ classes: ClassRecord | null }>;
   return rows.map((row) => row.classes).filter((klass): klass is ClassRecord => Boolean(klass));
 }
+
+export async function isCoderEnrolled(classId: string, coderId: string): Promise<boolean> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('enrollments')
+    .select('id')
+    .eq('class_id', classId)
+    .eq('coder_id', coderId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to check enrollment: ${error.message}`);
+  }
+
+  return !!data;
+}

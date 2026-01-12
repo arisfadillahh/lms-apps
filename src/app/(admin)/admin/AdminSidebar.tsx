@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { CSSProperties } from 'react';
-import { Home, Users, GraduationCap, BookOpen, CalendarOff, FileText, MessageCircle } from 'lucide-react';
+import { Home, Users, GraduationCap, BookOpen, CalendarOff, FileText, MessageCircle, Package } from 'lucide-react';
 
 import SignOutButton from '@/components/SignOutButton';
 
@@ -12,6 +12,7 @@ const NAV_LINKS = [
     { href: '/admin/users', label: 'Pengguna', icon: Users },
     { href: '/admin/classes', label: 'Kelas', icon: GraduationCap },
     { href: '/admin/curriculum', label: 'Kurikulum', icon: BookOpen },
+    { href: '/admin/software', label: 'Software', icon: Package },
     { href: '/admin/leave', label: 'Izin Coach', icon: CalendarOff },
     { href: '/admin/reports', label: 'Laporan', icon: FileText },
     { href: '/admin/whatsapp', label: 'WhatsApp', icon: MessageCircle },

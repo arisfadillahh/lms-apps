@@ -13,7 +13,7 @@ export type CreateLessonTemplateInput = {
   exampleUrl?: string | null;
   exampleStoragePath?: string | null;
   orderIndex: number;
-  durationMinutes?: number | null;
+  estimatedMeetingCount?: number | null;
   makeUpInstructions?: string | null;
 };
 
@@ -24,7 +24,7 @@ export type UpdateLessonTemplateInput = Partial<{
   exampleUrl: string | null;
   exampleStoragePath: string | null;
   orderIndex: number;
-  durationMinutes: number | null;
+  estimatedMeetingCount: number | null;
   makeUpInstructions: string | null;
 }>;
 
@@ -112,7 +112,7 @@ export async function createLessonTemplate(input: CreateLessonTemplateInput): Pr
     slide_url: input.slideUrl ?? null,
     // example_url and example_storage_path removed to compatibility with current DB schema
     order_index: input.orderIndex,
-    duration_minutes: input.durationMinutes ?? null,
+    estimated_meeting_count: input.estimatedMeetingCount ?? null,
     make_up_instructions: input.makeUpInstructions ?? null,
   };
 
@@ -140,7 +140,7 @@ export async function updateLessonTemplate(id: string, updates: UpdateLessonTemp
   if (updates.exampleUrl !== undefined) payload.example_url = updates.exampleUrl;
   if (updates.exampleStoragePath !== undefined) payload.example_storage_path = updates.exampleStoragePath;
   if (updates.orderIndex !== undefined) payload.order_index = updates.orderIndex;
-  if (updates.durationMinutes !== undefined) payload.duration_minutes = updates.durationMinutes;
+  if (updates.estimatedMeetingCount !== undefined) payload.estimated_meeting_count = updates.estimatedMeetingCount;
   if (updates.makeUpInstructions !== undefined) payload.make_up_instructions = updates.makeUpInstructions;
 
   const { data, error } = await supabase

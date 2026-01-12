@@ -23,54 +23,78 @@ export default async function CoderMaterialsPage() {
         const blocksWithLessons = entry.blocks.filter((block) => block.lessons.length > 0);
         return (
           <section key={entry.classId} style={cardStyle}>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>{entry.name}</h2>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1.5rem', color: '#0f172a' }}>{entry.name}</h2>
+
             {blocksWithLessons.length === 0 ? (
-              <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>
-                Belum ada lesson yang tersedia. Coach akan membuka slide setelah sesi berjalan.
+              <p style={{ color: '#6b7280', fontSize: '0.9rem', fontStyle: 'italic' }}>
+                Belum ada materi pelajaran yang tersedia.
               </p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                 {blocksWithLessons.map((block) => (
-                  <div key={block.id} style={lessonBlockStyle}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem' }}>
-                      <div>
-                        <strong style={{ fontSize: '1rem', color: '#0f172a' }}>{block.name}</strong>
-                        <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>
-                          {formatDate(block.startDate)} – {formatDate(block.endDate)} • {block.status}
-                        </div>
-                      </div>
-                    </div>
+                  <div key={block.id}>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#475569', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ height: '20px', width: '4px', background: '#3b82f6', borderRadius: '4px' }}></span>
+                      {block.name}
+                    </h3>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      {block.lessons.map((lesson) => (
-                        <div key={lesson.id} style={lessonCardStyle}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                            <strong style={{ color: '#0f172a' }}>
-                              #{lesson.orderIndex + 1} {lesson.title}
-                            </strong>
-                            {lesson.sessionDate ? (
-                              <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                                Dibahas pada {new Date(lesson.sessionDate).toLocaleDateString()}
-                              </span>
-                            ) : null}
-                          </div>
-                          {lesson.slideUrl ? (
-                            <div style={slideContainerStyle}>
-                              <iframe
-                                src={getSlideEmbedUrl(lesson.slideUrl)}
-                                title={lesson.title}
-                                allowFullScreen
-                                style={slideFrameStyle}
-                              />
-                              <a href={lesson.slideUrl} target="_blank" rel="noreferrer" style={slideLinkStyle}>
-                                Buka di tab baru
-                              </a>
-                            </div>
-                          ) : (
-                            <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Coach belum menambahkan link slide.</span>
-                          )}
-                        </div>
-                      ))}
+                    <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '0.75rem' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                        <thead style={{ background: '#f8fafc' }}>
+                          <tr>
+                            <th style={thStyle}>Topik Pelajaran</th>
+                            <th style={thStyle} className="hide-mobile">Jadwal Sesi</th>
+                            <th style={{ ...thStyle, width: '140px' }}>Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {block.lessons.map((lesson) => (
+                            <tr key={lesson.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <td style={tdStyle}>
+                                <div style={{ fontWeight: 600, color: '#0f172a', marginBottom: '0.25rem' }}>
+                                  #{lesson.orderIndex + 1} {lesson.title}
+                                </div>
+                                {lesson.summary && (
+                                  <div style={{ fontSize: '0.85rem', color: '#64748b', maxWidth: '480px', lineHeight: 1.4 }}>
+                                    {lesson.summary}
+                                  </div>
+                                )}
+                                <div className="show-mobile" style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#94a3b8' }}>
+                                  {lesson.sessionDate ? new Date(lesson.sessionDate).toLocaleDateString() : 'Belum dijadwalkan'}
+                                </div>
+                              </td>
+                              <td style={tdStyle} className="hide-mobile">
+                                {lesson.sessionDate ? (
+                                  <span style={{ color: '#334155' }}>
+                                    {new Date(lesson.sessionDate).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })}
+                                  </span>
+                                ) : (
+                                  <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>—</span>
+                                )}
+                              </td>
+                              <td style={tdStyle}>
+                                <a
+                                  href={`/coder/materials/${lesson.id}`}
+                                  style={{
+                                    display: 'inline-block',
+                                    padding: '0.5rem 1rem',
+                                    borderRadius: '0.5rem',
+                                    background: '#eff6ff',
+                                    color: '#1d4ed8',
+                                    fontWeight: 600,
+                                    fontSize: '0.8rem',
+                                    textDecoration: 'none',
+                                    transition: 'background 0.2s',
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                >
+                                  Buka Materi →
+                                </a>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 ))}
@@ -193,4 +217,20 @@ const materialCard: CSSProperties = {
   borderRadius: '0.75rem',
   border: '1px solid #e2e8f0',
   background: '#f8fafc',
+};
+
+const thStyle: CSSProperties = {
+  padding: '0.75rem 1rem',
+  fontSize: '0.8rem',
+  color: '#475569',
+  fontWeight: 600,
+  borderBottom: '1px solid #e2e8f0',
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  textAlign: 'left',
+};
+
+const tdStyle: CSSProperties = {
+  padding: '1rem',
+  verticalAlign: 'top',
 };

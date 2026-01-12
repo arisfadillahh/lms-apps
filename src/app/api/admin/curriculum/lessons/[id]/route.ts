@@ -49,13 +49,20 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: 'Validation failed', details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const updates: Parameters<typeof lessonTemplatesDao.updateLessonTemplate>[1] = {
-    title: parsed.data.title,
-    summary: parsed.data.summary ?? null,
-    orderIndex: parsed.data.orderIndex,
-    durationMinutes: parsed.data.durationMinutes ?? null,
-    makeUpInstructions: parsed.data.makeUpInstructions ?? null,
-  };
+  const updates: Parameters<typeof lessonTemplatesDao.updateLessonTemplate>[1] = {};
+
+  if (parsed.data.title !== undefined) updates.title = parsed.data.title;
+  if (Object.prototype.hasOwnProperty.call(parsed.data, 'summary')) updates.summary = parsed.data.summary ?? null;
+  if (parsed.data.orderIndex !== undefined) updates.orderIndex = parsed.data.orderIndex;
+
+  // For nullable duration, checking undefined is key (null is a valid value for "clear")
+  if (Object.prototype.hasOwnProperty.call(parsed.data, 'durationMinutes')) {
+    updates.durationMinutes = parsed.data.durationMinutes ?? null;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(parsed.data, 'makeUpInstructions')) {
+    updates.makeUpInstructions = parsed.data.makeUpInstructions ?? null;
+  }
 
   if (Object.prototype.hasOwnProperty.call(parsed.data, 'slideUrl')) {
     updates.slideUrl = parsed.data.slideUrl ?? null;

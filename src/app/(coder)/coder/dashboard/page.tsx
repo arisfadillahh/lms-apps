@@ -1,8 +1,10 @@
 import type { CSSProperties } from 'react';
+import React from 'react';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { getCoderProgress } from '@/lib/services/coder';
 
+import JourneyModal from './JourneyModal';
 import JourneyMap from './JourneyMap';
 
 export default async function CoderDashboardPage() {
@@ -14,6 +16,7 @@ export default async function CoderDashboardPage() {
       classId: item.classId,
       className: item.name,
       block: item.upNext!,
+      journeyBlocks: item.journeyBlocks // Pass journey blocks for the modal
     }));
 
   const journeyProgress = progress
@@ -21,80 +24,282 @@ export default async function CoderDashboardPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <header>
-        <h1 style={{ fontSize: '1.6rem', fontWeight: 600, marginBottom: '0.75rem' }}>Welcome back, {session.user.fullName}</h1>
-        <p style={{ color: '#64748b' }}>Track your class progress and upcoming blocks.</p>
-      </header>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <header>
+          <h1 style={{ fontSize: 'clamp(1.5rem, 4vw, 2rem)', fontWeight: 700, marginBottom: '0.5rem', color: '#0f172a' }}>
+            Halo, {session.user.fullName} 👋
+          </h1>
+          <p style={{ color: '#64748b', fontSize: 'clamp(0.9rem, 2.5vw, 1.1rem)' }}>
+            Selamat datang kembali! Yuk cek progress dan persiapan kelasmu hari ini.
+          </p>
+        </header>
+
+        {/* Learning Journey Button - Moved here */}
+        <div style={{ flexShrink: 0 }}>
+          {journeyProgress.length > 0 && <JourneyModal courses={upcomingBlocks.map(b => ({
+            classId: b.classId,
+            name: b.className,
+            completedBlocks: journeyProgress.find(p => p.classId === b.classId)?.completedBlocks || 0,
+            totalBlocks: journeyProgress.find(p => p.classId === b.classId)?.totalBlocks || null,
+            journeyBlocks: b.journeyBlocks
+          }))} />}
+        </div>
+      </div>
 
       {upcomingBlocks.length > 0 ? (
-        <section style={upNextSectionStyle}>
-          <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '0.75rem' }}>Up Next</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-            {upcomingBlocks.map(({ classId, className, block }) => (
-              <div key={`${classId}-${block.blockId}`} style={upNextCardStyle}>
-                <div>
-                  <p style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    {className}
-                  </p>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#0f172a', marginTop: '0.35rem' }}>{block.name}</h3>
-                  <p style={{ color: '#475569', fontSize: '0.85rem', marginTop: '0.35rem' }}>
-                    Status: <span style={{ fontWeight: 600 }}>{formatStatus(block.status)}</span>
-                  </p>
-                </div>
-                <div style={{ minWidth: '200px', textAlign: 'right', color: '#475569', fontSize: '0.85rem' }}>
-                  <p>
-                    Jadwal:{' '}
-                    <strong>
-                      {new Date(block.startDate).toLocaleDateString()} - {new Date(block.endDate).toLocaleDateString()}
-                    </strong>
-                  </p>
-                  <p>
-                    Estimasi sesi: <strong>{block.estimatedSessions ?? '—'}</strong>
-                  </p>
-                </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+          {upcomingBlocks.map(({ classId, className, block, journeyBlocks }) => {
+            // Create a Course object matching JourneyCourse type for the modal
+            // const journeyCourse = { // This is no longer needed here as the modal is moved
+            //   classId,
+            //   name: className,
+            //   completedBlocks: journeyProgress.find(p => p.classId === classId)?.completedBlocks || 0,
+            //   totalBlocks: journeyProgress.find(p => p.classId === classId)?.totalBlocks || null,
+            //   journeyBlocks: journeyBlocks
+            // };
+
+            return (
+              <div key={`${classId}-${block.blockId}`} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+                {/* 1. SECTION: BLOCK INFO (CARD UTAMA) */}
+                <section style={cardStyle}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem' }}>
+                    <div>
+                      <p style={{ fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: '0.25rem' }}>
+                        {className}
+                      </p>
+                      <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                        Block: {block.name}
+                      </h2>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <span style={statusBadgeStyle(block.status)}>
+                        {formatStatus(block.status)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+
+                    {/* Column 1: Info Dasar */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      <div>
+                        <p style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, marginBottom: '0.25rem' }}>📅 JADWAL BLOCK</p>
+                        <p style={{ fontSize: '0.95rem', color: '#334155', fontWeight: 500 }}>
+                          {new Date(block.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long' })} - {new Date(block.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </p>
+                      </div>
+                      <div>
+                        <p style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, marginBottom: '0.25rem' }}>⏱️ DURASI</p>
+                        <p style={{ fontSize: '0.95rem', color: '#334155', fontWeight: 500 }}>
+                          {block.estimatedSessions !== null ? `${block.estimatedSessions} Pertemuan` : '—'}
+                        </p>
+                      </div>
+
+                      {/* Completed Lessons List */}
+                      {block.completedLessons && block.completedLessons.length > 0 && (
+                        <div style={{ marginTop: '0.5rem', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
+                          <p style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, marginBottom: '0.5rem' }}>✅ SESI SELESAI</p>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {block.completedLessons.map((lesson, idx) => (
+                              <div key={idx} style={{ fontSize: '0.9rem', color: '#334155' }}>
+                                <div style={{ fontWeight: 500 }}>{lesson.title}</div>
+                                <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                                  {new Date(lesson.completedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Column 2: Next Lesson (Highlight) */}
+                    {block.nextLesson ? (
+                      <div style={{ background: '#eff6ff', borderRadius: '12px', padding: '1.25rem', border: '1px solid #dbeafe', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <p style={{ fontSize: '0.75rem', color: '#1d4ed8', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>
+                          📚 Sesi Selanjutnya
+                        </p>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e40af', lineHeight: '1.4', marginBottom: '0.5rem' }}>
+                          {block.nextLesson.title}
+                        </h3>
+                        {block.nextLesson.summary && (
+                          <p style={{ fontSize: '0.85rem', color: '#1e3a8a', lineHeight: '1.5', opacity: 0.9 }}>
+                            {block.nextLesson.summary}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '1.25rem', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontStyle: 'italic' }}>
+                        Belum ada jadwal sesi berikutnya
+                      </div>
+                    )}
+
+                  </div>
+                </section>
+
+                {/* 2. SECTION: SOFTWARE (CARD TERPISAH) */}
+                {block.software && block.software.length > 0 && (
+                  <section>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      📦 Software
+                    </h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+                      {block.software.map(sw => (
+                        <div key={sw.id} style={softwareCardStyle}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                            <div>
+                              <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>{sw.name}</h4>
+                              {sw.version && <span style={{ fontSize: '0.8rem', color: '#64748b', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', display: 'inline-block' }}>v{sw.version}</span>}
+                            </div>
+                            {sw.installation_url && (
+                              <a
+                                href={sw.installation_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  background: '#2563eb',
+                                  color: 'white',
+                                  padding: '8px 16px',
+                                  borderRadius: '8px',
+                                  fontSize: '0.85rem',
+                                  fontWeight: 600,
+                                  textDecoration: 'none',
+                                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                  transition: 'background 0.2s'
+                                }}
+                              >
+                                Download ⬇️
+                              </a>
+                            )}
+                          </div>
+
+                          {sw.description && (
+                            <div style={{ fontSize: '0.9rem', color: '#475569', marginBottom: '1rem', lineHeight: '1.5', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
+                              {sw.description}
+                            </div>
+                          )}
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {sw.installation_instructions && (
+                              <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                <p style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700, marginBottom: '0.35rem', textTransform: 'uppercase' }}>Cara Install</p>
+                                <p style={{ fontSize: '0.85rem', color: '#334155', whiteSpace: 'pre-line', lineHeight: '1.5' }}>{sw.installation_instructions}</p>
+                              </div>
+                            )}
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                              {sw.minimum_specs && Object.keys(sw.minimum_specs).length > 0 && (
+                                <div style={{ background: '#fffbeb', padding: '0.85rem', borderRadius: '8px', border: '1px solid #fcd34d' }}>
+                                  <p style={{ fontSize: '0.75rem', color: '#92400e', fontWeight: 700, marginBottom: '0.35rem', textTransform: 'uppercase' }}>Spek Minimum</p>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '0.8rem' }}>
+                                    {Object.entries(sw.minimum_specs).map(([key, value]) => value && (
+                                      <div key={key} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ color: '#b45309', textTransform: 'capitalize' }}>{key}</span>
+                                      </div>
+                                    ))}
+                                    {/* Render values in a cleaner way if needed, for now stacked is fine or value only */}
+                                    {Object.entries(sw.minimum_specs).map(([key, value]) => value && (
+                                      <span key={`${key}-val`} style={{ color: '#78350f', fontWeight: 500 }}>{value}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {sw.access_info && (
+                                <div style={{ background: '#ecfdf5', padding: '0.85rem', borderRadius: '8px', border: '1px solid #6ee7b7' }}>
+                                  <p style={{ fontSize: '0.75rem', color: '#065f46', fontWeight: 700, marginBottom: '0.35rem', textTransform: 'uppercase' }}>Info Akses</p>
+                                  <p style={{ fontSize: '0.85rem', color: '#047857', lineHeight: '1.4' }}>{sw.access_info}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
               </div>
-            ))}
-          </div>
-        </section>
+            );
+          })}
+        </div>
       ) : null}
 
-      {journeyProgress.length > 0 ? <JourneyMap courses={journeyProgress} /> : null}
-
+      {/* Progress Section (Keep as secondary info) */}
       <section style={cardStyle}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead style={{ background: '#f1f5f9', textAlign: 'left' }}>
-            <tr>
-              <th style={thStyle}>Class</th>
-              <th style={thStyle}>Completed</th>
-              <th style={thStyle}>Current Block</th>
-              <th style={thStyle}>Next Block</th>
-              <th style={thStyle}>Last Attendance</th>
-            </tr>
-          </thead>
-          <tbody>
-            {progress.length === 0 ? (
+        <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem', color: '#0f172a' }}>📊 Ringkasan Progress</h2>
+
+        {/* Desktop Table */}
+        <div style={{ display: 'block', overflowX: 'auto' }} className="hidden-mobile">
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
+            <thead style={{ background: '#f8fafc', textAlign: 'left' }}>
               <tr>
-                <td colSpan={5} style={{ padding: '1rem', textAlign: 'center', color: '#6b7280' }}>
-                  You are not enrolled in any classes yet.
-                </td>
+                <th style={thStyle}>Kelas</th>
+                <th style={thStyle}>Selesai</th>
+                <th style={thStyle}>Total Block</th>
+                <th style={thStyle}>Terakhir Hadir</th>
               </tr>
-            ) : (
-              progress.map((item) => (
-                <tr key={item.classId} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                  <td style={tdStyle}>{item.name}</td>
-                  <td style={tdStyle}>
-                    {item.totalBlocks ? `${item.completedBlocks}/${item.totalBlocks} blocks` : item.semesterTag ?? '—'}
+            </thead>
+            <tbody>
+              {progress.length === 0 ? (
+                <tr>
+                  <td colSpan={4} style={{ padding: '1rem', textAlign: 'center', color: '#6b7280' }}>
+                    Kamu belum terdaftar di kelas manapun.
                   </td>
-                  <td style={tdStyle}>{item.currentBlockName ?? '—'}</td>
-                  <td style={tdStyle}>{item.upcomingBlockName ?? '—'}</td>
-                  <td style={tdStyle}>{item.lastAttendanceAt ? new Date(item.lastAttendanceAt).toLocaleString() : '—'}</td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                progress.map((item) => (
+                  <tr key={item.classId} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                    <td style={tdStyle}>
+                      <span style={{ fontWeight: 600, color: '#334155' }}>{item.name}</span>
+                    </td>
+                    <td style={tdStyle}>
+                      {item.completedBlocks} Block
+                    </td>
+                    <td style={tdStyle}>{item.totalBlocks ?? '—'}</td>
+                    <td style={tdStyle}>{item.lastAttendanceAt ? new Date(item.lastAttendanceAt).toLocaleDateString() : '—'}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile Cards */}
+        <div style={{ display: 'none' }} className="show-mobile">
+          {progress.length === 0 ? (
+            <p style={{ textAlign: 'center', color: '#6b7280', padding: '1rem' }}>Kamu belum terdaftar di kelas manapun.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {progress.map((item) => (
+                <div key={item.classId} style={mobileCardStyle}>
+                  <div style={{ fontWeight: 600, color: '#0f172a', marginBottom: '0.5rem' }}>{item.name}</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem', fontSize: '0.8rem', color: '#475569' }}>
+                    <span>Block Selesai:</span>
+                    <span style={{ fontWeight: 500 }}>{item.completedBlocks}</span>
+                    <span>Total Block:</span>
+                    <span style={{ fontWeight: 500 }}>{item.totalBlocks ?? '—'}</span>
+                    <span>Last seen:</span>
+                    <span style={{ fontWeight: 500 }}>{item.lastAttendanceAt ? new Date(item.lastAttendanceAt).toLocaleDateString() : '—'}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </section>
 
+      {/* Responsive CSS via style tag */}
+      <style>{`
+        @media (max-width: 768px) {
+          .hidden-mobile { display: none !important; }
+          .show-mobile { display: block !important; }
+        }
+        @media (min-width: 769px) {
+          .hidden-mobile { display: block !important; }
+          .show-mobile { display: none !important; }
+        }
+      `}</style>
     </div>
   );
 }
@@ -110,44 +315,77 @@ function formatStatus(status: 'UPCOMING' | 'CURRENT' | 'COMPLETED'): string {
   }
 }
 
-const upNextSectionStyle: CSSProperties = {
-  background: '#ffffff',
-  borderRadius: '0.75rem',
-  border: '1px solid #e5e7eb',
-  padding: '1.25rem 1.5rem',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.75rem',
-};
+function statusBadgeStyle(status: 'UPCOMING' | 'CURRENT' | 'COMPLETED'): CSSProperties {
+  const base = {
+    padding: '0.35rem 0.85rem',
+    borderRadius: '999px',
+    fontSize: '0.75rem',
+    fontWeight: 600,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.05em'
+  };
 
-const upNextCardStyle: CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  gap: '1rem',
-  borderRadius: '0.75rem',
-  border: '1px solid #e2e8f0',
-  padding: '0.85rem 1rem',
-  background: '#f8fafc',
-};
+  if (status === 'CURRENT') {
+    return {
+      ...base,
+      background: '#eff6ff',
+      color: '#1d4ed8',
+      border: '1px solid #dbeafe'
+    };
+  }
+  if (status === 'COMPLETED') {
+    return {
+      ...base,
+      background: '#f0fdf4',
+      color: '#15803d',
+      border: '1px solid #bbf7d0'
+    };
+  }
+  return {
+    ...base,
+    background: '#f1f5f9',
+    color: '#475569',
+    border: '1px solid #e2e8f0'
+  };
+}
 
 const cardStyle: CSSProperties = {
   background: '#ffffff',
-  borderRadius: '0.75rem',
-  border: '1px solid #e5e7eb',
-  padding: '1.25rem 1.5rem',
-  overflowX: 'auto',
+  borderRadius: '1rem',
+  border: '1px solid #e2e8f0',
+  padding: '1.5rem',
+  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+};
+
+const softwareCardStyle: CSSProperties = {
+  background: '#ffffff',
+  borderRadius: '1rem',
+  border: '1px solid #e2e8f0',
+  padding: '1.5rem',
+  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+  display: 'flex',
+  flexDirection: 'column',
+};
+
+const mobileCardStyle: CSSProperties = {
+  background: '#f8fafc',
+  borderRadius: '0.85rem',
+  border: '1px solid #e2e8f0',
+  padding: '1rem',
 };
 
 const thStyle: CSSProperties = {
   padding: '0.75rem 1rem',
-  fontSize: '0.85rem',
+  fontSize: '0.8rem',
   color: '#475569',
+  fontWeight: 600,
   borderBottom: '1px solid #e2e8f0',
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em'
 };
 
 const tdStyle: CSSProperties = {
-  padding: '0.85rem 1rem',
+  padding: '0.75rem 1rem',
   fontSize: '0.9rem',
   color: '#1f2937',
 };

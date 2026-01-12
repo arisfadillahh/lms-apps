@@ -73,6 +73,7 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
       const currentBlock = blocks.find((block) => block.status === 'CURRENT');
       const upcomingBlock = blocks.find((block) => block.status === 'UPCOMING');
 
+      // Sort blocks by order_index or start_date
       const sortedBlocks = [...blocks].sort((a, b) => {
         if (a.block_order_index != null && b.block_order_index != null) {
           return a.block_order_index - b.block_order_index;
@@ -91,13 +92,15 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
           }))
           : [];
 
-      const journeyBlocks = sortedBlocks.map((block) => ({
+      // Note: wrap-around journey order is handled at enrollment time in coderProgressDao
+      // This display uses class block order for consistency
+      const journeyBlocks = sortedBlocks.map((block, index) => ({
         blockId: block.block_id,
         name: block.block_name ?? 'Block',
         status: block.status,
         startDate: block.start_date,
         endDate: block.end_date,
-        orderIndex: block.block_order_index ?? null,
+        orderIndex: index,
       }));
 
       let upNext: CoderClassProgress['upNext'] = null;

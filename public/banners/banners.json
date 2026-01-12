@@ -1,0 +1,20 @@
+{
+  "banners": [
+    {
+      "id": "990b74ad-ca99-4e0b-9c48-367e571394f0",
+      "imagePath": "/banners/4a0d026f-5837-4cc5-af7e-917a0854615d.jpeg",
+      "linkUrl": "https://clev.io/chat",
+      "title": "a",
+      "order": 0,
+      "isActive": false
+    },
+    {
+      "id": "6226cdbc-9ff9-4fb9-a634-65744c2e35c9",
+      "imagePath": "/banners/5db59d68-45f1-474e-90ba-8d5ba9e45b1f.jpeg",
+      "linkUrl": "https://clev.io/chat",
+      "title": "b",
+      "order": 1,
+      "isActive": false
+    }
+  ]
+}

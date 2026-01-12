@@ -66,9 +66,14 @@ export async function POST(request: NextRequest, context: RouteContext) {
       coderId: parsed.data.coderId,
     });
 
+    // Find the current block for this class - use class_blocks, not level_blocks
+    // Sort class_blocks by start_date to find the first scheduled block
+    const sortedClassBlocks = [...classBlocks].sort(
+      (a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
+    );
     const currentBlockId =
       classBlocks.find((block) => block.status === 'CURRENT')?.block_id ??
-      levelBlocks[0]?.id ??
+      sortedClassBlocks[0]?.block_id ??  // Use first class_block by date, not first level block
       null;
 
     await coderProgressDao.ensureJourneyForCoder({

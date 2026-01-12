@@ -178,7 +178,8 @@ function buildLessonQueue(
 ): ClassLessonRecord[] {
   return blocks
     .slice()
-    .sort((a, b) => (a.block_order_index ?? 0) - (b.block_order_index ?? 0))
+    // Changed sort logic to use DATE instead of ORDER INDEX
+    .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())
     .flatMap((block) => {
       const lessons = lessonsByBlock.get(block.id) ?? [];
       return lessons.slice().sort((a, b) => a.order_index - b.order_index);
@@ -393,9 +394,12 @@ async function syncBlockStatuses(
 
   const sessionMap = new Map(sessions.map((session) => [session.id, session]));
   const now = Date.now();
+
+  // Update: Sort by start_date to respect the class schedule (e.g. starting at Block 3)
   const sortedBlocks = blocks
     .slice()
-    .sort((a, b) => (a.block_order_index ?? 0) - (b.block_order_index ?? 0));
+    // Changed sort logic to use DATE instead of ORDER INDEX
+    .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
 
 
   const blockStates = sortedBlocks.map((block) => {

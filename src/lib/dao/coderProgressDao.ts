@@ -29,16 +29,26 @@ export async function ensureJourneyForCoder({ coderId, levelId, blocks, entryBlo
     return;
   }
 
+  // Get blocks ordered by order_index (curriculum order)
   const orderedBlockIds = computeJourneyOrder(blocks);
-  const initialBlockId =
-    entryBlockId && orderedBlockIds.includes(entryBlockId) ? entryBlockId : orderedBlockIds[0];
 
-  const payload = orderedBlockIds.map((blockId, index) => ({
+  // Find the starting point (entry block)
+  const entryIndex = entryBlockId ? orderedBlockIds.indexOf(entryBlockId) : 0;
+  const startIndex = entryIndex >= 0 ? entryIndex : 0;
+
+  // Apply wrap-around: reorder starting from entry block
+  // Example: if entryBlockId is at index 2 (block 3), journey becomes [block3, block4, block5, block1, block2]
+  const wrappedBlockIds = [
+    ...orderedBlockIds.slice(startIndex),
+    ...orderedBlockIds.slice(0, startIndex),
+  ];
+
+  const payload = wrappedBlockIds.map((blockId, index) => ({
     coder_id: coderId,
     level_id: levelId,
     block_id: blockId,
-    journey_order: index,
-    status: blockId === initialBlockId ? 'IN_PROGRESS' : 'PENDING',
+    journey_order: index,  // 0, 1, 2, 3, 4 based on wrapped order
+    status: (index === 0 ? 'IN_PROGRESS' : 'PENDING') as 'IN_PROGRESS' | 'PENDING' | 'COMPLETED',
   }));
 
   const insertResult = await supabase.from('coder_block_progress').insert(payload);

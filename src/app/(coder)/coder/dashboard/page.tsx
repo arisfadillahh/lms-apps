@@ -1,5 +1,7 @@
 import type { CSSProperties } from 'react';
 import React from 'react';
+import { promises as fs } from 'fs';
+import path from 'path';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { getCoderProgress } from '@/lib/services/coder';
@@ -7,10 +9,34 @@ import { getCoderProgress } from '@/lib/services/coder';
 import JourneyModal from './JourneyModal';
 import SoftwareDetailModal from './SoftwareDetailModal';
 import JourneyMap from './JourneyMap';
+import BannerCarousel from '@/components/coder/BannerCarousel';
+
+type Banner = {
+  id: string;
+  imagePath: string;
+  linkUrl: string;
+  title: string;
+  order: number;
+  isActive: boolean;
+};
+
+async function getBanners(): Promise<Banner[]> {
+  try {
+    const filePath = path.join(process.cwd(), 'public', 'banners', 'banners.json');
+    const data = await fs.readFile(filePath, 'utf-8');
+    const json = JSON.parse(data);
+    return json.banners || [];
+  } catch {
+    return [];
+  }
+}
 
 export default async function CoderDashboardPage() {
   const session = await getSessionOrThrow();
-  const progress = await getCoderProgress(session.user.id);
+  const [progress, banners] = await Promise.all([
+    getCoderProgress(session.user.id),
+    getBanners(),
+  ]);
   const upcomingBlocks = progress
     .filter((item) => item.type === 'WEEKLY' && item.upNext)
     .map((item) => ({
@@ -23,8 +49,15 @@ export default async function CoderDashboardPage() {
   const journeyProgress = progress
     .filter((item) => item.type === 'WEEKLY' && item.journeyBlocks.length > 0);
 
+  const activeBanners = banners.filter(b => b.isActive);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      {/* Banner Carousel */}
+      {activeBanners.length > 0 && (
+        <BannerCarousel banners={activeBanners} />
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <header>
           <h1 style={{ fontSize: 'clamp(1.5rem, 4vw, 2rem)', fontWeight: 700, marginBottom: '0.5rem', color: '#0f172a' }}>

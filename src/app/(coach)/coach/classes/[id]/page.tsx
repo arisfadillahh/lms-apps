@@ -87,25 +87,25 @@ export default async function CoachClassPage({ params, searchParams }: PageProps
   const getSlotId = (slot: { lessonTemplate: { id: string }, partNumber: number }) =>
     `${slot.lessonTemplate.id}-${slot.partNumber}`;
 
-  // For legacy LessonPlanSection - build a compatible structure
-  const blockLessons = allLessonSlots.length > 0 ? [{
+  // For legacy LessonPlanSection - only show lessons that have scheduled sessions
+  const blockLessons = computedLessonsForTable.length > 0 ? [{
     block: {
-      id: 'computed',
-      block_name: 'Computed Schedule',
+      id: 'scheduled',
+      block_name: 'Jadwal Lesson',
       status: 'CURRENT' as const,
       start_date: classRecord?.start_date ?? null,
       end_date: classRecord?.end_date ?? null,
     },
-    lessons: allLessonSlots.map((slot) => ({
+    lessons: computedLessonsForTable.map((lesson, index) => ({
       lesson: {
-        id: getSlotId(slot),
-        title: formatLessonTitle(slot),
-        order_index: slot.globalIndex,
-        session_id: null,
-        slide_url: slot.lessonTemplate.slide_url,
-        coach_example_url: slot.lessonTemplate.example_url,
+        id: lesson.id,
+        title: lesson.title,
+        order_index: index,
+        session_id: lesson.session_id,
+        slide_url: lesson.slide_url,
+        coach_example_url: lesson.coach_example_url,
       },
-      template: slot.lessonTemplate,
+      template: null,
     })),
   }] : [];
 

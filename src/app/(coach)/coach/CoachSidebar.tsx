@@ -4,9 +4,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { CSSProperties } from 'react';
 import { Home, ClipboardCheck, FileUp, CalendarOff } from 'lucide-react';
+import Image from 'next/image';
 
 import SignOutButton from '@/components/SignOutButton';
 
+// Edmate Theme Sidebar Styles (Coach)
 const NAV_LINKS = [
     { href: '/coach/dashboard', label: 'Dashboard', icon: Home },
     { href: '/coach/rubrics', label: 'Rubrik', icon: ClipboardCheck },
@@ -17,8 +19,6 @@ const NAV_LINKS = [
 type CoachSidebarProps = {
     session: { user: { fullName: string } } | null;
 };
-
-// Edmate Theme Sidebar Styles (Coach)
 const sidebarStyle: CSSProperties = {
     width: '240px',
     height: '100vh',
@@ -62,11 +62,16 @@ export default function CoachSidebar({ session }: CoachSidebarProps) {
 
     return (
         <aside style={sidebarStyle}>
-            <div style={{ paddingLeft: '0.5rem' }}>
-                <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#2563eb', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '1.5rem' }}>⚡</span> Edmate
-                </p>
-                <p style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', marginTop: '0.25rem' }}>Coach Portal</p>
+            <div style={{ paddingLeft: '0.5rem', marginBottom: '1.25rem' }}>
+                <Image
+                    src="/logo/Logo Innovator Camp dark.png"
+                    alt="Innovator Camp Logo"
+                    width={120}
+                    height={40}
+                    style={{ width: 'auto', height: 'auto', maxWidth: '100%', objectFit: 'contain' }}
+                    priority
+                />
+                <p style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', marginTop: '0.5rem' }}>Coach Dashboard</p>
             </div>
             <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {NAV_LINKS.map((link) => {

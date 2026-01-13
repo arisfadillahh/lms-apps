@@ -11,6 +11,7 @@ type UserSession = {
 };
 
 import { usePathname } from 'next/navigation';
+import SignOutButton from '@/components/SignOutButton';
 
 export default function DashboardHeader({ user }: { user: UserSession }) {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -140,14 +141,28 @@ export default function DashboardHeader({ user }: { user: UserSession }) {
                                     Edit Profile
                                 </a>
                                 {/* Logout - Assuming standard next-auth signout or link */}
-                                <a
-                                    href="/api/auth/signout"
-                                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                                    style={{ width: '100%', textAlign: 'left', padding: '0.5rem 1rem', fontSize: '0.875rem', color: '#dc2626', display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}
-                                >
-                                    <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ width: '1rem', height: '1rem', color: '#f87171' }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                                    Logout
-                                </a>
+                                {/* Logout - Using SignOutButton for modal confirmation */}
+                                <div style={{ width: '100%', padding: '0' }}>
+                                    <SignOutButton
+                                        label="Logout"
+                                        style={{
+                                            width: '100%',
+                                            textAlign: 'left',
+                                            padding: '0.5rem 1rem',
+                                            fontSize: '0.875rem',
+                                            color: '#dc2626',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.5rem',
+                                            background: 'transparent',
+                                            border: 'none',
+                                            cursor: 'pointer'
+                                        }}
+                                        icon={
+                                            <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ width: '1rem', height: '1rem', color: '#f87171' }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                                        }
+                                    />
+                                </div>
                             </div>
                         </>
                     )}

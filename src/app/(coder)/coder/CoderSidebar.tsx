@@ -7,6 +7,8 @@ import { Home, BookOpen, FileUp, FileText, User } from 'lucide-react';
 
 import SignOutButton from '@/components/SignOutButton';
 
+import Image from 'next/image';
+
 const NAV_LINKS = [
     { href: '/coder/dashboard', label: 'Dashboard', icon: Home },
     { href: '/coder/materials', label: 'Materi', icon: BookOpen },
@@ -62,11 +64,16 @@ export default function CoderSidebar({ session }: CoderSidebarProps) {
 
     return (
         <aside style={sidebarStyle}>
-            <div style={{ paddingLeft: '0.5rem' }}>
-                <p style={{ fontSize: '1.25rem', fontWeight: 800, color: '#2563eb', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '1.5rem' }}>⚡</span> Edmate
-                </p>
-                <p style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', marginTop: '0.25rem' }}>Coder Portal</p>
+            <div style={{ paddingLeft: '0.5rem', marginBottom: '1.25rem' }}>
+                <Image
+                    src="/logo/Logo Innovator Camp dark.png"
+                    alt="Innovator Camp Logo"
+                    width={120}
+                    height={40}
+                    style={{ width: 'auto', height: 'auto', maxWidth: '100%', objectFit: 'contain' }}
+                    priority
+                />
+                <p style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', marginTop: '0.5rem' }}>Coder Dashboard</p>
             </div>
             <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {NAV_LINKS.map((link) => {

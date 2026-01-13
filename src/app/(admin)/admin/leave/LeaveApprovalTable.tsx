@@ -151,46 +151,52 @@ export default function LeaveApprovalTable({ requests, coaches }: LeaveApprovalT
                     )}
                   </td>
                   <td style={tdStyle}>{request.note ?? '—'}</td>
-                  <td style={tdActionStyle}>
-                    {/* If PENDING or editing, show Approve/Tolak buttons */}
-                    {isPending_ || isEditing ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => updateStatus(request.id, 'APPROVED')}
-                          disabled={isPending}
-                          style={approveButtonStyle}
-                        >
-                          {isPending ? 'Memproses…' : 'Approve'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => updateStatus(request.id, 'REJECTED')}
-                          disabled={isPending}
-                          style={rejectButtonStyle}
-                        >
-                          Tolak
-                        </button>
-                        {isEditing && (
+                  <td style={{ ...tdStyle, verticalAlign: 'middle' }}>
+                    <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                      {/* If PENDING or editing, show Approve/Reject icon buttons */}
+                      {isPending_ || isEditing ? (
+                        <>
                           <button
                             type="button"
-                            onClick={() => toggleEdit(request.id)}
-                            style={cancelEditButtonStyle}
+                            onClick={() => updateStatus(request.id, 'APPROVED')}
+                            disabled={isPending}
+                            style={iconButtonApprove}
+                            title="Approve"
                           >
-                            Batal
+                            ✓
                           </button>
-                        )}
-                      </>
-                    ) : (
-                      /* Show Edit button for already processed requests */
-                      <button
-                        type="button"
-                        onClick={() => toggleEdit(request.id)}
-                        style={editButtonStyle}
-                      >
-                        Edit
-                      </button>
-                    )}
+                          <button
+                            type="button"
+                            onClick={() => updateStatus(request.id, 'REJECTED')}
+                            disabled={isPending}
+                            style={iconButtonReject}
+                            title="Tolak"
+                          >
+                            ✕
+                          </button>
+                          {isEditing && (
+                            <button
+                              type="button"
+                              onClick={() => toggleEdit(request.id)}
+                              style={iconButtonCancel}
+                              title="Batal"
+                            >
+                              ↩
+                            </button>
+                          )}
+                        </>
+                      ) : (
+                        /* Show Undo/Edit icon for already processed requests */
+                        <button
+                          type="button"
+                          onClick={() => toggleEdit(request.id)}
+                          style={iconButtonEdit}
+                          title="Edit"
+                        >
+                          ✏️
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -253,46 +259,43 @@ const selectStyle: CSSProperties = {
   color: 'var(--color-text-primary)',
 };
 
-const approveButtonStyle: CSSProperties = {
-  padding: '0.45rem 0.85rem',
+const iconButtonBase: CSSProperties = {
+  width: '32px',
+  height: '32px',
   borderRadius: '0.5rem',
   border: 'none',
-  background: '#16a34a',
-  color: '#fff',
-  fontSize: '0.85rem',
+  fontSize: '1rem',
   fontWeight: 600,
   cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  transition: 'transform 0.15s ease, opacity 0.15s ease',
 };
 
-const rejectButtonStyle: CSSProperties = {
-  padding: '0.45rem 0.85rem',
-  borderRadius: '0.5rem',
-  border: 'none',
-  background: '#dc2626',
-  color: '#fff',
-  fontSize: '0.85rem',
-  fontWeight: 600,
-  cursor: 'pointer',
+const iconButtonApprove: CSSProperties = {
+  ...iconButtonBase,
+  background: '#dcfce7',
+  color: '#16a34a',
 };
 
-const editButtonStyle: CSSProperties = {
-  padding: '0.45rem 0.85rem',
-  borderRadius: '0.5rem',
-  border: '1px solid #cbd5e1',
-  background: '#fff',
-  color: '#334155',
-  fontSize: '0.85rem',
-  fontWeight: 600,
-  cursor: 'pointer',
+const iconButtonReject: CSSProperties = {
+  ...iconButtonBase,
+  background: '#fee2e2',
+  color: '#dc2626',
 };
 
-const cancelEditButtonStyle: CSSProperties = {
-  padding: '0.45rem 0.85rem',
-  borderRadius: '0.5rem',
+const iconButtonEdit: CSSProperties = {
+  ...iconButtonBase,
+  background: '#f1f5f9',
+  color: '#475569',
   border: '1px solid #e2e8f0',
-  background: '#f8fafc',
-  color: '#64748b',
-  fontSize: '0.85rem',
-  fontWeight: 500,
-  cursor: 'pointer',
 };
+
+const iconButtonCancel: CSSProperties = {
+  ...iconButtonBase,
+  background: '#f8fafc',
+  color: '#94a3b8',
+  border: '1px solid #e2e8f0',
+};
+

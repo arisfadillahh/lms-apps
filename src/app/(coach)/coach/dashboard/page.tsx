@@ -161,15 +161,13 @@ export default async function CoachDashboardPage() {
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                                 <span style={{ color: '#1e40af', fontWeight: '600', fontSize: '14px' }}>{cls.nextLesson.title}</span>
-                                                {cls.nextLesson.slideUrl && (
-                                                    <a
-                                                        href={cls.nextLesson.slideUrl}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
+                                                {cls.nextLesson.lessonTemplateId && (
+                                                    <Link
+                                                        href={`/coach/lesson/${cls.nextLesson.lessonTemplateId}`}
                                                         style={{ background: '#dbeafe', color: '#1d4ed8', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', textDecoration: 'none' }}
                                                     >
-                                                        Buka Slide ↗
-                                                    </a>
+                                                        Lihat Detail ↗
+                                                    </Link>
                                                 )}
                                             </div>
                                         </div>

@@ -5,6 +5,7 @@ import { getSessionOrThrow } from '@/lib/auth';
 import { blocksDao, lessonTemplatesDao, levelsDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
 import DeleteLevelButton from './DeleteLevelButton';
+import AddLevelButton from './AddLevelButton';
 
 export default async function AdminCurriculumPage() {
   const session = await getSessionOrThrow();
@@ -23,11 +24,14 @@ export default async function AdminCurriculumPage() {
   );
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
-      <header>
-        <h1 style={{ fontSize: '1.6rem', fontWeight: 600, marginBottom: '0.75rem' }}>Perencanaan Kurikulum</h1>
-        <p style={{ color: '#64748b', maxWidth: '48rem' }}>
-          Kelola block dan lesson template per level. Perubahan langsung berdampak ke kelas yang menggunakan level tersebut.
-        </p>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1 style={{ fontSize: '1.6rem', fontWeight: 600, marginBottom: '0.75rem' }}>Perencanaan Kurikulum</h1>
+          <p style={{ color: '#64748b', maxWidth: '48rem' }}>
+            Kelola block dan lesson template per level. Perubahan langsung berdampak ke kelas yang menggunakan level tersebut.
+          </p>
+        </div>
+        <AddLevelButton />
       </header>
 
       <ul style={levelListStyle}>

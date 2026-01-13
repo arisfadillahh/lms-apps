@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { CSSProperties } from 'react';
-import { Home, Users, GraduationCap, BookOpen, CalendarOff, FileText, MessageCircle, Package, Image as ImageIcon } from 'lucide-react';
+import { Home, Users, GraduationCap, BookOpen, CalendarOff, FileText, MessageCircle, Package, Image as ImageIcon, Wallet, BookMarked } from 'lucide-react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 
@@ -12,6 +12,8 @@ const NAV_LINKS = [
     { href: '/admin/users', label: 'Pengguna', icon: Users },
     { href: '/admin/classes', label: 'Kelas', icon: GraduationCap },
     { href: '/admin/curriculum', label: 'Kurikulum', icon: BookOpen },
+    { href: '/admin/ekskul', label: 'Ekskul Plans', icon: BookMarked },
+    { href: '/admin/payments', label: 'Pembayaran', icon: Wallet },
     { href: '/admin/software', label: 'Software', icon: Package },
     { href: '/admin/banners', label: 'Banner', icon: ImageIcon },
     { href: '/admin/leave', label: 'Izin Coach', icon: CalendarOff },

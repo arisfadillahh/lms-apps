@@ -40,8 +40,12 @@ export default async function CoachClassPage({ params, searchParams }: PageProps
     materialsDao.listMaterialsByClass(classIdParam),
   ]);
 
-  // Use computed lesson schedule instead of class_lessons
-  const lessonScheduleMap = await computeLessonSchedule(classIdParam, classRecord?.level_id ?? null);
+  // Use computed lesson schedule instead of class_lessons (now supports Ekskul)
+  const lessonScheduleMap = await computeLessonSchedule(
+    classIdParam,
+    classRecord?.level_id ?? null,
+    (classRecord as any).ekskul_lesson_plan_id
+  );
 
   // Get all lesson slots for display purposes
   const allLessonSlots = classRecord?.level_id
@@ -256,11 +260,15 @@ export default async function CoachClassPage({ params, searchParams }: PageProps
             <p style={{ color: '#64748b' }}>Belum ada sesi mendatang.</p>
           )}
         </div>
+        {/* Schedule Table */}
       </section>
-
-      {/* New Table View */}
-      <LessonScheduleTable sessions={sortedSessions} lessons={computedLessonsForTable} />
-
+      <section style={{ marginTop: '2rem' }}>
+        <LessonScheduleTable
+          sessions={sortedSessions}
+          lessons={computedLessonsForTable}
+          classType={classRecord.type}
+        />
+      </section>
       <section style={cardStyle}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
           <div>
@@ -276,63 +284,65 @@ export default async function CoachClassPage({ params, searchParams }: PageProps
       </section>
 
       {/* RECAP ATTENDANCE below */}
-      {sortedSessions.length > 0 ? (
-        <section style={cardStyle}>
-          <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>Rekap Kehadiran</h2>
-          <div style={recapWrapperStyle}>
-            <table style={recapTableStyle}>
-              <thead>
-                <tr>
-                  <th style={recapNameHeaderStyle}>Nama</th>
-                  {sortedSessions.map((sessionItem) => (
-                    <th key={sessionItem.id} style={recapDateHeaderStyle}>
-                      <div>{format(new Date(sessionItem.date_time), 'dd MMM')}</div>
-                      <small style={{ color: 'var(--color-text-muted)' }}>
-                        {format(new Date(sessionItem.date_time), 'EEE')}
-                      </small>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {attendanceSummaryRows.map((row) => (
-                  <tr key={row.fullName}>
-                    <td style={recapNameCellStyle}>{row.fullName}</td>
-                    {row.statuses.map((status, index) => {
-                      if (!status) {
-                        return (
-                          <td key={`${row.fullName}-${index}`} style={recapCellStyle}>
-                            —
-                          </td>
-                        );
-                      }
-                      if (status.status === 'PRESENT' || status.status === 'LATE') {
-                        return (
-                          <td key={`${row.fullName}-${index}`} style={{ ...recapCellStyle, color: 'var(--color-success)' }}>
-                            ✓
-                          </td>
-                        );
-                      }
-                      if (status.status === 'EXCUSED') {
-                        return (
-                          <td key={`${row.fullName}-${index}`} style={{ ...recapCellStyle, color: 'var(--color-accent)' }}>
-                            E{status.reason ? ` (${status.reason})` : ''}
-                          </td>
-                        );
-                      }
-                      return (
-                        <td key={`${row.fullName}-${index}`} style={{ ...recapCellStyle, color: 'var(--color-danger)' }}>
-                          ×{status.reason ? ` (${status.reason})` : ''}
-                        </td>
-                      );
-                    })}
+      {
+        sortedSessions.length > 0 ? (
+          <section style={cardStyle}>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>Rekap Kehadiran</h2>
+            <div style={recapWrapperStyle}>
+              <table style={recapTableStyle}>
+                <thead>
+                  <tr>
+                    <th style={recapNameHeaderStyle}>Nama</th>
+                    {sortedSessions.map((sessionItem) => (
+                      <th key={sessionItem.id} style={recapDateHeaderStyle}>
+                        <div>{format(new Date(sessionItem.date_time), 'dd MMM')}</div>
+                        <small style={{ color: 'var(--color-text-muted)' }}>
+                          {format(new Date(sessionItem.date_time), 'EEE')}
+                        </small>
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ) : null}
+                </thead>
+                <tbody>
+                  {attendanceSummaryRows.map((row) => (
+                    <tr key={row.fullName}>
+                      <td style={recapNameCellStyle}>{row.fullName}</td>
+                      {row.statuses.map((status, index) => {
+                        if (!status) {
+                          return (
+                            <td key={`${row.fullName}-${index}`} style={recapCellStyle}>
+                              —
+                            </td>
+                          );
+                        }
+                        if (status.status === 'PRESENT' || status.status === 'LATE') {
+                          return (
+                            <td key={`${row.fullName}-${index}`} style={{ ...recapCellStyle, color: 'var(--color-success)' }}>
+                              ✓
+                            </td>
+                          );
+                        }
+                        if (status.status === 'EXCUSED') {
+                          return (
+                            <td key={`${row.fullName}-${index}`} style={{ ...recapCellStyle, color: 'var(--color-accent)' }}>
+                              E{status.reason ? ` (${status.reason})` : ''}
+                            </td>
+                          );
+                        }
+                        return (
+                          <td key={`${row.fullName}-${index}`} style={{ ...recapCellStyle, color: 'var(--color-danger)' }}>
+                            ×{status.reason ? ` (${status.reason})` : ''}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : null
+      }
 
       <section style={cardStyle}>
         <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>Enrolled Coders</h2>
@@ -381,7 +391,7 @@ export default async function CoachClassPage({ params, searchParams }: PageProps
           )}
         </div>
       </section>
-    </div>
+    </div >
   );
 }
 

@@ -22,6 +22,16 @@ export interface Database {
           is_active: boolean;
           created_at: string;
           updated_at: string;
+          // Coder profile fields
+          birth_date: string | null;
+          gender: 'MALE' | 'FEMALE' | null;
+          school_name: string | null;
+          school_grade: string | null;
+          parent_name: string | null;
+          parent_email: string | null;
+          address: string | null;
+          notes: string | null;
+          referral_source: string | null;
         };
         Insert: {
           id?: string;
@@ -33,6 +43,16 @@ export interface Database {
           is_active?: boolean;
           created_at?: string;
           updated_at?: string;
+          // Coder profile fields
+          birth_date?: string | null;
+          gender?: 'MALE' | 'FEMALE' | null;
+          school_name?: string | null;
+          school_grade?: string | null;
+          parent_name?: string | null;
+          parent_email?: string | null;
+          address?: string | null;
+          notes?: string | null;
+          referral_source?: string | null;
         };
         Update: Partial<Database['public']['Tables']['users']['Insert']>;
         Relationships: [];
@@ -94,6 +114,7 @@ export interface Database {
           name: string;
           type: 'WEEKLY' | 'EKSKUL';
           level_id: string | null;
+          ekskul_lesson_plan_id: string | null;
           coach_id: string;
           schedule_day: string;
           schedule_time: string;
@@ -108,6 +129,7 @@ export interface Database {
           name: string;
           type: 'WEEKLY' | 'EKSKUL';
           level_id?: string | null;
+          ekskul_lesson_plan_id?: string | null;
           coach_id: string;
           schedule_day: string;
           schedule_time: string;
@@ -813,6 +835,188 @@ export interface Database {
             referencedColumns: ['id'];
           },
         ];
+      };
+      payment_plans: {
+        Row: {
+          id: string;
+          name: string;
+          duration_months: number;
+          discount_percent: number;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          duration_months: number;
+          discount_percent?: number;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['payment_plans']['Insert']>;
+        Relationships: [];
+      };
+      pricing: {
+        Row: {
+          id: string;
+          level_id: string;
+          mode: 'ONLINE' | 'OFFLINE';
+          base_price_monthly: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          level_id: string;
+          mode: 'ONLINE' | 'OFFLINE';
+          base_price_monthly: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['pricing']['Insert']>;
+        Relationships: [];
+      };
+      coder_payment_periods: {
+        Row: {
+          id: string;
+          coder_id: string;
+          class_id: string;
+          payment_plan_id: string;
+          pricing_id: string;
+          start_date: string;
+          end_date: string;
+          total_amount: number;
+          status: 'ACTIVE' | 'EXPIRED';
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          coder_id: string;
+          class_id: string;
+          payment_plan_id: string;
+          pricing_id: string;
+          start_date: string;
+          end_date: string;
+          total_amount: number;
+          status?: 'ACTIVE' | 'EXPIRED';
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['coder_payment_periods']['Insert']>;
+        Relationships: [];
+      };
+      payments: {
+        Row: {
+          id: string;
+          payment_period_id: string;
+          amount: number;
+          payment_date: string;
+          payment_method: string | null;
+          notes: string | null;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          payment_period_id: string;
+          amount: number;
+          payment_date?: string;
+          payment_method?: string | null;
+          notes?: string | null;
+          created_by: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['payments']['Insert']>;
+        Relationships: [];
+      };
+      payment_reminders: {
+        Row: {
+          id: string;
+          payment_period_id: string;
+          reminder_type: 'H-7' | 'H-3' | 'H-1' | 'EXPIRED';
+          sent_at: string;
+          status: 'SENT' | 'FAILED';
+        };
+        Insert: {
+          id?: string;
+          payment_period_id: string;
+          reminder_type: 'H-7' | 'H-3' | 'H-1' | 'EXPIRED';
+          sent_at?: string;
+          status?: 'SENT' | 'FAILED';
+        };
+        Update: Partial<Database['public']['Tables']['payment_reminders']['Insert']>;
+        Relationships: [];
+      };
+      ekskul_lesson_plans: {
+        Row: {
+          id: string;
+          name: string;
+          description: string | null;
+          total_lessons: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description?: string | null;
+          total_lessons?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['ekskul_lesson_plans']['Insert']>;
+        Relationships: [];
+      };
+      ekskul_lessons: {
+        Row: {
+          id: string;
+          plan_id: string;
+          title: string;
+          summary: string | null;
+          slide_url: string | null;
+          example_url: string | null;
+          order_index: number;
+          estimated_meetings: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          plan_id: string;
+          title: string;
+          summary?: string | null;
+          slide_url?: string | null;
+          example_url?: string | null;
+          order_index: number;
+          estimated_meetings?: number;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['ekskul_lessons']['Insert']>;
+        Relationships: [];
+      };
+      lesson_reports: {
+        Row: {
+          id: string;
+          lesson_template_id: string;
+          coach_id: string;
+          report_type: string;
+          description: string;
+          status: 'PENDING' | 'REVIEWED' | 'RESOLVED';
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          lesson_template_id: string;
+          coach_id: string;
+          report_type: string;
+          description: string;
+          status?: 'PENDING' | 'REVIEWED' | 'RESOLVED';
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['lesson_reports']['Insert']>;
+        Relationships: [];
       };
     };
     Views: {};

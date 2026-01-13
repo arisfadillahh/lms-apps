@@ -84,12 +84,16 @@ export async function setActive(userId: string, isActive: boolean): Promise<void
   }
 }
 
-export async function updateUser(userId: string, updates: { full_name?: string; avatar_path?: string }): Promise<void> {
+export async function updateUser(userId: string, updates: Record<string, unknown>): Promise<void> {
   const supabase = getSupabaseAdmin();
+
   // Filter out undefined values
-  const payload: any = {};
-  if (updates.full_name !== undefined) payload.full_name = updates.full_name;
-  if (updates.avatar_path !== undefined) payload.avatar_path = updates.avatar_path;
+  const payload: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(updates)) {
+    if (value !== undefined) {
+      payload[key] = value;
+    }
+  }
 
   if (Object.keys(payload).length === 0) return;
 

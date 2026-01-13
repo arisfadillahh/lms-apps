@@ -173,3 +173,101 @@ export async function autoPlanWeeklyClass(classRecord: ClassRow, preferredStartB
 
   return { skipped: false, blockId: firstBlockId ?? '', sessionsCreated: totalSessionsCreated };
 }
+
+/**
+ * Auto-plan ekskul class based on ekskul_lesson_plan
+ */
+export async function autoPlanEkskulClass(classRecord: ClassRow): Promise<AutoPlanResult> {
+  if (classRecord.type !== 'EKSKUL') {
+    return { skipped: true, reason: 'Not an ekskul class' };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ekskulLessonPlanId = (classRecord as any).ekskul_lesson_plan_id;
+  if (!ekskulLessonPlanId) {
+    return { skipped: true, reason: 'No ekskul lesson plan assigned' };
+  }
+
+  const supabase = getSupabaseAdmin();
+
+  // Check if sessions already exist
+  const { data: existingSessions } = await supabase
+    .from('sessions')
+    .select('id')
+    .eq('class_id', classRecord.id)
+    .limit(1);
+
+  if (existingSessions && existingSessions.length > 0) {
+    return { skipped: true, reason: 'Sessions already exist for this class' };
+  }
+
+  // Fetch ekskul lessons from the plan
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: ekskulLessons, error: lessonsError } = await (supabase as any)
+    .from('ekskul_lessons')
+    .select('*')
+    .eq('plan_id', ekskulLessonPlanId)
+    .order('order_index', { ascending: true });
+
+  if (lessonsError) {
+    console.error('Error fetching ekskul lessons:', lessonsError);
+    return { skipped: true, reason: 'Failed to fetch ekskul lessons' };
+  }
+
+  if (!ekskulLessons || ekskulLessons.length === 0) {
+    return { skipped: true, reason: 'No lessons in ekskul plan' };
+  }
+
+  const scheduleInfo = normalizeScheduleDay(classRecord.schedule_day);
+  if (!scheduleInfo) {
+    return { skipped: true, reason: `Invalid schedule day "${classRecord.schedule_day}"` };
+  }
+
+  const classStart = new Date(classRecord.start_date ?? new Date().toISOString());
+  let currentDate = alignDateToWeekday(classStart, scheduleInfo.index);
+  let totalSessionsCreated = 0;
+
+  // Create sessions for each ekskul lesson
+  const sessionsToCreate: Array<{
+    class_id: string;
+    date_time: string;
+    zoom_link_snapshot: string;
+    status: 'SCHEDULED';
+  }> = [];
+
+  for (const lesson of ekskulLessons) {
+    const lessonMeetings = lesson.estimated_meetings || 1;
+
+    for (let meeting = 0; meeting < lessonMeetings; meeting++) {
+      const sessionDate = toDateOnly(currentDate);
+      // Combine date and time into ISO datetime string
+      const dateTime = `${sessionDate}T${classRecord.schedule_time}:00`;
+
+      sessionsToCreate.push({
+        class_id: classRecord.id,
+        date_time: dateTime,
+        zoom_link_snapshot: classRecord.zoom_link,
+        status: 'SCHEDULED',
+      });
+
+      // Move to next week
+      currentDate = addDays(currentDate, 7);
+      totalSessionsCreated++;
+    }
+  }
+
+  // Batch insert all sessions
+  if (sessionsToCreate.length > 0) {
+    const { error: insertError } = await supabase
+      .from('sessions')
+      .insert(sessionsToCreate);
+
+    if (insertError) {
+      console.error('Error creating ekskul sessions:', insertError);
+      return { skipped: true, reason: 'Failed to create sessions' };
+    }
+  }
+
+  return { skipped: false, blockId: '', sessionsCreated: totalSessionsCreated };
+}
+

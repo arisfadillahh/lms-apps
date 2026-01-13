@@ -20,6 +20,7 @@ type CoachClassSummary = {
   nextLesson?: {
     title: string;
     slideUrl?: string | null;
+    lessonTemplateId?: string | null;
   } | null;
   currentBlock?: {
     id?: string;
@@ -87,6 +88,7 @@ export async function getCoachClassesWithBlocks(coachId: string): Promise<CoachC
           nextLesson = {
             title: formatLessonTitle(slot),
             slideUrl: slot.lessonTemplate.slide_url,
+            lessonTemplateId: slot.lessonTemplate.id,
           };
         }
       }

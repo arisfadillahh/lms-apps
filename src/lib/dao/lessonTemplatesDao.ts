@@ -84,10 +84,8 @@ export async function createLessonTemplate(input: CreateLessonTemplateInput): Pr
     title: input.title,
     summary: input.summary ?? null,
     slide_url: input.slideUrl ?? null,
-    // example_url and example_storage_path removed to compatibility with current DB schema
     order_index: input.orderIndex,
     estimated_meeting_count: input.estimatedMeetingCount ?? null,
-    duration_minutes: null, // Clear duration_minutes as we use meeting count now
     make_up_instructions: input.makeUpInstructions ?? null,
   } as any;
 

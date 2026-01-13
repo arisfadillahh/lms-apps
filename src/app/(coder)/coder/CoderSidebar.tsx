@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { CSSProperties } from 'react';
-import { Home, BookOpen, FileUp, FileText, User } from 'lucide-react';
+import { Home, BookOpen, FileUp, FileText, User, BookMarked } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 import SignOutButton from '@/components/SignOutButton';
@@ -12,6 +12,7 @@ import Image from 'next/image';
 const NAV_LINKS = [
     { href: '/coder/dashboard', label: 'Dashboard', icon: Home },
     { href: '/coder/materials', label: 'Materi', icon: BookOpen },
+    { href: '/coder/ekskul', label: 'Ekskul', icon: BookMarked },
     { href: '/coder/makeup', label: 'Tugas Susulan', icon: FileUp },
     { href: '/coder/reports', label: 'Rapor', icon: FileText },
 ];

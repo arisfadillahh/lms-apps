@@ -33,12 +33,20 @@ export const updateUserStatusSchema = z.object({
 export const createClassSchema = z.object({
   name: z.string().min(3),
   type: z.enum(['WEEKLY', 'EKSKUL']),
-  levelId: z.string().uuid().nullable().optional(),
+  levelId: z
+    .union([z.string().uuid(), z.literal('')])
+    .transform((value) => (value === '' ? undefined : value))
+    .nullable()
+    .optional(),
   coachId: z.string().uuid(),
   scheduleDay: z.string().min(2),
   scheduleTime: z.string().regex(/^\d{2}:\d{2}$/),
   zoomLink: z.string().url(),
   initialBlockId: z
+    .union([z.string().uuid(), z.literal('')])
+    .transform((value) => (value === '' ? undefined : value))
+    .optional(),
+  ekskulLessonPlanId: z
     .union([z.string().uuid(), z.literal('')])
     .transform((value) => (value === '' ? undefined : value))
     .optional(),
@@ -88,7 +96,7 @@ export const createBlockTemplateSchema = z.object({
   levelId: z.string().uuid(),
   name: z.string().min(3),
   summary: z.string().max(500).optional().or(z.literal('').transform(() => undefined)),
-  orderIndex: z.number().int().min(0),
+  orderIndex: z.number().int().min(1),
   estimatedSessions: z.number().int().min(0).optional(),
   isPublished: z.boolean().optional(),
 });
@@ -99,7 +107,7 @@ export const updateBlockTemplateSchema = z
   .object({
     name: z.string().min(3).optional(),
     summary: z.string().max(500).optional().or(z.literal('').transform(() => undefined)),
-    orderIndex: z.number().int().min(0).optional(),
+    orderIndex: z.number().int().min(1).optional(),
     estimatedSessions: z.number().int().min(0).optional().nullable(),
     isPublished: z.boolean().optional(),
   })
@@ -112,7 +120,7 @@ export const createLessonTemplateSchema = z.object({
   title: z.string().min(3),
   summary: z.string().max(500).optional().or(z.literal('').transform(() => undefined)),
   slideUrl: z.string().url().optional().or(z.literal('').transform(() => undefined)),
-  orderIndex: z.coerce.number().int().min(0),
+  orderIndex: z.coerce.number().int().min(1),
   estimatedMeetingCount: z
     .preprocess((value) => (value === '' || value === null || value === undefined ? undefined : value), z.coerce.number().int().min(0))
     .optional(),
@@ -126,7 +134,7 @@ export const updateLessonTemplateSchema = z
     title: z.string().min(3).optional(),
     summary: z.string().max(500).optional().or(z.literal('').transform(() => undefined)),
     orderIndex: z
-      .preprocess((value) => (value === undefined || value === null || value === '' ? undefined : value), z.coerce.number().int().min(0))
+      .preprocess((value) => (value === undefined || value === null || value === '' ? undefined : value), z.coerce.number().int().min(1))
       .optional(),
     estimatedMeetingCount: z
       .preprocess(

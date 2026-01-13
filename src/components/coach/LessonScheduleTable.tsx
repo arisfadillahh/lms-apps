@@ -21,9 +21,10 @@ type Lesson = {
 type LessonScheduleTableProps = {
     sessions: Session[];
     lessons: Lesson[];
+    classType?: 'WEEKLY' | 'EKSKUL' | 'BOOTCAMP';
 };
 
-export default function LessonScheduleTable({ sessions, lessons }: LessonScheduleTableProps) {
+export default function LessonScheduleTable({ sessions, lessons, classType = 'WEEKLY' }: LessonScheduleTableProps) {
     // Map session_id -> Lesson
     const lessonMap = new Map<string, Lesson>();
     lessons.forEach((l) => {
@@ -38,8 +39,8 @@ export default function LessonScheduleTable({ sessions, lessons }: LessonSchedul
                     <thead>
                         <tr>
                             <th style={thStyle}>Jadwal</th>
-                            <th style={thStyle}>Block</th>
-                            <th style={thStyle}>Lesson / Materi</th>
+                            {classType !== 'EKSKUL' && <th style={thStyle}>Block</th>}
+                            <th style={thStyle}>{classType === 'EKSKUL' ? 'Lesson' : 'Lesson / Materi'}</th>
                             <th style={thStyle}>Detail</th>
                             <th style={thStyle}>Status</th>
                             <th style={thStyle}>Aksi</th>
@@ -61,21 +62,23 @@ export default function LessonScheduleTable({ sessions, lessons }: LessonSchedul
                                             {format(new Date(session.date_time), 'HH:mm')} WIB
                                         </div>
                                     </td>
-                                    <td style={tdStyle}>
-                                        {lesson?.block_title ? (
-                                            <span style={{
-                                                display: 'inline-block',
-                                                background: '#f1f5f9',
-                                                padding: '0.2rem 0.5rem',
-                                                borderRadius: '0.375rem',
-                                                fontSize: '0.8rem',
-                                                fontWeight: 500,
-                                                color: '#475569'
-                                            }}>
-                                                {lesson.block_title}
-                                            </span>
-                                        ) : '—'}
-                                    </td>
+                                    {classType !== 'EKSKUL' && (
+                                        <td style={tdStyle}>
+                                            {lesson?.block_title ? (
+                                                <span style={{
+                                                    display: 'inline-block',
+                                                    background: '#f1f5f9',
+                                                    padding: '0.2rem 0.5rem',
+                                                    borderRadius: '0.375rem',
+                                                    fontSize: '0.8rem',
+                                                    fontWeight: 500,
+                                                    color: '#475569'
+                                                }}>
+                                                    {lesson.block_title}
+                                                </span>
+                                            ) : '—'}
+                                        </td>
+                                    )}
                                     <td style={tdStyle}>
                                         {isCancelled ? (
                                             <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>— Tidak ada kelas (Libur/Batal) —</span>

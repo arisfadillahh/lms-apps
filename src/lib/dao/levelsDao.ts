@@ -35,3 +35,28 @@ export async function deleteLevel(id: string): Promise<void> {
     throw new Error(`Failed to delete level: ${error.message}`);
   }
 }
+
+export type CreateLevelInput = {
+  name: string;
+  description?: string | null;
+  orderIndex: number;
+};
+
+export async function createLevel(input: CreateLevelInput): Promise<LevelRecord> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('levels')
+    .insert({
+      name: input.name,
+      description: input.description ?? null,
+      order_index: input.orderIndex,
+    })
+    .select('*')
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to create level: ${error.message}`);
+  }
+
+  return data;
+}

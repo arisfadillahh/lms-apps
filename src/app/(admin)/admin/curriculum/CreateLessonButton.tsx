@@ -67,14 +67,11 @@ export default function CreateLessonButton({ blockId, suggestedOrderIndex }: Cre
     const onSubmit = async (values: FormValues) => {
         setErrorV(null);
 
-        // 1. Create Lesson
-        // Convert 1-based UI index to 0-based DB index
-        const dbOrderIndex = values.orderIndex > 0 ? values.orderIndex - 1 : 0;
-
+        // Use 1-based order index directly
         const payload = {
             title: values.title,
             summary: values.summary,
-            orderIndex: dbOrderIndex,
+            orderIndex: values.orderIndex,
             estimatedMeetingCount: values.estimatedMeetingCount,
             slideUrl: values.slideUrl || undefined,
             makeUpInstructions: values.makeUpInstructions || undefined,

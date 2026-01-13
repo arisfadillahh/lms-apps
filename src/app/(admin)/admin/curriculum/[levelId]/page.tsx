@@ -46,7 +46,7 @@ export default async function LevelCurriculumPage({ params }: { params: Promise<
           <h1 style={{ fontSize: '1.4rem', fontWeight: 600 }}>{level.name}</h1>
           {level.description ? <p style={{ color: '#475569' }}>{level.description}</p> : null}
         </div>
-        <CreateBlockForm levelId={level.id} suggestedOrderIndex={blockDetails.length} />
+        <CreateBlockForm levelId={level.id} suggestedOrderIndex={blockDetails.length + 1} />
       </div>
 
       {blockDetails.length === 0 ? (

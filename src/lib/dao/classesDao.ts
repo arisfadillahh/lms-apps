@@ -24,6 +24,7 @@ export type CreateClassInput = {
   name: string;
   type: ClassRecord['type'];
   levelId?: string | null;
+  ekskulLessonPlanId?: string | null;
   coachId: string;
   scheduleDay: string;
   scheduleTime: string;
@@ -38,6 +39,7 @@ export async function createClass(input: CreateClassInput): Promise<ClassRecord>
     name: input.name,
     type: input.type,
     level_id: input.levelId ?? null,
+    ekskul_lesson_plan_id: input.ekskulLessonPlanId ?? null,
     coach_id: input.coachId,
     schedule_day: input.scheduleDay,
     schedule_time: input.scheduleTime,

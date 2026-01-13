@@ -78,6 +78,7 @@ export async function POST(request: NextRequest) {
     name: input.name,
     type: input.type,
     levelId: input.levelId ?? null,
+    ekskulLessonPlanId: input.ekskulLessonPlanId ?? null,
     coachId: input.coachId,
     scheduleDay: input.scheduleDay,
     scheduleTime: input.scheduleTime,
@@ -91,6 +92,13 @@ export async function POST(request: NextRequest) {
       await autoPlanWeeklyClass(created, initialBlockId);
     } catch (error) {
       console.error('Auto planning weekly class failed', error);
+    }
+  } else if (created.type === 'EKSKUL') {
+    try {
+      const { autoPlanEkskulClass } = await import('@/lib/services/classAutoPlanner');
+      await autoPlanEkskulClass(created);
+    } catch (error) {
+      console.error('Auto planning ekskul class failed', error);
     }
   }
 

@@ -18,13 +18,20 @@ type FormValues = z.infer<typeof formSchema>;
 
 type CoachOption = Pick<UserRecord, 'id' | 'full_name' | 'is_active'>;
 
+type EkskulPlan = {
+  id: string;
+  name: string;
+  total_lessons?: number;
+};
+
 type CreateClassFormProps = {
   coaches: CoachOption[];
   levels: LevelRecord[];
   levelBlocks: Record<string, BlockRecord[]>;
+  ekskulPlans?: EkskulPlan[];
 };
 
-export default function CreateClassForm({ coaches, levels, levelBlocks }: CreateClassFormProps) {
+export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPlans = [] }: CreateClassFormProps) {
   const router = useRouter();
   const activeCoaches = useMemo(() => coaches.filter((coach) => coach.is_active), [coaches]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -44,6 +51,7 @@ export default function CreateClassForm({ coaches, levels, levelBlocks }: Create
       scheduleDay: 'MONDAY',
       scheduleTime: '16:00',
       initialBlockId: '',
+      ekskulLessonPlanId: '',
     } as FormValues,
   });
 
@@ -160,6 +168,21 @@ export default function CreateClassForm({ coaches, levels, levelBlocks }: Create
           </div>
         ) : (
           <input type="hidden" value="" {...register('initialBlockId')} />
+        )}
+        {selectedType === 'EKSKUL' ? (
+          <div style={fieldStyle}>
+            <label style={labelStyle}>Lesson Plan Ekskul</label>
+            <select style={inputStyle} {...register('ekskulLessonPlanId')}>
+              <option value="">Pilih lesson plan</option>
+              {ekskulPlans.map((plan) => (
+                <option key={plan.id} value={plan.id}>
+                  {plan.name} ({plan.total_lessons || 0} pertemuan)
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : (
+          <input type="hidden" value="" {...register('ekskulLessonPlanId')} />
         )}
         <div style={fieldStyle}>
           <label style={labelStyle}>Hari Jadwal</label>

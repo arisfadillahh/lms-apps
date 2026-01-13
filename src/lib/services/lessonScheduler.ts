@@ -74,23 +74,41 @@ import { classesDao } from '@/lib/dao';
  * @param levelId - The curriculum level
  * @returns Map of session ID to lesson slot
  */
+/**
+ * Computes which lesson should be shown for each session.
+ * 
+ * Logic:
+ * 1. Filter out CANCELLED sessions (they don't get lessons)
+ * 2. Active sessions are numbered 0, 1, 2, 3...
+ * 3. Each active session gets a lesson based on (sessionIndex % totalLessonSlots)
+ * 4. This creates cycling behavior: after all lessons, start from Block 1 again
+ * 
+ * UPDATE: Checks for class_blocks to determine the correct order of lessons.
+ * If class starts at Block 3, lessons will be ordered starting from Block 3 lessons.
+ * 
+ * @param classId - The class to compute schedule for
+ * @param levelId - The curriculum level
+ * @param ekskulLessonPlanId - Optional Ekskul Lesson Plan ID
+ * @returns Map of session ID to lesson slot
+ */
 export async function computeLessonSchedule(
     classId: string,
     levelId: string | null,
+    ekskulLessonPlanId?: string | null,
 ): Promise<Map<string, LessonSlot>> {
-    if (!levelId) return new Map();
+    if (!levelId && !ekskulLessonPlanId) return new Map();
 
     const [sessions, lessonSlots, classBlocks] = await Promise.all([
         sessionsDao.listSessionsByClass(classId),
-        buildLessonSlots(levelId),
+        ekskulLessonPlanId ? buildEkskulSlots(ekskulLessonPlanId) : (levelId ? buildLessonSlots(levelId) : []),
         classesDao.getClassBlocks(classId),
     ]);
 
     if (lessonSlots.length === 0) return new Map();
 
-    // Re-order lessonSlots based on classBlocks order if available
+    // Re-order lessonSlots based on classBlocks order if available (Only for Standard Curriculum)
     let orderedSlots = lessonSlots;
-    if (classBlocks.length > 0) {
+    if (levelId && classBlocks.length > 0) {
         // Sort class blocks by start date
         const sortedBlocks = [...classBlocks].sort((a, b) =>
             new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
@@ -140,6 +158,68 @@ export async function computeLessonSchedule(
     });
 
     return result;
+}
+
+import { getSupabaseAdmin } from '@/lib/supabaseServer';
+
+async function buildEkskulSlots(planId: string): Promise<LessonSlot[]> {
+    const supabase = getSupabaseAdmin();
+    const { data: lessons } = await supabase
+        .from('ekskul_lessons')
+        .select('*')
+        .eq('plan_id', planId)
+        .order('order_index', { ascending: true });
+
+    if (!lessons || lessons.length === 0) return [];
+
+    const slots: LessonSlot[] = [];
+    let globalIndex = 0;
+
+    // Create a dummy block for Ekskul lessons
+    const dummyBlock: BlockRecord = {
+        id: 'ekskul-block',
+        level_id: 'ekskul',
+        name: 'Ekskul',
+        summary: null,
+        order_index: 0,
+        estimated_sessions: 0,
+        is_published: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+    };
+
+    for (const lesson of lessons) {
+        const totalParts = Math.max(1, lesson.estimated_meetings || 1);
+
+        // Map EkskulLesson to LessonTemplateRecord shape
+        const lessonTemplate: LessonTemplateRecord = {
+            id: lesson.id,
+            block_id: 'ekskul-block',
+            title: lesson.title,
+            summary: lesson.summary,
+            slide_url: lesson.slide_url,
+            example_url: lesson.example_url,
+            estimated_meeting_count: lesson.estimated_meetings,
+            order_index: lesson.order_index,
+            created_at: lesson.created_at,
+            updated_at: new Date().toISOString(), // Default if missing
+            example_storage_path: null,
+            make_up_instructions: null,
+        };
+
+        for (let part = 1; part <= totalParts; part++) {
+            slots.push({
+                lessonTemplate,
+                block: dummyBlock,
+                partNumber: part,
+                totalParts,
+                globalIndex,
+            });
+            globalIndex++;
+        }
+    }
+
+    return slots;
 }
 
 

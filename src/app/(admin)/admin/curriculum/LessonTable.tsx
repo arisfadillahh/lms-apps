@@ -44,7 +44,7 @@ export default function LessonTable({ lessons }: LessonTableProps) {
                         ) : null}
                         {sortedLessons.map((lesson) => (
                             <tr key={lesson.id} style={rowStyle}>
-                                <td style={{ ...tdStyle, color: '#64748b' }}>{lesson.order_index + 1}</td>
+                                <td style={{ ...tdStyle, color: '#64748b' }}>{lesson.order_index}</td>
                                 <td style={tdStyle}>
                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                                         <span style={{ fontWeight: 500, color: '#0f172a' }}>{lesson.title}</span>

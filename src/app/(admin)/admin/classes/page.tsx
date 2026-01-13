@@ -4,15 +4,32 @@ import Link from 'next/link';
 import DeleteClassButton from './DeleteClassButton';
 
 import { blocksDao, classesDao, levelsDao, usersDao } from '@/lib/dao';
+import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
 import CreateClassForm from './CreateClassForm';
 
 export default async function AdminClassesPage() {
-  const [classes, coaches, levels] = await Promise.all([
+  const supabase = getSupabaseAdmin();
+
+  const [classes, coaches, levels, { data: ekskulPlansRaw }] = await Promise.all([
     classesDao.listClasses(),
     usersDao.listUsersByRole('COACH'),
     levelsDao.listLevels(),
+    supabase.from('ekskul_lesson_plans').select('id, name').eq('is_active', true).order('name'),
   ]);
+
+  // Calculate total meetings for each ekskul plan from lessons
+  const ekskulPlans = await Promise.all(
+    (ekskulPlansRaw || []).map(async (plan: any) => {
+      const { data: lessons } = await (supabase as any)
+        .from('ekskul_lessons')
+        .select('estimated_meetings')
+        .eq('plan_id', plan.id);
+
+      const totalMeetings = (lessons || []).reduce((sum: number, l: any) => sum + (l.estimated_meetings || 1), 0);
+      return { ...plan, total_lessons: totalMeetings };
+    })
+  );
 
   const blockEntries = await Promise.all(
     levels.map(async (level) => {
@@ -35,7 +52,7 @@ export default async function AdminClassesPage() {
           Create classes, assign a primary coach, and configure schedules. Session generation and enrollment management is available per class.
         </p>
       </div>
-      <CreateClassForm coaches={coaches} levels={levels} levelBlocks={levelBlocks} />
+      <CreateClassForm coaches={coaches} levels={levels} levelBlocks={levelBlocks} ekskulPlans={ekskulPlans} />
       <section style={{ background: '#ffffff', borderRadius: '0.75rem', border: '1px solid #e5e7eb' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead style={{ background: '#f1f5f9', textAlign: 'left' }}>

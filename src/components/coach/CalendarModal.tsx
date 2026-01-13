@@ -71,9 +71,12 @@ export default function CalendarModal({ sessions, children, triggerClassName, tr
                 <Dialog.Portal>
                     <Dialog.Overlay style={overlayStyle} />
                     <Dialog.Content style={contentStyle}>
+                        {/* Accessibility Title */}
+                        <Dialog.Title asChild>
+                            <h2 style={{ fontSize: '1.4rem', fontWeight: 600 }}>Kalender Kelas</h2>
+                        </Dialog.Title>
                         {/* Header */}
                         <div style={headerStyle}>
-                            <h2 style={{ fontSize: '1.4rem', fontWeight: 600 }}>Kalender Kelas</h2>
                             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                                 <button onClick={prevMonth} style={navIconStyle}>◀</button>
                                 <span style={{ fontSize: '1.1rem', fontWeight: 500, minWidth: '150px', textAlign: 'center' }}>
@@ -151,11 +154,13 @@ export default function CalendarModal({ sessions, children, triggerClassName, tr
                     <Dialog.Content style={{ ...detailModalStyle, zIndex: 1002 }}>
                         {selectedSession && (
                             <>
+                                <Dialog.Title asChild>
+                                    <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                                        {selectedSession.class_name ?? 'Detail Sesi'}
+                                    </h3>
+                                </Dialog.Title>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1.5rem' }}>
                                     <div>
-                                        <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-                                            {selectedSession.class_name ?? 'Detail Sesi'}
-                                        </h3>
                                         <p style={{ color: '#64748b' }}>
                                             {format(new Date(selectedSession.date_time), 'EEEE, d MMMM yyyy • HH:mm', { locale: localeId })}
                                         </p>

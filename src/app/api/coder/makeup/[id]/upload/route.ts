@@ -17,10 +17,11 @@ const uploadSchema = z.object({
 });
 
 type RouteProps = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
-export async function POST(request: Request, { params }: RouteProps) {
+export async function POST(request: Request, props: RouteProps) {
+  const params = await props.params;
   const session = await getSessionOrThrow();
   if (session.user.role !== 'CODER') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

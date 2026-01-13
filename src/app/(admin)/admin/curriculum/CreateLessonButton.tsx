@@ -13,8 +13,8 @@ import type { CSSProperties } from 'react';
 const createSchema = (maxOrder: number) => z.object({
     title: z.string().min(3, 'Minimal 3 karakter'),
     summary: z.string().optional(),
-    orderIndex: z.coerce.number().int().min(1, 'Urutan minimal 1').max(maxOrder, `Urutan maksimal ${maxOrder}`),
-    durationMinutes: z.coerce.number().int().min(0).optional(),
+    orderIndex: z.number().int().min(1, 'Urutan minimal 1').max(maxOrder, `Urutan maksimal ${maxOrder}`),
+    estimatedMeetingCount: z.number().int().min(0).optional().or(z.nan().transform(() => undefined)),
     slideUrl: z.string().url('URL tidak valid').optional().or(z.literal('')),
     makeUpInstructions: z.string().optional(),
     // File validation manually handled or via distinct field if using react-hook-form for files
@@ -24,7 +24,7 @@ type FormValues = {
     title: string;
     summary?: string;
     orderIndex: number;
-    durationMinutes?: number;
+    estimatedMeetingCount?: number;
     slideUrl?: string;
     makeUpInstructions?: string;
 };
@@ -58,7 +58,7 @@ export default function CreateLessonButton({ blockId, suggestedOrderIndex }: Cre
             title: '',
             summary: '',
             orderIndex: suggestedOrderIndex + 1, // Display 1-based default (next available)
-            durationMinutes: 60,
+            estimatedMeetingCount: 1,
             slideUrl: '',
             makeUpInstructions: '',
         },
@@ -75,7 +75,7 @@ export default function CreateLessonButton({ blockId, suggestedOrderIndex }: Cre
             title: values.title,
             summary: values.summary,
             orderIndex: dbOrderIndex,
-            durationMinutes: values.durationMinutes || 60,
+            estimatedMeetingCount: values.estimatedMeetingCount,
             slideUrl: values.slideUrl || undefined,
             makeUpInstructions: values.makeUpInstructions || undefined,
         };
@@ -128,7 +128,7 @@ export default function CreateLessonButton({ blockId, suggestedOrderIndex }: Cre
                 title: '',
                 summary: '',
                 orderIndex: suggestedOrderIndex + 1,
-                durationMinutes: 60,
+                estimatedMeetingCount: 1,
                 slideUrl: '',
                 makeUpInstructions: '',
             });
@@ -169,12 +169,12 @@ export default function CreateLessonButton({ blockId, suggestedOrderIndex }: Cre
                         <div style={{ display: 'flex', gap: '1rem' }}>
                             <div style={fieldGroupStyle}>
                                 <label style={labelStyle}>Urutan (Max {maxOrder})</label>
-                                <input type="number" style={inputStyle} {...register('orderIndex')} />
+                                <input type="number" style={inputStyle} {...register('orderIndex', { valueAsNumber: true })} />
                                 {errors.orderIndex ? <span style={errorStyle}>{errors.orderIndex.message}</span> : null}
                             </div>
                             <div style={fieldGroupStyle}>
                                 <label style={labelStyle}>Jumlah Pertemuan (Sesi)</label>
-                                <input type="number" result="durationMinutes" style={inputStyle} {...register('durationMinutes')} min={1} defaultValue={1} />
+                                <input type="number" style={inputStyle} {...register('estimatedMeetingCount', { valueAsNumber: true })} min={1} defaultValue={1} />
                             </div>
                         </div>
 

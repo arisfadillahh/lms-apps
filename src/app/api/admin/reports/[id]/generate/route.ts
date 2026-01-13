@@ -7,14 +7,15 @@ import { generateRubricPdf } from '@/lib/pdf/generateRubricPdf';
 import { assertRole } from '@/lib/roles';
 
 interface RouteContext {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export async function POST(_request: NextRequest, context: RouteContext) {
+  const params = await context.params;
   const session = await getSessionOrThrow();
   await assertRole(session, 'ADMIN');
 
-  const submissionId = context.params.id;
+  const submissionId = params.id;
   const submission = await rubricsDao.getRubricSubmissionById(submissionId);
   if (!submission) {
     return NextResponse.json({ error: 'Rubric submission tidak ditemukan' }, { status: 404 });

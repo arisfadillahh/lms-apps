@@ -82,7 +82,7 @@ export default function AdminSidebar({ session }: AdminSidebarProps) {
         <aside style={sidebarStyle}>
             <div style={{ paddingLeft: '0.5rem', marginBottom: '1.25rem' }}>
                 <Image
-                    src="/logo/Logo Innovator Camp dark.png"
+                    src="/logo/innovator-camp-logo-dark.png"
                     alt="Innovator Camp Logo"
                     width={120}
                     height={40}

@@ -5,8 +5,14 @@ import CoderSidebar from './CoderSidebar';
 import DashboardHeader from '@/components/layout/DashboardHeader';
 import PageTransition from '@/components/PageTransition';
 
+import { redirect } from 'next/navigation';
+
 export default async function CoderLayout({ children }: { children: ReactNode }) {
   const session = await getServerAuthSession();
+  if (!session?.user?.id) {
+    redirect('/auth/signin');
+  }
+
   const user = await usersDao.getUserById(session.user.id);
 
   if (!user) return null; // Should not happen if session exists
@@ -15,7 +21,7 @@ export default async function CoderLayout({ children }: { children: ReactNode })
     id: user.id,
     fullName: user.full_name,
     role: user.role,
-    avatarPath: user.avatar_path
+    // avatarPath: user.avatar_path // Commented out as type says it doesn't exist
   };
 
   return (

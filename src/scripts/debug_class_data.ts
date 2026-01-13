@@ -59,7 +59,7 @@ async function debugClass(classId: string) {
         const unassigned = lessons?.filter(l => !l.session_id);
         console.log(`   - Assigned: ${lessons?.filter(l => l.session_id).length}`);
         console.log(`   - Unassigned: ${unassigned?.length}`);
-        if (unassigned?.length > 0) {
+        if (unassigned && unassigned.length > 0) {
             console.log(`   - Sample Unassigned: ${unassigned[0].title} (Order: ${unassigned[0].order_index})`);
         }
     }
@@ -70,15 +70,7 @@ async function main() {
     const { data: classes } = await supabase.from('classes').select('id, name').limit(1);
     if (classes && classes.length > 0) {
         await debugClass(classes[0].id);
-        // RESET PASSWORD logic
-        if (klass?.users?.username === 'bagas') {
-            const { data: nadia } = await supabase.from('users').select('password_hash').eq('username', 'coach.nadia').single();
-            if (nadia?.password_hash) {
-                console.log("Resetting bagas password to match coach.nadia (CoachToday#1)...");
-                const { error } = await supabase.from('users').update({ password_hash: nadia.password_hash }).eq('username', 'bagas');
-                if (error) console.error("Failed to reset password", error);
-                else console.log("Password reset successful.");
-            } else {
-                console.log("Could not find coach.nadia to copy has from.");
-            }
-        }
+    }
+}
+
+main().catch(console.error);

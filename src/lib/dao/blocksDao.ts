@@ -11,12 +11,16 @@ export type CreateBlockInput = {
   name: string;
   summary?: string | null;
   orderIndex: number;
+  estimatedSessions?: number | null;
+  isPublished?: boolean;
 };
 
 export type UpdateBlockInput = Partial<{
   name: string;
   summary: string | null;
   orderIndex: number;
+  estimatedSessions: number | null;
+  isPublished: boolean;
 }>;
 
 export async function listBlocksByLevel(levelId: string): Promise<BlockRecord[]> {
@@ -52,8 +56,8 @@ export async function createBlock(input: CreateBlockInput): Promise<BlockRecord>
     name: input.name,
     summary: input.summary ?? null,
     order_index: input.orderIndex,
-    estimated_sessions: null,
-    is_published: true,
+    estimated_sessions: input.estimatedSessions ?? null,
+    is_published: input.isPublished ?? false,
   };
 
   const { data, error } = await supabase.from('blocks').insert(payload).select('*').single();
@@ -71,6 +75,8 @@ export async function updateBlock(id: string, updates: UpdateBlockInput): Promis
   if (updates.name !== undefined) payload.name = updates.name;
   if (updates.summary !== undefined) payload.summary = updates.summary;
   if (updates.orderIndex !== undefined) payload.order_index = updates.orderIndex;
+  if (updates.estimatedSessions !== undefined) payload.estimated_sessions = updates.estimatedSessions;
+  if (updates.isPublished !== undefined) payload.is_published = updates.isPublished;
 
   const { data, error } = await supabase.from('blocks').update(payload).eq('id', id).select('*').single();
   if (error) {

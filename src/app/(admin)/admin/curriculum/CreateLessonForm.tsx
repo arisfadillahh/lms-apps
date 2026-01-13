@@ -14,11 +14,14 @@ const schema = z.object({
     .max(500, 'Maksimal 500 karakter')
     .optional()
     .or(z.literal('').transform(() => undefined)),
-  orderIndex: z.coerce.number().int().min(0, 'Urutan harus >= 0'),
+  orderIndex: z.number().int().min(0, 'Urutan harus >= 0'),
   slideUrl: z.string().url('URL slide harus valid'),
   estimatedMeetingCount: z
-    .preprocess((value) => (value === '' || value === null || value === undefined ? undefined : value), z.coerce.number().int().min(0))
-    .optional(),
+    .number()
+    .int()
+    .min(0, 'Jumlah pertemuan harus >= 0')
+    .optional()
+    .or(z.nan().transform(() => undefined)),
   makeUpInstructions: z
     .string()
     .max(500, 'Maksimal 500 karakter')
@@ -108,12 +111,12 @@ export default function CreateLessonForm({ blockId, suggestedOrderIndex }: Creat
       <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
         <div style={fieldStyle}>
           <label style={labelStyle}>Urutan</label>
-          <input type="number" style={inputStyle} {...register('orderIndex')} />
+          <input type="number" style={inputStyle} {...register('orderIndex', { valueAsNumber: true })} />
           {errors.orderIndex ? <span style={errorStyle}>{errors.orderIndex.message}</span> : null}
         </div>
         <div style={fieldStyle}>
           <label style={labelStyle}>Jumlah Pertemuan (Sesi)</label>
-          <input type="number" style={inputStyle} {...register('estimatedMeetingCount')} />
+          <input type="number" style={inputStyle} {...register('estimatedMeetingCount', { valueAsNumber: true })} />
           {errors.estimatedMeetingCount ? <span style={errorStyle}>{errors.estimatedMeetingCount.message}</span> : null}
         </div>
       </div>

@@ -14,7 +14,7 @@ const schema = z.object({
     .max(500, 'Maksimal 500 karakter')
     .optional()
     .or(z.literal('').transform(() => undefined)),
-  orderIndex: z.coerce.number().int().min(0, 'Urutan harus >= 0'),
+  orderIndex: z.number().int().min(0, 'Urutan harus >= 0'),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -87,7 +87,7 @@ export default function CreateBlockForm({ levelId, suggestedOrderIndex }: Create
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', maxWidth: '200px' }}>
         <label style={labelStyle}>Urutan</label>
-        <input type="number" style={inputStyle} {...register('orderIndex')} />
+        <input type="number" style={inputStyle} {...register('orderIndex', { valueAsNumber: true })} />
         {errors.orderIndex ? <span style={errorStyle}>{errors.orderIndex.message}</span> : null}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

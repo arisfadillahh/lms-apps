@@ -59,6 +59,7 @@ export default async function LevelCurriculumPage({ params }: { params: Promise<
             order: block.order_index,
             summary: block.summary,
             lessonCount: lessons.length,
+            manageUrl: `/admin/curriculum/blocks/${block.id}`,
             lessonDetail: <BlockTemplateCard block={block} lessons={lessons} />,
             editDetail: <UpdateBlockForm block={block} />,
             deleteAction: <DeleteBlockButton blockId={block.id} blockName={block.name} />,

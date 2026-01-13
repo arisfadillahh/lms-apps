@@ -252,7 +252,7 @@ async function instantiateBlockFromTemplate({
   }
 
   const createdLessonsPayload = templateLessons.flatMap((lesson) => {
-    const sessionCount = Math.max(1, lesson.duration_minutes || 1);
+    const sessionCount = Math.max(1, lesson.estimated_meeting_count || 1);
     const parts = [];
 
     for (let i = 1; i <= sessionCount; i++) {
@@ -266,7 +266,7 @@ async function instantiateBlockFromTemplate({
         lesson_template_id: lesson.id,
         title: title,
         summary: lesson.summary ?? null,
-        order_index: lesson.order_index, // Keep same order index, handled by array order
+        order_index: (lesson.order_index * 1000) + i, // Spaced index to allow multiple parts without collision
         make_up_instructions: lesson.make_up_instructions ?? null,
         slide_url: lesson.slide_url ?? null,
         coach_example_url: lesson.example_url ?? null,
@@ -308,7 +308,7 @@ async function syncLessonsWithTemplates(
       const newLessonsPayload: any[] = [];
 
       for (const lesson of templateLessons) {
-        const expectedCount = Math.max(1, lesson.duration_minutes || 1);
+        const expectedCount = Math.max(1, lesson.estimated_meeting_count || 1);
         const existingMatches = existing.filter((l) => l.lesson_template_id === lesson.id);
 
         if (existingMatches.length < expectedCount) {
@@ -324,7 +324,7 @@ async function syncLessonsWithTemplates(
               lesson_template_id: lesson.id,
               title: title,
               summary: lesson.summary ?? null,
-              order_index: lesson.order_index,
+              order_index: (lesson.order_index * 1000) + i,
               make_up_instructions: lesson.make_up_instructions ?? null,
               slide_url: lesson.slide_url ?? null,
               coach_example_url: lesson.example_url ?? null,

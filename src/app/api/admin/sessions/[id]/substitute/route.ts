@@ -7,10 +7,11 @@ import { assertRole } from '@/lib/roles';
 import { assignSubstituteSchema } from '@/lib/validation/admin';
 
 interface RouteContext {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export async function POST(request: NextRequest, context: RouteContext) {
+  const params = await context.params;
   const session = await getSessionOrThrow();
   await assertRole(session, 'ADMIN');
 
@@ -35,6 +36,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
   }
 
-  await sessionsDao.assignSubstituteCoach(context.params.id, substituteCoachId ?? null);
+  await sessionsDao.assignSubstituteCoach(params.id, substituteCoachId ?? null);
   return NextResponse.json({ success: true });
 }

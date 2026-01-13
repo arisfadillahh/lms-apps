@@ -1,4 +1,3 @@
-
 import type { AppSession } from '@/lib/auth';
 import type { Role } from '@/types/supabase';
 
@@ -36,4 +35,4 @@ export async function assertActive(session: AppSession | null): Promise<AppSessi
   return session;
 }
 
-export { assertRole, assertActive };
+

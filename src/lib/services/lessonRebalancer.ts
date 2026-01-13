@@ -130,7 +130,7 @@ export async function syncClassLessonsStructure(classId: string): Promise<void> 
 
         // 4. Compare and Fix
         for (const template of templates) {
-            const targetCount = Math.max(1, template.duration_minutes || 1);
+            const targetCount = Math.max(1, template.estimated_meeting_count || 1);
             const currentLessons = existingMap.get(template.id) || [];
 
             // A. Expand if needed
@@ -147,7 +147,7 @@ export async function syncClassLessonsStructure(classId: string): Promise<void> 
                         lesson_template_id: template.id,
                         title: title,
                         summary: template.summary,
-                        order_index: template.order_index,
+                        order_index: (template.order_index * 1000) + partNum,
                         slide_url: template.slide_url,
                         coach_example_url: template.example_url,
                         coach_example_storage_path: template.example_storage_path,

@@ -20,7 +20,7 @@ export default function LessonPlanItem({ lesson, template, highlight }: LessonPl
   const normalizedSlideUrl = useMemo(() => normalizeSlideUrl(rawSlideUrl) ?? rawSlideUrl, [rawSlideUrl]);
   const embedUrl = useMemo(() => (normalizedSlideUrl ? toGoogleSlidesEmbed(normalizedSlideUrl) : null), [normalizedSlideUrl]);
   const summary = lesson.summary ?? template?.summary ?? null;
-  const durationMinutes = lesson.duration_minutes ?? template?.duration_minutes ?? null;
+  const estimatedMeetingCount = template?.estimated_meeting_count ?? null;
   const makeUpInstructions = lesson.make_up_instructions ?? template?.make_up_instructions ?? null;
 
   return (
@@ -85,7 +85,7 @@ export default function LessonPlanItem({ lesson, template, highlight }: LessonPl
                     <strong>Urutan:</strong> {lesson.order_index + 1}
                   </li>
                   <li>
-                    <strong>Durasi:</strong> {durationMinutes ?? '—'} menit
+                    <strong>Sesi:</strong> {estimatedMeetingCount ?? '—'}
                   </li>
                 </ul>
                 {summary ? <p style={detailParagraphStyle}>{summary}</p> : null}

@@ -38,7 +38,7 @@ export default function ChangePasswordForm({ variant = 'card' }: ChangePasswordF
   };
 
   return (
-    <div style={formStyle}>
+    <div style={formStyle[variant]}>
       <h3 style={headingStyle[variant]}>Change Password</h3>
       <label style={labelStyle[variant]}>
         Current Password

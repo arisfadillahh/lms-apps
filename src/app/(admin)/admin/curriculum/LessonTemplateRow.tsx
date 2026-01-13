@@ -19,8 +19,8 @@ export default function LessonTemplateRow({ lesson }: LessonTemplateRowProps) {
   const [title, setTitle] = useState(lesson.title);
   const [summary, setSummary] = useState(lesson.summary ?? '');
   const [orderIndex, setOrderIndex] = useState(String(lesson.order_index));
-  const [durationMinutes, setDurationMinutes] = useState(
-    lesson.duration_minutes !== null ? String(lesson.duration_minutes) : '',
+  const [estimatedMeetingCount, setEstimatedMeetingCount] = useState(
+    lesson.estimated_meeting_count !== null ? String(lesson.estimated_meeting_count) : '',
   );
   const [slideUrl, setSlideUrl] = useState(lesson.slide_url ?? '');
   const [makeUpInstructions, setMakeUpInstructions] = useState(lesson.make_up_instructions ?? '');
@@ -32,7 +32,7 @@ export default function LessonTemplateRow({ lesson }: LessonTemplateRowProps) {
     setTitle(lesson.title);
     setSummary(lesson.summary ?? '');
     setOrderIndex(String(lesson.order_index));
-    setDurationMinutes(lesson.duration_minutes !== null ? String(lesson.duration_minutes) : '');
+    setEstimatedMeetingCount(lesson.estimated_meeting_count !== null ? String(lesson.estimated_meeting_count) : '');
     setSlideUrl(lesson.slide_url ?? '');
     setMakeUpInstructions(lesson.make_up_instructions ?? '');
   };
@@ -52,10 +52,10 @@ export default function LessonTemplateRow({ lesson }: LessonTemplateRowProps) {
       payload.orderIndex = orderValue;
     }
 
-    const nextDuration =
-      durationMinutes.trim() === '' ? null : Number(durationMinutes);
-    if (nextDuration !== lesson.duration_minutes) {
-      payload.durationMinutes = nextDuration;
+    const nextSessions =
+      estimatedMeetingCount.trim() === '' ? null : Number(estimatedMeetingCount);
+    if (nextSessions !== lesson.estimated_meeting_count) {
+      payload.estimatedMeetingCount = nextSessions;
     }
 
     if (makeUpInstructions.trim() !== (lesson.make_up_instructions ?? '')) {
@@ -177,7 +177,7 @@ export default function LessonTemplateRow({ lesson }: LessonTemplateRowProps) {
         )}
         <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: 'var(--color-text-muted)', flexWrap: 'wrap', marginTop: '0.5rem' }}>
           <span>Urutan: {lesson.order_index}</span>
-          <span>Durasi: {lesson.duration_minutes ?? '—'} menit</span>
+          <span>Sesi: {lesson.estimated_meeting_count ?? '—'}</span>
           {lesson.make_up_instructions ? <span>Instruksi make-up tersedia</span> : null}
         </div>
       </div>
@@ -195,11 +195,11 @@ export default function LessonTemplateRow({ lesson }: LessonTemplateRowProps) {
                 />
               </div>
               <div style={{ ...fieldGroupStyle, flex: '1', minWidth: '100px' }}>
-                <label style={labelStyle}>Durasi (menit)</label>
+                <label style={labelStyle}>Jumlah Pertemuan</label>
                 <input
                   type="number"
-                  value={durationMinutes}
-                  onChange={(event) => setDurationMinutes(event.target.value)}
+                  value={estimatedMeetingCount}
+                  onChange={(event) => setEstimatedMeetingCount(event.target.value)}
                   style={{ ...inputStyle, width: '100%' }}
                   min={0}
                 />

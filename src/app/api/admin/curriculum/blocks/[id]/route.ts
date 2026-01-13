@@ -6,10 +6,11 @@ import { assertRole } from '@/lib/roles';
 import { updateBlockTemplateSchema } from '@/lib/validation/admin';
 
 type RouteContext = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
-export async function PATCH(request: Request, { params }: RouteContext) {
+export async function PATCH(request: Request, context: RouteContext) {
+  const { id } = await context.params;
   const session = await getSessionOrThrow();
   await assertRole(session, 'ADMIN');
 
@@ -26,7 +27,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   }
 
   try {
-    const block = await blocksDao.updateBlock(params.id, {
+    const block = await blocksDao.updateBlock(id, {
       name: parsed.data.name,
       summary: parsed.data.summary ?? null,
       orderIndex: parsed.data.orderIndex,

@@ -46,7 +46,7 @@ export async function POST(request: Request, context: RouteContext) {
       : body;
 
   const parsed = createLessonTemplateSchema.safeParse({
-    ...normalizedInput,
+    ...(normalizedInput as Record<string, unknown>),
     blockId,
   });
 

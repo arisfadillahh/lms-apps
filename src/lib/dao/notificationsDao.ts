@@ -18,7 +18,7 @@ export async function getUserNotifications(userId: string, limit = 20): Promise<
     const supabase = getSupabaseAdmin();
     // Use manual query as types might be stale
     const { data, error } = await supabase
-        .from('notifications')
+        .from('notifications' as any)
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
@@ -28,13 +28,13 @@ export async function getUserNotifications(userId: string, limit = 20): Promise<
         throw new Error(`Failed to fetch notifications: ${error.message}`);
     }
 
-    return (data || []) as NotificationRow[];
+    return (data || []) as unknown as NotificationRow[];
 }
 
 export async function getUnreadCount(userId: string): Promise<number> {
     const supabase = getSupabaseAdmin();
     const { count, error } = await supabase
-        .from('notifications')
+        .from('notifications' as any)
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId)
         .eq('is_read', false);
@@ -50,7 +50,7 @@ export async function getUnreadCount(userId: string): Promise<number> {
 export async function markAsRead(notificationId: string): Promise<void> {
     const supabase = getSupabaseAdmin();
     const { error } = await supabase
-        .from('notifications')
+        .from('notifications' as any)
         .update({ is_read: true })
         .eq('id', notificationId);
 
@@ -62,7 +62,7 @@ export async function markAsRead(notificationId: string): Promise<void> {
 export async function markAllAsRead(userId: string): Promise<void> {
     const supabase = getSupabaseAdmin();
     const { error } = await supabase
-        .from('notifications')
+        .from('notifications' as any)
         .update({ is_read: true })
         .eq('user_id', userId)
         .eq('is_read', false);
@@ -83,7 +83,7 @@ export async function createNotification(userId: string, title: string, message:
     };
 
     // Using explicit table name string to avoid TS errors if types aren't regenerated
-    const { error } = await supabase.from('notifications').insert(payload);
+    const { error } = await supabase.from('notifications' as any).insert(payload);
 
     if (error) {
         throw new Error(`Failed to create notification: ${error.message}`);

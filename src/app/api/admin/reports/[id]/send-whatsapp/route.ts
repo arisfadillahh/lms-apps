@@ -7,14 +7,15 @@ import { assertRole } from '@/lib/roles';
 import { sendReport } from '@/lib/whatsapp/client';
 
 interface RouteContext {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export async function POST(_request: NextRequest, context: RouteContext) {
+  const params = await context.params;
   const session = await getSessionOrThrow();
   await assertRole(session, 'ADMIN');
 
-  const reportId = context.params.id;
+  const reportId = params.id;
   const report = await reportsDao.getReportById(reportId);
   if (!report) {
     return NextResponse.json({ error: 'Report tidak ditemukan' }, { status: 404 });

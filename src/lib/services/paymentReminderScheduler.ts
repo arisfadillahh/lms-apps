@@ -18,15 +18,22 @@ type ReminderResult = {
 };
 
 /**
- * Check and send reminders for payment periods expiring within specified days
+ * Check and send reminders for payment periods
+ * mode: 'THRESHOLD' (default, checks daysThreshold) or 'BATCH' (checks all active expiring in next 40 days)
  */
-export async function checkAndSendPaymentReminders(daysThreshold: number = 7): Promise<ReminderResult> {
+export async function checkAndSendPaymentReminders(
+    daysThreshold: number = 7,
+    mode: 'THRESHOLD' | 'BATCH' = 'THRESHOLD'
+): Promise<ReminderResult> {
     const supabase = getSupabaseAdmin();
     const result: ReminderResult = { sent: 0, failed: 0, errors: [] };
 
     const today = new Date();
     const thresholdDate = new Date(today);
-    thresholdDate.setDate(thresholdDate.getDate() + daysThreshold);
+
+    // If BATCH, look ahead further (e.g. 35 days) to catch everyone due soon
+    const lookaheadDays = mode === 'BATCH' ? 35 : daysThreshold;
+    thresholdDate.setDate(thresholdDate.getDate() + lookaheadDays);
 
     // Fetch active periods expiring within threshold
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

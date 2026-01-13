@@ -4,7 +4,11 @@ import type { CSSProperties } from 'react';
 import { useState, useTransition } from 'react';
 import { Bell } from 'lucide-react';
 
-export default function SendRemindersButton() {
+type Props = {
+    mode?: 'BATCH' | 'THRESHOLD';
+};
+
+export default function SendRemindersButton({ mode = 'THRESHOLD' }: Props) {
     const [isPending, startTransition] = useTransition();
     const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
 
@@ -12,7 +16,7 @@ export default function SendRemindersButton() {
         setResult(null);
         startTransition(async () => {
             try {
-                const response = await fetch('/api/admin/payments/send-reminders', {
+                const response = await fetch(`/api/admin/payments/send-reminders?mode=${mode}`, {
                     method: 'POST',
                 });
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 
 type ToggleActiveButtonProps = {
@@ -12,16 +12,20 @@ export default function ToggleActiveButton({ userId, initialActive }: ToggleActi
   const router = useRouter();
   const [isActive, setIsActive] = useState(initialActive);
   const [isPending, startTransition] = useTransition();
-  const [message, setMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Auto-hide toast after 3 seconds
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   const handleToggle = (nextActive: boolean) => {
     if (nextActive === isActive) {
       return;
     }
-
-    setMessage(null);
-    setErrorMessage(null);
 
     startTransition(async () => {
       try {
@@ -33,23 +37,25 @@ export default function ToggleActiveButton({ userId, initialActive }: ToggleActi
 
         if (!response.ok) {
           const payload = await response.json().catch(() => ({}));
-          setErrorMessage(payload.error ?? 'Failed to update status');
+          setToast({ type: 'error', message: payload.error ?? 'Gagal mengubah status' });
           return;
         }
 
         setIsActive(nextActive);
-        setMessage(nextActive ? 'Activated' : 'Deactivated');
+        setToast({
+          type: 'success',
+          message: nextActive ? '✅ User berhasil diaktifkan!' : '✅ User berhasil dinonaktifkan!'
+        });
         router.refresh();
-        setTimeout(() => setMessage(null), 3000);
       } catch (error) {
         console.error('Failed to toggle user status', error);
-        setErrorMessage('Unexpected error updating status');
+        setToast({ type: 'error', message: 'Terjadi kesalahan saat mengubah status' });
       }
     });
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+    <>
       <button
         type="button"
         onClick={() => handleToggle(!isActive)}
@@ -66,10 +72,62 @@ export default function ToggleActiveButton({ userId, initialActive }: ToggleActi
           opacity: isPending ? 0.6 : 1,
         }}
       >
-        {isActive ? 'Deactivate' : 'Activate'}
+        {isPending ? 'Loading...' : isActive ? 'Deactivate' : 'Activate'}
       </button>
-      {message ? <span style={{ fontSize: '0.75rem', color: '#15803d' }}>{message}</span> : null}
-      {errorMessage ? <span style={{ fontSize: '0.75rem', color: '#b91c1c' }}>{errorMessage}</span> : null}
-    </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div style={toastContainerStyle}>
+          <div
+            style={{
+              ...toastStyle,
+              background: toast.type === 'success' ? '#ecfdf5' : '#fef2f2',
+              borderColor: toast.type === 'success' ? '#10b981' : '#ef4444',
+              color: toast.type === 'success' ? '#065f46' : '#b91c1c',
+            }}
+          >
+            <span>{toast.message}</span>
+            <button
+              onClick={() => setToast(null)}
+              style={closeButtonStyle}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
+
+// Styles
+const toastContainerStyle: CSSProperties = {
+  position: 'fixed',
+  top: '1.5rem',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  zIndex: 99999,
+  animation: 'slideDown 0.3s ease-out',
+};
+
+const toastStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '1rem',
+  padding: '1rem 1.5rem',
+  borderRadius: '0.75rem',
+  border: '1px solid',
+  boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
+  fontSize: '0.95rem',
+  fontWeight: 500,
+  minWidth: '300px',
+};
+
+const closeButtonStyle: CSSProperties = {
+  background: 'transparent',
+  border: 'none',
+  cursor: 'pointer',
+  fontSize: '1rem',
+  opacity: 0.6,
+  marginLeft: 'auto',
+};

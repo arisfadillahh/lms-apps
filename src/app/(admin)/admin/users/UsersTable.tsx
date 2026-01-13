@@ -3,6 +3,7 @@ import type { UserSummary } from '@/lib/dao/usersDao';
 
 import ResetPasswordButton from './ResetPasswordButton';
 import ToggleActiveButton from './ToggleActiveButton';
+import DeleteUserButton from './DeleteUserButton';
 
 interface UsersTableProps {
   users: UserSummary[];
@@ -43,6 +44,7 @@ export default function UsersTable({ users }: UsersTableProps) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                     <ToggleActiveButton userId={user.id} initialActive={user.is_active} />
                     {user.role === 'CODER' || user.role === 'COACH' ? <ResetPasswordButton userId={user.id} /> : null}
+                    <DeleteUserButton userId={user.id} />
                   </div>
                 </td>
               </tr>

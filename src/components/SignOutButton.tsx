@@ -2,8 +2,6 @@
 
 import { signOut } from 'next-auth/react';
 import { type CSSProperties, type MouseEvent, useState, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 
 type SignOutButtonProps = {
   label?: string;
@@ -17,6 +15,7 @@ export default function SignOutButton({ label = 'Sign out', style, icon }: SignO
 
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
+    event.stopPropagation();
     setOpen(true);
   };
 
@@ -41,48 +40,32 @@ export default function SignOutButton({ label = 'Sign out', style, icon }: SignO
         {label}
       </button>
 
-      <AnimatePresence>
-        {open && typeof document !== 'undefined'
-          ? createPortal(
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              style={backdropStyle}
-            >
-              <motion.div
-                initial={{ scale: 0.95, opacity: 0, y: 10 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.95, opacity: 0, y: 10 }}
-                transition={{ duration: 0.2, type: 'spring', damping: 25, stiffness: 300 }}
-                style={modalStyle}
+      {open && (
+        <div style={backdropStyle} onClick={handleCancel}>
+          <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
+            <h3 style={titleStyle}>Konfirmasi Sign Out</h3>
+            <p style={bodyStyle}>Apakah Anda yakin ingin keluar dari aplikasi?</p>
+            <div style={actionsStyle}>
+              <button
+                type="button"
+                onClick={handleCancel}
+                style={cancelButtonStyle}
+                disabled={loading}
               >
-                <h3 style={titleStyle}>Konfirmasi Sign Out</h3>
-                <p style={bodyStyle}>Apakah Anda yakin ingin keluar dari aplikasi?</p>
-                <div style={actionsStyle}>
-                  <button
-                    type="button"
-                    onClick={handleCancel}
-                    style={cancelButtonStyle}
-                    disabled={loading}
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleConfirm}
-                    style={confirmButtonStyle}
-                    disabled={loading}
-                  >
-                    {loading ? 'Keluar...' : 'Sign Out'}
-                  </button>
-                </div>
-              </motion.div>
-            </motion.div>,
-            document.body
-          )
-          : null}
-      </AnimatePresence>
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirm}
+                style={confirmButtonStyle}
+                disabled={loading}
+              >
+                {loading ? 'Keluar...' : 'Sign Out'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -101,14 +84,16 @@ const baseStyle: CSSProperties = {
 
 const backdropStyle: CSSProperties = {
   position: 'fixed',
-  inset: 0,
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
   background: 'rgba(15, 23, 42, 0.65)',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  zIndex: 9999, // High z-index to cover sidebar and header
+  zIndex: 99999,
   padding: '1.5rem',
-  backdropFilter: 'blur(2px)',
 };
 
 const modalStyle: CSSProperties = {
@@ -118,7 +103,6 @@ const modalStyle: CSSProperties = {
   width: '100%',
   maxWidth: '400px',
   boxShadow: '0 25px 50px rgba(0, 0, 0, 0.25)',
-  animation: 'fadeIn 0.2s ease-out',
 };
 
 const titleStyle: CSSProperties = {

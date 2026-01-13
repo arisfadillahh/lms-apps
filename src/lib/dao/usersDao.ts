@@ -145,3 +145,19 @@ export async function getUsersByIds(ids: string[]): Promise<UserRecord[]> {
 
   return data ?? [];
 }
+
+export async function deleteUser(userId: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+
+  const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+
+  if (authError) {
+    console.error(`Failed to delete user from auth: ${authError.message}`);
+  }
+
+  const { error: dbError } = await supabase.from('users').delete().eq('id', userId);
+
+  if (dbError) {
+    throw new Error(`Failed to delete user record: ${dbError.message}`);
+  }
+}

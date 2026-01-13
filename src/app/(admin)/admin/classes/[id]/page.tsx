@@ -198,7 +198,7 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
       <section style={{ background: '#ffffff', borderRadius: '0.75rem', border: '1px solid #e5e7eb' }}>
         <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0' }}>
           <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>Sessions</h2>
-          <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Assign substitute coaches when needed.</p>
+          <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Jadwal sesi kelas. Kelola izin coach di menu Izin Coach.</p>
         </div>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead style={{ background: '#f8fafc', textAlign: 'left' }}>
@@ -222,23 +222,20 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
                   <td style={tdStyle}>{new Date(session.date_time).toLocaleString()}</td>
                   <td style={tdStyle}>{session.status}</td>
                   <td style={tdStyle}>
-                    <SessionRowActions
-                      sessionId={session.id}
-                      coaches={coaches}
-                      currentSubstituteId={session.substitute_coach_id}
-                      currentStatus={session.status as 'SCHEDULED' | 'COMPLETED' | 'CANCELLED'}
-                      currentDate={session.date_time}
-                      showDropdownOnly
-                    />
+                    {session.substitute_coach_id ? (
+                      <span style={{ color: '#2563eb', fontWeight: 500 }}>
+                        {coachMap.get(session.substitute_coach_id) ?? 'Coach'}
+                      </span>
+                    ) : (
+                      <span style={{ color: '#94a3b8' }}>—</span>
+                    )}
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'center' }}>
                     <SessionRowActions
                       sessionId={session.id}
-                      coaches={coaches}
-                      currentSubstituteId={session.substitute_coach_id}
+                      substituteCoachName={session.substitute_coach_id ? coachMap.get(session.substitute_coach_id) ?? null : null}
                       currentStatus={session.status as 'SCHEDULED' | 'COMPLETED' | 'CANCELLED'}
                       currentDate={session.date_time}
-                      showButtonsOnly
                     />
                   </td>
                 </tr>

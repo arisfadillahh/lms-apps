@@ -64,10 +64,10 @@ export async function listLeaveRequestsForCoach(coachId: string): Promise<CoachL
     ...(row as CoachLeaveRequestRecord),
     session: row.session
       ? {
-          id: row.session.id,
-          date_time: row.session.date_time,
-          class_id: row.session.class_id,
-        }
+        id: row.session.id,
+        date_time: row.session.date_time,
+        class_id: row.session.class_id,
+      }
       : null,
     class: row.session?.classes ? { id: row.session.classes.id, name: row.session.classes.name } : null,
     substitute: row.substitute ?? null,
@@ -97,10 +97,10 @@ export async function listLeaveRequestsWithCoach(): Promise<CoachLeaveRequestWit
     coach: row.coach ?? null,
     session: row.session
       ? {
-          id: row.session.id,
-          date_time: row.session.date_time,
-          class_id: row.session.class_id,
-        }
+        id: row.session.id,
+        date_time: row.session.date_time,
+        class_id: row.session.class_id,
+      }
       : null,
     class: row.session?.classes ? { id: row.session.classes.id, name: row.session.classes.name } : null,
     substitute: row.substitute ?? null,
@@ -142,6 +142,42 @@ export async function getLeaveRequestById(id: string): Promise<CoachLeaveRequest
 
   if (error) {
     throw new Error(`Failed to fetch leave request: ${error.message}`);
+  }
+
+  return data;
+}
+
+export type CreateEmergencyLeaveInput = {
+  coachId: string;
+  sessionId: string;
+  substituteCoachId: string;
+  note?: string | null;
+  approvedBy: string;
+};
+
+export async function createEmergencyLeaveRequest(input: CreateEmergencyLeaveInput): Promise<CoachLeaveRequestRecord> {
+  const supabase = getSupabaseAdmin();
+  const payload: TablesInsert<'coach_leave_requests'> = {
+    coach_id: input.coachId,
+    session_id: input.sessionId,
+    note: input.note ?? 'Izin Darurat (dibuat oleh Admin)',
+    status: 'APPROVED',
+    substitute_coach_id: input.substituteCoachId,
+    approved_by: input.approvedBy,
+    approved_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await supabase
+    .from('coach_leave_requests')
+    .insert(payload)
+    .select('*')
+    .single();
+
+  if (error) {
+    if ((error as any)?.code === '23505') {
+      throw new Error('Leave request already exists for this session');
+    }
+    throw new Error(`Failed to create emergency leave: ${error.message}`);
   }
 
   return data;

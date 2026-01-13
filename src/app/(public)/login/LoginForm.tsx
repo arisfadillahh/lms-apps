@@ -35,9 +35,7 @@ export default function LoginForm() {
   const router = useRouter();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [resetting, setResetting] = useState(false);
-  const [resetPassword, setResetPassword] = useState('admin123');
-  const [resetStatus, setResetStatus] = useState<{ message: string; isError?: boolean } | null>(null);
+
 
   const {
     register,
@@ -90,39 +88,7 @@ export default function LoginForm() {
     }
   };
 
-  const handleAdminReset = async () => {
-    setResetting(true);
-    setResetStatus(null);
 
-    try {
-      const response = await fetch('/api/dev/reset-admin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          newPassword: resetPassword.trim() || undefined,
-        }),
-      });
-
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload?.error ?? 'Failed to reset admin password');
-      }
-
-      const passwordUsed = payload?.password ?? resetPassword;
-      setResetPassword(passwordUsed);
-      setResetStatus({
-        message: `Admin password direset. Username: ${payload?.username ?? 'admin'}, Password: ${passwordUsed}`,
-        isError: false,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Tidak bisa reset password saat ini.';
-      setResetStatus({ message, isError: true });
-    } finally {
-      setResetting(false);
-    }
-  };
 
   return (
     <div className={styles.container}>
@@ -153,30 +119,7 @@ export default function LoginForm() {
           {submitting ? 'Signing in…' : 'Sign In'}
         </button>
 
-        <div className={styles.divider} aria-hidden />
 
-        <div className={styles.devReset}>
-          <div className={styles.devResetHeader}>
-            <p className={styles.devResetTitle}>Reset Admin cuy(testing)</p>
-            <span className={styles.devResetBadge}>Dev only</span>
-          </div>
-          <p className={styles.helperText}>Gunakan jika lupa password admin saat testing. Nonaktif di production.</p>
-          <label className={styles.label}>
-            Password baru (opsional)
-            <input
-              type="text"
-              className={styles.input}
-              value={resetPassword}
-              onChange={(event) => setResetPassword(event.target.value)}
-            />
-          </label>
-          {resetStatus ? (
-            <p className={resetStatus.isError ? styles.errorText : styles.successText}>{resetStatus.message}</p>
-          ) : null}
-          <button type="button" className={styles.secondaryButton} onClick={handleAdminReset} disabled={resetting}>
-            {resetting ? 'Resetting…' : 'Reset Admin Password'}
-          </button>
-        </div>
       </form>
     </div>
   );

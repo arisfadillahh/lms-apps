@@ -16,7 +16,7 @@ const schema = z.object({
     .or(z.literal('').transform(() => undefined)),
   orderIndex: z.coerce.number().int().min(0, 'Urutan harus >= 0'),
   slideUrl: z.string().url('URL slide harus valid'),
-  durationMinutes: z
+  estimatedMeetingCount: z
     .preprocess((value) => (value === '' || value === null || value === undefined ? undefined : value), z.coerce.number().int().min(0))
     .optional(),
   makeUpInstructions: z
@@ -48,7 +48,7 @@ export default function CreateLessonForm({ blockId, suggestedOrderIndex }: Creat
       summary: '',
       orderIndex: suggestedOrderIndex,
       slideUrl: '',
-      durationMinutes: undefined,
+      estimatedMeetingCount: undefined,
       makeUpInstructions: '',
     },
   });
@@ -64,7 +64,7 @@ export default function CreateLessonForm({ blockId, suggestedOrderIndex }: Creat
         summary: values.summary,
         slideUrl: values.slideUrl,
         orderIndex: values.orderIndex,
-        durationMinutes: values.durationMinutes,
+        estimatedMeetingCount: values.estimatedMeetingCount,
         makeUpInstructions: values.makeUpInstructions,
       }),
     });
@@ -81,7 +81,7 @@ export default function CreateLessonForm({ blockId, suggestedOrderIndex }: Creat
       summary: '',
       orderIndex: values.orderIndex + 1,
       slideUrl: '',
-      durationMinutes: undefined,
+      estimatedMeetingCount: undefined,
       makeUpInstructions: '',
     });
     router.refresh();
@@ -112,9 +112,9 @@ export default function CreateLessonForm({ blockId, suggestedOrderIndex }: Creat
           {errors.orderIndex ? <span style={errorStyle}>{errors.orderIndex.message}</span> : null}
         </div>
         <div style={fieldStyle}>
-          <label style={labelStyle}>Durasi (menit)</label>
-          <input type="number" style={inputStyle} {...register('durationMinutes')} />
-          {errors.durationMinutes ? <span style={errorStyle}>{errors.durationMinutes.message}</span> : null}
+          <label style={labelStyle}>Jumlah Pertemuan (Sesi)</label>
+          <input type="number" style={inputStyle} {...register('estimatedMeetingCount')} />
+          {errors.estimatedMeetingCount ? <span style={errorStyle}>{errors.estimatedMeetingCount.message}</span> : null}
         </div>
       </div>
       <div style={fieldStyle}>

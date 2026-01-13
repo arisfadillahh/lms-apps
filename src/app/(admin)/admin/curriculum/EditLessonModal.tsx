@@ -22,8 +22,8 @@ export default function EditLessonModal({ lesson, open, onOpenChange }: EditLess
     const [title, setTitle] = useState(lesson.title);
     const [summary, setSummary] = useState(lesson.summary ?? '');
     const [orderIndex, setOrderIndex] = useState(String(lesson.order_index + 1)); // Display 1-based
-    const [durationMinutes, setDurationMinutes] = useState(
-        lesson.duration_minutes !== null ? String(lesson.duration_minutes) : '',
+    const [estimatedMeetingCount, setEstimatedMeetingCount] = useState(
+        lesson.estimated_meeting_count !== null ? String(lesson.estimated_meeting_count) : '',
     );
     const [slideUrl, setSlideUrl] = useState(lesson.slide_url ?? '');
     const [makeUpInstructions, setMakeUpInstructions] = useState(lesson.make_up_instructions ?? '');
@@ -37,7 +37,7 @@ export default function EditLessonModal({ lesson, open, onOpenChange }: EditLess
             setTitle(lesson.title);
             setSummary(lesson.summary ?? '');
             setOrderIndex(String(lesson.order_index + 1)); // Display 1-based
-            setDurationMinutes(lesson.duration_minutes !== null ? String(lesson.duration_minutes) : '');
+            setEstimatedMeetingCount(lesson.estimated_meeting_count !== null ? String(lesson.estimated_meeting_count) : '');
             setSlideUrl(lesson.slide_url ?? '');
             setMakeUpInstructions(lesson.make_up_instructions ?? '');
             setMessage(null);
@@ -63,9 +63,9 @@ export default function EditLessonModal({ lesson, open, onOpenChange }: EditLess
             payload.orderIndex = dbOrderIndex;
         }
 
-        const nextDuration = durationMinutes.trim() === '' ? null : Number(durationMinutes);
-        if (nextDuration !== lesson.duration_minutes) {
-            payload.durationMinutes = nextDuration;
+        const nextSessions = estimatedMeetingCount.trim() === '' ? null : Number(estimatedMeetingCount);
+        if (nextSessions !== lesson.estimated_meeting_count) {
+            payload.estimatedMeetingCount = nextSessions;
         }
 
         if (makeUpInstructions.trim() !== (lesson.make_up_instructions ?? '')) {
@@ -147,8 +147,8 @@ export default function EditLessonModal({ lesson, open, onOpenChange }: EditLess
                                 <label style={labelStyle}>Jumlah Pertemuan (Sesi)</label>
                                 <input
                                     type="number"
-                                    value={durationMinutes}
-                                    onChange={(e) => setDurationMinutes(e.target.value)}
+                                    value={estimatedMeetingCount}
+                                    onChange={(e) => setEstimatedMeetingCount(e.target.value)}
                                     style={inputStyle}
                                     min={0}
                                 />

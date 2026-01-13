@@ -56,7 +56,7 @@ export default function LessonTable({ lessons }: LessonTableProps) {
                                     </div>
                                 </td>
                                 <td style={{ ...tdStyle, color: '#475569' }}>
-                                    {lesson.duration_minutes ? `${lesson.duration_minutes}m` : '—'}
+                                    {lesson.estimated_meeting_count ? `${lesson.estimated_meeting_count} Sesi` : '—'}
                                 </td>
                                 <td style={tdStyle}>
                                     {lesson.slide_url ? (

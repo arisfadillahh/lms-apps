@@ -113,8 +113,9 @@ export async function createLessonTemplate(input: CreateLessonTemplateInput): Pr
     // example_url and example_storage_path removed to compatibility with current DB schema
     order_index: input.orderIndex,
     estimated_meeting_count: input.estimatedMeetingCount ?? null,
+    duration_minutes: null, // Clear duration_minutes as we use meeting count now
     make_up_instructions: input.makeUpInstructions ?? null,
-  };
+  } as any;
 
   const { data, error } = await supabase
     .from('lesson_templates')
@@ -132,7 +133,7 @@ export async function createLessonTemplate(input: CreateLessonTemplateInput): Pr
 
 export async function updateLessonTemplate(id: string, updates: UpdateLessonTemplateInput): Promise<LessonTemplateRecord> {
   const supabase = getSupabaseAdmin();
-  const payload: TablesUpdate<'lesson_templates'> = {};
+  const payload: TablesUpdate<'lesson_templates'> = {} as any;
 
   if (updates.title !== undefined) payload.title = updates.title;
   if (updates.summary !== undefined) payload.summary = updates.summary;
@@ -140,7 +141,11 @@ export async function updateLessonTemplate(id: string, updates: UpdateLessonTemp
   if (updates.exampleUrl !== undefined) payload.example_url = updates.exampleUrl;
   if (updates.exampleStoragePath !== undefined) payload.example_storage_path = updates.exampleStoragePath;
   if (updates.orderIndex !== undefined) payload.order_index = updates.orderIndex;
-  if (updates.estimatedMeetingCount !== undefined) payload.estimated_meeting_count = updates.estimatedMeetingCount;
+  if (updates.estimatedMeetingCount !== undefined) {
+    payload.estimated_meeting_count = updates.estimatedMeetingCount;
+    // We might want to clear duration_minutes too?
+    // payload.duration_minutes = null; // Optional: Enforce migration
+  }
   if (updates.makeUpInstructions !== undefined) payload.make_up_instructions = updates.makeUpInstructions;
 
   const { data, error } = await supabase

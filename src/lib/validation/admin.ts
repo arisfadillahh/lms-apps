@@ -113,7 +113,7 @@ export const createLessonTemplateSchema = z.object({
   summary: z.string().max(500).optional().or(z.literal('').transform(() => undefined)),
   slideUrl: z.string().url().optional().or(z.literal('').transform(() => undefined)),
   orderIndex: z.coerce.number().int().min(0),
-  durationMinutes: z
+  estimatedMeetingCount: z
     .preprocess((value) => (value === '' || value === null || value === undefined ? undefined : value), z.coerce.number().int().min(0))
     .optional(),
   makeUpInstructions: z.string().max(500).optional().or(z.literal('').transform(() => undefined)),
@@ -128,7 +128,7 @@ export const updateLessonTemplateSchema = z
     orderIndex: z
       .preprocess((value) => (value === undefined || value === null || value === '' ? undefined : value), z.coerce.number().int().min(0))
       .optional(),
-    durationMinutes: z
+    estimatedMeetingCount: z
       .preprocess(
         (value) => (value === '' || value === undefined ? null : value === null ? null : value),
         z.union([z.literal(null), z.coerce.number().int().min(0)]),

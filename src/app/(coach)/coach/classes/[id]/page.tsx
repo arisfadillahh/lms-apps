@@ -74,7 +74,7 @@ export default async function CoachClassPage({ params, searchParams }: PageProps
     const slot = lessonScheduleMap.get(sessionItem.id);
     if (!slot) return null;
     return {
-      id: slot.lessonTemplate.id,
+      id: sessionItem.id, // Use session ID for unique key
       title: formatLessonTitle(slot),
       session_id: sessionItem.id,
       slide_url: slot.lessonTemplate.slide_url,

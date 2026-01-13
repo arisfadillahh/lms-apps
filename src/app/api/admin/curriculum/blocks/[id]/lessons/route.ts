@@ -63,7 +63,7 @@ export async function POST(request: Request, context: RouteContext) {
       exampleUrl: null, // Initialize as null
       exampleStoragePath: null, // Initialize as null
       orderIndex: parsed.data.orderIndex,
-      durationMinutes: parsed.data.durationMinutes ?? null,
+      estimatedMeetingCount: parsed.data.estimatedMeetingCount ?? null,
       makeUpInstructions: parsed.data.makeUpInstructions || null,
     });
 

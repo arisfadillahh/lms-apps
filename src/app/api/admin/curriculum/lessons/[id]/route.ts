@@ -55,9 +55,9 @@ export async function PATCH(request: Request, context: RouteContext) {
   if (Object.prototype.hasOwnProperty.call(parsed.data, 'summary')) updates.summary = parsed.data.summary ?? null;
   if (parsed.data.orderIndex !== undefined) updates.orderIndex = parsed.data.orderIndex;
 
-  // For nullable duration, checking undefined is key (null is a valid value for "clear")
-  if (Object.prototype.hasOwnProperty.call(parsed.data, 'durationMinutes')) {
-    updates.durationMinutes = parsed.data.durationMinutes ?? null;
+  // For nullable meeting count, checking undefined is key (null is a valid value for "clear")
+  if (Object.prototype.hasOwnProperty.call(parsed.data, 'estimatedMeetingCount')) {
+    updates.estimatedMeetingCount = parsed.data.estimatedMeetingCount ?? null;
   }
 
   if (Object.prototype.hasOwnProperty.call(parsed.data, 'makeUpInstructions')) {

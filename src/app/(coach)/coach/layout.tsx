@@ -3,6 +3,7 @@ import { getServerAuthSession } from '@/lib/auth';
 import { usersDao } from '@/lib/dao';
 import CoachSidebar from './CoachSidebar';
 import DashboardHeader from '@/components/layout/DashboardHeader';
+import PageTransition from '@/components/PageTransition';
 
 export default async function CoachLayout({ children }: { children: ReactNode }) {
   const session = await getServerAuthSession();
@@ -36,7 +37,7 @@ export default async function CoachLayout({ children }: { children: ReactNode })
         }}
       >
         <DashboardHeader user={userForHeader} />
-        {children}
+        <PageTransition>{children}</PageTransition>
       </main>
     </div>
   );

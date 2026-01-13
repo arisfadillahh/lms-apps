@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import type { CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type Software = {
     id: string;
@@ -45,97 +45,112 @@ export default function SoftwareDetailModal({ software }: { software: Software }
                     e.currentTarget.style.background = '#fff';
                 }}
             >
-                🛠️ Cara Install
+                Cara Install
             </button>
 
-            {isOpen && (
-                <div style={overlayStyle} onClick={() => setIsOpen(false)}>
-                    <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-                        {/* Header */}
-                        <div style={headerStyle}>
-                            <div>
-                                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
-                                    {software.name}
-                                </h2>
-                                {software.version && (
-                                    <span style={{ fontSize: '0.85rem', color: '#64748b', background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', marginTop: '0.5rem', display: 'inline-block' }}>
-                                        v{software.version}
-                                    </span>
-                                )}
-                            </div>
-                            <button onClick={() => setIsOpen(false)} style={closeButtonStyle}>&times;</button>
-                        </div>
-
-                        <div style={contentStyle}>
-                            {/* Description */}
-                            {software.description && (
-                                <p style={{ fontSize: '0.95rem', color: '#334155', lineHeight: '1.6', marginBottom: '1.5rem' }}>
-                                    {software.description}
-                                </p>
-                            )}
-
-                            {/* Action Button (Download) */}
-                            {software.installation_url && (
-                                <div style={{ marginBottom: '2rem' }}>
-                                    <a
-                                        href={software.installation_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        style={downloadButtonStyle}
-                                    >
-                                        Download Software ⬇️
-                                    </a>
-                                    <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.5rem', fontStyle: 'italic' }}>
-                                        *Link akan terbuka di tab baru
-                                    </p>
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        style={overlayStyle}
+                        onClick={() => setIsOpen(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            transition={{ duration: 0.2, type: 'spring', damping: 25, stiffness: 300 }}
+                            style={modalStyle}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Header */}
+                            <div style={headerStyle}>
+                                <div>
+                                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                                        {software.name}
+                                    </h2>
+                                    {software.version && (
+                                        <span style={{ fontSize: '0.85rem', color: '#64748b', background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', marginTop: '0.5rem', display: 'inline-block' }}>
+                                            v{software.version}
+                                        </span>
+                                    )}
                                 </div>
-                            )}
+                                <button onClick={() => setIsOpen(false)} style={closeButtonStyle}>&times;</button>
+                            </div>
 
-                            {/* Instructions & Specs Grid */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                            <div style={contentStyle}>
+                                {/* Description */}
+                                {software.description && (
+                                    <p style={{ fontSize: '0.95rem', color: '#334155', lineHeight: '1.6', marginBottom: '1.5rem' }}>
+                                        {software.description}
+                                    </p>
+                                )}
 
-                                {/* Installation Instructions */}
-                                {software.installation_instructions && (
-                                    <div style={infoBoxStyle}>
-                                        <h3 style={sectionTitleStyle}>📝 Cara Install</h3>
-                                        <div style={{ fontSize: '0.9rem', color: '#334155', whiteSpace: 'pre-line', lineHeight: '1.6' }}>
-                                            {software.installation_instructions}
-                                        </div>
+                                {/* Action Button (Download) */}
+                                {software.installation_url && (
+                                    <div style={{ marginBottom: '2rem' }}>
+                                        <a
+                                            href={software.installation_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={downloadButtonStyle}
+                                        >
+                                            Download Software ⬇️
+                                        </a>
+                                        <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.5rem', fontStyle: 'italic' }}>
+                                            *Link akan terbuka di tab baru
+                                        </p>
                                     </div>
                                 )}
 
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                    {/* Min Specs */}
-                                    {software.minimum_specs && Object.keys(software.minimum_specs).length > 0 && (
-                                        <div style={{ ...infoBoxStyle, background: '#fffbeb', borderColor: '#fcd34d' }}>
-                                            <h3 style={{ ...sectionTitleStyle, color: '#92400e' }}>💻 Spesifikasi Minimum</h3>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem' }}>
-                                                {Object.entries(software.minimum_specs).map(([key, value]) => value && (
-                                                    <div key={key} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #fde68a', paddingBottom: '0.25rem' }}>
-                                                        <span style={{ color: '#b45309', textTransform: 'capitalize', fontWeight: 600 }}>{key}</span>
-                                                        <span style={{ color: '#78350f' }}>{value}</span>
-                                                    </div>
-                                                ))}
+                                {/* Instructions & Specs Grid */}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+
+                                    {/* Installation Instructions */}
+                                    {software.installation_instructions && (
+                                        <div style={infoBoxStyle}>
+                                            <h3 style={sectionTitleStyle}>📝 Cara Install</h3>
+                                            <div style={{ fontSize: '0.9rem', color: '#334155', whiteSpace: 'pre-line', lineHeight: '1.6' }}>
+                                                {software.installation_instructions}
                                             </div>
                                         </div>
                                     )}
 
-                                    {/* Access Info */}
-                                    {software.access_info && (
-                                        <div style={{ ...infoBoxStyle, background: '#ecfdf5', borderColor: '#6ee7b7' }}>
-                                            <h3 style={{ ...sectionTitleStyle, color: '#065f46' }}>🔑 Info Akses</h3>
-                                            <p style={{ fontSize: '0.9rem', color: '#047857', lineHeight: '1.5', margin: 0 }}>
-                                                {software.access_info}
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                        {/* Min Specs */}
+                                        {software.minimum_specs && Object.keys(software.minimum_specs).length > 0 && (
+                                            <div style={{ ...infoBoxStyle, background: '#fffbeb', borderColor: '#fcd34d' }}>
+                                                <h3 style={{ ...sectionTitleStyle, color: '#92400e' }}>💻 Spesifikasi Minimum</h3>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem' }}>
+                                                    {Object.entries(software.minimum_specs).map(([key, value]) => value && (
+                                                        <div key={key} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #fde68a', paddingBottom: '0.25rem' }}>
+                                                            <span style={{ color: '#b45309', textTransform: 'capitalize', fontWeight: 600 }}>{key}</span>
+                                                            <span style={{ color: '#78350f' }}>{value}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
 
+                                        {/* Access Info */}
+                                        {software.access_info && (
+                                            <div style={{ ...infoBoxStyle, background: '#ecfdf5', borderColor: '#6ee7b7' }}>
+                                                <h3 style={{ ...sectionTitleStyle, color: '#065f46' }}>🔑 Info Akses</h3>
+                                                <p style={{ fontSize: '0.9rem', color: '#047857', lineHeight: '1.5', margin: 0 }}>
+                                                    {software.access_info}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </>
     );
 }

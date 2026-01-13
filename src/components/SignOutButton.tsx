@@ -3,6 +3,7 @@
 import { signOut } from 'next-auth/react';
 import { type CSSProperties, type MouseEvent, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type SignOutButtonProps = {
   label?: string;
@@ -40,35 +41,48 @@ export default function SignOutButton({ label = 'Sign out', style, icon }: SignO
         {label}
       </button>
 
-      {open && typeof document !== 'undefined'
-        ? createPortal(
-          <div style={backdropStyle}>
-            <div style={modalStyle}>
-              <h3 style={titleStyle}>Konfirmasi Sign Out</h3>
-              <p style={bodyStyle}>Apakah Anda yakin ingin keluar dari aplikasi?</p>
-              <div style={actionsStyle}>
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  style={cancelButtonStyle}
-                  disabled={loading}
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirm}
-                  style={confirmButtonStyle}
-                  disabled={loading}
-                >
-                  {loading ? 'Keluar...' : 'Sign Out'}
-                </button>
-              </div>
-            </div>
-          </div>,
-          document.body
-        )
-        : null}
+      <AnimatePresence>
+        {open && typeof document !== 'undefined'
+          ? createPortal(
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              style={backdropStyle}
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0, y: 10 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 10 }}
+                transition={{ duration: 0.2, type: 'spring', damping: 25, stiffness: 300 }}
+                style={modalStyle}
+              >
+                <h3 style={titleStyle}>Konfirmasi Sign Out</h3>
+                <p style={bodyStyle}>Apakah Anda yakin ingin keluar dari aplikasi?</p>
+                <div style={actionsStyle}>
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    style={cancelButtonStyle}
+                    disabled={loading}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirm}
+                    style={confirmButtonStyle}
+                    disabled={loading}
+                  >
+                    {loading ? 'Keluar...' : 'Sign Out'}
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>,
+            document.body
+          )
+          : null}
+      </AnimatePresence>
     </>
   );
 }

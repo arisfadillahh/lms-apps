@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface UserProfile {
+    username: string;
     fullName: string;
     avatarPath: string | null;
     role: string;
@@ -213,18 +214,18 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
     };
 
     return (
-        <div style={{ maxWidth: '896px', width: '100%', margin: '0 auto', gap: '2rem', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ width: '100%', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '2rem', alignItems: 'start' }}>
 
             {/* 1. Identity Card */}
-            <section style={cardStyle}>
+            <section style={{ ...cardStyle, height: '100%' }}>
                 <h2 style={sectionTitleStyle}>
                     <span>👤</span> Identitas Diri
                 </h2>
 
-                <div style={{ display: 'flex', flexDirection: 'row', gap: '2rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', alignItems: 'center' }}>
 
-                    {/* Avatar Section */}
-                    <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+                    {/* Avatar Section - Centered */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
                         <div style={{
                             position: 'relative',
                             width: '8rem',
@@ -283,7 +284,18 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
                     </div>
 
                     {/* Form Section */}
-                    <form onSubmit={handleUpdateProfile} style={{ flex: 1, width: '100%' }}>
+                    <form onSubmit={handleUpdateProfile} style={{ width: '100%' }}>
+                        <div style={inputGroupStyle}>
+                            <label style={labelStyle}>Username</label>
+                            <input
+                                type="text"
+                                value={user.username}
+                                disabled
+                                style={{ ...inputStyle, background: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }}
+                                title="Username tidak dapat diubah"
+                            />
+                        </div>
+
                         <div style={inputGroupStyle}>
                             <label style={labelStyle}>Nama Lengkap</label>
                             <input
@@ -313,7 +325,7 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
                             <button
                                 type="submit"
                                 disabled={isUpdatingProfile}
-                                style={{ ...primaryButtonStyle, opacity: isUpdatingProfile ? 0.7 : 1 }}
+                                style={{ ...primaryButtonStyle, width: '100%', justifyContent: 'center' }}
                             >
                                 {isUpdatingProfile ? 'Menyimpan...' : 'Simpan Perubahan'}
                             </button>
@@ -323,12 +335,12 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
             </section>
 
             {/* 2. Security Card */}
-            <section style={cardStyle}>
+            <section style={{ ...cardStyle, height: '100%' }}>
                 <h2 style={sectionTitleStyle}>
                     <span>🔒</span> Keamanan & Password
                 </h2>
 
-                <form onSubmit={handleChangePassword} style={{ maxWidth: '28rem' }}>
+                <form onSubmit={handleChangePassword} style={{ width: '100%' }}>
                     <div style={inputGroupStyle}>
                         <label style={labelStyle}>Password Saat Ini</label>
                         <input
@@ -341,7 +353,7 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
                         />
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                         <div>
                             <label style={labelStyle}>Password Baru</label>
                             <input
@@ -349,7 +361,7 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
                                 value={newPassword}
                                 onChange={e => setNewPassword(e.target.value)}
                                 style={inputStyle}
-                                placeholder="Minimal 6 karakter"
+                                placeholder="Min 6 karakter"
                                 required
                             />
                         </div>
@@ -360,7 +372,7 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
                                 value={confirmPassword}
                                 onChange={e => setConfirmPassword(e.target.value)}
                                 style={inputStyle}
-                                placeholder="Ulangi password baru"
+                                placeholder="Ulangi password"
                                 required
                             />
                         </div>
@@ -384,7 +396,7 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
                         <button
                             type="submit"
                             disabled={isChangingPassword}
-                            style={{ ...darkButtonStyle, opacity: isChangingPassword ? 0.7 : 1 }}
+                            style={{ ...darkButtonStyle, width: '100%', justifyContent: 'center' }}
                         >
                             {isChangingPassword ? 'Memproses...' : 'Update Password'}
                         </button>

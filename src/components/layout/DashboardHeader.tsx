@@ -12,6 +12,7 @@ type UserSession = {
 
 import { usePathname } from 'next/navigation';
 import SignOutButton from '@/components/SignOutButton';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function DashboardHeader({ user }: { user: UserSession }) {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -20,6 +21,12 @@ export default function DashboardHeader({ user }: { user: UserSession }) {
     // Determine Page Title
     const getPageTitle = (path: string) => {
         if (path.includes('/dashboard')) return 'Dashboard';
+        if (path.includes('/users')) return 'Pengguna';
+        if (path.includes('/classes')) return 'Kelas';
+        if (path.includes('/curriculum')) return 'Kurikulum';
+        if (path.includes('/software')) return 'Software';
+        if (path.includes('/banners')) return 'Banner';
+        if (path.includes('/whatsapp')) return 'WhatsApp';
         if (path.includes('/materials')) return 'Materi';
         if (path.includes('/makeup')) return 'Tugas Susulan';
         if (path.includes('/reports')) return 'Rapor';
@@ -108,64 +115,70 @@ export default function DashboardHeader({ user }: { user: UserSession }) {
                     </button>
 
                     {/* Profile Menu */}
-                    {isProfileOpen && (
-                        <>
-                            <div className="fixed inset-0 z-10" onClick={() => setIsProfileOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 10 }}></div>
-                            <div
-                                className="absolute right-0 mt-2 w-56 z-20 origin-top-right rounded-xl bg-white shadow-xl ring-1 ring-black ring-opacity-5 py-2 animate-in fade-in zoom-in-95 duration-150"
-                                style={{
-                                    position: 'absolute',
-                                    right: 0,
-                                    marginTop: '0.5rem',
-                                    width: '14rem',
-                                    zIndex: 20,
-                                    transformOrigin: 'top right',
-                                    background: 'white',
-                                    borderRadius: '0.75rem',
-                                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                                    border: '1px solid #e2e8f0',
-                                    paddingTop: '0.5rem',
-                                    paddingBottom: '0.5rem'
-                                }}
-                            >
-                                <div className="px-4 py-3 border-b border-slate-50 md:hidden" style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #f8fafc' }}>
-                                    <p className="text-sm font-bold text-slate-800" style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1e293b' }}>{user.fullName}</p>
-                                    <p className="text-xs text-slate-500" style={{ fontSize: '0.75rem', color: '#64748b' }}>{user.role}</p>
-                                </div>
-                                <a
-                                    href={user.role === 'COACH' ? '/coach/profile' : '/coder/profile'}
-                                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                                    style={{ width: '100%', textAlign: 'left', padding: '0.5rem 1rem', fontSize: '0.875rem', color: '#334155', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'none' }}
+                    <AnimatePresence>
+                        {isProfileOpen && (
+                            <>
+                                <div className="fixed inset-0 z-10" onClick={() => setIsProfileOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 10 }}></div>
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                                    transition={{ duration: 0.15, ease: 'easeOut' }}
+                                    className="absolute right-0 mt-2 w-56 z-20 origin-top-right rounded-xl bg-white shadow-xl ring-1 ring-black ring-opacity-5 py-2"
+                                    style={{
+                                        position: 'absolute',
+                                        right: 0,
+                                        marginTop: '0.5rem',
+                                        width: '14rem',
+                                        zIndex: 20,
+                                        transformOrigin: 'top right',
+                                        background: 'white',
+                                        borderRadius: '0.75rem',
+                                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                                        border: '1px solid #e2e8f0',
+                                        paddingTop: '0.5rem',
+                                        paddingBottom: '0.5rem'
+                                    }}
                                 >
-                                    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ width: '1rem', height: '1rem', color: '#94a3b8' }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                                    Edit Profile
-                                </a>
-                                {/* Logout - Assuming standard next-auth signout or link */}
-                                {/* Logout - Using SignOutButton for modal confirmation */}
-                                <div style={{ width: '100%', padding: '0' }}>
-                                    <SignOutButton
-                                        label="Logout"
-                                        style={{
-                                            width: '100%',
-                                            textAlign: 'left',
-                                            padding: '0.5rem 1rem',
-                                            fontSize: '0.875rem',
-                                            color: '#dc2626',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.5rem',
-                                            background: 'transparent',
-                                            border: 'none',
-                                            cursor: 'pointer'
-                                        }}
-                                        icon={
-                                            <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ width: '1rem', height: '1rem', color: '#f87171' }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                                        }
-                                    />
-                                </div>
-                            </div>
-                        </>
-                    )}
+                                    <div className="px-4 py-3 border-b border-slate-50 md:hidden" style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #f8fafc' }}>
+                                        <p className="text-sm font-bold text-slate-800" style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1e293b' }}>{user.fullName}</p>
+                                        <p className="text-xs text-slate-500" style={{ fontSize: '0.75rem', color: '#64748b' }}>{user.role}</p>
+                                    </div>
+                                    <a
+                                        href={user.role === 'COACH' ? '/coach/profile' : user.role === 'ADMIN' ? '/admin/profile' : '/coder/profile'}
+                                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                                        style={{ width: '100%', textAlign: 'left', padding: '0.5rem 1rem', fontSize: '0.875rem', color: '#334155', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'none' }}
+                                    >
+                                        <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ width: '1rem', height: '1rem', color: '#94a3b8' }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                                        Edit Profile
+                                    </a>
+                                    {/* Logout - Assuming standard next-auth signout or link */}
+                                    {/* Logout - Using SignOutButton for modal confirmation */}
+                                    <div style={{ width: '100%', padding: '0' }}>
+                                        <SignOutButton
+                                            label="Logout"
+                                            style={{
+                                                width: '100%',
+                                                textAlign: 'left',
+                                                padding: '0.5rem 1rem',
+                                                fontSize: '0.875rem',
+                                                color: '#dc2626',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.5rem',
+                                                background: 'transparent',
+                                                border: 'none',
+                                                cursor: 'pointer'
+                                            }}
+                                            icon={
+                                                <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ width: '1rem', height: '1rem', color: '#f87171' }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                                            }
+                                        />
+                                    </div>
+                                </motion.div>
+                            </>
+                        )}
+                    </AnimatePresence>
                 </div>
             </div>
 

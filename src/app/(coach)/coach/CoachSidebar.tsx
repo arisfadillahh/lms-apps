@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import type { CSSProperties } from 'react';
 import { Home, ClipboardCheck, FileUp, CalendarOff } from 'lucide-react';
 import Image from 'next/image';
+import { motion } from 'framer-motion';
 
 import SignOutButton from '@/components/SignOutButton';
 
@@ -56,6 +57,21 @@ const activeNavLinkStyle: CSSProperties = {
     fontWeight: 600,
 };
 
+const container = {
+    hidden: { opacity: 0 },
+    show: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.1
+        }
+    }
+};
+
+const item = {
+    hidden: { opacity: 0, x: -20 },
+    show: { opacity: 1, x: 0 }
+};
+
 // Component update
 export default function CoachSidebar({ session }: CoachSidebarProps) {
     const pathname = usePathname();
@@ -73,18 +89,25 @@ export default function CoachSidebar({ session }: CoachSidebarProps) {
                 />
                 <p style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', marginTop: '0.5rem' }}>Coach Dashboard</p>
             </div>
-            <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <motion.nav
+                variants={container}
+                initial="hidden"
+                animate="show"
+                style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}
+            >
                 {NAV_LINKS.map((link) => {
                     const isActive = pathname.startsWith(link.href);
                     const Icon = link.icon;
                     return (
-                        <Link key={link.href} href={link.href} style={isActive ? activeNavLinkStyle : navLinkStyle} className="hover:bg-slate-50 hover:text-slate-900">
-                            <Icon size={20} />
-                            <span>{link.label}</span>
-                        </Link>
+                        <motion.div key={link.href} variants={item}>
+                            <Link key={link.href} href={link.href} style={isActive ? activeNavLinkStyle : navLinkStyle} className="hover:bg-slate-50 hover:text-slate-900">
+                                <Icon size={20} />
+                                <span>{link.label}</span>
+                            </Link>
+                        </motion.div>
                     );
                 })}
-            </nav>
+            </motion.nav>
             {/* Footer removed as per request */}
         </aside>
     );

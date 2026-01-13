@@ -1,10 +1,10 @@
 import { getSessionOrThrow } from '@/lib/auth';
-import { getUserById } from '@/lib/dao/usersDao';
+import { usersDao } from '@/lib/dao';
 import ProfileForm from '@/components/profile/ProfileForm';
 
-export default async function CoachProfilePage() {
+export default async function AdminProfilePage() {
     const session = await getSessionOrThrow();
-    const user = await getUserById(session.user.id);
+    const user = await usersDao.getUserById(session.user.id);
 
     if (!user) {
         return <div>User not found</div>;
@@ -22,7 +22,7 @@ export default async function CoachProfilePage() {
         <div style={{ width: '100%', padding: '2rem 1rem' }}>
             <div style={{ marginBottom: '2rem' }}>
                 <h1 style={{ fontSize: '1.875rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.5rem' }}>Profile & Keamanan</h1>
-                <p style={{ color: '#64748b' }}>Kelola informasi pribadi dan keamanan akun Coach</p>
+                <p style={{ color: '#64748b' }}>Kelola informasi pribadi dan keamanan akun Admin</p>
             </div>
 
             <ProfileForm user={userProfile} />

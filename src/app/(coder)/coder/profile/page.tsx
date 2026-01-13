@@ -12,13 +12,14 @@ export default async function CoderProfilePage() {
 
   // Map to frontend interface
   const userProfile = {
+    username: user.username,
     fullName: user.full_name,
     avatarPath: (user as any).avatar_path || null,
     role: user.role
   };
 
   return (
-    <div style={{ maxWidth: '960px', margin: '0 auto', padding: '2rem 1rem' }}>
+    <div style={{ width: '100%', padding: '2rem 1rem' }}>
       <div style={{ marginBottom: '2rem' }}>
         <h1 style={{ fontSize: '1.875rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.5rem' }}>Profile & Keamanan</h1>
         <p style={{ color: '#64748b' }}>Kelola informasi pribadi dan keamanan akun Anda</p>

@@ -20,7 +20,7 @@ export default async function AdminDashboardPage() {
 
   return (
     <div>
-      <h1 style={{ fontSize: '1.6rem', fontWeight: 600, marginBottom: '1.5rem', color: 'var(--color-text-primary)' }}>Admin Dashboard</h1>
+      {/* h1 removed, handled by DashboardHeader */}
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem' }}>
         <div style={cardStyle}>
           <p style={cardLabel}>Classes</p>
@@ -37,10 +37,10 @@ export default async function AdminDashboardPage() {
       </section>
 
       <section style={{ marginTop: '2.5rem' }}>
-        <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>Upcoming Sessions</h2>
-        <div style={{ background: 'var(--color-bg-surface)', borderRadius: 'var(--radius-lg)', border: `1px solid var(--color-border)`, overflow: 'hidden', boxShadow: 'var(--shadow-medium)' }}>
+        <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem', color: '#1e293b' }}>Upcoming Sessions</h2>
+        <div style={{ background: '#ffffff', borderRadius: '1rem', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead style={{ background: 'rgba(15, 23, 42, 0.04)', textAlign: 'left' }}>
+            <thead style={{ background: '#f8fafc', textAlign: 'left' }}>
               <tr>
                 <th style={thStyle}>Date</th>
                 <th style={thStyle}>Class</th>
@@ -50,13 +50,13 @@ export default async function AdminDashboardPage() {
             <tbody>
               {upcomingSessions.length === 0 ? (
                 <tr>
-                  <td colSpan={3} style={{ padding: '1rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                  <td colSpan={3} style={{ padding: '1rem', textAlign: 'center', color: '#64748b' }}>
                     No upcoming sessions scheduled.
                   </td>
                 </tr>
               ) : (
                 upcomingSessions.map((session) => (
-                  <tr key={session.id} style={{ borderBottom: `1px solid var(--color-border)` }}>
+                  <tr key={session.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={tdStyle}>{format(new Date(session.date_time), 'eee, dd MMM yyyy HH:mm')}</td>
                     <td style={tdStyle}>{classes.find((klass) => klass.id === session.class_id)?.name ?? 'Class'}</td>
                     <td style={tdStyle}>{session.status}</td>
@@ -72,35 +72,40 @@ export default async function AdminDashboardPage() {
 }
 
 const cardStyle: CSSProperties = {
-  background: 'var(--color-bg-surface)',
-  borderRadius: 'var(--radius-lg)',
+  background: '#ffffff',
+  borderRadius: '1rem',
   padding: '1.5rem',
-  border: `1px solid var(--color-border)`,
-  boxShadow: 'var(--shadow-medium)',
-  color: 'var(--color-text-primary)',
+  border: '1px solid #e2e8f0',
+  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+  color: '#1e293b',
 };
 
 const cardLabel: CSSProperties = {
-  fontSize: '0.9rem',
-  color: 'var(--color-text-muted)',
+  fontSize: '0.875rem',
+  color: '#64748b',
   marginBottom: '0.5rem',
+  fontWeight: 500,
 };
 
 const cardValue: CSSProperties = {
   fontSize: '2rem',
-  fontWeight: 600,
-  color: 'var(--color-text-primary)',
+  fontWeight: 700,
+  color: '#1e293b',
 };
 
 const thStyle: CSSProperties = {
-  padding: '0.75rem 1rem',
-  fontSize: '0.85rem',
-  color: 'var(--color-text-secondary)',
-  borderBottom: `1px solid var(--color-border)`,
+  padding: '1rem 1.5rem',
+  fontSize: '0.875rem',
+  fontWeight: 600,
+  color: '#475569',
+  borderBottom: '1px solid #e2e8f0',
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em'
 };
 
 const tdStyle: CSSProperties = {
-  padding: '0.85rem 1rem',
-  fontSize: '0.9rem',
-  color: 'var(--color-text-primary)',
+  padding: '1rem 1.5rem',
+  fontSize: '0.95rem',
+  color: '#334155',
+  fontWeight: 500
 };

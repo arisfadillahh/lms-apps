@@ -70,7 +70,12 @@ export default function EditSessionDateModal({ sessionId, currentDate, isOpen, o
                             value={dateValue}
                             onChange={(e) => setDateValue(e.target.value)}
                             style={{
-                                width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid #d1d5db'
+                                width: '100%',
+                                padding: '0.5rem',
+                                borderRadius: '0.375rem',
+                                border: '1px solid #d1d5db',
+                                color: '#1f2937',
+                                colorScheme: 'light'
                             }}
                             required
                         />
@@ -85,7 +90,7 @@ export default function EditSessionDateModal({ sessionId, currentDate, isOpen, o
                             disabled={isPending}
                             style={{
                                 padding: '0.5rem 1rem', borderRadius: '0.375rem', border: '1px solid #d1d5db',
-                                background: 'white', cursor: 'pointer'
+                                background: 'white', color: '#374151', cursor: 'pointer'
                             }}
                         >
                             Cancel

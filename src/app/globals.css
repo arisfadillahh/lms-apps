@@ -169,6 +169,7 @@ a {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -201,6 +202,7 @@ a {
     opacity: 0;
     transform: translateY(-6px) scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -209,4 +211,11 @@ a {
 
 .animate-fade-slide-in {
   animation: fadeSlideIn 0.2s ease-out forwards;
+}
+
+/* Make datetime-local calendar picker visible */
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(30%) sepia(0%) saturate(0%) hue-rotate(0deg);
+  opacity: 1;
 }

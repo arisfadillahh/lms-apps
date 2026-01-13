@@ -1,7 +1,8 @@
 'use client';
 
 import { signOut } from 'next-auth/react';
-import { type CSSProperties, type MouseEvent, useState, type ReactNode } from 'react';
+import { type CSSProperties, type MouseEvent, useState, type ReactNode, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 type SignOutButtonProps = {
   label?: string;
@@ -12,6 +13,12 @@ type SignOutButtonProps = {
 export default function SignOutButton({ label = 'Sign out', style, icon }: SignOutButtonProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Ensure we only use portal on client side
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -28,6 +35,33 @@ export default function SignOutButton({ label = 'Sign out', style, icon }: SignO
     setOpen(false);
   };
 
+  const modalContent = (
+    <div style={backdropStyle} onClick={handleCancel}>
+      <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
+        <h3 style={titleStyle}>Konfirmasi Sign Out</h3>
+        <p style={bodyStyle}>Apakah Anda yakin ingin keluar dari aplikasi?</p>
+        <div style={actionsStyle}>
+          <button
+            type="button"
+            onClick={handleCancel}
+            style={cancelButtonStyle}
+            disabled={loading}
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            style={confirmButtonStyle}
+            disabled={loading}
+          >
+            {loading ? 'Keluar...' : 'Sign Out'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <>
       <button
@@ -40,32 +74,7 @@ export default function SignOutButton({ label = 'Sign out', style, icon }: SignO
         {label}
       </button>
 
-      {open && (
-        <div style={backdropStyle} onClick={handleCancel}>
-          <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-            <h3 style={titleStyle}>Konfirmasi Sign Out</h3>
-            <p style={bodyStyle}>Apakah Anda yakin ingin keluar dari aplikasi?</p>
-            <div style={actionsStyle}>
-              <button
-                type="button"
-                onClick={handleCancel}
-                style={cancelButtonStyle}
-                disabled={loading}
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirm}
-                style={confirmButtonStyle}
-                disabled={loading}
-              >
-                {loading ? 'Keluar...' : 'Sign Out'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {open && mounted && createPortal(modalContent, document.body)}
     </>
   );
 }
@@ -88,12 +97,13 @@ const backdropStyle: CSSProperties = {
   left: 0,
   right: 0,
   bottom: 0,
-  background: 'rgba(15, 23, 42, 0.65)',
+  width: '100vw',
+  height: '100vh',
+  background: 'rgba(15, 23, 42, 0.7)',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  zIndex: 99999,
-  padding: '1.5rem',
+  zIndex: 999999,
 };
 
 const modalStyle: CSSProperties = {

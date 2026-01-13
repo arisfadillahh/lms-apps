@@ -75,11 +75,11 @@ export default function CalendarModal({ sessions, children, triggerClassName, tr
                         <div style={headerStyle}>
                             <h2 style={{ fontSize: '1.4rem', fontWeight: 600 }}>Kalender Kelas</h2>
                             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                <button onClick={prevMonth} style={navIconStyle}>←</button>
+                                <button onClick={prevMonth} style={navIconStyle}>◀</button>
                                 <span style={{ fontSize: '1.1rem', fontWeight: 500, minWidth: '150px', textAlign: 'center' }}>
                                     {format(currentMonth, 'MMMM yyyy', { locale: localeId })}
                                 </span>
-                                <button onClick={nextMonth} style={navIconStyle}>→</button>
+                                <button onClick={nextMonth} style={navIconStyle}>▶</button>
                             </div>
                             <Dialog.Close asChild>
                                 <button style={closeButtonStyle}>
@@ -248,7 +248,8 @@ const triggerButtonStyle: CSSProperties = {
 
 const navIconStyle: CSSProperties = {
     background: 'none', border: '1px solid #e2e8f0', borderRadius: '0.5rem',
-    width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+    width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    color: '#334155', fontSize: '0.85rem'
 };
 
 const closeButtonStyle: CSSProperties = {

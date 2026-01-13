@@ -25,8 +25,22 @@ export default function LeaveApprovalTable({ requests, coaches }: LeaveApprovalT
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  // Track which requests are in "edit mode"
+  const [editingIds, setEditingIds] = useState<Set<string>>(new Set());
 
   const coachOptions = useMemo(() => coaches, [coaches]);
+
+  const toggleEdit = (requestId: string) => {
+    setEditingIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(requestId)) {
+        next.delete(requestId);
+      } else {
+        next.add(requestId);
+      }
+      return next;
+    });
+  };
 
   const updateStatus = (requestId: string, status: 'APPROVED' | 'REJECTED') => {
     setErrorMessage(null);
@@ -55,6 +69,11 @@ export default function LeaveApprovalTable({ requests, coaches }: LeaveApprovalT
         }
 
         setStatusMessage('Status diperbarui');
+        setEditingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(requestId);
+          return next;
+        });
         router.refresh();
         setTimeout(() => setStatusMessage(null), 3000);
       } catch (error) {
@@ -87,6 +106,8 @@ export default function LeaveApprovalTable({ requests, coaches }: LeaveApprovalT
             {requests.map((request) => {
               const substituteOptions = coachOptions.filter((coach) => coach.id !== request.coach_id);
               const selected = substituteMap[request.id] ?? request.substitute_coach_id ?? '';
+              const isEditing = editingIds.has(request.id);
+              const isPending_ = request.status === 'PENDING';
 
               return (
                 <tr key={request.id} style={{ borderBottom: `1px solid var(--color-border)` }}>
@@ -103,43 +124,73 @@ export default function LeaveApprovalTable({ requests, coaches }: LeaveApprovalT
                     <span style={{ color: statusColor(request.status), fontWeight: 600 }}>{request.status}</span>
                   </td>
                   <td style={tdStyle}>
-                    <select
-                      value={selected}
-                      onChange={(event) =>
-                        setSubstituteMap((prev) => ({
-                          ...prev,
-                          [request.id]: event.target.value,
-                        }))
-                      }
-                      style={selectStyle}
-                      disabled={isPending}
-                    >
-                      <option value="">Pilih coach</option>
-                      {substituteOptions.map((coach) => (
-                        <option key={coach.id} value={coach.id}>
-                          {coach.name}
-                        </option>
-                      ))}
-                    </select>
+                    {/* Show dropdown only if PENDING or editing */}
+                    {isPending_ || isEditing ? (
+                      <select
+                        value={selected}
+                        onChange={(event) =>
+                          setSubstituteMap((prev) => ({
+                            ...prev,
+                            [request.id]: event.target.value,
+                          }))
+                        }
+                        style={selectStyle}
+                        disabled={isPending}
+                      >
+                        <option value="">Pilih coach</option>
+                        {substituteOptions.map((coach) => (
+                          <option key={coach.id} value={coach.id}>
+                            {coach.name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span style={{ color: '#2563eb', fontWeight: 500 }}>
+                        {request.substitute?.full_name ?? '—'}
+                      </span>
+                    )}
                   </td>
                   <td style={tdStyle}>{request.note ?? '—'}</td>
                   <td style={tdActionStyle}>
-                    <button
-                      type="button"
-                      onClick={() => updateStatus(request.id, 'APPROVED')}
-                      disabled={isPending}
-                      style={approveButtonStyle}
-                    >
-                      {isPending ? 'Memproses…' : 'Approve'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => updateStatus(request.id, 'REJECTED')}
-                      disabled={isPending}
-                      style={rejectButtonStyle}
-                    >
-                      Tolak
-                    </button>
+                    {/* If PENDING or editing, show Approve/Tolak buttons */}
+                    {isPending_ || isEditing ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => updateStatus(request.id, 'APPROVED')}
+                          disabled={isPending}
+                          style={approveButtonStyle}
+                        >
+                          {isPending ? 'Memproses…' : 'Approve'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateStatus(request.id, 'REJECTED')}
+                          disabled={isPending}
+                          style={rejectButtonStyle}
+                        >
+                          Tolak
+                        </button>
+                        {isEditing && (
+                          <button
+                            type="button"
+                            onClick={() => toggleEdit(request.id)}
+                            style={cancelEditButtonStyle}
+                          >
+                            Batal
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      /* Show Edit button for already processed requests */
+                      <button
+                        type="button"
+                        onClick={() => toggleEdit(request.id)}
+                        style={editButtonStyle}
+                      >
+                        Edit
+                      </button>
+                    )}
                   </td>
                 </tr>
               );
@@ -206,7 +257,7 @@ const approveButtonStyle: CSSProperties = {
   padding: '0.45rem 0.85rem',
   borderRadius: '0.5rem',
   border: 'none',
-  background: 'var(--color-success)',
+  background: '#16a34a',
   color: '#fff',
   fontSize: '0.85rem',
   fontWeight: 600,
@@ -214,6 +265,34 @@ const approveButtonStyle: CSSProperties = {
 };
 
 const rejectButtonStyle: CSSProperties = {
-  ...approveButtonStyle,
-  background: 'var(--color-danger)',
+  padding: '0.45rem 0.85rem',
+  borderRadius: '0.5rem',
+  border: 'none',
+  background: '#dc2626',
+  color: '#fff',
+  fontSize: '0.85rem',
+  fontWeight: 600,
+  cursor: 'pointer',
+};
+
+const editButtonStyle: CSSProperties = {
+  padding: '0.45rem 0.85rem',
+  borderRadius: '0.5rem',
+  border: '1px solid #cbd5e1',
+  background: '#fff',
+  color: '#334155',
+  fontSize: '0.85rem',
+  fontWeight: 600,
+  cursor: 'pointer',
+};
+
+const cancelEditButtonStyle: CSSProperties = {
+  padding: '0.45rem 0.85rem',
+  borderRadius: '0.5rem',
+  border: '1px solid #e2e8f0',
+  background: '#f8fafc',
+  color: '#64748b',
+  fontSize: '0.85rem',
+  fontWeight: 500,
+  cursor: 'pointer',
 };

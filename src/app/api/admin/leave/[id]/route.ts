@@ -14,7 +14,8 @@ type RouteContext = {
   params: { id: string };
 };
 
-export async function PATCH(request: Request, { params }: RouteContext) {
+export async function PATCH(request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getSessionOrThrow();
   await assertRole(session, 'ADMIN');
 

@@ -19,4 +19,5 @@ export * as exkulCompetenciesDao from './exkulCompetenciesDao';
 export * as lessonScheduler from '../services/lessonScheduler';
 export * as lessonAutoAssign from '../services/lessonAutoAssign';
 // Newly added
+export * as ekskulPlansDao from './ekskulPlansDao';
 export * as notificationsDao from './notificationsDao';

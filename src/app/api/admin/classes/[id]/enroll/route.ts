@@ -47,45 +47,58 @@ export async function POST(request: NextRequest, context: RouteContext) {
   if (!klass) {
     return NextResponse.json({ error: 'Class not found' }, { status: 404 });
   }
-  if (!klass.level_id) {
-    return NextResponse.json({ error: 'Class level missing' }, { status: 400 });
-  }
+  if (klass.type === 'WEEKLY') {
+    if (!klass.level_id) {
+      return NextResponse.json({ error: 'Class level missing' }, { status: 400 });
+    }
 
-  const [levelBlocks, classBlocks] = await Promise.all([
-    blocksDao.listBlocksByLevel(klass.level_id),
-    classesDao.getClassBlocks(classIdParam),
-  ]);
+    const [levelBlocks, classBlocks] = await Promise.all([
+      blocksDao.listBlocksByLevel(klass.level_id),
+      classesDao.getClassBlocks(classIdParam),
+    ]);
 
-  if (levelBlocks.length === 0) {
-    return NextResponse.json({ error: 'No curriculum blocks configured for this level' }, { status: 400 });
-  }
+    if (levelBlocks.length === 0) {
+      return NextResponse.json({ error: 'No curriculum blocks configured for this level' }, { status: 400 });
+    }
 
-  try {
-    const enrollment = await classesDao.enrollCoder({
-      classId: classIdParam,
-      coderId: parsed.data.coderId,
-    });
+    try {
+      const enrollment = await classesDao.enrollCoder({
+        classId: classIdParam,
+        coderId: parsed.data.coderId,
+      });
 
-    // Find the current block for this class - use class_blocks, not level_blocks
-    // Sort class_blocks by start_date to find the first scheduled block
-    const sortedClassBlocks = [...classBlocks].sort(
-      (a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
-    );
-    const currentBlockId =
-      classBlocks.find((block) => block.status === 'CURRENT')?.block_id ??
-      sortedClassBlocks[0]?.block_id ??  // Use first class_block by date, not first level block
-      null;
+      // Find the current block for this class - use class_blocks, not level_blocks
+      // Sort class_blocks by start_date to find the first scheduled block
+      const sortedClassBlocks = [...classBlocks].sort(
+        (a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
+      );
+      const currentBlockId =
+        classBlocks.find((block) => block.status === 'CURRENT')?.block_id ??
+        sortedClassBlocks[0]?.block_id ??  // Use first class_block by date, not first level block
+        null;
 
-    await coderProgressDao.ensureJourneyForCoder({
-      coderId: parsed.data.coderId,
-      levelId: klass.level_id,
-      blocks: levelBlocks,
-      entryBlockId: currentBlockId,
-    });
+      await coderProgressDao.ensureJourneyForCoder({
+        coderId: parsed.data.coderId,
+        levelId: klass.level_id,
+        blocks: levelBlocks,
+        entryBlockId: currentBlockId,
+      });
 
-    return NextResponse.json({ enrollment }, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message ?? 'Failed to enroll coder' }, { status: 400 });
+      return NextResponse.json({ enrollment }, { status: 201 });
+    } catch (error: any) {
+      return NextResponse.json({ error: error.message ?? 'Failed to enroll coder' }, { status: 400 });
+    }
+  } else {
+    // EKSKUL or other types that don't follow the level/block journey structure
+    try {
+      const enrollment = await classesDao.enrollCoder({
+        classId: classIdParam,
+        coderId: parsed.data.coderId,
+      });
+      return NextResponse.json({ enrollment }, { status: 201 });
+    } catch (error: any) {
+      return NextResponse.json({ error: error.message ?? 'Failed to enroll coder' }, { status: 400 });
+    }
   }
 }
 

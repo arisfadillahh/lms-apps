@@ -38,7 +38,7 @@ export default async function CoderDashboardPage() {
     getBanners(),
   ]);
   const upcomingBlocks = progress
-    .filter((item) => item.type === 'WEEKLY' && item.upNext)
+    .filter((item) => item.upNext)
     .map((item) => ({
       classId: item.classId,
       className: item.name,

@@ -63,9 +63,94 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
 
   return Promise.all(
     classes.map(async (klass) => {
+      // Common data
       const submissions = await rubricsDao.listRubricSubmissionsByCoder(klass.id, coderId);
-      const blocks = await classesDao.getClassBlocks(klass.id);
       const sessions = await sessionsDao.listSessionsByClass(klass.id);
+      const sessionIdSet = new Set(sessions.map((session) => session.id));
+      const lastAttendance = attendance
+        .filter(
+          (record) =>
+            (record.status === 'PRESENT' || record.status === 'LATE') &&
+            sessionIdSet.has(record.session_id),
+        )
+        .sort((a, b) => new Date(b.recorded_at).getTime() - new Date(a.recorded_at).getTime())[0];
+      const semesterTag = submissions.find((submission) => submission.semester_tag)?.semester_tag ?? null;
+
+      // --- EKSKUL HANDLING ---
+      if (klass.type === 'EKSKUL') {
+        let upNext: CoderClassProgress['upNext'] = null;
+        let totalBlocks = 1; // Ekskul counts as 1 block/plan
+        let completedBlocks = 0; // Logic for completion? Maybe if class end date passed?
+
+        if (klass.ekskul_lesson_plan_id) {
+          const plan = await import('@/lib/dao/ekskulPlansDao').then(m => m.getEkskulPlanWithDetails(klass.ekskul_lesson_plan_id!));
+
+          if (plan) {
+            // Determine status
+            const now = new Date();
+            const start = new Date(klass.start_date);
+            const end = new Date(klass.end_date);
+            let status: 'UPCOMING' | 'CURRENT' | 'COMPLETED' = 'UPCOMING';
+            if (now > end) status = 'COMPLETED';
+            else if (now >= start) status = 'CURRENT';
+
+            completedBlocks = status === 'COMPLETED' ? 1 : 0;
+
+            const software = plan.ekskul_plan_software.map(ps => ({
+              id: ps.software.id,
+              name: ps.software.name,
+              version: ps.software.version,
+              description: ps.software.description,
+              installation_url: ps.software.installation_url,
+              installation_instructions: ps.software.installation_instructions,
+              minimum_specs: ps.software.minimum_specs as Record<string, string> | null,
+              access_info: ps.software.access_info,
+            }));
+
+            // Find next upcoming session for Ekskul
+            const nextSession = sessions
+              .filter(s => (new Date(s.date_time) >= now && s.status !== 'COMPLETED' && s.status !== 'CANCELLED'))
+              .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime())[0];
+
+            // For Ekskul, we might not have per-session lesson mapping easily available without class_lessons
+            // But we can show the Plan as the "Block"
+
+            upNext = {
+              blockId: plan.id,
+              name: plan.name, // Use Plan Name as "Block" Name
+              status: status,
+              startDate: klass.start_date,
+              endDate: klass.end_date,
+              estimatedSessions: plan.ekskul_lessons.reduce((acc, l) => acc + (l.estimated_meetings || 1), 0),
+              software: software,
+              completedLessons: [], // Tracking individual lesson completion is harder for Ekskul currently
+              nextLesson: nextSession ? {
+                title: `Sesi: ${new Date(nextSession.date_time).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' })}`,
+                summary: `Jam ${new Date(nextSession.date_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`,
+                slideUrl: null
+              } : null
+            };
+          }
+        }
+
+        return {
+          classId: klass.id,
+          name: klass.name,
+          type: klass.type,
+          currentBlockName: upNext?.name ?? null,
+          upcomingBlockName: null,
+          upNext,
+          completedBlocks,
+          totalBlocks,
+          lastAttendanceAt: lastAttendance?.recorded_at ?? null,
+          semesterTag,
+          pendingBlocks: [],
+          journeyBlocks: [], // No journey line for Ekskul
+        };
+      }
+
+      // --- WEEKLY HANDLING (Existing Logic) ---
+      const blocks = await classesDao.getClassBlocks(klass.id);
       const lessonMap = klass.level_id ? await computeLessonSchedule(klass.id, klass.level_id) : new Map();
 
       // Fetch personalized journey order
@@ -73,7 +158,7 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
       const journeyOrderMap = new Map(journey.map(j => [j.block_id, j.journey_order]));
 
       const completedBlocks = submissions.filter((submission) => submission.block_id).length;
-      const totalBlocks = klass.type === 'WEEKLY' ? blocks.length : null;
+      const totalBlocks = blocks.length;
       const currentBlock = blocks.find((block) => block.status === 'CURRENT');
       const upcomingBlock = blocks.find((block) => block.status === 'UPCOMING');
 
@@ -103,15 +188,13 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
       });
 
       const pendingBlocks =
-        klass.type === 'WEEKLY'
-          ? sortedBlocks.filter((block) => block.status !== 'COMPLETED').map((block) => ({
-            blockId: block.block_id,
-            name: block.block_name ?? 'Block',
-            status: block.status,
-            startDate: block.start_date,
-            endDate: block.end_date,
-          }))
-          : [];
+        sortedBlocks.filter((block) => block.status !== 'COMPLETED').map((block) => ({
+          blockId: block.block_id,
+          name: block.block_name ?? 'Block',
+          status: block.status,
+          startDate: block.start_date,
+          endDate: block.end_date,
+        }));
 
       // Use the sorted index as the display order
       const journeyBlocks = sortedBlocks.map((block, index) => ({
@@ -124,113 +207,95 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
       }));
 
       let upNext: CoderClassProgress['upNext'] = null;
-      if (klass.type === 'WEEKLY') {
-        const currentOrUpcoming =
-          sortedBlocks.find((block) => block.status === 'CURRENT') ??
-          sortedBlocks.find((block) => block.status === 'UPCOMING');
 
-        if (currentOrUpcoming) {
-          const software = await getSoftwareByBlockId(currentOrUpcoming.block_id);
+      const currentOrUpcoming =
+        sortedBlocks.find((block) => block.status === 'CURRENT') ??
+        sortedBlocks.find((block) => block.status === 'UPCOMING');
 
-          // Find next upcoming session and its lesson
-          const now = new Date();
-          const nextSession = sessions
-            .filter(s => (new Date(s.date_time) >= now && s.status !== 'COMPLETED' && s.status !== 'CANCELLED')) // Fix: Don't show completed sessions as next
-            .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime())[0];
+      if (currentOrUpcoming) {
+        const software = await getSoftwareByBlockId(currentOrUpcoming.block_id);
 
-          let nextLesson = null;
-          if (nextSession) {
-            const slot = lessonMap.get(nextSession.id);
-            if (slot) {
-              nextLesson = {
+        // Find next upcoming session and its lesson
+        const now = new Date();
+        const nextSession = sessions
+          .filter(s => (new Date(s.date_time) >= now && s.status !== 'COMPLETED' && s.status !== 'CANCELLED'))
+          .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime())[0];
+
+        let nextLesson = null;
+        if (nextSession) {
+          const slot = lessonMap.get(nextSession.id);
+          if (slot) {
+            nextLesson = {
+              title: formatLessonTitle(slot),
+              summary: slot.lessonTemplate.summary,
+              slideUrl: slot.lessonTemplate.slide_url,
+            };
+          }
+        }
+
+        // Fetch completed lessons for this block
+        const completedLessons = sessions
+          .filter(s => s.status === 'COMPLETED')
+          .map(s => {
+            const slot = lessonMap.get(s.id);
+            if (!slot) return null;
+            if (slot.lessonTemplate.block_id === currentOrUpcoming.block_id) {
+              return {
                 title: formatLessonTitle(slot),
                 summary: slot.lessonTemplate.summary,
-                slideUrl: slot.lessonTemplate.slide_url,
+                completedAt: s.date_time,
               };
             }
-          }
+            return null;
+          })
+          .filter((l): l is { title: string; summary: string | null; completedAt: string } => l !== null)
+          .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()); // Newest first
 
-          // Fetch completed lessons for this block
-          const completedLessons = sessions
-            .filter(s => s.status === 'COMPLETED')
-            .map(s => {
-              const slot = lessonMap.get(s.id);
-              if (!slot) return null;
-              // Check if this session belongs to the current block?
-              // The lesson map assigns a template. The template belongs to a block.
-              // We should check if slot.lessonTemplate.block_id === currentOrUpcoming.block_id
-              // But usually sessions are strictly ordered.
-              // Let's rely on time range of the block?
-              // Or better: filter by block_id if available in slot.
-              if (slot.lessonTemplate.block_id === currentOrUpcoming.block_id) {
-                return {
-                  title: formatLessonTitle(slot),
-                  summary: slot.lessonTemplate.summary,
-                  completedAt: s.date_time,
-                };
-              }
-              return null;
-            })
-            .filter((l): l is { title: string; summary: string | null; completedAt: string } => l !== null)
-            .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()); // Newest first
-
-          upNext = {
-            blockId: currentOrUpcoming.block_id,
-            name: currentOrUpcoming.block_name ?? 'Block',
-            status: currentOrUpcoming.status,
-            startDate: currentOrUpcoming.start_date,
-            endDate: currentOrUpcoming.end_date,
-            estimatedSessions: (await lessonTemplatesDao.listLessonsByBlock(currentOrUpcoming.block_id))
-              .reduce((acc, l) => acc + (l.estimated_meeting_count || 1), 0),
-            software: software.map(s => ({
-              id: s.id,
-              name: s.name,
-              version: s.version,
-              description: s.description,
-              installation_url: s.installation_url,
-              installation_instructions: s.installation_instructions,
-              minimum_specs: s.minimum_specs as Record<string, string> | null,
-              access_info: s.access_info,
-            })),
-            nextLesson,
-            completedLessons,
-          };
-        } else if (sortedBlocks.length > 0) {
-          const wrapAround = sortedBlocks[0];
-          const software = await getSoftwareByBlockId(wrapAround.block_id);
-          upNext = {
-            blockId: wrapAround.block_id,
-            name: wrapAround.block_name ?? 'Block',
-            status: wrapAround.status,
-            startDate: wrapAround.start_date,
-            endDate: wrapAround.end_date,
-            estimatedSessions: (await lessonTemplatesDao.listLessonsByBlock(wrapAround.block_id))
-              .reduce((acc, l) => acc + (l.estimated_meeting_count || 1), 0),
-            software: software.map(s => ({
-              id: s.id,
-              name: s.name,
-              version: s.version,
-              description: s.description,
-              installation_url: s.installation_url,
-              installation_instructions: s.installation_instructions,
-              minimum_specs: s.minimum_specs as Record<string, string> | null,
-              access_info: s.access_info,
-            })),
-            completedLessons: [],
-          };
-        }
+        upNext = {
+          blockId: currentOrUpcoming.block_id,
+          name: currentOrUpcoming.block_name ?? 'Block',
+          status: currentOrUpcoming.status,
+          startDate: currentOrUpcoming.start_date,
+          endDate: currentOrUpcoming.end_date,
+          estimatedSessions: (await lessonTemplatesDao.listLessonsByBlock(currentOrUpcoming.block_id))
+            .reduce((acc, l) => acc + (l.estimated_meeting_count || 1), 0),
+          software: software.map(s => ({
+            id: s.id,
+            name: s.name,
+            version: s.version,
+            description: s.description,
+            installation_url: s.installation_url,
+            installation_instructions: s.installation_instructions,
+            minimum_specs: s.minimum_specs as Record<string, string> | null,
+            access_info: s.access_info,
+          })),
+          nextLesson,
+          completedLessons,
+        };
+      } else if (sortedBlocks.length > 0) {
+        const wrapAround = sortedBlocks[0];
+        const software = await getSoftwareByBlockId(wrapAround.block_id);
+        upNext = {
+          blockId: wrapAround.block_id,
+          name: wrapAround.block_name ?? 'Block',
+          status: wrapAround.status,
+          startDate: wrapAround.start_date,
+          endDate: wrapAround.end_date,
+          estimatedSessions: (await lessonTemplatesDao.listLessonsByBlock(wrapAround.block_id))
+            .reduce((acc, l) => acc + (l.estimated_meeting_count || 1), 0),
+          software: software.map(s => ({
+            id: s.id,
+            name: s.name,
+            version: s.version,
+            description: s.description,
+            installation_url: s.installation_url,
+            installation_instructions: s.installation_instructions,
+            minimum_specs: s.minimum_specs as Record<string, string> | null,
+            access_info: s.access_info,
+          })),
+          completedLessons: [],
+        };
       }
-
-      const sessionIdSet = new Set(sessions.map((session) => session.id));
-      const lastAttendance = attendance
-        .filter(
-          (record) =>
-            (record.status === 'PRESENT' || record.status === 'LATE') &&
-            sessionIdSet.has(record.session_id),
-        )
-        .sort((a, b) => new Date(b.recorded_at).getTime() - new Date(a.recorded_at).getTime())[0];
-
-      const semesterTag = submissions.find((submission) => submission.semester_tag)?.semester_tag ?? null;
 
       return {
         classId: klass.id,

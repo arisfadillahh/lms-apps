@@ -7,7 +7,7 @@ import type { Role } from '@/types/supabase';
 const BroadcastSchema = z.object({
     target: z.enum(['ALL', 'COACHES', 'CODERS']),
     title: z.string().min(1, 'Title is required').max(100),
-    message: z.string().min(1, 'Message is required').max(1000),
+    message: z.string().min(1, 'Message is required').max(10000),
 });
 
 export async function POST(request: Request) {

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, type CSSProperties, type FormEvent } from 'react';
-import { Megaphone, Send, CheckCircle, AlertCircle } from 'lucide-react';
+import { useState, type CSSProperties, type FormEvent, useRef, useCallback } from 'react';
+import { Megaphone, Send, CheckCircle, AlertCircle, Bold, Italic, Link, Image as ImageIcon, List, Undo, Redo } from 'lucide-react';
 
 type Target = 'ALL' | 'COACHES' | 'CODERS';
 
@@ -15,12 +15,39 @@ type Result = {
 export default function BroadcastPage() {
     const [target, setTarget] = useState<Target>('ALL');
     const [title, setTitle] = useState('');
-    const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<Result | null>(null);
+    const editorRef = useRef<HTMLDivElement>(null);
+
+    const execCommand = useCallback((command: string, value?: string) => {
+        document.execCommand(command, false, value);
+        editorRef.current?.focus();
+    }, []);
+
+    const insertLink = useCallback(() => {
+        const url = prompt('Enter URL:');
+        if (url) {
+            execCommand('createLink', url);
+        }
+    }, [execCommand]);
+
+    const insertImage = useCallback(() => {
+        const url = prompt('Enter image URL:');
+        if (url) {
+            execCommand('insertImage', url);
+        }
+    }, [execCommand]);
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
+        if (!editorRef.current) return;
+
+        const message = editorRef.current.innerHTML;
+        if (!message.trim() || message === '<br>') {
+            setResult({ success: false, error: 'Pesan tidak boleh kosong' });
+            return;
+        }
+
         setLoading(true);
         setResult(null);
 
@@ -37,9 +64,10 @@ export default function BroadcastPage() {
                 setResult({ success: false, error: data.error || 'Failed to send broadcast' });
             } else {
                 setResult({ success: true, sent: data.sent, message: data.message });
-                // Reset form on success
                 setTitle('');
-                setMessage('');
+                if (editorRef.current) {
+                    editorRef.current.innerHTML = '';
+                }
             }
         } catch (err) {
             setResult({ success: false, error: 'Network error. Please try again.' });
@@ -49,7 +77,7 @@ export default function BroadcastPage() {
     };
 
     return (
-        <div style={{ maxWidth: '700px', margin: '0 auto' }}>
+        <div style={{ width: '100%' }}>
             {/* Header */}
             <div style={{ marginBottom: '2rem' }}>
                 <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -63,12 +91,7 @@ export default function BroadcastPage() {
 
             {/* Result Banner */}
             {result && (
-                <div style={{
-                    ...resultBannerStyle,
-                    background: result.success ? '#f0fdf4' : '#fef2f2',
-                    borderColor: result.success ? '#86efac' : '#fecaca',
-                    color: result.success ? '#15803d' : '#b91c1c',
-                }}>
+                <div style={result.success ? resultBannerSuccessStyle : resultBannerErrorStyle}>
                     {result.success ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
                     <span>{result.success ? result.message : result.error}</span>
                 </div>
@@ -90,7 +113,7 @@ export default function BroadcastPage() {
                                     ...(target === t ? targetButtonActiveStyle : {}),
                                 }}
                             >
-                                {t === 'ALL' ? '🎯 Semua' : t === 'COACHES' ? '👨‍🏫 Coach' : '👦 Coder'}
+                                {t === 'ALL' ? 'Semua User' : t === 'COACHES' ? 'Coach' : 'Coder'}
                             </button>
                         ))}
                     </div>
@@ -110,29 +133,59 @@ export default function BroadcastPage() {
                     />
                 </div>
 
-                {/* Message */}
+                {/* Rich Text Editor */}
                 <div style={fieldGroupStyle}>
                     <label style={labelStyle}>Isi Pesan</label>
-                    <textarea
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        placeholder="Tulis pesan notifikasi di sini..."
-                        style={{ ...inputStyle, minHeight: '150px', resize: 'vertical' }}
-                        maxLength={1000}
-                        required
+
+                    {/* Toolbar */}
+                    <div style={toolbarStyle}>
+                        <button type="button" onClick={() => execCommand('bold')} style={toolbarButtonStyle} title="Bold">
+                            <Bold size={18} />
+                        </button>
+                        <button type="button" onClick={() => execCommand('italic')} style={toolbarButtonStyle} title="Italic">
+                            <Italic size={18} />
+                        </button>
+                        <div style={toolbarDividerStyle} />
+                        <button type="button" onClick={insertLink} style={toolbarButtonStyle} title="Insert Link">
+                            <Link size={18} />
+                        </button>
+                        <button type="button" onClick={insertImage} style={toolbarButtonStyle} title="Insert Image">
+                            <ImageIcon size={18} />
+                        </button>
+                        <div style={toolbarDividerStyle} />
+                        <button type="button" onClick={() => execCommand('insertUnorderedList')} style={toolbarButtonStyle} title="Bullet List">
+                            <List size={18} />
+                        </button>
+                        <div style={toolbarDividerStyle} />
+                        <button type="button" onClick={() => execCommand('undo')} style={toolbarButtonStyle} title="Undo">
+                            <Undo size={18} />
+                        </button>
+                        <button type="button" onClick={() => execCommand('redo')} style={toolbarButtonStyle} title="Redo">
+                            <Redo size={18} />
+                        </button>
+                    </div>
+
+                    {/* Editable Content Area */}
+                    <div
+                        ref={editorRef}
+                        contentEditable
+                        style={editorStyle}
+                        onPaste={(e) => {
+                            // Allow rich paste
+                        }}
                     />
                     <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem' }}>
-                        {message.length}/1000 karakter
+                        Gunakan toolbar di atas untuk menambahkan format, link, atau gambar
                     </p>
                 </div>
 
                 {/* Submit */}
                 <button
                     type="submit"
-                    disabled={loading || !title.trim() || !message.trim()}
+                    disabled={loading || !title.trim()}
                     style={{
                         ...submitButtonStyle,
-                        opacity: loading || !title.trim() || !message.trim() ? 0.6 : 1,
+                        opacity: loading || !title.trim() ? 0.6 : 1,
                         cursor: loading ? 'wait' : 'pointer',
                     }}
                 >
@@ -179,7 +232,9 @@ const inputStyle: CSSProperties = {
 const targetButtonStyle: CSSProperties = {
     padding: '0.625rem 1.25rem',
     borderRadius: '10px',
-    border: '2px solid #e2e8f0',
+    borderWidth: '2px',
+    borderStyle: 'solid',
+    borderColor: '#e2e8f0',
     background: '#ffffff',
     fontSize: '0.9rem',
     fontWeight: 500,
@@ -192,6 +247,48 @@ const targetButtonActiveStyle: CSSProperties = {
     borderColor: '#2563eb',
     background: '#eff6ff',
     color: '#2563eb',
+};
+
+const toolbarStyle: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.25rem',
+    padding: '0.5rem',
+    background: '#f8fafc',
+    borderRadius: '10px 10px 0 0',
+    border: '1px solid #e2e8f0',
+    borderBottom: 'none',
+};
+
+const toolbarButtonStyle: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '0.5rem',
+    borderRadius: '6px',
+    border: 'none',
+    background: 'transparent',
+    color: '#475569',
+    cursor: 'pointer',
+    transition: 'all 0.15s',
+};
+
+const toolbarDividerStyle: CSSProperties = {
+    width: '1px',
+    height: '20px',
+    background: '#e2e8f0',
+    margin: '0 0.25rem',
+};
+
+const editorStyle: CSSProperties = {
+    minHeight: '200px',
+    padding: '1rem',
+    borderRadius: '0 0 10px 10px',
+    border: '1px solid #e2e8f0',
+    fontSize: '0.95rem',
+    outline: 'none',
+    lineHeight: '1.6',
+    overflowY: 'auto',
 };
 
 const submitButtonStyle: CSSProperties = {
@@ -211,13 +308,33 @@ const submitButtonStyle: CSSProperties = {
     marginTop: '0.5rem',
 };
 
-const resultBannerStyle: CSSProperties = {
+const resultBannerSuccessStyle: CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     gap: '0.75rem',
     padding: '1rem 1.25rem',
     borderRadius: '12px',
-    border: '1px solid',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: '#86efac',
+    background: '#f0fdf4',
+    color: '#15803d',
+    marginBottom: '1.5rem',
+    fontSize: '0.95rem',
+    fontWeight: 500,
+};
+
+const resultBannerErrorStyle: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem',
+    padding: '1rem 1.25rem',
+    borderRadius: '12px',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: '#fecaca',
+    background: '#fef2f2',
+    color: '#b91c1c',
     marginBottom: '1.5rem',
     fontSize: '0.95rem',
     fontWeight: 500,

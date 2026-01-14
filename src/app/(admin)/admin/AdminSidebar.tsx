@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { CSSProperties } from 'react';
-import { Home, Users, GraduationCap, BookOpen, CalendarOff, FileText, MessageCircle, Package, Image as ImageIcon, Wallet, BookMarked } from 'lucide-react';
+import { Home, Users, GraduationCap, BookOpen, CalendarOff, FileText, MessageCircle, Package, Image as ImageIcon, Wallet, BookMarked, Megaphone } from 'lucide-react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 
@@ -19,6 +19,7 @@ const NAV_LINKS = [
     { href: '/admin/leave', label: 'Izin Coach', icon: CalendarOff },
     { href: '/admin/reports', label: 'Laporan', icon: FileText },
     { href: '/admin/whatsapp', label: 'WhatsApp', icon: MessageCircle },
+    { href: '/admin/broadcast', label: 'Broadcast', icon: Megaphone },
 ];
 
 type AdminSidebarProps = {

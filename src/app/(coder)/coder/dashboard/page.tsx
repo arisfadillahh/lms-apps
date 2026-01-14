@@ -42,6 +42,7 @@ export default async function CoderDashboardPage() {
     .map((item) => ({
       classId: item.classId,
       className: item.name,
+      classType: item.type, // Add type for conditional display
       block: item.upNext!,
       journeyBlocks: item.journeyBlocks // Pass journey blocks for the modal
     }));
@@ -74,7 +75,7 @@ export default async function CoderDashboardPage() {
 
       {upcomingBlocks.length > 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          {upcomingBlocks.map(({ classId, className, block, journeyBlocks }) => {
+          {upcomingBlocks.map(({ classId, className, classType, block, journeyBlocks }) => {
             return (
               <div key={`${classId}-${block.blockId}`} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
@@ -86,7 +87,7 @@ export default async function CoderDashboardPage() {
                         {className}
                       </p>
                       <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-                        Block: {block.name}
+                        {classType === 'EKSKUL' ? block.name : `Block: ${block.name}`}
                       </h2>
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>

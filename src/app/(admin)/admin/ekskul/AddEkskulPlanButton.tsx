@@ -1,28 +1,37 @@
 'use client';
 
-import type { CSSProperties } from 'react';
 import { useState, useTransition } from 'react';
+import type { CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
+import EkskulSoftwareSelector from './EkskulSoftwareSelector';
 
-export default function AddEkskulPlanButton() {
+type Props = {};
+
+export default function AddEkskulPlanButton({ }: Props) {
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
 
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
+    const [selectedSoftwareIds, setSelectedSoftwareIds] = useState<string[]>([]);
     const [error, setError] = useState<string | null>(null);
 
     const handleClose = () => {
         setOpen(false);
         setName('');
         setDescription('');
+        setSelectedSoftwareIds([]);
         setError(null);
     };
 
     const handleSubmit = () => {
         if (!name.trim()) {
-            setError('Nama wajib diisi');
+            setError('Nama plan wajib diisi');
+            return;
+        }
+        if (selectedSoftwareIds.length === 0) {
+            setError('Pilih minimal satu software');
             return;
         }
         setError(null);
@@ -35,6 +44,7 @@ export default function AddEkskulPlanButton() {
                     body: JSON.stringify({
                         name: name.trim(),
                         description: description.trim() || null,
+                        softwareIds: selectedSoftwareIds,
                     }),
                 });
 
@@ -77,13 +87,21 @@ export default function AddEkskulPlanButton() {
                         </div>
 
                         <div style={fieldStyle}>
-                            <label style={labelStyle}>Deskripsi</label>
+                            <label style={labelStyle}>Deskripsi (opsional)</label>
                             <textarea
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
                                 placeholder="Deskripsi singkat tentang lesson plan ini..."
-                                rows={3}
+                                rows={2}
                                 style={{ ...inputStyle, resize: 'vertical' }}
+                            />
+                        </div>
+
+                        <div style={fieldStyle}>
+                            <label style={labelStyle}>Software Wajib (Minimal 1) *</label>
+                            <EkskulSoftwareSelector
+                                selectedIds={selectedSoftwareIds}
+                                onChange={setSelectedSoftwareIds}
                             />
                         </div>
 
@@ -94,7 +112,7 @@ export default function AddEkskulPlanButton() {
                                 Batal
                             </button>
                             <button onClick={handleSubmit} style={submitStyle} disabled={isPending}>
-                                {isPending ? 'Menyimpan...' : 'Simpan'}
+                                {isPending ? 'Menyimpan...' : 'Simpan Plan'}
                             </button>
                         </div>
                     </div>
@@ -108,7 +126,7 @@ const triggerStyle: CSSProperties = {
     padding: '0.6rem 1.2rem',
     borderRadius: '0.5rem',
     border: 'none',
-    background: '#7c3aed',
+    background: '#2563eb',
     color: '#fff',
     fontSize: '0.9rem',
     fontWeight: 600,
@@ -130,7 +148,9 @@ const modalStyle: CSSProperties = {
     padding: '1.5rem',
     borderRadius: '1rem',
     width: '100%',
-    maxWidth: '480px',
+    maxWidth: '520px',
+    maxHeight: '90vh',
+    overflow: 'auto',
     boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
 };
 
@@ -184,7 +204,7 @@ const submitStyle: CSSProperties = {
     padding: '0.55rem 1rem',
     borderRadius: '0.5rem',
     border: 'none',
-    background: '#7c3aed',
+    background: '#2563eb',
     color: '#fff',
     fontSize: '0.9rem',
     fontWeight: 600,

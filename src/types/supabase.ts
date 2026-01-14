@@ -970,6 +970,31 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['ekskul_lesson_plans']['Insert']>;
         Relationships: [];
       };
+      ekskul_plan_software: {
+        Row: {
+          plan_id: string;
+          software_id: string;
+        };
+        Insert: {
+          plan_id: string;
+          software_id: string;
+        };
+        Update: Partial<Database['public']['Tables']['ekskul_plan_software']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: "ekskul_plan_software_plan_id_fkey";
+            columns: ["plan_id"];
+            referencedRelation: "ekskul_lesson_plans";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ekskul_plan_software_software_id_fkey";
+            columns: ["software_id"];
+            referencedRelation: "software";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       ekskul_lessons: {
         Row: {
           id: string;

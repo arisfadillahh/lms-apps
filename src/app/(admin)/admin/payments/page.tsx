@@ -70,7 +70,7 @@ export default async function PaymentDashboardPage() {
                         <div style={{ marginTop: 'auto' }}>
                             <SendRemindersButton mode="BATCH" />
                             <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>
-                                *Mengirim ke semua periode aktif yg berakhir dalam 35 hari.
+                                *Mengirim ke semua periode aktif yg berakhir dalam 10 hari.
                             </p>
                         </div>
                     </div>

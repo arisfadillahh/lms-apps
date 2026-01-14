@@ -40,7 +40,18 @@ const sidebarStyle: CSSProperties = {
     top: 0,
     overflowY: 'auto',
     zIndex: 50,
+    scrollbarWidth: 'none', // Firefox
+    msOverflowStyle: 'none', // IE/Edge
 };
+
+// Add global style for hiding scrollbar in this component (styled-jsx or similar not available, using style tag or just relying on standard)
+// Actually, since I can't inject global CSS easily from here without 'style' jsx, I'll just use the properties.
+// Note: For Webkit (Chrome/Safari), we need a style tag or className. 
+// I'll add a class 'hide-scrollbar' and define it in globals? 
+// Or just adding this style tag in the component render?
+// Let's rely on standard 'scrollbarWidth' for now, usually enough for modern reqs, but user mentioned 'laptop ukuran kecil', likely Chrome/Windows.
+// Windows scrollbars are chunky.
+// I will add a <style> block in the return for the specific webkit selector.
 
 const navLinkStyle: CSSProperties = {
     display: 'flex',
@@ -82,6 +93,11 @@ export default function AdminSidebar({ session }: AdminSidebarProps) {
 
     return (
         <aside style={sidebarStyle}>
+            <style jsx global>{`
+                aside::-webkit-scrollbar {
+                    display: none;
+                }
+            `}</style>
             <div style={{ paddingLeft: '0.5rem', marginBottom: '1.25rem' }}>
                 <Image
                     src="/logo/innovator-camp-logo-dark.png"

@@ -31,8 +31,8 @@ export async function checkAndSendPaymentReminders(
     const today = new Date();
     const thresholdDate = new Date(today);
 
-    // If BATCH, look ahead further (e.g. 35 days) to catch everyone due soon
-    const lookaheadDays = mode === 'BATCH' ? 35 : daysThreshold;
+    // If BATCH, look ahead 10 days (as per user request: "sisa masa aktif 10 hari lagi")
+    const lookaheadDays = mode === 'BATCH' ? 10 : daysThreshold;
     thresholdDate.setDate(thresholdDate.getDate() + lookaheadDays);
 
     // Fetch active periods expiring within threshold

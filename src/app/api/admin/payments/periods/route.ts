@@ -15,6 +15,15 @@ const createPeriodSchema = z.object({
     classId: z.string().uuid().optional(),
 });
 
+const updatePeriodSchema = z.object({
+    periodId: z.string().uuid(),
+    paymentPlanId: z.string().uuid(),
+    pricingId: z.string().uuid(),
+    startDate: z.string(),
+    endDate: z.string(),
+    totalAmount: z.number().min(0),
+});
+
 export async function POST(request: Request) {
     const session = await getSessionOrThrow();
     await assertRole(session, 'ADMIN');
@@ -97,4 +106,45 @@ export async function GET() {
     }
 
     return NextResponse.json(data);
+    return NextResponse.json(data);
+}
+
+export async function PUT(request: Request) {
+    const session = await getSessionOrThrow();
+    await assertRole(session, 'ADMIN');
+
+    let body: unknown;
+    try {
+        body = await request.json();
+    } catch {
+        return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+
+    const parsed = updatePeriodSchema.safeParse(body);
+    if (!parsed.success) {
+        return NextResponse.json({ error: 'Validation failed', details: parsed.error.flatten() }, { status: 400 });
+    }
+
+    const supabase = getSupabaseAdmin();
+
+    const { data, error } = await supabase
+        .from('coder_payment_periods')
+        .update({
+            payment_plan_id: parsed.data.paymentPlanId,
+            pricing_id: parsed.data.pricingId,
+            start_date: parsed.data.startDate,
+            end_date: parsed.data.endDate,
+            total_amount: parsed.data.totalAmount,
+            // Status stays same, likely ACTIVE if we are editing it
+        })
+        .eq('id', parsed.data.periodId)
+        .select('*')
+        .single();
+
+    if (error) {
+        console.error('[Update Payment Period] Error:', error);
+        return NextResponse.json({ error: 'Gagal update periode' }, { status: 500 });
+    }
+
+    return NextResponse.json({ period: data }, { status: 200 });
 }

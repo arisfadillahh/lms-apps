@@ -16,8 +16,11 @@ export type EkskulPlanWithDetails = EkskulLessonPlanRecord & {
 
 export async function getEkskulPlanWithDetails(id: string): Promise<EkskulPlanWithDetails | null> {
     const supabase = getSupabaseAdmin();
-    const { data, error } = await supabase
-        .from('ekskul_lesson_plans')
+
+    // Use 'as any' to bypass TypeScript's strict type checking for nested joins
+    // Supabase types may not be fully generated for all relations
+    const { data, error } = await (supabase
+        .from('ekskul_lesson_plans') as any)
         .select(`
       *,
       ekskul_lessons(*),
@@ -34,9 +37,11 @@ export async function getEkskulPlanWithDetails(id: string): Promise<EkskulPlanWi
     }
 
     // Sort lessons by order_index
-    if (data && data.ekskul_lessons) {
-        data.ekskul_lessons.sort((a: any, b: any) => a.order_index - b.order_index);
+    if (data && data.ekskul_lessons && Array.isArray(data.ekskul_lessons)) {
+        data.ekskul_lessons.sort((a: EkskulLessonRecord, b: EkskulLessonRecord) =>
+            (a.order_index || 0) - (b.order_index || 0)
+        );
     }
 
-    return data as any; // Type assertion needed for nested joins
+    return data as EkskulPlanWithDetails | null;
 }

@@ -28,7 +28,10 @@ export default function SignOutButton({ label = 'Sign out', style, icon }: SignO
 
   const handleConfirm = async () => {
     setLoading(true);
-    await signOut({ callbackUrl: '/login' });
+    // Use window.location.origin to ensure redirect goes to the current domain/IP
+    // This fixes issues where VPS redirects to localhost if NEXTAUTH_URL is misconfigured
+    const callbackUrl = `${window.location.origin}/login`;
+    await signOut({ callbackUrl });
   };
 
   const handleCancel = () => {

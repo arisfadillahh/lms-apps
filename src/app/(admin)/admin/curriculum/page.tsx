@@ -61,7 +61,7 @@ export default async function AdminCurriculumPage() {
             </div>
 
             {level.description && (
-              <div style={{ flex: 1, padding: '0 2rem', color: '#475569', fontSize: '0.95rem', borderLeft: '1px solid #e2e8f0', minWidth: '200px', display: 'none', lg: { display: 'block' } }}>
+              <div className="curriculum-description" style={{ flex: 1, padding: '0 2rem', color: '#475569', fontSize: '0.95rem', borderLeft: '1px solid #e2e8f0', minWidth: '200px', display: 'none' }}>
                 {level.description}
               </div>
             )}
@@ -83,6 +83,11 @@ export default async function AdminCurriculumPage() {
             transform: translateY(-2px);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
             border-color: #cbd5e1 !important;
+        }
+        @media (min-width: 1024px) {
+            .curriculum-description {
+                display: block !important;
+            }
         }
       `}</style>
     </div>

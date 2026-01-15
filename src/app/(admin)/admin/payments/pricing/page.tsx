@@ -6,6 +6,7 @@ import { assertRole } from '@/lib/roles';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { levelsDao } from '@/lib/dao';
 import AddPricingButton from './AddPricingButton';
+import PricingActions from './PricingActions';
 
 export default async function PricingPage() {
     const session = await getSessionOrThrow();
@@ -44,6 +45,7 @@ export default async function PricingPage() {
                                 <th style={thStyle}>Mode</th>
                                 <th style={thStyle}>Harga/Bulan</th>
                                 <th style={thStyle}>Status</th>
+                                <th style={thStyle}>Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -75,6 +77,13 @@ export default async function PricingPage() {
                                             {item.is_active ? 'Aktif' : 'Nonaktif'}
                                         </span>
                                     </td>
+                                    <td style={tdStyle}>
+                                        <PricingActions
+                                            pricing={item}
+                                            levels={levels}
+                                            levelName={levelMap.get(item.level_id) || 'Unknown'}
+                                        />
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
@@ -82,7 +91,7 @@ export default async function PricingPage() {
                 </div>
             ) : (
                 <div style={emptyStyle}>
-                    Belum ada harga yang ditentukan. Klik tombol "Tambah Harga" untuk mulai.
+                    Belum ada harga yang ditentukan. Klik tombol &quot;Tambah Harga&quot; untuk mulai.
                 </div>
             )}
         </div>

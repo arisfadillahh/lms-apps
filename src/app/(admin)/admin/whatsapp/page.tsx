@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import Link from 'next/link';
 
 import { reportsDao } from '@/lib/dao';
 import { getStatus } from '@/lib/whatsapp/client';
@@ -10,12 +11,17 @@ export default async function AdminWhatsappPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <header>
-        <h1 style={{ fontSize: '1.6rem', fontWeight: 600, marginBottom: '0.75rem' }}>WhatsApp Worker</h1>
-        <p style={{ color: '#64748b', maxWidth: '48rem' }}>
-          Monitor the waweb.js worker that delivers absence and report notifications. Request a connection to prompt a
-          QR code scan when the worker is offline.
-        </p>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
+        <div>
+          <h1 style={{ fontSize: '1.6rem', fontWeight: 600, marginBottom: '0.75rem' }}>WhatsApp Worker</h1>
+          <p style={{ color: '#64748b', maxWidth: '48rem' }}>
+            Monitor the waweb.js worker that delivers absence and report notifications. Request a connection to prompt a
+            QR code scan when the worker is offline.
+          </p>
+        </div>
+        <Link href="/admin/whatsapp/templates" style={templateBtnStyle}>
+          📝 Kelola Template Pesan
+        </Link>
       </header>
 
       <section style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -126,3 +132,17 @@ function mapStatusColor(status: StatusInfo['status']): string {
       return '#b91c1c';
   }
 }
+
+const templateBtnStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '0.5rem',
+  padding: '0.6rem 1rem',
+  borderRadius: '0.5rem',
+  border: 'none',
+  background: '#25D366',
+  color: '#fff',
+  fontSize: '0.9rem',
+  fontWeight: 600,
+  textDecoration: 'none',
+};

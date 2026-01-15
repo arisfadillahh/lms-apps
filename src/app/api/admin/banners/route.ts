@@ -152,3 +152,34 @@ export async function DELETE(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to delete banner' }, { status: 500 });
     }
 }
+
+// PATCH - Reorder banners (bulk update)
+export async function PATCH(request: NextRequest) {
+    try {
+        const body = await request.json();
+        const { orderedIds } = body as { orderedIds: string[] };
+
+        if (!orderedIds || !Array.isArray(orderedIds)) {
+            return NextResponse.json({ error: 'orderedIds array is required' }, { status: 400 });
+        }
+
+        const data = await readBanners();
+
+        // Update order based on position in array
+        orderedIds.forEach((id, index) => {
+            const banner = data.banners.find(b => b.id === id);
+            if (banner) {
+                banner.order = index;
+            }
+        });
+
+        // Sort by new order
+        data.banners.sort((a, b) => a.order - b.order);
+        await writeBanners(data);
+
+        return NextResponse.json({ success: true, banners: data.banners });
+    } catch (error) {
+        console.error('Error reordering banners:', error);
+        return NextResponse.json({ error: 'Failed to reorder banners' }, { status: 500 });
+    }
+}

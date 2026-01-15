@@ -4,6 +4,7 @@ import type { UserSummary } from '@/lib/dao/usersDao';
 import ResetPasswordButton from './ResetPasswordButton';
 import ToggleActiveButton from './ToggleActiveButton';
 import DeleteUserButton from './DeleteUserButton';
+import EditUserButton from './EditUserButton';
 
 interface UsersTableProps {
   users: UserSummary[];
@@ -17,19 +18,19 @@ export default function UsersTable({ users }: UsersTableProps) {
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead style={{ background: '#f1f5f9', textAlign: 'left' }}>
           <tr>
-            <th style={thStyle}>Name</th>
+            <th style={thStyle}>Nama</th>
             <th style={thStyle}>Username</th>
             <th style={thStyle}>Role</th>
             <th style={thStyle}>Status</th>
-            <th style={thStyle}>Parent Contact</th>
-            <th style={thStyle}>Actions</th>
+            <th style={thStyle}>Kontak Orang Tua</th>
+            <th style={thStyle}>Aksi</th>
           </tr>
         </thead>
         <tbody>
           {sorted.length === 0 ? (
             <tr>
               <td colSpan={6} style={{ padding: '1rem', textAlign: 'center', color: '#6b7280' }}>
-                No users found.
+                Belum ada user.
               </td>
             </tr>
           ) : (
@@ -38,10 +39,11 @@ export default function UsersTable({ users }: UsersTableProps) {
                 <td style={tdStyle}>{user.full_name}</td>
                 <td style={tdStyle}>{user.username}</td>
                 <td style={tdStyle}>{user.role}</td>
-                <td style={tdStyle}>{user.is_active ? 'Active' : 'Inactive'}</td>
+                <td style={tdStyle}>{user.is_active ? 'Aktif' : 'Nonaktif'}</td>
                 <td style={tdStyle}>{user.role === 'CODER' ? user.parent_contact_phone ?? '—' : '—'}</td>
                 <td style={tdStyle}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <EditUserButton user={user} />
                     <ToggleActiveButton userId={user.id} initialActive={user.is_active} />
                     {user.role === 'CODER' || user.role === 'COACH' ? <ResetPasswordButton userId={user.id} /> : null}
                     <DeleteUserButton userId={user.id} />

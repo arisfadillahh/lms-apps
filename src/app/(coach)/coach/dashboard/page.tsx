@@ -3,12 +3,16 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { getSessionOrThrow } from '@/lib/auth';
 import { getCoachClassesWithBlocks, getAllCoachSessions } from '@/lib/services/coach';
+import { makeUpTasksDao } from '@/lib/dao';
 import CalendarModal from '@/components/coach/CalendarModal';
 
 export default async function CoachDashboardPage() {
     const session = await getSessionOrThrow();
-    const classes = await getCoachClassesWithBlocks(session.user.id);
-    const activeSessions = await getAllCoachSessions(session.user.id);
+    const [classes, activeSessions, makeUpTasks] = await Promise.all([
+        getCoachClassesWithBlocks(session.user.id),
+        getAllCoachSessions(session.user.id),
+        makeUpTasksDao.listTasksForCoach(session.user.id),
+    ]);
 
     // Calculate stats
     const today = new Date();
@@ -21,8 +25,44 @@ export default async function CoachDashboardPage() {
         new Date(s.date_time) > today && s.status !== 'CANCELLED'
     );
 
+    // Count pending tasks
+    const pendingMakeUpCount = makeUpTasks.filter(t => t.status === 'SUBMITTED').length;
+    const pendingUploadCount = makeUpTasks.filter(t => t.status === 'PENDING_UPLOAD').length;
+
     return (
         <div style={{ fontFamily: 'system-ui, sans-serif', color: '#1e293b', paddingBottom: '40px' }}>
+
+            {/* Quick Stats */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+                <Link href="/coach/sessions" style={{
+                    background: '#eff6ff', padding: '16px 20px', borderRadius: '12px', textDecoration: 'none',
+                    border: '1px solid #bfdbfe', display: 'flex', flexDirection: 'column', gap: '4px'
+                }}>
+                    <span style={{ fontSize: '12px', color: '#3b82f6', fontWeight: 600, textTransform: 'uppercase' }}>Jadwal Hari Ini</span>
+                    <span style={{ fontSize: '24px', fontWeight: 700, color: '#1d4ed8' }}>{todaySessions.length}</span>
+                    <span style={{ fontSize: '13px', color: '#64748b' }}>sesi</span>
+                </Link>
+
+                <Link href="/coach/makeup" style={{
+                    background: pendingMakeUpCount > 0 ? '#fef3c7' : '#f8fafc',
+                    padding: '16px 20px', borderRadius: '12px', textDecoration: 'none',
+                    border: pendingMakeUpCount > 0 ? '1px solid #fbbf24' : '1px solid #e2e8f0',
+                    display: 'flex', flexDirection: 'column', gap: '4px'
+                }}>
+                    <span style={{ fontSize: '12px', color: pendingMakeUpCount > 0 ? '#b45309' : '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Tugas Susulan</span>
+                    <span style={{ fontSize: '24px', fontWeight: 700, color: pendingMakeUpCount > 0 ? '#92400e' : '#475569' }}>{pendingMakeUpCount}</span>
+                    <span style={{ fontSize: '13px', color: '#64748b' }}>menunggu review</span>
+                </Link>
+
+                <div style={{
+                    background: '#f8fafc', padding: '16px 20px', borderRadius: '12px',
+                    border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '4px'
+                }}>
+                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Kelas Aktif</span>
+                    <span style={{ fontSize: '24px', fontWeight: 700, color: '#475569' }}>{classes.length}</span>
+                    <span style={{ fontSize: '13px', color: '#64748b' }}>kelas</span>
+                </div>
+            </div>
 
             {/* Top Action Bar */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>

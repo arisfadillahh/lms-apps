@@ -5,6 +5,8 @@ import { getSessionOrThrow } from '@/lib/auth';
 import { assertRole } from '@/lib/roles';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import AddPaymentPlanButton from './AddPaymentPlanButton';
+import EditPaymentPlanButton from './EditPaymentPlanButton';
+import DeletePaymentPlanButton from './DeletePaymentPlanButton';
 import SendRemindersButton from './expired/SendRemindersButton';
 
 export default async function PaymentDashboardPage() {
@@ -107,6 +109,7 @@ export default async function PaymentDashboardPage() {
                                     <th style={thStyle}>Durasi</th>
                                     <th style={thStyle}>Diskon</th>
                                     <th style={thStyle}>Status</th>
+                                    <th style={thStyle}>Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -126,6 +129,12 @@ export default async function PaymentDashboardPage() {
                                             }}>
                                                 {plan.is_active ? 'Aktif' : 'Nonaktif'}
                                             </span>
+                                        </td>
+                                        <td style={tdStyle}>
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <EditPaymentPlanButton plan={plan} />
+                                                <DeletePaymentPlanButton planId={plan.id} planName={plan.name} />
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}

@@ -418,3 +418,40 @@ create table public.block_software (
 );
 
 create index block_software_block_id_idx on public.block_software (block_id);
+
+-- WhatsApp Templates ===========================================================================
+-- Stores customizable message templates for different notification categories
+create table public.whatsapp_templates (
+  id uuid primary key default gen_random_uuid(),
+  category varchar(50) not null unique,
+  template_content text not null,
+  variables jsonb default '[]'::jsonb,
+  updated_at timestamptz not null default now(),
+  updated_by uuid references public.users(id),
+  created_at timestamptz not null default now(),
+  constraint valid_whatsapp_template_category check (category in ('PARENT_ABSENT', 'REPORT_SEND', 'REMINDER'))
+);
+
+create index whatsapp_templates_category_idx on public.whatsapp_templates (category);
+
+-- Broadcast Logs ===============================================================================
+-- Stores history of broadcast messages sent by admin
+create table public.broadcast_logs (
+  id uuid primary key default gen_random_uuid(),
+  title varchar(255) not null,
+  content text not null,
+  target_audience varchar(50) not null default 'ALL',
+  sent_by uuid references public.users(id),
+  sent_at timestamptz not null default now(),
+  total_recipients integer default 0,
+  successful_count integer default 0,
+  failed_count integer default 0,
+  scheduled_for timestamptz,
+  status varchar(50) not null default 'SENT',
+  created_at timestamptz not null default now(),
+  constraint valid_broadcast_target check (target_audience in ('ALL', 'COACHES', 'CODERS')),
+  constraint valid_broadcast_status check (status in ('PENDING', 'SENT', 'SCHEDULED', 'FAILED'))
+);
+
+create index broadcast_logs_sent_at_idx on public.broadcast_logs (sent_at desc);
+create index broadcast_logs_status_idx on public.broadcast_logs (status);

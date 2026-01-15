@@ -47,82 +47,126 @@ export default async function AdminClassesPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       <div>
-        <h1 style={{ fontSize: '1.6rem', fontWeight: 600, marginBottom: '0.75rem' }}>Classes</h1>
-        <p style={{ color: '#64748b', maxWidth: '48rem' }}>
-          Create classes, assign a primary coach, and configure schedules. Session generation and enrollment management is available per class.
+        <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#1e293b', marginBottom: '0.5rem', letterSpacing: '-0.02em' }}>Manajemen Kelas</h1>
+        <p style={{ color: '#64748b', maxWidth: '48rem', fontSize: '1rem', lineHeight: '1.6' }}>
+          Buat kelas baru, tentukan Coach utama, dan atur jadwal. Pembuatan sesi dan manajemen murid tersedia di dalam masing-masing kelas.
         </p>
       </div>
+
       <CreateClassForm coaches={coaches} levels={levels} levelBlocks={levelBlocks} ekskulPlans={ekskulPlans} />
-      <section style={{ background: '#ffffff', borderRadius: '0.75rem', border: '1px solid #e5e7eb' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead style={{ background: '#f1f5f9', textAlign: 'left' }}>
-            <tr>
-              <th style={thStyle}>Name</th>
-              <th style={thStyle}>Type</th>
-              <th style={thStyle}>Coach</th>
-              <th style={thStyle}>Level</th>
-              <th style={thStyle}>Schedule</th>
-              <th style={thStyle}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {classes.length === 0 ? (
+
+      <section style={{
+        background: '#ffffff',
+        borderRadius: '16px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+        overflow: 'hidden'
+      }}>
+        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #f1f5f9' }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Daftar Kelas Aktif</h3>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead style={{ background: '#f8fafc', textAlign: 'left' }}>
               <tr>
-                <td colSpan={6} style={{ padding: '1rem', textAlign: 'center', color: '#6b7280' }}>
-                  No classes created yet.
-                </td>
+                <th style={thStyle}>Nama Kelas</th>
+                <th style={thStyle}>Tipe</th>
+                <th style={thStyle}>Coach</th>
+                <th style={thStyle}>Level</th>
+                <th style={thStyle}>Jadwal</th>
+                <th style={thStyle}>Aksi</th>
               </tr>
-            ) : (
-              classes.map((klass, index) => {
-                const hasValidId = typeof klass.id === 'string' && klass.id.length > 0;
-                const rowKey = hasValidId ? klass.id : `missing-${index}`;
-                if (!hasValidId) {
-                  console.warn('Class record without valid id detected', klass);
-                }
-                return (
-                  <tr key={rowKey} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                    <td style={tdStyle}>{klass.name}</td>
-                    <td style={tdStyle}>{klass.type}</td>
-                    <td style={tdStyle}>{coachMap.get(klass.coach_id) ?? 'Unassigned'}</td>
-                    <td style={tdStyle}>{klass.level_id ? levelMap.get(klass.level_id) ?? '—' : '—'}</td>
-                    <td style={tdStyle}>
-                      {klass.schedule_day} @ {klass.schedule_time}
-                    </td>
-                    <td style={tdStyle}>
-                      {hasValidId ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <Link
-                            href={`/admin/classes/${klass.id}`}
-                            style={{ color: '#1e3a5f', fontWeight: 500 }}
-                          >
-                            Manage
-                          </Link>
-                          <DeleteClassButton classId={klass.id} className={klass.name} />
-                        </div>
-                      ) : (
-                        <span style={{ color: '#b91c1c', fontWeight: 500 }}>ID tidak valid</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {classes.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
+                    Belum ada kelas yang dibuat.
+                  </td>
+                </tr>
+              ) : (
+                classes.map((klass, index) => {
+                  const hasValidId = typeof klass.id === 'string' && klass.id.length > 0;
+                  const rowKey = hasValidId ? klass.id : `missing-${index}`;
+                  if (!hasValidId) {
+                    console.warn('Class record without valid id detected', klass);
+                  }
+                  return (
+                    <tr key={rowKey} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}>
+                      <td style={tdStyle}>
+                        <span style={{ fontWeight: 600, color: '#1e293b' }}>{klass.name}</span>
+                      </td>
+                      <td style={tdStyle}>
+                        <span style={{
+                          padding: '0.25rem 0.6rem',
+                          borderRadius: '6px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          background: klass.type === 'WEEKLY' ? '#eff6ff' : '#fdf4ff',
+                          color: klass.type === 'WEEKLY' ? '#3b82f6' : '#d946ef'
+                        }}>
+                          {klass.type}
+                        </span>
+                      </td>
+                      <td style={tdStyle}>{coachMap.get(klass.coach_id) ?? <span style={{ color: '#94a3b8' }}>Belum ditentukan</span>}</td>
+                      <td style={tdStyle}>{klass.level_id ? levelMap.get(klass.level_id) ?? '—' : '—'}</td>
+                      <td style={tdStyle}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#475569' }}>
+                          <span style={{ fontWeight: 500 }}>{klass.schedule_day}</span>
+                          <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#cbd5e1' }} />
+                          {klass.schedule_time}
+                        </span>
+                      </td>
+                      <td style={{ ...tdStyle, width: '180px' }}>
+                        {hasValidId ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <Link
+                              href={`/admin/classes/${klass.id}`}
+                              style={{
+                                padding: '0.4rem 0.85rem',
+                                borderRadius: '8px',
+                                background: '#eff6ff',
+                                color: '#3b82f6',
+                                fontWeight: 600,
+                                fontSize: '0.85rem',
+                                textDecoration: 'none',
+                                border: '1px solid #dbeafe',
+                                transition: 'all 0.15s'
+                              }}
+                            >
+                              Kelola
+                            </Link>
+                            <DeleteClassButton classId={klass.id} className={klass.name} />
+                          </div>
+                        ) : (
+                          <span style={{ color: '#b91c1c', fontWeight: 500 }}>ID tidak valid</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </section>
     </div>
   );
 }
 
 const thStyle: CSSProperties = {
-  padding: '0.75rem 1rem',
-  fontSize: '0.85rem',
-  color: '#475569',
+  padding: '1rem 1.5rem',
+  fontSize: '0.75rem',
+  color: '#64748b',
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  fontWeight: 600,
   borderBottom: '1px solid #e2e8f0',
 };
 
 const tdStyle: CSSProperties = {
-  padding: '0.85rem 1rem',
+  padding: '1rem 1.5rem',
   fontSize: '0.9rem',
-  color: '#1f2937',
+  color: '#334155',
+  verticalAlign: 'middle',
 };

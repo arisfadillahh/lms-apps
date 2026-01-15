@@ -5,6 +5,7 @@ import { useState } from 'react';
 import type { ClassLessonRecord } from '@/lib/dao/classLessonsDao';
 import type { LessonTemplateRecord } from '@/lib/dao/lessonTemplatesDao';
 import LessonPlanItem from './LessonPlanItem';
+import { ChevronRight } from 'lucide-react';
 
 type BlockData = {
     id: string;
@@ -36,7 +37,7 @@ export default function LessonPlanSection({
     const [openModalBlockId, setOpenModalBlockId] = useState<string | null>(null);
 
     if (blockLessons.length === 0) {
-        return <p style={{ color: '#6b7280' }}>Belum ada block yang diinstansiasi.</p>;
+        return <p style={{ color: '#6b7280', fontStyle: 'italic', textAlign: 'center', padding: '2rem' }}>Belum ada block kurikulum.</p>;
     }
 
     // Find the active block: CURRENT status, or if none, the first one with lessons
@@ -45,7 +46,7 @@ export default function LessonPlanSection({
         ?? blockLessons[0];
 
     if (!activeBlock) {
-        return <p style={{ color: '#6b7280' }}>Belum ada block yang diinstansiasi.</p>;
+        return <p style={{ color: '#6b7280', textAlign: 'center' }}>Block tidak ditemukan.</p>;
     }
 
     const { block, lessons } = activeBlock;
@@ -56,32 +57,31 @@ export default function LessonPlanSection({
     const nextIdx = lessons.findIndex(({ lesson }) => lesson.id === nextLessonId);
 
     if (currentIdx >= 0) {
-        startIdx = currentIdx;
+        startIdx = Math.max(0, currentIdx - 1); // Show 1 before current if possible
     } else if (nextIdx >= 0) {
-        startIdx = nextIdx;
+        startIdx = Math.max(0, nextIdx - 1);
     }
 
-    // Get only 3 lessons: current/next + 2 more
-    const visibleLessons = lessons.slice(startIdx, startIdx + 3);
-    const hasMoreLessons = lessons.length > 3;
+    // Get only 3-4 lessons to keep it compact
+    const visibleLessons = lessons.slice(startIdx, startIdx + 4);
+    const hasMoreLessons = lessons.length > 4;
 
     return (
         <>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div style={lessonBlockStyle}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                            <strong style={{ color: '#0f172a' }}>{block.block_name ?? 'Block'}</strong>
-                            <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.8rem', color: '#64748b', flexWrap: 'wrap' }}>
-                                <span>{formatDate(block.start_date)} – {formatDate(block.end_date)}</span>
-                                <span>Status: {block.status}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem', paddingBottom: '0.75rem', borderBottom: '1px solid #f1f5f9' }}>
+                        <div>
+                            <strong style={{ color: '#1e293b', fontSize: '1rem' }}>{block.block_name ?? 'Block'}</strong>
+                            <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.1rem' }}>
+                                {formatDate(block.start_date)} – {formatDate(block.end_date)}
                             </div>
                         </div>
                         <span style={lessonBlockStatusBadge(block.status)}>{block.status}</span>
                     </div>
 
                     {lessons.length === 0 ? (
-                        <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Lesson template belum tersedia.</p>
+                        <p style={{ color: '#94a3b8', fontSize: '0.85rem', textAlign: 'center', padding: '1rem' }}>Lesson template belum tersedia.</p>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                             {visibleLessons.map(({ lesson, template }) => {
@@ -97,7 +97,7 @@ export default function LessonPlanSection({
                                     onClick={() => setOpenModalBlockId(block.id)}
                                     style={triggerButtonStyle}
                                 >
-                                    Lihat semua lesson ({lessons.length} total) →
+                                    Lihat semua lesson ({lessons.length} total) <ChevronRight size={14} />
                                 </button>
                             ) : null}
                         </div>
@@ -118,11 +118,11 @@ export default function LessonPlanSection({
                                 <>
                                     <div style={modalHeaderStyle}>
                                         <div>
-                                            <h3 style={{ fontSize: '1.15rem', fontWeight: 600, color: '#0f172a' }}>
-                                                {block.block_name ?? 'Block'} - Semua Lesson
+                                            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>
+                                                {block.block_name ?? 'Block'}
                                             </h3>
-                                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '0.25rem' }}>
-                                                {formatDate(block.start_date)} – {formatDate(block.end_date)} • {lessons.length} lessons
+                                            <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+                                                Daftar Lengkap Lesson ({lessons.length} item)
                                             </p>
                                         </div>
                                         <button type="button" onClick={() => setOpenModalBlockId(null)} style={closeButtonStyle}>
@@ -157,55 +157,46 @@ export default function LessonPlanSection({
 
 function formatDate(value: string | null): string {
     if (!value) return '—';
-    return new Date(value).toLocaleDateString();
+    return new Date(value).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
 }
 
 const lessonBlockStyle: CSSProperties = {
-    border: '1px solid #e2e8f0',
-    borderRadius: '0.85rem',
-    padding: '1rem 1.1rem',
-    background: '#ffffff',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.75rem',
+
 };
 
 const lessonBlockStatusBadge = (status: string): CSSProperties => ({
-    padding: '0.25rem 0.65rem',
-    borderRadius: '999px',
+    padding: '0.25rem 0.6rem',
+    borderRadius: '6px',
     fontSize: '0.75rem',
-    fontWeight: 600,
-    color:
-        status === 'COMPLETED' ? '#16a34a' : status === 'CURRENT' ? '#1e3a5f' : '#ea580c',
-    background:
-        status === 'COMPLETED'
-            ? '#ecfdf3'
-            : status === 'CURRENT'
-                ? 'rgba(37, 99, 235, 0.12)'
-                : 'rgba(234, 88, 12, 0.12)',
+    fontWeight: 700,
+    color: status === 'COMPLETED' ? '#16a34a' : status === 'CURRENT' ? '#1d4ed8' : '#c2410c',
+    background: status === 'COMPLETED' ? '#dcfce7' : status === 'CURRENT' ? '#dbeafe' : '#ffedd5',
+    textTransform: 'uppercase'
 });
 
 const triggerButtonStyle: CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '0.5rem',
+    gap: '0.4rem',
     width: '100%',
-    padding: '0.75rem 1rem',
-    borderRadius: '0.5rem',
-    border: '1px dashed #cbd5e1',
-    background: 'rgba(37, 99, 235, 0.03)',
-    color: '#1e3a5f',
+    padding: '0.6rem 1rem',
+    borderRadius: '8px',
+    border: '1px solid #e2e8f0',
+    background: '#f8fafc',
+    color: '#64748b',
     fontWeight: 600,
-    fontSize: '0.9rem',
+    fontSize: '0.85rem',
     cursor: 'pointer',
-    marginTop: '0.25rem',
+    marginTop: '0.5rem',
+    transition: 'background 0.2s',
 };
 
 const overlayStyle: CSSProperties = {
     position: 'fixed',
     inset: 0,
-    background: 'rgba(15, 23, 42, 0.5)',
+    background: 'rgba(15, 23, 42, 0.6)',
+    backdropFilter: 'blur(2px)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -215,10 +206,10 @@ const overlayStyle: CSSProperties = {
 
 const modalStyle: CSSProperties = {
     width: 'min(700px, 95vw)',
-    maxHeight: '85vh',
+    maxHeight: '90vh',
     background: '#ffffff',
-    borderRadius: '1rem',
-    boxShadow: '0 25px 80px rgba(15, 23, 42, 0.3)',
+    borderRadius: '16px',
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
@@ -227,47 +218,54 @@ const modalStyle: CSSProperties = {
 const modalHeaderStyle: CSSProperties = {
     display: 'flex',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: '1rem',
     padding: '1.25rem 1.5rem',
-    borderBottom: '1px solid #e2e8f0',
-    background: '#f8fafc',
+    borderBottom: '1px solid #f1f5f9',
+    background: '#fff',
 };
 
 const closeButtonStyle: CSSProperties = {
     border: 'none',
     background: 'transparent',
-    fontSize: '1.75rem',
+    fontSize: '2rem',
     lineHeight: 1,
     cursor: 'pointer',
-    color: '#64748b',
-    padding: '0.25rem',
+    color: '#94a3b8',
+    padding: '0',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '32px',
+    height: '32px',
 };
 
 const modalBodyStyle: CSSProperties = {
     flex: 1,
     overflowY: 'auto',
-    padding: '1.25rem 1.5rem',
+    padding: '1.5rem',
     display: 'flex',
     flexDirection: 'column',
     gap: '0.75rem',
+    background: '#f8fafc',
 };
 
 const modalFooterStyle: CSSProperties = {
     padding: '1rem 1.5rem',
     borderTop: '1px solid #e2e8f0',
-    background: '#f8fafc',
+    background: '#fff',
     display: 'flex',
     justifyContent: 'flex-end',
 };
 
 const closeActionButtonStyle: CSSProperties = {
     padding: '0.6rem 1.5rem',
-    borderRadius: '0.5rem',
+    borderRadius: '8px',
     border: '1px solid #e2e8f0',
     background: '#ffffff',
     color: '#475569',
     fontWeight: 600,
     fontSize: '0.9rem',
     cursor: 'pointer',
+    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
 };

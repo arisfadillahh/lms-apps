@@ -3,6 +3,7 @@
 import type { CSSProperties } from 'react';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { UserPlus } from 'lucide-react';
 
 import type { UserRecord } from '@/lib/dao/usersDao';
 
@@ -20,7 +21,7 @@ export default function EnrollCoderForm({ classId, coders }: EnrollCoderFormProp
 
   const handleEnroll = () => {
     if (!selectedCoder) {
-      setErrorMessage('Select a coder to enroll');
+      setErrorMessage('Pilih coder terlebih dahulu');
       return;
     }
 
@@ -37,16 +38,19 @@ export default function EnrollCoderForm({ classId, coders }: EnrollCoderFormProp
 
         if (!response.ok) {
           const payload = await response.json().catch(() => ({}));
-          setErrorMessage(payload.error ?? 'Failed to enroll coder');
+          setErrorMessage(payload.error ?? 'Gagal mendaftarkan coder');
           return;
         }
 
-        setMessage('Coder enrolled');
+        setMessage('Berhasil didaftarkan');
         setSelectedCoder('');
         router.refresh();
+
+        // Auto clear success message
+        setTimeout(() => setMessage(null), 3000);
       } catch (error) {
         console.error('Enroll coder error', error);
-        setErrorMessage('Unexpected error enrolling coder');
+        setErrorMessage('Terjadi kesalahan saat mendaftar');
       }
     });
   };
@@ -54,42 +58,63 @@ export default function EnrollCoderForm({ classId, coders }: EnrollCoderFormProp
   const disabled = coders.length === 0 || isPending;
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
       <select
         value={selectedCoder}
         onChange={(event) => setSelectedCoder(event.target.value)}
         style={selectStyle}
         disabled={disabled}
       >
-        <option value="">{coders.length === 0 ? 'All coders enrolled' : 'Select coder'}</option>
+        <option value="">{coders.length === 0 ? 'Semua coder sudah terdaftar' : 'Pilih Coder...'}</option>
         {coders.map((coder) => (
           <option key={coder.id} value={coder.id}>
             {coder.full_name}
           </option>
         ))}
       </select>
-      <button type="button" onClick={handleEnroll} style={buttonStyle} disabled={disabled}>
-        {isPending ? 'Enrolling…' : 'Enroll'}
+
+      <button
+        type="button"
+        onClick={handleEnroll}
+        style={{
+          ...buttonStyle,
+          opacity: disabled ? 0.6 : 1,
+          cursor: disabled ? 'not-allowed' : 'pointer'
+        }}
+        disabled={disabled}
+      >
+        <UserPlus size={16} />
+        {isPending ? 'Mendaftarkan...' : 'Tambah Coder'}
       </button>
-      {message ? <span style={{ color: '#15803d', fontSize: '0.75rem' }}>{message}</span> : null}
-      {errorMessage ? <span style={{ color: '#b91c1c', fontSize: '0.75rem' }}>{errorMessage}</span> : null}
+
+      {message ? <span style={{ color: '#15803d', fontSize: '0.8rem', fontWeight: 500 }}>✓ {message}</span> : null}
+      {errorMessage ? <span style={{ color: '#b91c1c', fontSize: '0.8rem', fontWeight: 500 }}>! {errorMessage}</span> : null}
     </div>
   );
 }
 
 const selectStyle: CSSProperties = {
-  padding: '0.5rem 0.75rem',
-  borderRadius: '0.5rem',
-  border: '1px solid #cbd5f5',
+  padding: '0.6rem 1rem',
+  borderRadius: '10px',
+  border: '1px solid #e2e8f0',
   fontSize: '0.9rem',
+  outline: 'none',
+  background: '#f8fafc',
+  minWidth: '200px',
+  cursor: 'pointer'
 };
 
 const buttonStyle: CSSProperties = {
-  padding: '0.45rem 0.85rem',
-  borderRadius: '0.5rem',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.5rem',
+  padding: '0.6rem 1rem',
+  borderRadius: '10px',
   border: 'none',
   background: '#1e3a5f',
   color: '#fff',
-  fontSize: '0.85rem',
-  cursor: 'pointer',
+  fontSize: '0.9rem',
+  fontWeight: 600,
+  transition: 'background 0.2s',
+  boxShadow: '0 2px 4px rgba(30, 58, 95, 0.2)'
 };

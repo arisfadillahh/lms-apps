@@ -1,6 +1,8 @@
 import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { format, isSameDay } from 'date-fns';
+import { id as idLocale } from 'date-fns/locale';
+import { Info, Calendar, Monitor, BookOpen, Users } from 'lucide-react';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { attendanceDao, classesDao, materialsDao, sessionsDao, usersDao } from '@/lib/dao';
@@ -18,6 +20,7 @@ type PageProps = {
 export default async function CoachClassPage({ params, searchParams }: PageProps) {
   const session = await getSessionOrThrow();
   const resolvedParams = await params;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const resolvedSearch = await searchParams;
   const rawId = resolvedParams.id ?? '';
   const classIdParam = decodeURIComponent(rawId).trim();
@@ -54,9 +57,10 @@ export default async function CoachClassPage({ params, searchParams }: PageProps
 
   if (!classRecord || classRecord.coach_id !== session.user.id) {
     return (
-      <div>
-        <h1 style={{ fontSize: '1.4rem', fontWeight: 600 }}>Class not found</h1>
-        <p style={{ color: '#64748b' }}>You are not assigned to this class.</p>
+      <div style={{ padding: '3rem', textAlign: 'center' }}>
+        <h1 style={{ fontSize: '1.4rem', fontWeight: 600, color: '#1e293b' }}>Kelas tidak ditemukan</h1>
+        <p style={{ color: '#64748b' }}>Anda tidak memiliki akses ke kelas ini.</p>
+        <Link href="/coach/dashboard" style={{ marginTop: '1rem', display: 'inline-block', color: '#3b82f6', fontWeight: 600 }}>← Kembali ke Dashboard</Link>
       </div>
     );
   }
@@ -147,263 +151,250 @@ export default async function CoachClassPage({ params, searchParams }: PageProps
 
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '2rem',
-        maxWidth: '1200px',
-        width: '100%',
-        margin: '0 auto',
-        padding: '0 1.25rem 2.5rem',
-      }}
-    >
-      <header
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: '1rem',
-        }}
-      >
-        <div>
-          <h1 style={{ fontSize: '1.6rem', fontWeight: 600 }}>{classRecord.name}</h1>
-          <p style={{ color: '#64748b' }}>
-            {classRecord.type} • {classRecord.schedule_day} @ {classRecord.schedule_time}
-          </p>
+    <div style={pageContainerStyle}>
+      {/* Header */}
+      <div style={{ marginBottom: '1rem' }}>
+        <Link href="/coach/dashboard" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.9rem', fontWeight: 500, textDecoration: 'none', marginBottom: '1rem' }}>
+          ← Kembali ke Dashboard
+        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#1e293b', margin: 0, letterSpacing: '-0.02em' }}>{classRecord.name}</h1>
+          <span style={{
+            padding: '0.3rem 0.6rem',
+            borderRadius: '8px',
+            background: classRecord.type === 'EKSKUL' ? '#fdf4ff' : '#eff6ff',
+            color: classRecord.type === 'EKSKUL' ? '#c026d3' : '#3b82f6',
+            border: classRecord.type === 'EKSKUL' ? '1px solid #fae8ff' : '1px solid #dbeafe',
+            fontSize: '0.8rem',
+            fontWeight: 700
+          }}>
+            {classRecord.type}
+          </span>
         </div>
-      </header>
+        <p style={{ color: '#64748b', marginTop: '0.5rem', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Calendar size={18} /> {classRecord.schedule_day}, {classRecord.schedule_time} WIB
+        </p>
+      </div>
 
-      {/* ... (Skipping Section 1 & 2 for brevity in replacement if possible, but safer to replace whole block if overlaps) */}
-      {/* Re-writing the render part to ensure context matches */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
 
-      <section style={cardStyle}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>Upcoming Session</h2>
-            <CalendarModal sessions={sortedSessions}>
-              <button style={{
-                color: '#1e3a5f',
-                fontWeight: 600,
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: 0,
-                fontSize: 'inherit'
-              }}>
-                📅 Buka kalender
-              </button>
-            </CalendarModal>
-          </div>
-          {sessionToday ? (
-            <p style={{ color: '#1e3a5f', fontWeight: 600 }}>
-              Ada sesi hari ini pada {new Date(sessionToday.date_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </p>
-          ) : null}
-          {nextSession ? (
-            nextSession.status === 'CANCELLED' ? (
-              <div
-                style={{
-                  border: '1px solid #e2e8f0',
-                  borderRadius: 'var(--radius-lg)',
-                  padding: '1rem 1.25rem',
-                  background: '#f1f5f9',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  opacity: 0.6,
-                  cursor: 'not-allowed',
-                }}
-              >
-                <div>
-                  <p style={{ fontSize: '0.9rem', color: '#64748b' }}>Sesi berikutnya</p>
-                  <strong style={{ fontSize: '1.05rem', color: '#0f172a' }}>
-                    {new Date(nextSession.date_time).toLocaleString()}
-                  </strong>
-                  <p style={{ fontSize: '0.85rem', color: '#475569', marginTop: '0.35rem' }}>
-                    Status: <StatusBadge status={nextSession.status} />
-                  </p>
+        {/* Left Column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+
+          {/* Upcoming Session */}
+          <section style={cardStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Monitor size={20} color="#3b82f6" />
+                <h2 style={sectionTitleStyle}>Sesi Berikutnya</h2>
+              </div>
+            </div>
+
+            {nextSession ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={nextSessionCardStyle}>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
+                      {format(new Date(nextSession.date_time), 'EEEE, d MMMM yyyy', { locale: idLocale })}
+                    </span>
+                    <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>
+                      {format(new Date(nextSession.date_time), 'HH:mm')} WIB
+                    </span>
+                    <div style={{ marginTop: '0.5rem' }}>
+                      <StatusBadge status={nextSession.status} />
+                    </div>
+                  </div>
+
+                  <Link
+                    href={`/coach/sessions/${nextSession.id}/attendance`}
+                    style={openSessionButtonStyle}
+                  >
+                    Buka Sesi →
+                  </Link>
                 </div>
-                <span style={{ color: '#94a3b8', fontWeight: 600 }}>Sesi Dibatalkan</span>
+                {sessionToday && (
+                  <div style={{ padding: '0.75rem', background: '#ecfdf3', border: '1px solid #bbf7d0', borderRadius: '10px', color: '#15803d', fontSize: '0.9rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Info size={16} /> Ada sesi hari ini! Jangan lupa absen.
+                  </div>
+                )}
               </div>
             ) : (
-              <Link
-                href={`/coach/sessions/${nextSession.id}/attendance`}
-                scroll={false}
-                style={{
-                  border: '1px solid var(--color-border)',
-                  borderRadius: 'var(--radius-lg)',
-                  padding: '1rem 1.25rem',
-                  background: 'rgba(37, 99, 235, 0.05)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  textDecoration: 'none',
-                }}
-              >
-                <div>
-                  <p style={{ fontSize: '0.9rem', color: '#64748b' }}>Sesi berikutnya</p>
-                  <strong style={{ fontSize: '1.05rem', color: '#0f172a' }}>
-                    {new Date(nextSession.date_time).toLocaleString()}
-                  </strong>
-                  <p style={{ fontSize: '0.85rem', color: '#475569', marginTop: '0.35rem' }}>
-                    Status: <StatusBadge status={nextSession.status} />
-                  </p>
-                </div>
-                <span style={{ color: '#1e3a5f', fontWeight: 600 }}>Open Administration →</span>
-              </Link>
-            )
-          ) : (
-            <p style={{ color: '#64748b' }}>Belum ada sesi mendatang.</p>
-          )}
+              <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b', background: '#f8fafc', borderRadius: '12px' }}>
+                Belum ada jadwal sesi mendatang.
+              </div>
+            )}
+          </section>
+
+          {/* Lessons */}
+          <section style={cardStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <BookOpen size={20} color="#8b5cf6" />
+                <h2 style={sectionTitleStyle}>Materi & Kurikulum</h2>
+              </div>
+            </div>
+            <LessonPlanSection
+              blockLessons={blockLessons as any}
+              currentLessonId={currentLessonId}
+              nextLessonId={nextLessonId}
+            />
+          </section>
+
         </div>
-        {/* Schedule Table */}
-      </section>
-      <section style={{ marginTop: '2rem' }}>
+
+        {/* Right Column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+
+          {/* Enrolled Coders */}
+          <section style={cardStyle}>
+            <div style={sectionHeaderStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Users size={20} color="#10b981" />
+                <h2 style={sectionTitleStyle}>Daftar Coder ({enrollments.length})</h2>
+              </div>
+            </div>
+            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+              {enrollments.length === 0 ? (
+                <p style={{ color: '#94a3b8', fontStyle: 'italic', padding: '1rem', textAlign: 'center' }}>Belum ada coder terdaftar.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {enrollments.map((enrollment, index) => (
+                    <div key={enrollment.id} style={{
+                      padding: '0.75rem 1rem',
+                      background: '#f8fafc',
+                      borderRadius: '10px',
+                      border: '1px solid #f1f5f9',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem'
+                    }}>
+                      <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '0.75rem', fontWeight: 600 }}>
+                        {index + 1}
+                      </div>
+                      <span style={{ fontWeight: 600, color: '#334155' }}>{coderNameMap.get(enrollment.coder_id) ?? 'Unknown'}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Materials */}
+          <section style={cardStyle}>
+            <div style={sectionHeaderStyle}>
+              <h2 style={sectionTitleStyle}>File Materi Tambahan</h2>
+            </div>
+            <div style={{ marginBottom: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+              <UploadMaterialForm classId={classIdParam} sessions={sessions} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {materials.map((material) => (
+                <div key={material.id} style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '1rem', background: '#fff' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <strong style={{ fontSize: '0.95rem', color: '#1e293b' }}>{material.title}</strong>
+                    {material.file_url && (
+                      <a href={material.file_url} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#3b82f6', fontWeight: 600, textDecoration: 'none' }}>Download ↓</a>
+                    )}
+                  </div>
+                  {material.description && <p style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>{material.description}</p>}
+                </div>
+              ))}
+              {materials.length === 0 && (
+                <p style={{ fontSize: '0.85rem', color: '#94a3b8', textAlign: 'center' }}>Tidak ada materi tambahan.</p>
+              )}
+            </div>
+          </section>
+
+        </div>
+      </div>
+
+      {/* Full Width Sections */}
+
+      {/* Schedule Table */}
+      <section style={cardStyle}>
+        <div style={sectionHeaderStyle}>
+          <h2 style={sectionTitleStyle}>Jadwal Lengkap</h2>
+          <CalendarModal sessions={sortedSessions}>
+            <button style={{ color: '#3b82f6', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem' }}>
+              📅 Lihat Kalender
+            </button>
+          </CalendarModal>
+        </div>
         <LessonScheduleTable
           sessions={sortedSessions}
           lessons={computedLessonsForTable}
           classType={classRecord.type}
         />
       </section>
-      <section style={cardStyle}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
-          <div>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>Materi Kurikulum</h2>
-            <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Slide deck pembelajaran dan contoh game.</p>
-          </div>
-        </div>
-        <LessonPlanSection
-          blockLessons={blockLessons as any}
-          currentLessonId={currentLessonId}
-          nextLessonId={nextLessonId}
-        />
-      </section>
 
-      {/* RECAP ATTENDANCE below */}
-      {
-        sortedSessions.length > 0 ? (
-          <section style={cardStyle}>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>Rekap Kehadiran</h2>
-            <div style={recapWrapperStyle}>
-              <table style={recapTableStyle}>
-                <thead>
-                  <tr>
-                    <th style={recapNameHeaderStyle}>Nama</th>
-                    {sortedSessions.map((sessionItem) => (
-                      <th key={sessionItem.id} style={recapDateHeaderStyle}>
-                        <div>{format(new Date(sessionItem.date_time), 'dd MMM')}</div>
-                        <small style={{ color: 'var(--color-text-muted)' }}>
-                          {format(new Date(sessionItem.date_time), 'EEE')}
-                        </small>
-                      </th>
+      {/* Attendance Recap */}
+      {sortedSessions.length > 0 && (
+        <section style={cardStyle}>
+          <div style={sectionHeaderStyle}>
+            <h2 style={sectionTitleStyle}>Rekap Kehadiran</h2>
+          </div>
+          <div style={{ overflowX: 'auto', paddingBottom: '0.5rem' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+              <thead>
+                <tr>
+                  <th style={{ ...thStyle, position: 'sticky', left: 0, zIndex: 10, background: '#f8fafc', borderRight: '1px solid #e2e8f0' }}>Nama Siswa</th>
+                  {sortedSessions.slice(0, 10).map(s => (
+                    <th key={s.id} style={thStyle}>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{format(new Date(s.date_time), 'd MMM')}</div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {attendanceSummaryRows.map((row) => (
+                  <tr key={row.fullName} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ ...tdStyle, position: 'sticky', left: 0, zIndex: 10, background: '#fff', borderRight: '1px solid #e2e8f0', fontWeight: 600 }}>
+                      {row.fullName}
+                    </td>
+                    {row.statuses.slice(0, 10).map((status, i) => (
+                      <td key={i} style={{ ...tdStyle, textAlign: 'center' }}>
+                        {status ? (
+                          status.status === 'PRESENT' ? <span style={{ color: '#16a34a' }}>●</span> :
+                            status.status === 'LATE' ? <span style={{ color: '#eab308' }}>◑</span> :
+                              <span style={{ color: '#dc2626' }}>✕</span>
+                        ) : <span style={{ color: '#e2e8f0' }}>-</span>}
+                      </td>
                     ))}
                   </tr>
-                </thead>
-                <tbody>
-                  {attendanceSummaryRows.map((row) => (
-                    <tr key={row.fullName}>
-                      <td style={recapNameCellStyle}>{row.fullName}</td>
-                      {row.statuses.map((status, index) => {
-                        if (!status) {
-                          return (
-                            <td key={`${row.fullName}-${index}`} style={recapCellStyle}>
-                              —
-                            </td>
-                          );
-                        }
-                        if (status.status === 'PRESENT' || status.status === 'LATE') {
-                          return (
-                            <td key={`${row.fullName}-${index}`} style={{ ...recapCellStyle, color: 'var(--color-success)' }}>
-                              ✓
-                            </td>
-                          );
-                        }
-                        if (status.status === 'EXCUSED') {
-                          return (
-                            <td key={`${row.fullName}-${index}`} style={{ ...recapCellStyle, color: 'var(--color-accent)' }}>
-                              E{status.reason ? ` (${status.reason})` : ''}
-                            </td>
-                          );
-                        }
-                        return (
-                          <td key={`${row.fullName}-${index}`} style={{ ...recapCellStyle, color: 'var(--color-danger)' }}>
-                            ×{status.reason ? ` (${status.reason})` : ''}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        ) : null
-      }
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
-      <section style={cardStyle}>
-        <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>Enrolled Coders</h2>
-        <ul style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
-          {enrollments.length === 0 ? (
-            <li style={{ color: '#6b7280' }}>No coders enrolled.</li>
-          ) : (
-            enrollments.map((enrollment) => (
-              <li key={enrollment.id} style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '0.75rem' }}>
-                {coderNameMap.get(enrollment.coder_id) ?? 'Coder'}
-              </li>
-            ))
-          )}
-        </ul>
-      </section>
-
-      <section style={cardStyle}>
-        <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>Materials</h2>
-        <UploadMaterialForm classId={classIdParam} sessions={sessions} />
-        <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {materials.length === 0 ? (
-            <p style={{ color: '#6b7280' }}>No materials uploaded yet.</p>
-          ) : (
-            materials.map((material) => (
-              <div
-                key={material.id}
-                style={{ border: '1px solid #e2e8f0', borderRadius: '0.75rem', padding: '1rem', background: '#f8fafc' }}
-              >
-                <strong style={{ fontSize: '1rem', color: '#0f172a' }}>{material.title}</strong>
-                {material.description ? <p style={{ color: '#475569', marginTop: '0.25rem' }}>{material.description}</p> : null}
-                {material.file_url ? (
-                  <a
-                    href={material.file_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ color: '#1e3a5f', fontSize: '0.9rem' }}
-                  >
-                    Open file
-                  </a>
-                ) : null}
-                {material.coach_note ? (
-                  <p style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.25rem' }}>Coach note: {material.coach_note}</p>
-                ) : null}
-              </div>
-            ))
-          )}
-        </div>
-      </section>
-    </div >
+    </div>
   );
 }
 
 function renderInvalidClassMessage(value = '') {
-  console.warn('[CoachClassPage] Invalid class id parameter:', value);
   return (
-    <div style={{ padding: '2rem', background: '#ffffff', borderRadius: '0.75rem', border: '1px solid #e5e7eb' }}>
-      <h1 style={{ fontSize: '1.4rem', fontWeight: 600, marginBottom: '0.5rem' }}>Kelas tidak ditemukan</h1>
-      <p style={{ color: '#64748b' }}>
-        Parameter ID kelas tidak valid{value ? `: "${value}"` : ''}. Silakan kembali ke dashboard coach dan pilih kelas ulang.
-      </p>
+    <div style={{ padding: '3rem', textAlign: 'center' }}>
+      <h1 style={{ fontSize: '1.4rem', fontWeight: 600, color: '#1e293b' }}>Kelas tidak ditemukan</h1>
+      <p style={{ color: '#64748b' }}>ID "{value}" tidak valid.</p>
+      <Link href="/coach/dashboard" style={{ marginTop: '1rem', display: 'inline-block', color: '#3b82f6', fontWeight: 600 }}>← Kembali ke Dashboard</Link>
     </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const isScheduled = status === 'SCHEDULED';
+  const isCompleted = status === 'COMPLETED';
+  const isCancelled = status === 'CANCELLED';
+
+  const color = isCompleted ? '#16a34a' : isCancelled ? '#dc2626' : '#3b82f6';
+  const bg = isCompleted ? '#dcfce7' : isCancelled ? '#fee2e2' : '#eff6ff';
+  const label = isCompleted ? 'Selesai' : isCancelled ? 'Dibatalkan' : 'Terjadwal';
+
+  return (
+    <span style={{ padding: '0.25rem 0.6rem', background: bg, color: color, borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, display: 'inline-block' }}>
+      {label}
+    </span>
   );
 }
 
@@ -411,217 +402,80 @@ function isValidUuid(value: string): boolean {
   return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(value);
 }
 
-function formatDate(value: string | null): string {
-  if (!value) return '—';
-  return new Date(value).toLocaleDateString();
-}
+// Styles
+const pageContainerStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '2rem',
+  maxWidth: '1200px',
+  width: '100%',
+  margin: '0 auto',
+  padding: '0 1.5rem 3rem',
+};
 
 const cardStyle: CSSProperties = {
-  background: 'var(--color-bg-surface)',
+  background: '#ffffff',
+  borderRadius: '16px',
+  border: '1px solid #e2e8f0',
+  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+  padding: '1.5rem',
   width: '100%',
-  borderRadius: 'var(--radius-lg)',
-  border: '1px solid var(--color-border)',
-  padding: '1.25rem 1.5rem',
-  overflowX: 'auto',
-  boxShadow: 'var(--shadow-medium)',
+  overflow: 'hidden',
 };
 
-const calendarLegendStyle: CSSProperties = {
+const sectionHeaderStyle: CSSProperties = {
   display: 'flex',
-  gap: '1.5rem',
-  fontSize: '0.85rem',
-  color: 'var(--color-text-muted)',
-  marginBottom: '1rem',
-  flexWrap: 'wrap',
+  justifyContent: 'space-between',
   alignItems: 'center',
+  marginBottom: '1rem'
 };
 
-const calendarGridStyle: CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(7, minmax(120px, 1fr))',
-  gap: '0.75rem',
-  minWidth: '840px',
+const sectionTitleStyle: CSSProperties = {
+  fontSize: '1.1rem',
+  fontWeight: 700,
+  color: '#1e293b',
+  margin: 0
 };
 
-const calendarScrollContainerStyle: CSSProperties = {
-  overflowX: 'auto',
-  paddingBottom: '0.5rem',
+const nextSessionCardStyle: CSSProperties = {
+  border: '1px solid #dbeafe',
+  borderRadius: '12px',
+  padding: '1.5rem',
+  background: '#eff6ff',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: '1rem',
+  flexWrap: 'wrap'
 };
 
-const calendarDayHeaderStyle: CSSProperties = {
-  textAlign: 'center',
-  fontSize: '0.85rem',
+const openSessionButtonStyle: CSSProperties = {
+  background: '#3b82f6',
+  color: '#fff',
+  padding: '0.75rem 1.25rem',
+  borderRadius: '8px',
   fontWeight: 600,
-  color: 'var(--color-text-secondary)',
-};
-
-const calendarCellStyle: CSSProperties = {
-  border: '1px solid var(--color-border)',
-  borderRadius: 'var(--radius-lg)',
-  padding: '0.75rem',
-  minHeight: '150px',
-  background: 'var(--color-bg-surface)',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.5rem',
-  transition: 'background 0.2s ease',
-};
-
-const calendarSessionCardStyle: CSSProperties = {
-  border: '1px solid rgba(37, 99, 235, 0.2)',
-  borderRadius: 'var(--radius-md)',
-  padding: '0.55rem 0.65rem',
-  background: 'rgba(37, 99, 235, 0.05)',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.35rem',
   textDecoration: 'none',
-};
-
-const calendarNavButtonStyle: CSSProperties = {
+  boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2)',
+  transition: 'transform 0.2s',
   display: 'inline-flex',
   alignItems: 'center',
-  justifyContent: 'center',
-  padding: '0.45rem 0.8rem',
-  borderRadius: '0.5rem',
-  border: '1px solid var(--color-border)',
-  background: 'var(--color-bg-surface)',
-  color: 'var(--color-text-primary)',
-  fontWeight: 600,
-  cursor: 'pointer',
-  textDecoration: 'none',
+  gap: '0.5rem'
 };
 
-const calendarNavButtonDisabledStyle: CSSProperties = {
-  ...calendarNavButtonStyle,
-  background: 'rgba(15, 23, 42, 0.05)',
-  color: 'var(--color-text-muted)',
-  cursor: 'not-allowed',
-};
-
-const WEEKDAY_LABELS = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
-
-const recapWrapperStyle: CSSProperties = {
-  overflowX: 'auto',
-};
-
-const recapTableStyle: CSSProperties = {
-  width: '100%',
-  borderCollapse: 'collapse',
-  minWidth: '680px',
-};
-
-const recapNameHeaderStyle: CSSProperties = {
-  position: 'sticky',
-  left: 0,
-  zIndex: 2,
-  background: 'var(--color-bg-surface)',
-  borderBottom: '1px solid #e2e8f0',
-  padding: '0.7rem 0.9rem',
+const thStyle: CSSProperties = {
+  padding: '0.75rem 1rem',
   textAlign: 'left',
-  fontWeight: 600,
-  color: 'var(--color-text-secondary)',
-};
-
-const recapDateHeaderStyle: CSSProperties = {
+  fontSize: '0.85rem',
+  color: '#64748b',
   borderBottom: '1px solid #e2e8f0',
-  padding: '0.7rem 0.9rem',
-  textAlign: 'center',
-  fontWeight: 600,
-  color: 'var(--color-text-secondary)',
-  background: 'rgba(15, 23, 42, 0.04)',
-  minWidth: '110px',
+  background: '#f8fafc',
+  whiteSpace: 'nowrap'
 };
 
-const recapNameCellStyle: CSSProperties = {
-  position: 'sticky',
-  left: 0,
-  zIndex: 1,
-  background: 'var(--color-bg-surface)',
-  borderBottom: '1px solid #e2e8f0',
-  padding: '0.7rem 0.9rem',
-  fontWeight: 600,
-  color: 'var(--color-text-primary)',
+const tdStyle: CSSProperties = {
+  padding: '0.75rem 1rem',
+  borderBottom: '1px solid #f1f5f9',
+  color: '#334155',
+  verticalAlign: 'middle'
 };
-
-const recapCellStyle: CSSProperties = {
-  borderBottom: '1px solid #e2e8f0',
-  padding: '0.7rem 0.9rem',
-  textAlign: 'center',
-  color: 'var(--color-text-secondary)',
-  fontSize: '0.9rem',
-  whiteSpace: 'nowrap',
-};
-
-const lessonBlockStyle: CSSProperties = {
-  border: '1px solid #e2e8f0',
-  borderRadius: '0.85rem',
-  padding: '1rem 1.1rem',
-  background: '#ffffff',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.75rem',
-};
-
-const lessonBlockStatusBadge = (status: string): CSSProperties => ({
-  padding: '0.25rem 0.65rem',
-  borderRadius: '999px',
-  fontSize: '0.75rem',
-  fontWeight: 600,
-  color:
-    status === 'COMPLETED' ? '#16a34a' : status === 'CURRENT' ? '#1e3a5f' : '#ea580c',
-  background:
-    status === 'COMPLETED'
-      ? '#ecfdf3'
-      : status === 'CURRENT'
-        ? 'rgba(37, 99, 235, 0.12)'
-        : 'rgba(234, 88, 12, 0.12)',
-});
-
-type StatusBadgeProps = {
-  status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
-};
-
-function StatusBadge({ status }: StatusBadgeProps) {
-  const colors = {
-    SCHEDULED: 'var(--color-accent)',
-    COMPLETED: 'var(--color-success)',
-    CANCELLED: 'var(--color-danger)',
-  } as const;
-
-  const color = colors[status];
-
-  return (
-    <span
-      style={{
-        display: 'inline-block',
-        width: '0.65rem',
-        height: '0.65rem',
-        borderRadius: '999px',
-        background: color,
-      }}
-    />
-  );
-}
-
-type LegendSwatchProps = {
-  color: string;
-  label: string;
-};
-
-function LegendSwatch({ color, label }: LegendSwatchProps) {
-  return (
-    <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-      <span
-        style={{
-          display: 'inline-block',
-          width: '0.7rem',
-          height: '0.7rem',
-          borderRadius: '999px',
-          background: color,
-        }}
-      />
-      <span>{label}</span>
-    </span>
-  );
-}

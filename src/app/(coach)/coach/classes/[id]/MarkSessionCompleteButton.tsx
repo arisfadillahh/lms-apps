@@ -2,6 +2,7 @@
 
 import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { CheckCircle } from 'lucide-react';
 
 interface MarkSessionCompleteButtonProps {
   sessionId: string;
@@ -12,6 +13,8 @@ export default function MarkSessionCompleteButton({ sessionId }: MarkSessionComp
   const [isPending, startTransition] = useTransition();
 
   const handleClick = () => {
+    if (!window.confirm('Tandai kelas ini sebagai selesai?')) return;
+
     startTransition(async () => {
       try {
         const response = await fetch(`/api/coach/sessions/${sessionId}/status`, {
@@ -21,13 +24,13 @@ export default function MarkSessionCompleteButton({ sessionId }: MarkSessionComp
         });
         if (!response.ok) {
           const payload = await response.json().catch(() => ({}));
-          window.alert(payload.error ?? 'Failed to update session status');
+          window.alert(payload.error ?? 'Gagal mengubah status sesi');
           return;
         }
         router.refresh();
       } catch (error) {
         console.error('Failed to update session status', error);
-        window.alert('Unexpected error updating session status');
+        window.alert('Terjadi kesalahan');
       }
     });
   };
@@ -38,18 +41,23 @@ export default function MarkSessionCompleteButton({ sessionId }: MarkSessionComp
       onClick={handleClick}
       disabled={isPending}
       style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.4rem',
         padding: '0.5rem 1rem',
-        borderRadius: '0.5rem',
-        border: '1px solid var(--color-success)',
-        background: 'rgba(22, 163, 74, 0.12)',
-        color: 'var(--color-success)',
+        borderRadius: '8px',
+        border: 'none',
+        background: '#16a34a',
+        color: '#ffffff',
         fontSize: '0.9rem',
         fontWeight: 600,
         cursor: 'pointer',
-        opacity: isPending ? 0.7 : 1,
+        boxShadow: '0 2px 4px rgba(22, 163, 74, 0.2)',
+        transition: 'all 0.2s'
       }}
     >
-      {isPending ? 'Menyelesaikan…' : 'Kelas selesai'}
+      <CheckCircle size={16} />
+      {isPending ? 'Menyelesaikan…' : 'Selesai Kelas'}
     </button>
   );
 }

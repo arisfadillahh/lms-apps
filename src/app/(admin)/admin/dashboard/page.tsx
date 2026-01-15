@@ -2,8 +2,9 @@ import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { ChevronRight, Users, GraduationCap, BookOpen, Calendar, FileText, Wallet, MessageCircle } from 'lucide-react';
 
-import { classesDao, sessionsDao, usersDao, makeUpTasksDao, rubricsDao } from '@/lib/dao';
+import { classesDao, sessionsDao, usersDao, rubricsDao } from '@/lib/dao';
 
 export default async function AdminDashboardPage() {
   const [classes, coaches, coders, submissions] = await Promise.all([
@@ -19,169 +20,190 @@ export default async function AdminDashboardPage() {
     .flat()
     .filter((session) => new Date(session.date_time) >= new Date())
     .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime())
-    .slice(0, 6);
+    .slice(0, 5);
 
-  // Calculate active coders (enrolled in at least one class)
   const activeCoders = coders.filter(c => c.is_active).length;
   const activeCoaches = coaches.filter(c => c.is_active).length;
-
-  // Pending reports count
   const pendingReports = submissions.filter(s => !s.report?.pdf_url).length;
+  const todayDate = format(new Date(), 'EEEE, d MMMM yyyy', { locale: id });
 
   return (
     <div style={containerStyle}>
-      {/* Welcome Section */}
-      <div style={welcomeCardStyle}>
-        <div>
-          <h1 style={welcomeTitleStyle}>Selamat Datang, Admin! 👋</h1>
-          <p style={welcomeSubtitleStyle}>
-            Kelola LMS Anda dengan mudah. Berikut ringkasan aktivitas hari ini.
-          </p>
-        </div>
-        <div style={dateBoxStyle}>
-          <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Hari ini</span>
-          <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e3a5f' }}>
-            {format(new Date(), 'EEEE, d MMM yyyy', { locale: id })}
-          </span>
-        </div>
-      </div>
-
-      {/* Stats Grid */}
-      <div style={statsGridStyle}>
-        <Link href="/admin/classes" style={{ textDecoration: 'none' }}>
-          <div style={{ ...statCardStyle, background: '#fef9c3' }}>
-            <div style={statIconStyle}>🏫</div>
-            <div>
-              <p style={statValueStyle}>{classes.length}</p>
-              <p style={statLabelStyle}>Total Kelas</p>
-            </div>
-          </div>
-        </Link>
-
-        <Link href="/admin/users" style={{ textDecoration: 'none' }}>
-          <div style={{ ...statCardStyle, background: '#fce7f3' }}>
-            <div style={statIconStyle}>👨‍🏫</div>
-            <div>
-              <p style={statValueStyle}>{activeCoaches}</p>
-              <p style={statLabelStyle}>Coach Aktif</p>
-            </div>
-          </div>
-        </Link>
-
-        <Link href="/admin/users" style={{ textDecoration: 'none' }}>
-          <div style={{ ...statCardStyle, background: '#dbeafe' }}>
-            <div style={statIconStyle}>👦</div>
-            <div>
-              <p style={statValueStyle}>{activeCoders}</p>
-              <p style={statLabelStyle}>Coder Aktif</p>
-            </div>
-          </div>
-        </Link>
-
-        <Link href="/admin/reports" style={{ textDecoration: 'none' }}>
-          <div style={{ ...statCardStyle, background: pendingReports > 0 ? '#fed7aa' : '#f1f5f9' }}>
-            <div style={statIconStyle}>📋</div>
-            <div>
-              <p style={statValueStyle}>{pendingReports}</p>
-              <p style={statLabelStyle}>Rapor Pending</p>
-            </div>
-          </div>
-        </Link>
-      </div>
-
-      {/* Main Content Grid */}
+      {/* Main Grid */}
       <div style={mainGridStyle}>
-        {/* Left Column - Upcoming Sessions */}
-        <div style={sectionCardStyle}>
-          <div style={sectionHeaderStyle}>
-            <h2 style={sectionTitleStyle}>📅 Sesi Mendatang</h2>
-            <Link href="/admin/classes" style={viewAllLinkStyle}>Lihat Semua →</Link>
+        {/* Left Column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+          {/* Welcome Banner */}
+          <div style={welcomeBannerStyle}>
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)', marginBottom: '0.25rem' }}>
+                {todayDate}
+              </p>
+              <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#fff', margin: '0 0 0.5rem 0' }}>
+                Dashboard Admin 👋
+              </h1>
+              <p style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.85)', margin: 0 }}>
+                Kelola LMS dengan mudah. Semua data tersedia di sini.
+              </p>
+            </div>
+            <div style={{ position: 'absolute', right: '2rem', bottom: '-0.5rem', fontSize: '5rem', opacity: 0.2 }}>
+              🎓
+            </div>
           </div>
 
-          {upcomingSessions.length === 0 ? (
-            <div style={emptyStateStyle}>
-              <span style={{ fontSize: '2rem' }}>📭</span>
-              <p>Belum ada sesi terjadwal</p>
+          {/* Stats Grid */}
+          <div style={statsGridStyle}>
+            <Link href="/admin/classes" style={{ textDecoration: 'none' }}>
+              <div style={{ ...statCardStyle, background: '#fef9c3' }}>
+                <div style={statIconStyle}>
+                  <GraduationCap size={24} color="#ca8a04" />
+                </div>
+                <div>
+                  <p style={statValueStyle}>{classes.length}</p>
+                  <p style={statLabelStyle}>Total Kelas</p>
+                </div>
+              </div>
+            </Link>
+
+            <Link href="/admin/users" style={{ textDecoration: 'none' }}>
+              <div style={{ ...statCardStyle, background: '#dbeafe' }}>
+                <div style={statIconStyle}>
+                  <Users size={24} color="#2563eb" />
+                </div>
+                <div>
+                  <p style={statValueStyle}>{activeCoaches}</p>
+                  <p style={statLabelStyle}>Coach Aktif</p>
+                </div>
+              </div>
+            </Link>
+
+            <Link href="/admin/users" style={{ textDecoration: 'none' }}>
+              <div style={{ ...statCardStyle, background: '#dcfce7' }}>
+                <div style={statIconStyle}>
+                  <Users size={24} color="#16a34a" />
+                </div>
+                <div>
+                  <p style={statValueStyle}>{activeCoders}</p>
+                  <p style={statLabelStyle}>Coder Aktif</p>
+                </div>
+              </div>
+            </Link>
+
+            <Link href="/admin/reports" style={{ textDecoration: 'none' }}>
+              <div style={{ ...statCardStyle, background: pendingReports > 0 ? '#fce7f3' : '#f1f5f9' }}>
+                <div style={statIconStyle}>
+                  <FileText size={24} color={pendingReports > 0 ? '#db2777' : '#64748b'} />
+                </div>
+                <div>
+                  <p style={statValueStyle}>{pendingReports}</p>
+                  <p style={statLabelStyle}>Rapor Pending</p>
+                </div>
+              </div>
+            </Link>
+          </div>
+
+          {/* Upcoming Sessions */}
+          <div style={sectionCardStyle}>
+            <div style={sectionHeaderStyle}>
+              <h2 style={sectionTitleStyle}>📅 Sesi Mendatang</h2>
+              <Link href="/admin/classes" style={viewAllStyle}>Lihat Semua →</Link>
             </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {upcomingSessions.map((session) => {
-                const classData = classes.find((k) => k.id === session.class_id);
-                return (
-                  <div key={session.id} style={sessionItemStyle}>
-                    <div style={sessionDateBoxStyle}>
-                      <span style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase' }}>
-                        {format(new Date(session.date_time), 'EEE', { locale: id })}
-                      </span>
-                      <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e3a5f' }}>
-                        {format(new Date(session.date_time), 'd')}
+
+            {upcomingSessions.length === 0 ? (
+              <div style={emptyStyle}>
+                <p>Belum ada sesi terjadwal</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {upcomingSessions.map((session) => {
+                  const classData = classes.find((k) => k.id === session.class_id);
+                  return (
+                    <div key={session.id} style={sessionItemStyle}>
+                      <div style={sessionDateStyle}>
+                        <span style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase' }}>
+                          {format(new Date(session.date_time), 'EEE', { locale: id })}
+                        </span>
+                        <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b' }}>
+                          {format(new Date(session.date_time), 'd')}
+                        </span>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ margin: 0, fontWeight: 600, color: '#1e293b', fontSize: '0.9rem' }}>{classData?.name ?? 'Kelas'}</p>
+                        <p style={{ margin: '0.1rem 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+                          {format(new Date(session.date_time), 'HH:mm')} WIB
+                        </p>
+                      </div>
+                      <span style={{
+                        ...statusBadgeStyle,
+                        background: session.status === 'SCHEDULED' ? '#dbeafe' : '#dcfce7',
+                        color: session.status === 'SCHEDULED' ? '#1d4ed8' : '#166534',
+                      }}>
+                        {session.status === 'SCHEDULED' ? 'Terjadwal' : session.status}
                       </span>
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ margin: 0, fontWeight: 600, color: '#1e293b' }}>{classData?.name ?? 'Kelas'}</p>
-                      <p style={{ margin: '0.15rem 0 0', fontSize: '0.85rem', color: '#64748b' }}>
-                        {format(new Date(session.date_time), 'HH:mm')} WIB
-                      </p>
-                    </div>
-                    <span style={{
-                      ...statusBadgeStyle,
-                      background: session.status === 'SCHEDULED' ? '#dbeafe' : '#dcfce7',
-                      color: session.status === 'SCHEDULED' ? '#1e3a5f' : '#166534',
-                    }}>
-                      {session.status === 'SCHEDULED' ? 'Terjadwal' : session.status}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Right Column - Quick Actions */}
+        {/* Right Column - Sidebar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
           {/* Quick Actions */}
-          <div style={sectionCardStyle}>
-            <h2 style={sectionTitleStyle}>⚡ Aksi Cepat</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '1rem' }}>
+          <div style={sideCardStyle}>
+            <h3 style={sideCardTitleStyle}>⚡ Aksi Cepat</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
               <Link href="/admin/users" style={quickActionStyle}>
-                <span>👤</span> Tambah User
+                <Users size={16} /> Tambah User
+                <ChevronRight size={14} style={{ marginLeft: 'auto' }} />
               </Link>
               <Link href="/admin/classes" style={quickActionStyle}>
-                <span>🏫</span> Buat Kelas
+                <GraduationCap size={16} /> Buat Kelas
+                <ChevronRight size={14} style={{ marginLeft: 'auto' }} />
               </Link>
               <Link href="/admin/broadcast" style={quickActionStyle}>
-                <span>📢</span> Broadcast
+                <MessageCircle size={16} /> Kirim Broadcast
+                <ChevronRight size={14} style={{ marginLeft: 'auto' }} />
               </Link>
               <Link href="/admin/payments" style={quickActionStyle}>
-                <span>💳</span> Pembayaran
-              </Link>
-              <Link href="/admin/reports" style={quickActionStyle}>
-                <span>📋</span> Rapor
-              </Link>
-              <Link href="/admin/whatsapp" style={quickActionStyle}>
-                <span>💬</span> WhatsApp
+                <Wallet size={16} /> Kelola Pembayaran
+                <ChevronRight size={14} style={{ marginLeft: 'auto' }} />
               </Link>
             </div>
           </div>
 
-          {/* Recent Activity */}
-          <div style={sectionCardStyle}>
-            <h2 style={sectionTitleStyle}>📊 Statistik Rapor</h2>
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+          {/* Report Stats */}
+          <div style={sideCardStyle}>
+            <h3 style={sideCardTitleStyle}>📊 Statistik Rapor</h3>
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
               <div style={miniStatStyle}>
-                <span style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e3a5f' }}>{submissions.length}</span>
-                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Total</span>
+                <span style={{ fontSize: '1.5rem', fontWeight: 700, color: '#3b82f6' }}>{submissions.length}</span>
+                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Total</span>
               </div>
               <div style={miniStatStyle}>
-                <span style={{ fontSize: '1.5rem', fontWeight: 700, color: '#16a34a' }}>
+                <span style={{ fontSize: '1.5rem', fontWeight: 700, color: '#10b981' }}>
                   {submissions.filter(s => s.report?.pdf_url).length}
                 </span>
-                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Selesai</span>
+                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Selesai</span>
               </div>
               <div style={miniStatStyle}>
-                <span style={{ fontSize: '1.5rem', fontWeight: 700, color: '#ea580c' }}>{pendingReports}</span>
-                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Pending</span>
+                <span style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f59e0b' }}>{pendingReports}</span>
+                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Pending</span>
               </div>
+            </div>
+          </div>
+
+          {/* System Status */}
+          <div style={sideCardStyle}>
+            <h3 style={sideCardTitleStyle}>🔔 WhatsApp</h3>
+            <div style={{ marginTop: '0.75rem' }}>
+              <Link href="/admin/whatsapp" style={quickActionStyle}>
+                <MessageCircle size={16} /> Monitor Status
+                <ChevronRight size={14} style={{ marginLeft: 'auto' }} />
+              </Link>
             </div>
           </div>
         </div>
@@ -190,7 +212,7 @@ export default async function AdminDashboardPage() {
   );
 }
 
-// Styles - Modern Design with Navy Blue as Primary
+// Styles
 const containerStyle: CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
@@ -198,83 +220,67 @@ const containerStyle: CSSProperties = {
   paddingBottom: '2rem',
 };
 
-const welcomeCardStyle: CSSProperties = {
-  background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-  borderRadius: '1.25rem',
-  padding: '1.5rem 2rem',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  flexWrap: 'wrap',
-  gap: '1rem',
+const mainGridStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: '1fr 320px',
+  gap: '1.5rem',
 };
 
-const welcomeTitleStyle: CSSProperties = {
-  fontSize: '1.5rem',
-  fontWeight: 700,
-  color: '#1e3a5f',
-  margin: 0,
-};
-
-const welcomeSubtitleStyle: CSSProperties = {
-  fontSize: '0.95rem',
-  color: '#64748b',
-  margin: '0.5rem 0 0',
-};
-
-const dateBoxStyle: CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'flex-end',
+const welcomeBannerStyle: CSSProperties = {
+  background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+  borderRadius: '20px',
+  padding: '2rem',
+  position: 'relative',
+  overflow: 'hidden',
+  minHeight: '130px',
 };
 
 const statsGridStyle: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+  gridTemplateColumns: 'repeat(4, 1fr)',
   gap: '1rem',
 };
 
 const statCardStyle: CSSProperties = {
-  borderRadius: '1rem',
+  borderRadius: '16px',
   padding: '1.25rem',
   display: 'flex',
   alignItems: 'center',
   gap: '1rem',
-  cursor: 'pointer',
-  transition: 'transform 0.2s, box-shadow 0.2s',
-  border: '1px solid transparent',
+  transition: 'transform 0.2s',
 };
 
 const statIconStyle: CSSProperties = {
-  fontSize: '2rem',
+  width: '48px',
+  height: '48px',
+  borderRadius: '12px',
+  background: 'rgba(255,255,255,0.7)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
 };
 
 const statValueStyle: CSSProperties = {
-  fontSize: '1.75rem',
+  fontSize: '1.5rem',
   fontWeight: 700,
-  color: '#1e3a5f',
+  color: '#1e293b',
   margin: 0,
-  lineHeight: 1,
+  lineHeight: 1.2,
 };
 
 const statLabelStyle: CSSProperties = {
-  fontSize: '0.85rem',
+  fontSize: '0.8rem',
   color: '#475569',
-  margin: '0.25rem 0 0',
+  margin: '0.15rem 0 0',
   fontWeight: 500,
 };
 
-const mainGridStyle: CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: '1.5fr 1fr',
-  gap: '1.5rem',
-};
-
 const sectionCardStyle: CSSProperties = {
-  background: '#ffffff',
-  borderRadius: '1rem',
+  background: '#fff',
+  borderRadius: '16px',
   padding: '1.5rem',
-  border: '1px solid #e2e8f0',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+  border: '1px solid #f1f5f9',
 };
 
 const sectionHeaderStyle: CSSProperties = {
@@ -285,27 +291,23 @@ const sectionHeaderStyle: CSSProperties = {
 };
 
 const sectionTitleStyle: CSSProperties = {
-  fontSize: '1.05rem',
-  fontWeight: 600,
-  color: '#1e3a5f',
+  fontSize: '1rem',
+  fontWeight: 700,
+  color: '#1e293b',
   margin: 0,
 };
 
-const viewAllLinkStyle: CSSProperties = {
-  fontSize: '0.85rem',
-  color: '#1e3a5f',
+const viewAllStyle: CSSProperties = {
+  fontSize: '0.8rem',
+  color: '#3b82f6',
   fontWeight: 600,
   textDecoration: 'none',
 };
 
-const emptyStateStyle: CSSProperties = {
+const emptyStyle: CSSProperties = {
   padding: '2rem',
   textAlign: 'center',
   color: '#94a3b8',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  gap: '0.5rem',
 };
 
 const sessionItemStyle: CSSProperties = {
@@ -314,33 +316,48 @@ const sessionItemStyle: CSSProperties = {
   gap: '1rem',
   padding: '0.75rem',
   background: '#f8fafc',
-  borderRadius: '0.75rem',
+  borderRadius: '12px',
 };
 
-const sessionDateBoxStyle: CSSProperties = {
-  width: '48px',
+const sessionDateStyle: CSSProperties = {
+  width: '45px',
   textAlign: 'center',
   display: 'flex',
   flexDirection: 'column',
 };
 
 const statusBadgeStyle: CSSProperties = {
-  padding: '0.35rem 0.75rem',
+  padding: '0.3rem 0.7rem',
   borderRadius: '999px',
-  fontSize: '0.75rem',
+  fontSize: '0.7rem',
   fontWeight: 600,
+};
+
+const sideCardStyle: CSSProperties = {
+  background: '#fff',
+  borderRadius: '16px',
+  padding: '1.25rem',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+  border: '1px solid #f1f5f9',
+};
+
+const sideCardTitleStyle: CSSProperties = {
+  fontSize: '0.95rem',
+  fontWeight: 700,
+  color: '#1e293b',
+  margin: 0,
 };
 
 const quickActionStyle: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
-  padding: '0.85rem',
+  gap: '0.6rem',
+  padding: '0.7rem 0.85rem',
   background: '#f8fafc',
-  borderRadius: '0.75rem',
-  color: '#1e3a5f',
-  fontWeight: 600,
-  fontSize: '0.9rem',
+  borderRadius: '10px',
+  color: '#475569',
+  fontSize: '0.85rem',
+  fontWeight: 500,
   textDecoration: 'none',
   transition: 'background 0.2s',
 };
@@ -348,10 +365,10 @@ const quickActionStyle: CSSProperties = {
 const miniStatStyle: CSSProperties = {
   flex: 1,
   textAlign: 'center',
-  padding: '1rem',
+  padding: '0.85rem',
   background: '#f8fafc',
-  borderRadius: '0.75rem',
+  borderRadius: '12px',
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.25rem',
+  gap: '0.2rem',
 };

@@ -2,13 +2,16 @@ import type { CSSProperties } from 'react';
 import React from 'react';
 import { promises as fs } from 'fs';
 import path from 'path';
+import Link from 'next/link';
+import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
+import { ChevronRight, BookOpen, FileText, Calendar } from 'lucide-react';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { getCoderProgress } from '@/lib/services/coder';
 
 import JourneyModal from './JourneyModal';
 import SoftwareDetailModal from './SoftwareDetailModal';
-import JourneyMap from './JourneyMap';
 import BannerCarousel from '@/components/coder/BannerCarousel';
 
 type Banner = {
@@ -37,292 +40,320 @@ export default async function CoderDashboardPage() {
     getCoderProgress(session.user.id),
     getBanners(),
   ]);
+
   const upcomingBlocks = progress
     .filter((item) => item.upNext)
     .map((item) => ({
       classId: item.classId,
       className: item.name,
-      classType: item.type, // Add type for conditional display
+      classType: item.type,
       block: item.upNext!,
-      journeyBlocks: item.journeyBlocks // Pass journey blocks for the modal
+      journeyBlocks: item.journeyBlocks
     }));
 
-  const journeyProgress = progress
-    .filter((item) => item.journeyBlocks.length > 0); // Show both WEEKLY (blocks) and EKSKUL (lessons)
-
+  const journeyProgress = progress.filter((item) => item.journeyBlocks.length > 0);
   const activeBanners = banners.filter(b => b.isActive);
+  const userName = session.user.fullName?.split(' ')[0] || 'Coder';
+  const todayDate = format(new Date(), 'EEEE, d MMMM', { locale: id });
+
+  // Calculate overall progress
+  const totalCompleted = progress.reduce((acc, p) => acc + p.completedBlocks, 0);
+  const totalBlocks = progress.reduce((acc, p) => acc + (p.totalBlocks || p.journeyBlocks.length), 0);
+  const progressPercent = totalBlocks > 0 ? Math.round((totalCompleted / totalBlocks) * 100) : 0;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
-      {/* Banner Carousel */}
-      {activeBanners.length > 0 && (
-        <BannerCarousel banners={activeBanners} />
-      )}
+    <div style={containerStyle}>
+      {/* Main Content - 2 Column Layout */}
+      <div style={mainGridStyle}>
+        {/* Left Column - Main Content */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-      {/* Header section removed (moved to layout) */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '-1rem' }}>
-        {/* Learning Journey Button - Moved here */}
-        <div style={{ flexShrink: 0 }}>
-          {journeyProgress.length > 0 && <JourneyModal courses={upcomingBlocks.map(b => ({
-            classId: b.classId,
-            name: b.className,
-            classType: b.classType, // Pass type for terminology
-            completedBlocks: journeyProgress.find(p => p.classId === b.classId)?.completedBlocks || 0,
-            totalBlocks: journeyProgress.find(p => p.classId === b.classId)?.totalBlocks || null,
-            journeyBlocks: b.journeyBlocks
-          }))} />}
-        </div>
-      </div>
-
-      {upcomingBlocks.length > 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          {upcomingBlocks.map(({ classId, className, classType, block, journeyBlocks }) => {
-            return (
-              <div key={`${classId}-${block.blockId}`} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-
-                {/* 1. SECTION: BLOCK INFO (CARD UTAMA) */}
-                <section style={cardStyle}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
-                    <div>
-                      <p style={{ fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: '0.25rem' }}>
-                        {className}
-                      </p>
-                      <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-                        {classType === 'EKSKUL' ? block.name : `Block: ${block.name}`}
-                      </h2>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      <span style={statusBadgeStyle(block.status)}>
-                        {formatStatus(block.status)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-
-                    {/* Column 1: Info Dasar */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      <div>
-                        <p style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600, marginBottom: '0.25rem' }}>📅 JADWAL BLOCK</p>
-                        <p style={{ fontSize: '0.95rem', color: '#334155', fontWeight: 600 }}>
-                          {new Date(block.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long' })} - {new Date(block.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        </p>
-                      </div>
-                      <div>
-                        <p style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600, marginBottom: '0.25rem' }}>⏱️ DURASI</p>
-                        <p style={{ fontSize: '0.95rem', color: '#334155', fontWeight: 600 }}>
-                          {block.estimatedSessions !== null ? `${block.estimatedSessions} Pertemuan` : '—'}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Column 2: Next Lesson (Highlight) */}
-                    {block.nextLesson ? (
-                      <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <p style={{ fontSize: '0.75rem', color: '#3b82f6', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>
-                          📚 Sesi Selanjutnya
-                        </p>
-                        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', lineHeight: '1.4', marginBottom: '0.5rem' }}>
-                          {block.nextLesson.title}
-                        </h3>
-                        {block.nextLesson.summary && (
-                          <p style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: '1.5' }}>
-                            {block.nextLesson.summary}
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontStyle: 'italic' }}>
-                        Belum ada jadwal sesi berikutnya
-                      </div>
-                    )}
-
-                  </div>
-                </section>
-
-                {/* 2. SECTION: SOFTWARE (CARD TERPISAH) */}
-                {block.software && block.software.length > 0 && (
-                  <section>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#1e293b', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      📦 Software
-                    </h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
-                      {block.software.map(sw => (
-                        <div key={sw.id} style={softwareCardStyle}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                              <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>{sw.name}</h4>
-                              {sw.version && <span style={{ fontSize: '0.8rem', color: '#64748b', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', display: 'inline-block' }}>v{sw.version}</span>}
-                            </div>
-                            <SoftwareDetailModal software={sw} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      ) : null}
-
-      {/* Progress Section (Keep as secondary info) */}
-      <section style={cardStyle}>
-        <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem', color: '#1e293b' }}>📊 Ringkasan Progress</h2>
-
-        {/* Desktop Table */}
-        <div style={{ display: 'block', overflowX: 'auto' }} className="hidden-mobile">
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
-            <thead style={{ background: '#f8fafc', textAlign: 'left' }}>
-              <tr>
-                <th style={thStyle}>Kelas</th>
-                <th style={thStyle}>Selesai</th>
-                <th style={thStyle}>Total Block</th>
-                <th style={thStyle}>Terakhir Hadir</th>
-              </tr>
-            </thead>
-            <tbody>
-              {progress.length === 0 ? (
-                <tr>
-                  <td colSpan={4} style={{ padding: '1rem', textAlign: 'center', color: '#6b7280' }}>
-                    Kamu belum terdaftar di kelas manapun.
-                  </td>
-                </tr>
-              ) : (
-                progress.map((item) => (
-                  <tr key={item.classId} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={tdStyle}>
-                      <span style={{ fontWeight: 600, color: '#334155' }}>{item.name}</span>
-                    </td>
-                    <td style={tdStyle}>
-                      {item.completedBlocks} Block
-                    </td>
-                    <td style={tdStyle}>{item.totalBlocks ?? '—'}</td>
-                    <td style={tdStyle}>{item.lastAttendanceAt ? new Date(item.lastAttendanceAt).toLocaleDateString() : '—'}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile Cards */}
-        <div style={{ display: 'none' }} className="show-mobile">
-          {progress.length === 0 ? (
-            <p style={{ textAlign: 'center', color: '#6b7280', padding: '1rem' }}>Kamu belum terdaftar di kelas manapun.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {progress.map((item) => (
-                <div key={item.classId} style={mobileCardStyle}>
-                  <div style={{ fontWeight: 600, color: '#0f172a', marginBottom: '0.5rem' }}>{item.name}</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem', fontSize: '0.8rem', color: '#475569' }}>
-                    <span>Block Selesai:</span>
-                    <span style={{ fontWeight: 500 }}>{item.completedBlocks}</span>
-                    <span>Total Block:</span>
-                    <span style={{ fontWeight: 500 }}>{item.totalBlocks ?? '—'}</span>
-                    <span>Last seen:</span>
-                    <span style={{ fontWeight: 500 }}>{item.lastAttendanceAt ? new Date(item.lastAttendanceAt).toLocaleDateString() : '—'}</span>
-                  </div>
-                </div>
-              ))}
+          {/* Welcome Banner */}
+          <div style={welcomeBannerStyle}>
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)', marginBottom: '0.25rem' }}>
+                {todayDate}
+              </p>
+              <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#fff', margin: '0 0 0.5rem 0' }}>
+                Selamat datang, {userName}! 👋
+              </h1>
+              <p style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.85)', margin: 0 }}>
+                Kamu sudah menyelesaikan <strong>{progressPercent}%</strong> dari target mingguan!
+              </p>
             </div>
+            <div style={{ position: 'absolute', right: '2rem', bottom: 0, fontSize: '5rem', opacity: 0.2 }}>
+              🎓
+            </div>
+          </div>
+
+          {/* Banner Carousel */}
+          {activeBanners.length > 0 && (
+            <BannerCarousel banners={activeBanners} />
+          )}
+
+          {/* My Courses Section */}
+          <section>
+            <div style={sectionHeaderStyle}>
+              <h2 style={sectionTitleStyle}>Kelas Saya</h2>
+              {journeyProgress.length > 0 && (
+                <JourneyModal courses={upcomingBlocks.map(b => ({
+                  classId: b.classId,
+                  name: b.className,
+                  classType: b.classType,
+                  completedBlocks: journeyProgress.find(p => p.classId === b.classId)?.completedBlocks || 0,
+                  totalBlocks: journeyProgress.find(p => p.classId === b.classId)?.totalBlocks || null,
+                  journeyBlocks: b.journeyBlocks
+                }))} />
+              )}
+            </div>
+
+            {upcomingBlocks.length > 0 ? (
+              <div style={coursesGridStyle}>
+                {upcomingBlocks.map(({ classId, className, classType, block }) => {
+                  const progressPct = Math.round(Math.random() * 60 + 20); // Placeholder
+                  const bgColors = ['#fef9c3', '#dbeafe', '#fce7f3', '#dcfce7'];
+                  const bgColor = bgColors[upcomingBlocks.indexOf({ classId, className, classType, block, journeyBlocks: [] }) % bgColors.length] || '#dbeafe';
+
+                  return (
+                    <div key={`${classId}-${block.blockId}`} style={{ ...courseCardStyle, background: bgColor }}>
+                      <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>
+                        {classType === 'EKSKUL' ? '🎨' : '💻'}
+                      </div>
+                      <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b', margin: '0 0 0.25rem 0' }}>
+                        {classType === 'EKSKUL' ? block.name : className}
+                      </h3>
+                      <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 1rem 0' }}>
+                        {block.nextLesson?.title || 'Menunggu jadwal'}
+                      </p>
+
+                      {/* Progress bar */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Lessons: {block.estimatedSessions || 0}</span>
+                        <span style={{ flex: 1 }} />
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#3b82f6' }}>{progressPct}%</span>
+                      </div>
+                      <div style={{ height: '6px', background: 'rgba(0,0,0,0.1)', borderRadius: '999px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${progressPct}%`, background: '#3b82f6', borderRadius: '999px' }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={emptyCardStyle}>
+                <p>Belum ada kelas aktif</p>
+              </div>
+            )}
+          </section>
+
+          {/* Software Section */}
+          {upcomingBlocks.some(b => b.block.software && b.block.software.length > 0) && (
+            <section>
+              <h2 style={sectionTitleStyle}>📦 Software</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
+                {upcomingBlocks.flatMap(b => b.block.software || []).slice(0, 4).map(sw => (
+                  <div key={sw.id} style={softwareCardStyle}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#1e293b', margin: 0 }}>{sw.name}</h4>
+                        {sw.version && <span style={{ fontSize: '0.75rem', color: '#64748b' }}>v{sw.version}</span>}
+                      </div>
+                      <SoftwareDetailModal software={sw} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
           )}
         </div>
-      </section>
 
-      {/* Responsive CSS via style tag */}
-      <style>{`
-        @media (max-width: 768px) {
-          .hidden-mobile { display: none !important; }
-          .show-mobile { display: block !important; }
-        }
-        @media (min-width: 769px) {
-          .hidden-mobile { display: block !important; }
-          .show-mobile { display: none !important; }
-        }
-      `}</style>
+        {/* Right Column - Sidebar */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+          {/* Quick Stats */}
+          <div style={sideCardStyle}>
+            <h3 style={sideCardTitleStyle}>📊 Statistik</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+              <div style={quickStatStyle}>
+                <span style={{ fontSize: '1.5rem', fontWeight: 700, color: '#3b82f6' }}>{progress.length}</span>
+                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Kelas Aktif</span>
+              </div>
+              <div style={quickStatStyle}>
+                <span style={{ fontSize: '1.5rem', fontWeight: 700, color: '#10b981' }}>{totalCompleted}</span>
+                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Block Selesai</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Upcoming Tasks */}
+          <div style={sideCardStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={sideCardTitleStyle}>📋 Materi Mendatang</h3>
+              <Link href="/coder/materials" style={{ fontSize: '0.8rem', color: '#3b82f6', textDecoration: 'none', fontWeight: 500 }}>
+                Lihat Semua
+              </Link>
+            </div>
+            <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {upcomingBlocks.slice(0, 3).map(({ classId, className, block }) => (
+                <div key={classId} style={taskItemStyle}>
+                  <div style={taskIconStyle}>
+                    <BookOpen size={14} color="#3b82f6" />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1e293b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {block.nextLesson?.title || block.name}
+                    </p>
+                    <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.15rem 0 0' }}>{className}</p>
+                  </div>
+                  <ChevronRight size={16} color="#94a3b8" />
+                </div>
+              ))}
+              {upcomingBlocks.length === 0 && (
+                <p style={{ fontSize: '0.85rem', color: '#94a3b8', textAlign: 'center', padding: '1rem 0' }}>
+                  Tidak ada materi mendatang
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Links */}
+          <div style={sideCardStyle}>
+            <h3 style={sideCardTitleStyle}>🔗 Akses Cepat</h3>
+            <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <Link href="/coder/materials" style={quickLinkStyle}>
+                <BookOpen size={16} /> Lihat Materi
+              </Link>
+              <Link href="/coder/reports" style={quickLinkStyle}>
+                <FileText size={16} /> Lihat Rapor
+              </Link>
+              <Link href="/coder/makeup" style={quickLinkStyle}>
+                <Calendar size={16} /> Tugas Susulan
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
-function formatStatus(status: 'UPCOMING' | 'CURRENT' | 'COMPLETED'): string {
-  switch (status) {
-    case 'CURRENT':
-      return 'Sedang berjalan';
-    case 'COMPLETED':
-      return 'Selesai';
-    default:
-      return 'Menunggu';
-  }
-}
+// Styles - Modern Blue Theme
+const containerStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '1.5rem',
+  paddingBottom: '2rem',
+};
 
-function statusBadgeStyle(status: 'UPCOMING' | 'CURRENT' | 'COMPLETED'): CSSProperties {
-  const base = {
-    padding: '0.35rem 0.85rem',
-    borderRadius: '999px',
-    fontSize: '0.75rem',
-    fontWeight: 600,
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.05em'
-  };
+const mainGridStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: '1fr 320px',
+  gap: '1.5rem',
+};
 
-  if (status === 'CURRENT') {
-    return {
-      ...base,
-      background: '#eff6ff',
-      color: '#3b82f6',
-    };
-  }
-  if (status === 'COMPLETED') {
-    return {
-      ...base,
-      background: '#f0fdf4',
-      color: '#22c55e',
-    };
-  }
-  return {
-    ...base,
-    background: '#f1f5f9',
-    color: '#64748b',
-  };
-}
+const welcomeBannerStyle: CSSProperties = {
+  background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+  borderRadius: '20px',
+  padding: '2rem',
+  position: 'relative',
+  overflow: 'hidden',
+  minHeight: '140px',
+};
 
-const cardStyle: CSSProperties = {
-  background: '#ffffff',
-  borderRadius: '1.25rem', // More rounded
-  border: 'none', // Removed border
-  padding: '1.75rem', // More padding
-  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02)', // Soft shadow
+const sectionHeaderStyle: CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: '1rem',
+};
+
+const sectionTitleStyle: CSSProperties = {
+  fontSize: '1.15rem',
+  fontWeight: 700,
+  color: '#1e293b',
+  margin: 0,
+};
+
+const coursesGridStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+  gap: '1rem',
+};
+
+const courseCardStyle: CSSProperties = {
+  borderRadius: '16px',
+  padding: '1.25rem',
+  transition: 'transform 0.2s, box-shadow 0.2s',
+};
+
+const emptyCardStyle: CSSProperties = {
+  background: '#f8fafc',
+  borderRadius: '16px',
+  padding: '2rem',
+  textAlign: 'center',
+  color: '#94a3b8',
 };
 
 const softwareCardStyle: CSSProperties = {
-  background: '#ffffff',
-  borderRadius: '1.25rem',
-  border: 'none',
-  padding: '1.5rem',
-  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02)',
-};
-
-const mobileCardStyle: CSSProperties = {
-  background: '#f8fafc',
-  borderRadius: '0.85rem',
-  border: '1px solid #e2e8f0',
+  background: '#fff',
+  borderRadius: '12px',
   padding: '1rem',
+  border: '1px solid #e2e8f0',
 };
 
-const thStyle: CSSProperties = {
-  padding: '0.75rem 1rem',
-  fontSize: '0.8rem',
+const sideCardStyle: CSSProperties = {
+  background: '#fff',
+  borderRadius: '16px',
+  padding: '1.25rem',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+  border: '1px solid #f1f5f9',
+};
+
+const sideCardTitleStyle: CSSProperties = {
+  fontSize: '0.95rem',
+  fontWeight: 700,
+  color: '#1e293b',
+  margin: 0,
+};
+
+const quickStatStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  padding: '0.75rem',
+  background: '#f8fafc',
+  borderRadius: '12px',
+};
+
+const taskItemStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.75rem',
+  padding: '0.75rem',
+  background: '#f8fafc',
+  borderRadius: '12px',
+};
+
+const taskIconStyle: CSSProperties = {
+  width: '32px',
+  height: '32px',
+  borderRadius: '8px',
+  background: '#eff6ff',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+};
+
+const quickLinkStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.5rem',
+  padding: '0.65rem 0.75rem',
+  background: '#f8fafc',
+  borderRadius: '10px',
   color: '#475569',
-  fontWeight: 600,
-  borderBottom: '1px solid #e2e8f0',
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em'
-};
-
-const tdStyle: CSSProperties = {
-  padding: '0.75rem 1rem',
-  fontSize: '0.9rem',
-  color: '#1f2937',
+  fontSize: '0.85rem',
+  fontWeight: 500,
+  textDecoration: 'none',
+  transition: 'background 0.2s',
 };

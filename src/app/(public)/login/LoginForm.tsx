@@ -36,7 +36,6 @@ export default function LoginForm() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-
   const {
     register,
     handleSubmit,
@@ -76,7 +75,6 @@ export default function LoginForm() {
             return;
           }
         }
-
         router.replace('/');
         router.refresh();
       }
@@ -88,37 +86,147 @@ export default function LoginForm() {
     }
   };
 
-
-
   return (
-    <div className={styles.container}>
-      <form className={styles.card} onSubmit={handleSubmit(onSubmit)}>
-        <h1 className={styles.title}>Clevio LMS Login</h1>
-        {errorMessage ? <p className={styles.error}>{errorMessage}</p> : null}
-        <label className={styles.label}>
-          Username
-          <input
-            type="text"
-            autoComplete="username"
-            className={styles.input}
-            {...register('username')}
-          />
-          {errors.username ? <span className={styles.errorText}>{errors.username.message}</span> : null}
-        </label>
-        <label className={styles.label}>
-          Password
-          <input
-            type="password"
-            autoComplete="current-password"
-            className={styles.input}
-            {...register('password')}
-          />
-          {errors.password ? <span className={styles.errorText}>{errors.password.message}</span> : null}
-        </label>
-        <button type="submit" className={styles.button} disabled={submitting}>
-          {submitting ? 'Signing in…' : 'Sign In'}
+    <div style={{ width: '100%', maxWidth: '420px' }}>
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        style={{
+          background: '#ffffff',
+          borderRadius: '24px', // Large premium radius
+          padding: '3rem 2.5rem',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.1)', // Soft drop shadow
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1.5rem',
+          border: '1px solid #f1f5f9'
+        }}
+      >
+        {/* Header Section */}
+        <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem', fontWeight: 700, fontSize: '1.2rem', color: '#0f172a' }}>
+            {/* Logo Icon */}
+            <img
+              src="/favicon.ico"
+              alt="Clevio LMS Logo"
+              style={{ width: '40px', height: '40px', objectFit: 'contain' }}
+            />
+            Clevio LMS
+          </div>
+
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e293b', marginBottom: '0.5rem', letterSpacing: '-0.02em' }}>
+            Welcome Back!
+          </h1>
+          <p style={{ color: '#64748b', fontSize: '0.95rem' }}>
+            Please sign in to your account
+          </p>
+        </div>
+
+        {errorMessage && (
+          <div style={{ background: '#fef2f2', color: '#ef4444', padding: '0.75rem', borderRadius: '8px', fontSize: '0.9rem', textAlign: 'center', fontWeight: 500 }}>
+            {errorMessage}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Username Input */}
+          <div>
+            <input
+              type="text"
+              placeholder="Username"
+              autoComplete="username"
+              {...register('username')}
+              style={{
+                width: '100%',
+                padding: '0.85rem 1rem',
+                borderRadius: '12px',
+                border: '1px solid #e2e8f0',
+                fontSize: '1rem',
+                background: '#f8fafc',
+                outline: 'none',
+                transition: 'all 0.2s',
+                color: '#334155'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#3b82f6';
+                e.target.style.background = '#fff';
+                e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e2e8f0';
+                e.target.style.background = '#f8fafc';
+                e.target.style.boxShadow = 'none';
+              }}
+            />
+            {errors.username && <span style={{ color: '#ef4444', fontSize: '0.85rem', marginTop: '0.25rem', display: 'block' }}>{errors.username.message}</span>}
+          </div>
+
+          {/* Password Input */}
+          <div>
+            <input
+              type="password"
+              placeholder="Password"
+              autoComplete="current-password"
+              {...register('password')}
+              style={{
+                width: '100%',
+                padding: '0.85rem 1rem',
+                borderRadius: '12px',
+                border: '1px solid #e2e8f0',
+                fontSize: '1rem',
+                background: '#f8fafc',
+                outline: 'none',
+                transition: 'all 0.2s',
+                color: '#334155'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#3b82f6';
+                e.target.style.background = '#fff';
+                e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e2e8f0';
+                e.target.style.background = '#f8fafc';
+                e.target.style.boxShadow = 'none';
+              }}
+            />
+            {errors.password && <span style={{ color: '#ef4444', fontSize: '0.85rem', marginTop: '0.25rem', display: 'block' }}>{errors.password.message}</span>}
+          </div>
+        </div>
+
+        {/* Options Row */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: '#64748b' }}>
+            <input type="checkbox" style={{ width: '16px', height: '16px', borderRadius: '4px', cursor: 'pointer' }} />
+            Remember Me
+          </label>
+          <a href="#" style={{ color: '#64748b', textDecoration: 'none', fontWeight: 600 }}>
+            Forgot Password?
+          </a>
+        </div>
+
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={submitting}
+          style={{
+            width: '100%',
+            padding: '0.9rem',
+            borderRadius: '12px',
+            background: '#2563eb', // Brand Blue
+            color: '#fff',
+            fontSize: '1rem',
+            fontWeight: 700,
+            border: 'none',
+            cursor: submitting ? 'not-allowed' : 'pointer',
+            transition: 'transform 0.1s, background 0.2s',
+            marginTop: '0.5rem',
+            opacity: submitting ? 0.7 : 1
+          }}
+        >
+          {submitting ? 'Signing in...' : 'Sign In'}
         </button>
 
+        {/* No Sign Up Link - Removed per request */}
 
       </form>
     </div>

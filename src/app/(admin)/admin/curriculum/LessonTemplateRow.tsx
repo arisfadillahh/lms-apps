@@ -260,7 +260,7 @@ const separatorStyle: CSSProperties = {
 
 const linkStyle: CSSProperties = {
   fontSize: '0.8rem',
-  color: '#2563eb',
+  color: '#1e3a5f',
   fontWeight: 600,
 };
 
@@ -292,7 +292,7 @@ const actionButtonStyle: CSSProperties = {
   padding: '0.4rem 0.75rem',
   border: 'none',
   borderRadius: '0.5rem',
-  background: '#2563eb',
+  background: '#1e3a5f',
   cursor: 'pointer',
   fontSize: '0.8rem',
   color: '#ffffff',

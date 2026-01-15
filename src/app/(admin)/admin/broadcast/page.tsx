@@ -81,7 +81,7 @@ export default function BroadcastPage() {
             {/* Header */}
             <div style={{ marginBottom: '2rem' }}>
                 <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <Megaphone size={28} style={{ color: '#2563eb' }} />
+                    <Megaphone size={28} style={{ color: '#1e3a5f' }} />
                     Broadcast Notifikasi
                 </h1>
                 <p style={{ color: '#64748b', marginTop: '0.25rem' }}>
@@ -244,9 +244,9 @@ const targetButtonStyle: CSSProperties = {
 };
 
 const targetButtonActiveStyle: CSSProperties = {
-    borderColor: '#2563eb',
+    borderColor: '#1e3a5f',
     background: '#eff6ff',
-    color: '#2563eb',
+    color: '#1e3a5f',
 };
 
 const toolbarStyle: CSSProperties = {
@@ -299,7 +299,7 @@ const submitButtonStyle: CSSProperties = {
     padding: '1rem',
     borderRadius: '12px',
     border: 'none',
-    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+    background: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%)',
     color: '#ffffff',
     fontSize: '1rem',
     fontWeight: 600,

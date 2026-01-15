@@ -220,7 +220,7 @@ const lessonMetaStyle: CSSProperties = {
 };
 
 const slideLinkStyle: CSSProperties = {
-    color: '#2563eb',
+    color: '#1e3a5f',
     fontWeight: 500,
     textDecoration: 'none',
 };
@@ -234,7 +234,7 @@ const emptyStyle: CSSProperties = {
 };
 
 const linkStyle: CSSProperties = {
-    color: '#2563eb',
+    color: '#1e3a5f',
     textDecoration: 'none',
     marginTop: '1rem',
     display: 'inline-block',

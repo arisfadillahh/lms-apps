@@ -90,7 +90,7 @@ const buttonStyle: CSSProperties = {
   padding: '0.55rem 1rem',
   borderRadius: '0.5rem',
   border: 'none',
-  background: '#2563eb',
+  background: '#1e3a5f',
   color: '#fff',
   fontWeight: 600,
   cursor: 'pointer',

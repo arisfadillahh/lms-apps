@@ -68,7 +68,7 @@ export default async function AdminReportsPage() {
                           href={report?.pdf_url ?? '#'}
                           target="_blank"
                           rel="noreferrer"
-                          style={{ color: '#2563eb', fontWeight: 500 }}
+                          style={{ color: '#1e3a5f', fontWeight: 500 }}
                         >
                           View PDF
                         </a>

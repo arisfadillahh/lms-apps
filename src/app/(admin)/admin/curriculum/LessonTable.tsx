@@ -153,7 +153,7 @@ const emptyCellStyle: CSSProperties = {
 };
 
 const linkStyle: CSSProperties = {
-    color: '#2563eb',
+    color: '#1e3a5f',
     textDecoration: 'none',
     fontWeight: 500,
     fontSize: '0.85rem',

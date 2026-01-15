@@ -53,7 +53,7 @@ export default async function CoderLessonDetailPage(props: PageProps) {
                                     href={lesson.slide_url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    style={{ fontSize: '0.85rem', color: '#2563eb', fontWeight: 500 }}
+                                    style={{ fontSize: '0.85rem', color: '#1e3a5f', fontWeight: 500 }}
                                 >
                                     Buka di tab baru ↗
                                 </a>
@@ -193,7 +193,7 @@ const actionButtonStyle = {
     justifyContent: 'space-between',
     alignItems: 'center',
     width: '100%',
-    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+    background: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%)',
     color: 'white',
     padding: '1rem',
     borderRadius: '0.75rem',

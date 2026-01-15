@@ -70,7 +70,7 @@ const navLinkStyle: CSSProperties = {
 const activeNavLinkStyle: CSSProperties = {
     ...navLinkStyle,
     background: '#eff6ff',
-    color: '#2563eb',
+    color: '#1e3a5f',
     fontWeight: 600,
 };
 

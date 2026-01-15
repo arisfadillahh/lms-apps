@@ -48,7 +48,7 @@ export default async function CoderDashboardPage() {
     }));
 
   const journeyProgress = progress
-    .filter((item) => item.type === 'WEEKLY' && item.journeyBlocks.length > 0);
+    .filter((item) => item.journeyBlocks.length > 0); // Show both WEEKLY (blocks) and EKSKUL (lessons)
 
   const activeBanners = banners.filter(b => b.isActive);
 
@@ -66,6 +66,7 @@ export default async function CoderDashboardPage() {
           {journeyProgress.length > 0 && <JourneyModal courses={upcomingBlocks.map(b => ({
             classId: b.classId,
             name: b.className,
+            classType: b.classType, // Pass type for terminology
             completedBlocks: journeyProgress.find(p => p.classId === b.classId)?.completedBlocks || 0,
             totalBlocks: journeyProgress.find(p => p.classId === b.classId)?.totalBlocks || null,
             journeyBlocks: b.journeyBlocks

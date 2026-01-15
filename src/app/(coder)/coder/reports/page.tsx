@@ -26,7 +26,7 @@ export default async function CoderReportsPage() {
                   Status: {report.sent_via_whatsapp ? 'Sent to parent' : 'Not yet sent'}
                 </p>
               </div>
-              <a href={report.pdf_url} target="_blank" rel="noreferrer" style={{ color: '#2563eb', fontWeight: 500 }}>
+              <a href={report.pdf_url} target="_blank" rel="noreferrer" style={{ color: '#1e3a5f', fontWeight: 500 }}>
                 View PDF
               </a>
             </div>

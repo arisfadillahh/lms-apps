@@ -260,7 +260,7 @@ const buttonStyle: CSSProperties = {
     padding: '0.75rem 1.5rem',
     borderRadius: '0.5rem',
     border: 'none',
-    background: '#2563eb',
+    background: '#1e3a5f',
     color: '#fff',
     fontSize: '0.9rem',
     fontWeight: 600,

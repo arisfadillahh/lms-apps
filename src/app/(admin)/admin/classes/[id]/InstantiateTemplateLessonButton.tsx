@@ -61,7 +61,7 @@ const buttonStyle: CSSProperties = {
   padding: '0.35rem 0.75rem',
   borderRadius: '0.6rem',
   border: '1px solid rgba(37, 99, 235, 0.4)',
-  background: '#2563eb',
+  background: '#1e3a5f',
   color: '#fff',
   fontSize: '0.8rem',
   fontWeight: 600,
@@ -70,5 +70,5 @@ const buttonStyle: CSSProperties = {
 
 const statusStyle: CSSProperties = {
   fontSize: '0.75rem',
-  color: '#2563eb',
+  color: '#1e3a5f',
 };

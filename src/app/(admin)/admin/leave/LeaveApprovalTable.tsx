@@ -145,7 +145,7 @@ export default function LeaveApprovalTable({ requests, coaches }: LeaveApprovalT
                         ))}
                       </select>
                     ) : (
-                      <span style={{ color: '#2563eb', fontWeight: 500 }}>
+                      <span style={{ color: '#1e3a5f', fontWeight: 500 }}>
                         {request.substitute?.full_name ?? '—'}
                       </span>
                     )}

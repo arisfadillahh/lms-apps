@@ -100,7 +100,7 @@ export default function DashboardHeader({ user }: { user: UserSession }) {
                             {user.avatarPath ? (
                                 <img src={user.avatarPath} alt={user.fullName} className="w-full h-full object-cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             ) : (
-                                <div style={{ width: '100%', height: '100%', background: '#dbeafe', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.25rem' }}>
+                                <div style={{ width: '100%', height: '100%', background: '#dbeafe', color: '#1e3a5f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.25rem' }}>
                                     {user.fullName.charAt(0)}
                                 </div>
                             )}

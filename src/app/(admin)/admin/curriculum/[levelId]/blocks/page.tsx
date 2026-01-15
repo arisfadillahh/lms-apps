@@ -80,6 +80,6 @@ const headerStyle: CSSProperties = {
 const backLinkStyle: CSSProperties = {
   display: 'inline-block',
   marginBottom: '0.5rem',
-  color: '#2563eb',
+  color: '#1e3a5f',
   textDecoration: 'none',
 };

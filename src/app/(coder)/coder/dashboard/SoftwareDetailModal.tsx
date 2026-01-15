@@ -215,7 +215,7 @@ const downloadButtonStyle: CSSProperties = {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: '#2563eb',
+    background: '#1e3a5f',
     color: 'white',
     padding: '0.75rem 1.5rem',
     borderRadius: '8px',

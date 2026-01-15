@@ -81,6 +81,7 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
         let upNext: CoderClassProgress['upNext'] = null;
         let totalBlocks = 1; // Ekskul counts as 1 block/plan
         let completedBlocks = 0; // Logic for completion? Maybe if class end date passed?
+        let journeyBlocks: CoderClassProgress['journeyBlocks'] = [];
 
         if (klass.ekskul_lesson_plan_id) {
           const plan = await import('@/lib/dao/ekskulPlansDao').then(m => m.getEkskulPlanWithDetails(klass.ekskul_lesson_plan_id!));
@@ -112,8 +113,39 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
               .filter(s => (new Date(s.date_time) >= now && s.status !== 'COMPLETED' && s.status !== 'CANCELLED'))
               .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime())[0];
 
-            // For Ekskul, we might not have per-session lesson mapping easily available without class_lessons
-            // But we can show the Plan as the "Block"
+            // Calculate estimated total lessons
+            const totalLessons = plan.ekskul_lessons.length;
+
+            // For Ekskul journey - use lessons as nodes instead of blocks
+            // Estimate progress based on completed sessions vs total lessons
+            const completedSessions = sessions.filter(s => s.status === 'COMPLETED').length;
+
+            journeyBlocks = plan.ekskul_lessons
+              .sort((a, b) => a.order_index - b.order_index)
+              .map((lesson, index) => {
+                // Determine lesson status based on session progress
+                let lessonStatus: 'UPCOMING' | 'CURRENT' | 'COMPLETED' = 'UPCOMING';
+                if (index < completedSessions) {
+                  lessonStatus = 'COMPLETED';
+                } else if (index === completedSessions) {
+                  lessonStatus = 'CURRENT';
+                }
+
+                // Estimate dates for each lesson
+                const lessonStartDate = new Date(klass.start_date);
+                lessonStartDate.setDate(lessonStartDate.getDate() + (index * 7)); // Roughly weekly
+                const lessonEndDate = new Date(lessonStartDate);
+                lessonEndDate.setDate(lessonEndDate.getDate() + 7);
+
+                return {
+                  blockId: lesson.id, // Use lesson id as blockId for compatibility
+                  name: lesson.title,
+                  status: lessonStatus,
+                  startDate: lessonStartDate.toISOString(),
+                  endDate: lessonEndDate.toISOString(),
+                  orderIndex: index,
+                };
+              });
 
             upNext = {
               blockId: plan.id,
@@ -145,7 +177,7 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
           lastAttendanceAt: lastAttendance?.recorded_at ?? null,
           semesterTag,
           pendingBlocks: [],
-          journeyBlocks: [], // No journey line for Ekskul
+          journeyBlocks, // Now populated with lessons for Ekskul
         };
       }
 

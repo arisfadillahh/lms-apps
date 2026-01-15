@@ -152,7 +152,7 @@ export default async function PaymentDashboardPage() {
 }
 
 // Styles
-const backLinkStyle: CSSProperties = { color: '#2563eb', fontSize: '0.9rem', marginBottom: '0.5rem', display: 'inline-block' };
+const backLinkStyle: CSSProperties = { color: '#1e3a5f', fontSize: '0.9rem', marginBottom: '0.5rem', display: 'inline-block' };
 const titleStyle: CSSProperties = { fontSize: '1.8rem', fontWeight: 700, color: '#0f172a', margin: 0 };
 const subtitleStyle: CSSProperties = { color: '#64748b', fontSize: '1rem', marginTop: '0.25rem' };
 const sectionTitleStyle: CSSProperties = { fontSize: '1.25rem', fontWeight: 600, color: '#1e293b', marginBottom: '1rem' };

@@ -161,7 +161,7 @@ export default async function SessionAttendancePage({ params }: PageProps) {
                   <div style={{ fontWeight: 500, fontSize: '0.95rem' }}>{m.title}</div>
                   {m.description && <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{m.description}</div>}
                   {m.file_url && (
-                    <a href={m.file_url} target="_blank" rel="noreferrer" style={{ fontSize: '0.85rem', color: '#2563eb', display: 'block', marginTop: '0.25rem' }}>
+                    <a href={m.file_url} target="_blank" rel="noreferrer" style={{ fontSize: '0.85rem', color: '#1e3a5f', display: 'block', marginTop: '0.25rem' }}>
                       View File
                     </a>
                   )}

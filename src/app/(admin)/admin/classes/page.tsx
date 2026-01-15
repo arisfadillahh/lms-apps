@@ -93,7 +93,7 @@ export default async function AdminClassesPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                           <Link
                             href={`/admin/classes/${klass.id}`}
-                            style={{ color: '#2563eb', fontWeight: 500 }}
+                            style={{ color: '#1e3a5f', fontWeight: 500 }}
                           >
                             Manage
                           </Link>

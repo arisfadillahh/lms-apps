@@ -201,7 +201,7 @@ const submitStyle: CSSProperties = {
     padding: '0.55rem 1rem',
     borderRadius: '0.5rem',
     border: 'none',
-    background: '#16a34a',
+    background: '#1e3a5f',
     color: '#fff',
     fontSize: '0.9rem',
     fontWeight: 600,

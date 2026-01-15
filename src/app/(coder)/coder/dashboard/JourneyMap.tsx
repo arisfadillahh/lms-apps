@@ -14,6 +14,7 @@ type JourneyBlock = {
 export type JourneyCourse = {
   classId: string;
   name: string;
+  classType?: 'WEEKLY' | 'EKSKUL'; // Added for terminology
   completedBlocks: number;
   totalBlocks: number | null;
   journeyBlocks: JourneyBlock[];
@@ -31,7 +32,7 @@ const STATUS_STYLE = {
     pillText: '#166534',
   },
   CURRENT: {
-    dot: '#2563eb',
+    dot: '#1e3a5f',
     dotBorder: '#1d4ed8',
     pillBg: 'rgba(37, 99, 235, 0.12)',
     pillText: '#1d4ed8',
@@ -59,7 +60,7 @@ export default function JourneyMap({ courses }: JourneyMapProps) {
     <section style={sectionStyle}>
       <h2 style={sectionHeadingStyle}>Learning Journey</h2>
       <p style={sectionSubheadingStyle}>
-        Ikuti peta perjalanan belajarmu. Blok yang sudah selesai berwarna hijau, blok saat ini berwarna biru.
+        Ikuti peta perjalanan belajarmu. Item yang sudah selesai berwarna hijau, yang sedang berjalan berwarna biru.
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         {courses.map((course) => (
@@ -73,6 +74,8 @@ export default function JourneyMap({ courses }: JourneyMapProps) {
 function CourseJourney({ course }: { course: JourneyCourse }) {
   const blocks = course.journeyBlocks;
   const [animate, setAnimate] = useState(false);
+  const isEkskul = course.classType === 'EKSKUL';
+  const itemName = isEkskul ? 'lessons' : 'blocks'; // Terminology
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => setAnimate(true));
@@ -101,7 +104,7 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
         <div>
           <h3 style={courseTitleStyle}>{course.name}</h3>
           <p style={courseSubtitleStyle}>
-            {course.completedBlocks}/{course.totalBlocks ?? course.journeyBlocks.length} blocks completed
+            {course.completedBlocks}/{course.totalBlocks ?? course.journeyBlocks.length} {itemName} completed
           </p>
         </div>
       </header>
@@ -159,7 +162,7 @@ function JourneyNode({ block, index, isLast }: { block: JourneyBlock; index: num
                 width: '100%',
                 background:
                   block.status === 'COMPLETED'
-                    ? 'linear-gradient(90deg, #22c55e 0%, #2563eb 100%)'
+                    ? 'linear-gradient(90deg, #22c55e 0%, #1e3a5f 100%)'
                     : 'rgba(148, 163, 184, 0.4)',
               }}
             />
@@ -259,7 +262,7 @@ const trackBaseStyle: React.CSSProperties = {
 const trackProgressStyle: React.CSSProperties = {
   position: 'absolute',
   inset: 0,
-  background: 'linear-gradient(90deg, #2563eb 0%, #22c55e 100%)',
+  background: 'linear-gradient(90deg, #1e3a5f 0%, #22c55e 100%)',
   borderRadius: '999px',
   transition: 'width 900ms ease',
 };

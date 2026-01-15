@@ -132,7 +132,7 @@ const containerStyle: CSSProperties = {
 };
 
 const backLinkStyle: CSSProperties = {
-    color: '#2563eb',
+    color: '#1e3a5f',
     fontWeight: 600,
     textDecoration: 'none',
     fontSize: '0.9rem',
@@ -153,7 +153,7 @@ const lessonBlockStatusBadge = (status: string): CSSProperties => ({
     fontSize: '0.75rem',
     fontWeight: 600,
     color:
-        status === 'COMPLETED' ? '#16a34a' : status === 'CURRENT' ? '#2563eb' : '#ea580c',
+        status === 'COMPLETED' ? '#16a34a' : status === 'CURRENT' ? '#1e3a5f' : '#ea580c',
     background:
         status === 'COMPLETED'
             ? '#ecfdf3'

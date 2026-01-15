@@ -176,7 +176,7 @@ const lessonBlockStatusBadge = (status: string): CSSProperties => ({
     fontSize: '0.75rem',
     fontWeight: 600,
     color:
-        status === 'COMPLETED' ? '#16a34a' : status === 'CURRENT' ? '#2563eb' : '#ea580c',
+        status === 'COMPLETED' ? '#16a34a' : status === 'CURRENT' ? '#1e3a5f' : '#ea580c',
     background:
         status === 'COMPLETED'
             ? '#ecfdf3'
@@ -195,7 +195,7 @@ const triggerButtonStyle: CSSProperties = {
     borderRadius: '0.5rem',
     border: '1px dashed #cbd5e1',
     background: 'rgba(37, 99, 235, 0.03)',
-    color: '#2563eb',
+    color: '#1e3a5f',
     fontWeight: 600,
     fontSize: '0.9rem',
     cursor: 'pointer',

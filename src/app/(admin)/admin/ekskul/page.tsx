@@ -94,7 +94,7 @@ const headerStyle: CSSProperties = {
 };
 
 const backLinkStyle: CSSProperties = {
-    color: '#2563eb',
+    color: '#1e3a5f',
     fontSize: '0.9rem',
     marginBottom: '0.5rem',
     display: 'inline-block',
@@ -146,7 +146,7 @@ const cardActionsStyle: CSSProperties = {
 const softwareTagStyle: CSSProperties = {
     fontSize: '0.75rem',
     background: '#eff6ff',
-    color: '#2563eb',
+    color: '#1e3a5f',
     padding: '0.15rem 0.4rem',
     borderRadius: '4px',
     fontWeight: 500,

@@ -149,7 +149,7 @@ export default function NotificationDropdown() {
                             {unreadCount > 0 && (
                                 <button
                                     onClick={markAllRead}
-                                    style={{ fontSize: '0.75rem', color: '#2563eb', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}
+                                    style={{ fontSize: '0.75rem', color: '#1e3a5f', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}
                                 >
                                     Tandai semua dibaca
                                 </button>
@@ -319,7 +319,7 @@ export default function NotificationDropdown() {
                     margin: 0.5rem 0;
                 }
                 .notif-content a {
-                    color: #2563eb;
+                    color: #1e3a5f;
                     text-decoration: underline;
                 }
                 .notif-content ul, .notif-content ol {

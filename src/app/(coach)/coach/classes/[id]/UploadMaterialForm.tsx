@@ -110,7 +110,7 @@ export default function UploadMaterialForm({ classId, sessions, defaultSessionId
             padding: '0.6rem 1.2rem',
             borderRadius: '0.5rem',
             border: 'none',
-            background: '#2563eb',
+            background: '#1e3a5f',
             color: '#fff',
             fontWeight: 600,
             cursor: 'pointer',

@@ -223,7 +223,7 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
                   <td style={tdStyle}>{session.status}</td>
                   <td style={tdStyle}>
                     {session.substitute_coach_id ? (
-                      <span style={{ color: '#2563eb', fontWeight: 500 }}>
+                      <span style={{ color: '#1e3a5f', fontWeight: 500 }}>
                         {coachMap.get(session.substitute_coach_id) ?? 'Coach'}
                       </span>
                     ) : (
@@ -408,7 +408,7 @@ const sectionHeaderStyle: CSSProperties = {
 };
 
 const sectionLinkStyle: CSSProperties = {
-  color: '#2563eb',
+  color: '#1e3a5f',
   fontWeight: 600,
   textDecoration: 'none',
   fontSize: '0.9rem',
@@ -427,7 +427,7 @@ const statusBadgeStyle = (status: string): CSSProperties => ({
   fontSize: '0.75rem',
   fontWeight: 600,
   color:
-    status === 'COMPLETED' ? '#16a34a' : status === 'CURRENT' ? '#2563eb' : '#ea580c',
+    status === 'COMPLETED' ? '#16a34a' : status === 'CURRENT' ? '#1e3a5f' : '#ea580c',
   background:
     status === 'COMPLETED'
       ? '#ecfdf3'

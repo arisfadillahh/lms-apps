@@ -144,7 +144,7 @@ const hintStyle: CSSProperties = {
 
 const linkStyle: CSSProperties = {
   fontSize: '0.8rem',
-  color: '#2563eb',
+  color: '#1e3a5f',
   fontWeight: 600,
 };
 
@@ -167,7 +167,7 @@ const primaryButton: CSSProperties = {
   padding: '0.35rem 0.75rem',
   borderRadius: '0.5rem',
   border: 'none',
-  background: '#2563eb',
+  background: '#1e3a5f',
   color: '#fff',
   fontSize: '0.8rem',
   fontWeight: 600,

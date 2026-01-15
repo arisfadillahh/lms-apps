@@ -14,7 +14,7 @@ export default function JourneyModal({ courses }: { courses: JourneyCourse[] }) 
             <button
                 onClick={() => setIsOpen(true)}
                 style={{
-                    background: 'linear-gradient(to right, #2563eb, #3b82f6)',
+                    background: 'linear-gradient(to right, #1e3a5f, #3b82f6)',
                     border: 'none',
                     padding: '10px 24px',
                     borderRadius: '8px',

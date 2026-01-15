@@ -110,7 +110,7 @@ const headerStyle: CSSProperties = {
 };
 
 const backLinkStyle: CSSProperties = {
-    color: '#2563eb',
+    color: '#1e3a5f',
     fontSize: '0.9rem',
     marginBottom: '0.5rem',
     display: 'inline-block',
@@ -217,7 +217,7 @@ const lessonMetaStyle: CSSProperties = {
 };
 
 const slideLinkStyle: CSSProperties = {
-    color: '#2563eb',
+    color: '#1e3a5f',
     textDecoration: 'none',
 };
 

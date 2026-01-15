@@ -75,7 +75,7 @@ function statusColor(status: string): string {
     case 'REVIEWED':
       return '#16a34a';
     case 'SUBMITTED':
-      return '#2563eb';
+      return '#1e3a5f';
     default:
       return '#b91c1c';
   }

@@ -320,7 +320,7 @@ const primaryButtonStyle: CSSProperties = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '0.5rem',
-    backgroundColor: '#2563eb',
+    backgroundColor: '#1e3a5f',
     color: 'white',
     border: 'none',
     padding: '0.5rem 1rem',

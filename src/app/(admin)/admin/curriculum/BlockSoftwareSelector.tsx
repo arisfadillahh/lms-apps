@@ -75,7 +75,7 @@ export default function BlockSoftwareSelector({ selectedIds, onChange }: BlockSo
                             style={{
                                 ...chipStyle,
                                 background: isSelected ? '#dbeafe' : '#f8fafc',
-                                borderColor: isSelected ? '#2563eb' : '#e2e8f0',
+                                borderColor: isSelected ? '#1e3a5f' : '#e2e8f0',
                                 color: isSelected ? '#1d4ed8' : '#475569',
                             }}
                         >
@@ -129,6 +129,6 @@ const linkStyle: CSSProperties = {
     alignItems: 'center',
     gap: '4px',
     fontSize: '0.8rem',
-    color: '#2563eb',
+    color: '#1e3a5f',
     fontWeight: 500,
 };

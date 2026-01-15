@@ -297,6 +297,6 @@ const statusBadgeStyle = (status: string): CSSProperties => ({
     borderRadius: '999px',
     fontSize: '0.75rem',
     fontWeight: 600,
-    color: status === 'COMPLETED' ? '#16a34a' : status === 'SCHEDULED' ? '#2563eb' : '#94a3b8',
+    color: status === 'COMPLETED' ? '#16a34a' : status === 'SCHEDULED' ? '#1e3a5f' : '#94a3b8',
     background: status === 'COMPLETED' ? '#dcfce7' : status === 'SCHEDULED' ? '#eff6ff' : '#f1f5f9',
 });

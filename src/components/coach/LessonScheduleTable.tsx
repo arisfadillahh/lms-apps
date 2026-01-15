@@ -84,7 +84,7 @@ export default function LessonScheduleTable({ sessions, lessons, classType = 'WE
                                             <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>— Tidak ada kelas (Libur/Batal) —</span>
                                         ) : lesson ? (
                                             <div>
-                                                <div style={{ fontWeight: 600, color: '#2563eb' }}>{lesson.title}</div>
+                                                <div style={{ fontWeight: 600, color: '#1e3a5f' }}>{lesson.title}</div>
                                                 {lesson.slide_url && (
                                                     <a href={lesson.slide_url} target="_blank" rel="noreferrer" style={linkStyle}>
                                                         Slides
@@ -124,7 +124,7 @@ export default function LessonScheduleTable({ sessions, lessons, classType = 'WE
 
 function StatusBadge({ status }: { status: string }) {
     const styles = {
-        SCHEDULED: { bg: 'rgba(37, 99, 235, 0.1)', color: '#2563eb', label: 'Terjadwal' },
+        SCHEDULED: { bg: 'rgba(37, 99, 235, 0.1)', color: '#1e3a5f', label: 'Terjadwal' },
         COMPLETED: { bg: 'rgba(22, 163, 74, 0.1)', color: '#16a34a', label: 'Selesai' },
         CANCELLED: { bg: '#f1f5f9', color: '#94a3b8', label: 'Dibatalkan' },
     };
@@ -176,7 +176,7 @@ const tdStyle: CSSProperties = {
 };
 
 const linkStyle: CSSProperties = {
-    color: '#2563eb',
+    color: '#1e3a5f',
     fontSize: '0.85rem',
     textDecoration: 'none',
     marginRight: '0.5rem',

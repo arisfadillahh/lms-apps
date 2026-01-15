@@ -50,9 +50,9 @@ export default function ResetPasswordButton({ userId }: ResetPasswordButtonProps
         style={{
           padding: '0.35rem 0.75rem',
           borderRadius: '0.5rem',
-          border: '1px solid #2563eb',
+          border: '1px solid #1e3a5f',
           background: '#eff6ff',
-          color: '#2563eb',
+          color: '#1e3a5f',
           fontSize: '0.85rem',
           cursor: 'pointer',
           opacity: isPending ? 0.6 : 1,

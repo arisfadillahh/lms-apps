@@ -203,7 +203,7 @@ const classMetaStyle: CSSProperties = {
 };
 
 const classLinkStyle: CSSProperties = {
-  color: '#2563eb',
+  color: '#1e3a5f',
   fontWeight: 600,
   textDecoration: 'none',
   fontSize: '0.9rem',
@@ -232,7 +232,7 @@ const blockMetaStyle: CSSProperties = {
 const primaryButtonStyle: CSSProperties = {
   padding: '0.5rem 1rem',
   borderRadius: '0.5rem',
-  background: '#2563eb',
+  background: '#1e3a5f',
   color: '#fff',
   textDecoration: 'none',
   fontWeight: 600,

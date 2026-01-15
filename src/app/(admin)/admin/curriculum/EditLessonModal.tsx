@@ -316,7 +316,7 @@ const closeButtonStyle: CSSProperties = {
 const primaryButtonStyle: CSSProperties = {
     padding: '0.6rem 1.25rem',
     borderRadius: '0.5rem',
-    background: '#2563eb',
+    background: '#1e3a5f',
     color: '#ffffff',
     fontWeight: 600,
     border: 'none',

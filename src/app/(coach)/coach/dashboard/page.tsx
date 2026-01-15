@@ -72,7 +72,7 @@ export default async function CoachDashboardPage() {
                     triggerText={
                         <div style={{
                             display: 'flex', alignItems: 'center', gap: '8px',
-                            background: 'white', color: '#2563eb', border: '1px solid #e2e8f0',
+                            background: 'white', color: '#1e3a5f', border: '1px solid #e2e8f0',
                             padding: '10px 20px', borderRadius: '12px', fontWeight: '600',
                             cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 4px -1px rgba(0,0,0,0.05)'
                         }} className="hover:bg-slate-50">
@@ -102,7 +102,7 @@ export default async function CoachDashboardPage() {
                                         display: 'flex', gap: '16px', alignItems: 'center'
                                     }}>
                                         <div style={{
-                                            background: '#eff6ff', color: '#2563eb', padding: '12px', borderRadius: '12px',
+                                            background: '#eff6ff', color: '#1e3a5f', padding: '12px', borderRadius: '12px',
                                             textAlign: 'center', minWidth: '70px'
                                         }}>
                                             <div style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>
@@ -113,7 +113,7 @@ export default async function CoachDashboardPage() {
                                             </div>
                                         </div>
                                         <div style={{ flex: 1 }}>
-                                            <div style={{ color: '#2563eb', fontWeight: '600', fontSize: '14px', marginBottom: '4px' }}>
+                                            <div style={{ color: '#1e3a5f', fontWeight: '600', fontSize: '14px', marginBottom: '4px' }}>
                                                 {format(new Date(session.date_time), 'HH:mm')} WIB
                                             </div>
                                             <div style={{ fontWeight: '700', fontSize: '18px', color: '#0f172a', marginBottom: '4px' }}>
@@ -125,7 +125,7 @@ export default async function CoachDashboardPage() {
                                         </div>
                                         <div>
                                             <Link href={`/coach/sessions/${session.id}/attendance`} style={{
-                                                background: '#2563eb', color: 'white', padding: '10px 20px', borderRadius: '8px',
+                                                background: '#1e3a5f', color: 'white', padding: '10px 20px', borderRadius: '8px',
                                                 fontSize: '14px', fontWeight: '600', display: 'inline-block'
                                             }}>
                                                 Absensi

@@ -171,7 +171,7 @@ export default function AdminBannersPage() {
             <div style={headerStyle}>
                 <div>
                     <h1 style={titleStyle}>
-                        <span style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                        <span style={{ background: 'linear-gradient(135deg, #1e3a5f, #2d5a8a)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                             🖼️ Kelola Banner
                         </span>
                     </h1>
@@ -189,7 +189,7 @@ export default function AdminBannersPage() {
             {showUploadForm && (
                 <div style={uploadCardStyle}>
                     <div style={uploadHeaderStyle}>
-                        <Image size={24} style={{ color: '#6366f1' }} />
+                        <Image size={24} style={{ color: '#1e3a5f' }} />
                         <div>
                             <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#1e293b' }}>Upload Banner Baru</h3>
                             <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: '#64748b' }}>Rekomendasi: 1280 x 320 pixels (4:1)</p>
@@ -302,7 +302,7 @@ export default function AdminBannersPage() {
                                 style={{
                                     ...bannerCardStyle,
                                     opacity: draggedIndex === index ? 0.5 : 1,
-                                    borderColor: dragOverIndex === index ? '#6366f1' : '#e2e8f0',
+                                    borderColor: dragOverIndex === index ? '#1e3a5f' : '#e2e8f0',
                                     transform: dragOverIndex === index ? 'scale(1.02)' : 'scale(1)',
                                 }}
                             >
@@ -420,19 +420,19 @@ const addButtonStyle: React.CSSProperties = {
     alignItems: 'center',
     gap: '0.5rem',
     padding: '0.75rem 1.25rem',
-    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+    background: '#1e3a5f',
     color: '#fff',
     border: 'none',
     borderRadius: '0.75rem',
     fontSize: '0.95rem',
     fontWeight: 600,
     cursor: 'pointer',
-    boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
+    boxShadow: '0 4px 12px rgba(30, 58, 95, 0.3)',
 };
 
 const uploadCardStyle: React.CSSProperties = {
-    background: 'linear-gradient(135deg, #faf5ff, #f5f3ff)',
-    border: '2px dashed #c4b5fd',
+    background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)',
+    border: '2px dashed #94a3b8',
     borderRadius: '1rem',
     padding: '1.5rem',
     marginBottom: '2rem',
@@ -474,13 +474,13 @@ const inputStyle: React.CSSProperties = {
 
 const dropzoneStyle: React.CSSProperties = {
     position: 'relative',
-    border: '2px dashed #c4b5fd',
+    border: '2px dashed #94a3b8',
     borderRadius: '0.75rem',
     padding: '2rem',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: '#faf5ff',
+    background: '#f8fafc',
     minHeight: '120px',
 };
 
@@ -498,14 +498,14 @@ const cancelButtonStyle: React.CSSProperties = {
 const submitButtonStyle: React.CSSProperties = {
     flex: 1,
     padding: '0.75rem 1.5rem',
-    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+    background: '#1e3a5f',
     color: '#fff',
     border: 'none',
     borderRadius: '0.5rem',
     fontSize: '0.95rem',
     fontWeight: 600,
     cursor: 'pointer',
-    boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)',
+    boxShadow: '0 4px 12px rgba(30, 58, 95, 0.25)',
 };
 
 const listContainerStyle: React.CSSProperties = {
@@ -563,7 +563,7 @@ const orderBadgeStyle: React.CSSProperties = {
     width: '28px',
     height: '28px',
     borderRadius: '50%',
-    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+    background: '#1e3a5f',
     color: '#fff',
     display: 'flex',
     alignItems: 'center',
@@ -600,7 +600,7 @@ const linkStyle: React.CSSProperties = {
     alignItems: 'center',
     gap: '0.35rem',
     fontSize: '0.8rem',
-    color: '#6366f1',
+    color: '#1e3a5f',
     marginTop: '0.25rem',
     textDecoration: 'none',
 };

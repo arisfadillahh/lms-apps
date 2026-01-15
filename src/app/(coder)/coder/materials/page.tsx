@@ -125,7 +125,7 @@ export default async function CoderMaterialsPage() {
                       ) : null}
                     </div>
                     {material.file_url ? (
-                      <a href={material.file_url} target="_blank" rel="noreferrer" style={{ color: '#2563eb', fontWeight: 500 }}>
+                      <a href={material.file_url} target="_blank" rel="noreferrer" style={{ color: '#1e3a5f', fontWeight: 500 }}>
                         Buka file
                       </a>
                     ) : null}
@@ -203,7 +203,7 @@ const slideFrameStyle: CSSProperties = {
 
 const slideLinkStyle: CSSProperties = {
   fontSize: '0.8rem',
-  color: '#2563eb',
+  color: '#1e3a5f',
   fontWeight: 600,
   alignSelf: 'flex-start',
 };

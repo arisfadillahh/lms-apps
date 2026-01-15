@@ -184,7 +184,7 @@ export default async function CoachClassPage({ params, searchParams }: PageProps
             <h2 style={{ fontSize: '1.2rem', fontWeight: 600 }}>Upcoming Session</h2>
             <CalendarModal sessions={sortedSessions}>
               <button style={{
-                color: '#2563eb',
+                color: '#1e3a5f',
                 fontWeight: 600,
                 background: 'none',
                 border: 'none',
@@ -197,7 +197,7 @@ export default async function CoachClassPage({ params, searchParams }: PageProps
             </CalendarModal>
           </div>
           {sessionToday ? (
-            <p style={{ color: '#2563eb', fontWeight: 600 }}>
+            <p style={{ color: '#1e3a5f', fontWeight: 600 }}>
               Ada sesi hari ini pada {new Date(sessionToday.date_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </p>
           ) : null}
@@ -253,7 +253,7 @@ export default async function CoachClassPage({ params, searchParams }: PageProps
                     Status: <StatusBadge status={nextSession.status} />
                   </p>
                 </div>
-                <span style={{ color: '#2563eb', fontWeight: 600 }}>Open Administration →</span>
+                <span style={{ color: '#1e3a5f', fontWeight: 600 }}>Open Administration →</span>
               </Link>
             )
           ) : (
@@ -378,7 +378,7 @@ export default async function CoachClassPage({ params, searchParams }: PageProps
                     href={material.file_url}
                     target="_blank"
                     rel="noreferrer"
-                    style={{ color: '#2563eb', fontSize: '0.9rem' }}
+                    style={{ color: '#1e3a5f', fontSize: '0.9rem' }}
                   >
                     Open file
                   </a>
@@ -569,7 +569,7 @@ const lessonBlockStatusBadge = (status: string): CSSProperties => ({
   fontSize: '0.75rem',
   fontWeight: 600,
   color:
-    status === 'COMPLETED' ? '#16a34a' : status === 'CURRENT' ? '#2563eb' : '#ea580c',
+    status === 'COMPLETED' ? '#16a34a' : status === 'CURRENT' ? '#1e3a5f' : '#ea580c',
   background:
     status === 'COMPLETED'
       ? '#ecfdf3'

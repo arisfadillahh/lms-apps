@@ -132,7 +132,7 @@ const cardStyle: CSSProperties = {
 
 const hintStyle: CSSProperties = {
   fontSize: '0.75rem',
-  color: '#2563eb',
+  color: '#1e3a5f',
   fontWeight: 600,
 };
 
@@ -146,7 +146,7 @@ const primaryButton: CSSProperties = {
   padding: '0.45rem 0.85rem',
   borderRadius: '0.5rem',
   border: 'none',
-  background: '#2563eb',
+  background: '#1e3a5f',
   color: '#fff',
   fontSize: '0.85rem',
   fontWeight: 600,
@@ -156,7 +156,7 @@ const primaryButton: CSSProperties = {
 function getHighlightStyle(highlight?: 'current' | 'next'): CSSProperties {
   if (highlight === 'current') {
     return {
-      borderColor: '#2563eb',
+      borderColor: '#1e3a5f',
       background: 'rgba(37, 99, 235, 0.1)',
     };
   }
@@ -172,7 +172,7 @@ function getHighlightStyle(highlight?: 'current' | 'next'): CSSProperties {
 const currentBadgeStyle: CSSProperties = {
   padding: '0.2rem 0.6rem',
   borderRadius: '999px',
-  background: '#2563eb',
+  background: '#1e3a5f',
   color: '#fff',
   fontSize: '0.75rem',
   fontWeight: 600,
@@ -293,6 +293,6 @@ const makeUpBoxStyle: CSSProperties = {
 
 const linkStyle: CSSProperties = {
   fontSize: '0.85rem',
-  color: '#2563eb',
+  color: '#1e3a5f',
   fontWeight: 600,
 };

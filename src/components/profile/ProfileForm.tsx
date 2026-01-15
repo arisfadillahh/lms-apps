@@ -201,7 +201,7 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
 
     const primaryButtonStyle = {
         ...buttonStyle,
-        background: '#2563eb',
+        background: '#1e3a5f',
         color: '#ffffff',
         boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
     };
@@ -276,7 +276,7 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
                         />
                         <button
                             onClick={() => fileInputRef.current?.click()}
-                            style={{ fontSize: '0.875rem', fontWeight: 600, color: '#2563eb', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                            style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1e3a5f', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
                             disabled={isUploading}
                         >
                             {isUploading ? 'Mengupload...' : 'Upload Foto Baru'}

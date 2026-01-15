@@ -240,7 +240,7 @@ const errorStyle: CSSProperties = {
 
 const buttonStyle: CSSProperties = {
     padding: '12px 24px',
-    background: '#2563eb',
+    background: '#1e3a5f',
     color: 'white',
     borderRadius: '8px',
     fontWeight: '600',

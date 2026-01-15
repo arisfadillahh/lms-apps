@@ -93,7 +93,7 @@ const primaryActionStyle: CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
   padding: '0.6rem 1rem',
-  background: '#2563eb',
+  background: '#1e3a5f',
   color: '#ffffff',
   fontWeight: 600,
   textDecoration: 'none',

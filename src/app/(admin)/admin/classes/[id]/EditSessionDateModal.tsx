@@ -100,7 +100,7 @@ export default function EditSessionDateModal({ sessionId, currentDate, isOpen, o
                             disabled={isPending}
                             style={{
                                 padding: '0.5rem 1rem', borderRadius: '0.375rem', border: 'none',
-                                background: '#2563eb', color: 'white', cursor: 'pointer', opacity: isPending ? 0.7 : 1
+                                background: '#1e3a5f', color: 'white', cursor: 'pointer', opacity: isPending ? 0.7 : 1
                             }}
                         >
                             {isPending ? 'Saving...' : 'Save Changes'}

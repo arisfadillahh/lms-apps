@@ -87,7 +87,7 @@ const containerStyle: CSSProperties = {
 const backLinkStyle: CSSProperties = {
     display: 'inline-block',
     marginBottom: '1rem',
-    color: '#2563eb',
+    color: '#1e3a5f',
     fontSize: '0.9rem',
     fontWeight: 500,
     textDecoration: 'none',
@@ -164,7 +164,7 @@ const primaryButtonStyle: CSSProperties = {
     alignItems: 'center',
     gap: '0.5rem',
     padding: '0.75rem 1.25rem',
-    background: '#2563eb',
+    background: '#1e3a5f',
     color: '#fff',
     borderRadius: '0.5rem',
     fontWeight: 600,

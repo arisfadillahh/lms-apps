@@ -21,7 +21,7 @@ export default async function CoderLessonDetailPage(props: PageProps) {
     }
 
     return (
-        <div style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '3rem' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '3rem', paddingTop: '1rem' }}>
             {/* Navigation */}
             <header style={{ marginBottom: '2rem' }}>
                 <Link
@@ -58,12 +58,11 @@ export default async function CoderLessonDetailPage(props: PageProps) {
                         }}>
                             {lesson.title}
                         </h1>
-
                     </div>
 
                     {/* Slide Viewer (Cinema Mode) */}
                     <div style={cardStyle}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                 <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#eff6ff', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <Play size={18} fill="currentColor" />
@@ -100,7 +99,7 @@ export default async function CoderLessonDetailPage(props: PageProps) {
 
                         {lesson.summary && (
                             <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #e2e8f0' }}>
-                                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.75rem' }}>Ringkasan Materi</h3>
+                                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.75rem' }}>Ringkasan Materi</h3>
                                 <div style={{ fontSize: '1rem', color: '#475569', lineHeight: 1.6 }}>
                                     {lesson.summary}
                                 </div>
@@ -112,17 +111,17 @@ export default async function CoderLessonDetailPage(props: PageProps) {
                 {/* Sidebar */}
                 <aside style={{ display: 'flex', flexDirection: 'column', gap: '2rem', position: 'sticky', top: '2rem' }}>
 
-                    {/* Project Mission Card */}
-                    <div style={projectCardStyle}>
-                        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-                            <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🎮</div>
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', margin: 0 }}>Project Mission</h3>
-                            <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem', marginTop: '0.4rem' }}>
-                                Cek hasil akhir project yang akan kita buat hari ini!
-                            </p>
-                        </div>
+                    {/* Project Mission Card - Only show if URL exists */}
+                    {lesson.coach_example_url && (
+                        <div style={projectCardStyle}>
+                            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                                <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🎮</div>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', margin: 0 }}>Project Mission</h3>
+                                <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem', marginTop: '0.4rem' }}>
+                                    Cek hasil akhir project yang akan kita buat hari ini!
+                                </p>
+                            </div>
 
-                        {lesson.coach_example_url ? (
                             <a
                                 href={lesson.coach_example_url}
                                 target="_blank"
@@ -131,12 +130,8 @@ export default async function CoderLessonDetailPage(props: PageProps) {
                             >
                                 <Play size={18} fill="currentColor" /> Mainkan Game
                             </a>
-                        ) : (
-                            <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '10px', padding: '1rem', textAlign: 'center', color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem' }}>
-                                Belum ada contoh project
-                            </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
 
                     {/* Session Info Card */}
                     <div style={sidebarCardStyle}>

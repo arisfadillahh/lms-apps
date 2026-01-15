@@ -595,6 +595,27 @@ export async function getLessonDetailForCoder(coderId: string, lessonId: string)
     // For now, let's allow access if enrolled, to fix the 404. 
     // User said "Materi yang sudah dipelajari".
 
+    // Calculate session date mapping
+    const plan = await import('@/lib/dao/ekskulPlansDao').then(m => m.getEkskulPlanWithDetails(planId));
+    let sessionDate: string | null = null;
+
+    if (plan) {
+      // Sort lessons to find the index of the current lesson
+      const sortedLessons = plan.ekskul_lessons.sort((a, b) => a.order_index - b.order_index);
+      const lessonIndex = sortedLessons.findIndex(l => l.id === lessonId);
+
+      if (lessonIndex !== -1) {
+        const sessions = await sessionsDao.listSessionsByClass(activeEkskulClass.id);
+        const sortedSessions = sessions
+          .filter(s => s.status !== 'CANCELLED') // Should we exclude cancelled? Probably yes.
+          .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
+
+        if (lessonIndex < sortedSessions.length) {
+          sessionDate = sortedSessions[lessonIndex].date_time;
+        }
+      }
+    }
+
     return {
       id: ekskulLesson.id,
       class_block_id: 'EKSKUL', // Dummy
@@ -610,7 +631,7 @@ export async function getLessonDetailForCoder(coderId: string, lessonId: string)
       coach_example_storage_path: null,
       created_at: ekskulLesson.created_at ?? new Date().toISOString(),
       updated_at: ekskulLesson.created_at ?? new Date().toISOString(),
-      sessionDate: null // We could try to estimate, but null is safer
+      sessionDate: sessionDate
     };
   }
 

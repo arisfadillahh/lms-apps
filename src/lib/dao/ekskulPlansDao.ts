@@ -45,3 +45,19 @@ export async function getEkskulPlanWithDetails(id: string): Promise<EkskulPlanWi
 
     return data as EkskulPlanWithDetails | null;
 }
+
+export async function getEkskulLessonById(lessonId: string): Promise<EkskulLessonRecord | null> {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+        .from('ekskul_lessons')
+        .select('*')
+        .eq('id', lessonId)
+        .single();
+
+    if (error) {
+        if (error.code === 'PGRST116') return null;
+        return null; // Silent fail
+    }
+
+    return data as EkskulLessonRecord;
+}

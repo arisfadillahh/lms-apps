@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { BookOpen, Calendar, FileText, Download } from 'lucide-react';
+import { BookOpen, Calendar, FileText, Download, Play, Video, ChevronRight, Lock } from 'lucide-react';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { getAccessibleLessonsForCoder, getVisibleMaterialsForCoder } from '@/lib/services/coder';
@@ -12,172 +12,224 @@ export default async function CoderMaterialsPage() {
   ]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '3rem' }}>
-      <header>
-        <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '0.5rem', color: '#1e293b', letterSpacing: '-0.02em' }}>
-          Pelajaran & Materi
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem', paddingBottom: '4rem', maxWidth: '1000px', margin: '0 auto' }}>
+      <header style={{ textAlign: 'center', marginBottom: '1rem' }}>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.75rem', color: '#1e293b', letterSpacing: '-0.03em', background: 'linear-gradient(to right, #1e293b, #334155)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          Materi Pembelajaran
         </h1>
-        <p style={{ color: '#64748b', fontSize: '1.05rem', maxWidth: '800px', lineHeight: 1.6 }}>
-          Akses modul pelajaran, slide presentasi, dan materi tambahan dari coach.
+        <p style={{ color: '#64748b', fontSize: '1.1rem', maxWidth: '600px', margin: '0 auto', lineHeight: 1.6 }}>
+          Akses kembali materi, modul, dan video dari sesi yang telah kamu pelajari.
         </p>
       </header>
 
       {/* 1. Lesson Plans Section */}
-      {lessonPlans.map((entry) => {
-        const blocksWithLessons = entry.blocks.filter((block) => block.lessons.length > 0);
-        return (
-          <section key={entry.classId} style={cardStyle}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
-              <span style={{ width: '4px', height: '24px', background: '#3b82f6', borderRadius: '2px' }}></span>
-              <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>{entry.name}</h2>
-            </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4rem' }}>
+        {lessonPlans.map((entry) => {
+          const blocksWithLessons = entry.blocks.filter((block) => block.lessons.length > 0);
+          if (blocksWithLessons.length === 0) return null;
 
-            {blocksWithLessons.length === 0 ? (
-              <div style={emptyStateStyle}>
-                <BookOpen size={32} color="#cbd5e1" />
-                <p>Belum ada materi pelajaran yang tersedia.</p>
+          return (
+            <div key={entry.classId}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2.5rem' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.3)' }}>
+                  <BookOpen size={24} />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b', margin: 0, letterSpacing: '-0.01em' }}>{entry.name}</h2>
+                  <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '0.25rem' }}>Kelas Reguler</p>
+                </div>
               </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                {blocksWithLessons.map((block) => (
-                  <div key={block.id}>
-                    <h3 style={{
-                      fontSize: '1.05rem',
-                      fontWeight: 600,
-                      color: '#334155',
-                      marginBottom: '1rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.6rem',
-                      background: '#f8fafc',
-                      padding: '0.6rem 1rem',
-                      borderRadius: '8px'
-                    }}>
-                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6' }}></div>
-                      {block.name}
-                    </h3>
 
-                    <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.95rem' }}>
-                        <thead style={{ background: '#f8fafc' }}>
-                          <tr>
-                            <th style={thStyle}>Topik Pelajaran</th>
-                            <th style={thStyle} className="hide-mobile">Jadwal Sesi</th>
-                            <th style={{ ...thStyle, width: '150px', textAlign: 'center' }}>Aksi</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {block.lessons.map((lesson) => (
-                            <tr key={lesson.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s', background: '#fff' }}>
-                              <td style={tdStyle}>
-                                <div style={{ fontWeight: 600, color: '#0f172a', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                  <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>#{lesson.orderIndex + 1}</span>
-                                  {lesson.title}
-                                </div>
-                                {lesson.summary && (
-                                  <div style={{ fontSize: '0.9rem', color: '#64748b', maxWidth: '540px', lineHeight: 1.5 }}>
-                                    {lesson.summary}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
+                {blocksWithLessons.map((block) => (
+                  <div key={block.id} style={{ position: 'relative' }}>
+                    {/* Block Header */}
+                    <div style={blockHeaderStyle}>
+                      <div style={{ fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.85rem' }}>Module Block</div>
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e293b', marginTop: '0.25rem' }}>{block.name}</h3>
+                    </div>
+
+                    {/* Timeline Container */}
+                    <div style={{ position: 'relative', paddingLeft: '2rem' }}>
+                      {/* Vertical Line */}
+                      <div style={{ position: 'absolute', left: '15px', top: '10px', bottom: '20px', width: '2px', background: '#e2e8f0', zIndex: 0 }} />
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                        {block.lessons.map((lesson, index) => {
+                          const isScheduled = !!lesson.sessionDate;
+                          const dateObj = lesson.sessionDate ? new Date(lesson.sessionDate) : null;
+                          const isPast = dateObj ? dateObj < new Date() : false;
+
+                          return (
+                            <div key={lesson.id} style={{ position: 'relative', zIndex: 1 }}>
+                              {/* Dot */}
+                              <div style={{
+                                position: 'absolute',
+                                left: '-2.05rem',
+                                top: '1.5rem',
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '50%',
+                                background: isScheduled ? (isPast ? '#fff' : '#3b82f6') : '#f1f5f9',
+                                border: `4px solid ${isScheduled ? (isPast ? '#22c55e' : '#bfdbfe') : '#e2e8f0'}`,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: isScheduled ? (isPast ? '#22c55e' : '#fff') : '#94a3b8',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                              }}>
+                                {isPast ? '✓' : (index + 1)}
+                              </div>
+
+                              {/* Card */}
+                              <div style={lessonCardStyle}>
+                                <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start' }}>
+                                  {/* Date Badge */}
+                                  <div style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    minWidth: '60px',
+                                    padding: '0.6rem 0.5rem',
+                                    background: isScheduled ? '#eff6ff' : '#f8fafc',
+                                    borderRadius: '10px',
+                                    border: isScheduled ? '1px solid #dbeafe' : '1px solid #e2e8f0',
+                                    color: isScheduled ? '#1d4ed8' : '#94a3b8'
+                                  }}>
+                                    {dateObj ? (
+                                      <>
+                                        <span style={{ fontSize: '1.1rem', fontWeight: 700, lineHeight: 1 }}>{dateObj.getDate()}</span>
+                                        <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>{dateObj.toLocaleDateString('id-ID', { month: 'short' })}</span>
+                                      </>
+                                    ) : (
+                                      <span style={{ fontSize: '1.5rem', lineHeight: 1 }}>?</span>
+                                    )}
                                   </div>
-                                )}
-                                <div className="show-mobile" style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                  <Calendar size={14} />
-                                  {lesson.sessionDate ? new Date(lesson.sessionDate).toLocaleDateString() : 'Belum dijadwalkan'}
+
+                                  {/* Content */}
+                                  <div style={{ flex: 1 }}>
+                                    <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.35rem' }}>{lesson.title}</h4>
+                                    {lesson.summary && (
+                                      <p style={{ fontSize: '0.9rem', color: '#64748b', lineHeight: 1.5, marginBottom: '0.75rem' }}>{lesson.summary}</p>
+                                    )}
+                                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                      {isScheduled ? (
+                                        <span style={badgeStyle}>
+                                          <Video size={12} /> {new Date(lesson.sessionDate!).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                      ) : (
+                                        <span style={{ ...badgeStyle, background: '#f1f5f9', color: '#94a3b8' }}>Belum dijadwalkan</span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Action */}
+                                  <div style={{ alignSelf: 'center' }}>
+                                    <a href={`/coder/materials/${lesson.id}`} style={actionButtonStyle}>
+                                      <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.4)' }}>
+                                        <ChevronRight size={20} />
+                                      </div>
+                                    </a>
+                                  </div>
                                 </div>
-                              </td>
-                              <td style={tdStyle} className="hide-mobile">
-                                {lesson.sessionDate ? (
-                                  <span style={{ color: '#334155', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500 }}>
-                                    <Calendar size={16} color="#64748b" />
-                                    {new Date(lesson.sessionDate).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })}
-                                  </span>
-                                ) : (
-                                  <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.9rem' }}>Belum dijadwalkan</span>
-                                )}
-                              </td>
-                              <td style={{ ...tdStyle, textAlign: 'center' }}>
-                                <a
-                                  href={`/coder/materials/${lesson.id}`}
-                                  style={actionButtonStyle}
-                                >
-                                  Buka Materi →
-                                </a>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
-            )}
-          </section>
-        );
-      })}
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ height: '2px', background: '#f1f5f9', margin: '2rem 0' }} />
 
       {/* 2. Additional Materials Section */}
-      <section style={cardStyle}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
-          <span style={{ width: '4px', height: '24px', background: '#ec4899', borderRadius: '2px' }}></span>
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Materi Tambahan</h2>
+      <section>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem' }}>
+          <div style={{ padding: '0.75rem', background: '#fdf2f8', borderRadius: '12px', color: '#db2777' }}>
+            <FileText size={20} />
+          </div>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>Materi Tambahan</h2>
         </div>
 
         {materialsByClass.length === 0 ? (
           <div style={emptyStateStyle}>
-            <FileText size={32} color="#cbd5e1" />
-            <p>Belum ada materi tambahan dari coach.</p>
+            <div style={{ width: '64px', height: '64px', background: '#f8fafc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
+              <FileText size={32} color="#cbd5e1" />
+            </div>
+            <p style={{ fontWeight: 600, color: '#64748b' }}>Belum ada materi tambahan</p>
+            <p style={{ fontSize: '0.9rem', color: '#94a3b8' }}>Materi ekstra dari coach akan muncul di sini.</p>
           </div>
         ) : (
-          materialsByClass.map((entry) => (
-            <div key={entry.classId} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155' }}>{entry.name}</h3>
-              {entry.materials.length === 0 ? (
-                <p style={{ color: '#94a3b8', fontSize: '0.9rem', fontStyle: 'italic' }}>Belum ada materi yang dirilis.</p>
-              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
-                  {entry.materials.map((material) => (
-                    <div key={material.id} style={materialCardStyle}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                          <div style={{ padding: '0.5rem', background: '#f0f9ff', borderRadius: '8px', color: '#0284c7' }}>
-                            <FileText size={20} />
-                          </div>
-                          <div>
-                            <strong style={{ color: '#1e293b', fontSize: '1rem', display: 'block' }}>{material.title}</strong>
-                            {material.description && <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '0.25rem', lineHeight: 1.4 }}>{material.description}</p>}
-                          </div>
-                        </div>
-                        {material.coach_note ? (
-                          <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: '#fffbeb', borderRadius: '8px', border: '1px solid #fef3c7', fontSize: '0.85rem', color: '#92400e' }}>
-                            <strong>Catatan Coach:</strong> {material.coach_note}
-                          </div>
-                        ) : null}
-                      </div>
-                      {material.file_url ? (
-                        <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
-                          <a href={material.file_url} target="_blank" rel="noreferrer" style={downloadLinkStyle}>
-                            <Download size={16} /> Buka File
-                          </a>
-                        </div>
-                      ) : null}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+            {materialsByClass.map((entry) => (
+              entry.materials.map((material) => (
+                <div key={material.id} style={materialCardStyle}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{entry.name}</span>
+                      {material.file_url && <Download size={16} color="#94a3b8" />}
                     </div>
-                  ))}
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.5rem', lineHeight: 1.3 }}>{material.title}</h3>
+                    {material.description && <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: 1.5 }}>{material.description}</p>}
+
+                    {material.coach_note && (
+                      <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: '#fffbeb', borderRadius: '8px', border: '1px solid #fef3c7', fontSize: '0.85rem', color: '#b45309', display: 'flex', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '1rem' }}>💡</span>
+                        <div>{material.coach_note}</div>
+                      </div>
+                    )}
+                  </div>
+                  {material.file_url && (
+                    <a href={material.file_url} target="_blank" rel="noreferrer" style={downloadButtonStyle}>
+                      Buka File
+                    </a>
+                  )}
                 </div>
-              )}
-            </div>
-          ))
+              ))
+            ))}
+          </div>
         )}
       </section>
     </div>
   );
 }
 
-const cardStyle: CSSProperties = {
+const blockHeaderStyle: CSSProperties = {
+  marginBottom: '1.5rem',
+  padding: '1rem 1.5rem',
+  background: '#f8fafc',
+  borderRadius: '12px',
+  border: '1px solid #e2e8f0',
+  display: 'inline-block'
+};
+
+const lessonCardStyle: CSSProperties = {
   background: '#ffffff',
   borderRadius: '16px',
   border: '1px solid #e2e8f0',
-  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
-  padding: '1.5rem',
+  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.03)',
+  padding: '1.25rem',
+  transition: 'transform 0.2s',
+};
+
+const badgeStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '0.3rem',
+  padding: '0.3rem 0.6rem',
+  borderRadius: '6px',
+  background: '#eff6ff',
+  color: '#3b82f6',
+  fontSize: '0.75rem',
+  fontWeight: 600,
 };
 
 const emptyStateStyle: CSSProperties = {
@@ -185,66 +237,44 @@ const emptyStateStyle: CSSProperties = {
   flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
-  gap: '0.75rem',
-  padding: '3rem',
-  background: '#f8fafc',
-  borderRadius: '12px',
-  border: '1px dashed #cbd5e1',
-  color: '#ed8936'
-};
-
-const thStyle: CSSProperties = {
-  padding: '1rem',
-  fontSize: '0.8rem',
-  color: '#64748b',
-  fontWeight: 700,
-  borderBottom: '1px solid #e2e8f0',
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-  textAlign: 'left',
-};
-
-const tdStyle: CSSProperties = {
-  padding: '1.25rem 1rem',
-  verticalAlign: 'top',
+  padding: '4rem 2rem',
+  background: '#fff',
+  borderRadius: '24px',
+  border: '2px dashed #e2e8f0',
+  textAlign: 'center'
 };
 
 const actionButtonStyle: CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '0.4rem',
-  padding: '0.6rem 1rem',
-  borderRadius: '8px',
-  background: '#eff6ff',
-  color: '#3b82f6',
-  fontWeight: 600,
-  fontSize: '0.9rem',
   textDecoration: 'none',
-  transition: 'all 0.2s',
-  border: '1px solid #dbeafe'
+  display: 'block',
+  transition: 'transform 0.2s'
 };
 
 const materialCardStyle: CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
-  padding: '1.25rem',
-  borderRadius: '12px',
+  padding: '1.5rem',
+  borderRadius: '16px',
   border: '1px solid #e2e8f0',
   background: '#ffffff',
-  boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
-  transition: 'transform 0.2s, box-shadow 0.2s'
+  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
+  transition: 'transform 0.2s',
+  height: '100%',
+  justifyContent: 'space-between',
+  gap: '1rem'
 };
 
-const downloadLinkStyle: CSSProperties = {
-  display: 'inline-flex',
+const downloadButtonStyle: CSSProperties = {
+  display: 'flex',
   alignItems: 'center',
-  gap: '0.4rem',
-  color: '#0284c7',
+  justifyContent: 'center',
+  width: '100%',
+  padding: '0.75rem',
+  borderRadius: '10px',
+  background: '#f1f5f9',
+  color: '#1e293b',
   fontWeight: 600,
   fontSize: '0.9rem',
   textDecoration: 'none',
-  padding: '0.5rem 0.8rem',
-  borderRadius: '6px',
-  background: '#f0f9ff',
   transition: 'background 0.2s'
 };

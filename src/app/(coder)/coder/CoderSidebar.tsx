@@ -4,15 +4,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import type { CSSProperties } from 'react';
-import { Home, BookOpen, FileUp, FileText, BookMarked, Settings, LogOut } from 'lucide-react';
+import { Home, BookOpen, FileUp, FileText, Settings, LogOut } from 'lucide-react';
 import { motion } from 'framer-motion';
-
-
 
 const NAV_LINKS = [
     { href: '/coder/dashboard', label: 'Dashboard', icon: Home },
     { href: '/coder/materials', label: 'Materi', icon: BookOpen },
-    { href: '/coder/ekskul', label: 'Ekskul', icon: BookMarked },
     { href: '/coder/makeup', label: 'Tugas Susulan', icon: FileUp },
     { href: '/coder/reports', label: 'Rapor', icon: FileText },
 ];
@@ -94,8 +91,6 @@ export default function CoderSidebar({ session }: CoderSidebarProps) {
                     );
                 })}
             </motion.nav>
-
-
         </aside>
     );
 }

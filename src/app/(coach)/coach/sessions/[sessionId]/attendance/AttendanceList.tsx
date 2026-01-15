@@ -1,8 +1,9 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { Check, X, Edit2, RotateCcw } from 'lucide-react';
 
 interface Attendee {
   coderId: string;
@@ -18,7 +19,7 @@ interface AttendanceListProps {
   attendees: Attendee[];
 }
 
-type AttendanceStatus = 'PRESENT' | 'ABSENT';
+type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE'; // Added LATE support if needed later, but sticking to basics for now
 
 export default function AttendanceList({ sessionId, attendees }: AttendanceListProps) {
   const router = useRouter();
@@ -33,7 +34,17 @@ export default function AttendanceList({ sessionId, attendees }: AttendanceListP
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
+
+  // UX: Modal for Absent Reason
+  const [absentCandidateId, setAbsentCandidateId] = useState<string | null>(null);
+  const [absentReason, setAbsentReason] = useState('');
+  const reasonInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (absentCandidateId && reasonInputRef.current) {
+      reasonInputRef.current.focus();
+    }
+  }, [absentCandidateId]);
 
   const updateRecord = (coderId: string, updates: Partial<{ status: AttendanceStatus | null; reason: string }>) => {
     setRecords((prev) =>
@@ -60,125 +71,188 @@ export default function AttendanceList({ sessionId, attendees }: AttendanceListP
         coderId,
         status,
       };
+      // Always send reason if absent
       if (status === 'ABSENT') {
         payload.reason = reason?.trim() ?? '';
       }
 
-      const response = await fetch('/api/coach/attendance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      try {
+        const response = await fetch('/api/coach/attendance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
 
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        setErrorMessage(payload.error ?? 'Failed to record attendance');
-        return;
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          setErrorMessage(data.error ?? 'Gagal menyimpan absensi');
+          return;
+        }
+
+        updateRecord(coderId, { status, reason: status === 'ABSENT' ? reason?.trim() ?? '' : '' });
+        setStatusMessage('Berhasil disimpan');
+        // Auto clear
+        setTimeout(() => setStatusMessage(null), 2000);
+        router.refresh();
+      } catch (err) {
+        console.error(err);
+        setErrorMessage('Terjadi kesalahan koneksi');
       }
-
-      updateRecord(coderId, { status, reason: status === 'ABSENT' ? reason?.trim() ?? '' : '' });
-      setEditingId(null);
-      setStatusMessage('Attendance saved');
-      router.refresh();
     });
   };
 
+  const handleAbsentClick = (coderId: string, currentReason?: string) => {
+    setAbsentCandidateId(coderId);
+    setAbsentReason(currentReason || '');
+  };
+
+  const confirmAbsent = () => {
+    if (absentCandidateId) {
+      if (!absentReason.trim()) {
+        alert('Alasan wajib diisi!');
+        return;
+      }
+      submit(absentCandidateId, 'ABSENT', absentReason);
+      setAbsentCandidateId(null);
+      setAbsentReason('');
+    }
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-      {errorMessage ? <p style={{ color: '#b91c1c' }}>{errorMessage}</p> : null}
-      {statusMessage ? <p style={{ color: '#15803d' }}>{statusMessage}</p> : null}
-      <table style={tableStyle}>
-        <thead>
-          <tr>
-            <th style={nameHeaderStyle}>Nama</th>
-            <th style={statusHeaderStyle}>Status</th>
-            <th style={actionHeaderStyle}>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {records.map((record) => {
-            const statusLabel =
-              record.status === 'PRESENT'
-                ? 'Masuk'
-                : record.status === 'ABSENT'
-                  ? `Tidak Masuk${record.reason ? ` (${record.reason})` : ''}`
-                  : 'Belum diisi';
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      {errorMessage ? <div style={{ padding: '0.75rem', borderRadius: '8px', background: '#fee2e2', color: '#b91c1c', fontSize: '0.9rem' }}>{errorMessage}</div> : null}
+      {statusMessage ? <div style={{ padding: '0.75rem', borderRadius: '8px', background: '#dcfce7', color: '#16a34a', fontSize: '0.9rem' }}>{statusMessage}</div> : null}
 
-            const isEditing = editingId === record.coderId || record.status === null;
+      <div style={{ overflowX: 'auto' }}>
+        <table style={tableStyle}>
+          <thead>
+            <tr>
+              <th style={nameHeaderStyle}>Nama Coder</th>
+              <th style={statusHeaderStyle}>Status Kehadiran</th>
+              <th style={actionHeaderStyle}>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {records.map((record) => {
+              const isAbsent = record.status === 'ABSENT';
+              const isPresent = record.status === 'PRESENT';
+              const isMarked = record.status !== null;
 
-            const handleMarkPresent = () => {
-              submit(record.coderId, 'PRESENT');
-            };
-
-            const handleMarkAbsent = () => {
-              const reason = window.prompt('Alasan tidak masuk (wajib diisi):', record.reason);
-              if (reason === null) return;
-              const trimmed = reason.trim();
-              if (!trimmed) {
-                window.alert('Alasan wajib diisi.');
-                return;
-              }
-              submit(record.coderId, 'ABSENT', trimmed);
-            };
-
-            return (
-              <tr key={record.coderId}>
-                <td style={nameCellStyle}>{record.fullName}</td>
-                <td style={statusCellStyle}>{statusLabel}</td>
-                <td style={actionCellStyle}>
-                  {isEditing ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              return (
+                <tr key={record.coderId} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={nameCellStyle}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '0.95rem', color: '#334155' }}>{record.fullName}</span>
+                      {isAbsent && record.reason && (
+                        <span style={{ fontSize: '0.8rem', color: '#ef4444', fontStyle: 'italic' }}>
+                          "{record.reason}"
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td style={statusCellStyle}>
+                    {isMarked ? (
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        padding: '0.3rem 0.6rem',
+                        borderRadius: '6px',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        background: isPresent ? '#dcfce7' : '#fee2e2',
+                        color: isPresent ? '#15803d' : '#b91c1c',
+                        border: isPresent ? '1px solid #bbf7d0' : '1px solid #fecaca'
+                      }}>
+                        {isPresent ? 'HADIR' : 'TIDAK HADIR'}
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>Belum diabsen</span>
+                    )}
+                  </td>
+                  <td style={actionCellStyle}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>
                       <button
                         type="button"
-                        onClick={handleMarkPresent}
+                        onClick={() => submit(record.coderId, 'PRESENT')}
                         disabled={isPending}
+                        title="Hadir"
                         style={{
                           ...actionButtonStyle,
-                          background: '#16a34a',
+                          background: isPresent ? '#22c55e' : '#fff',
+                          color: isPresent ? '#fff' : '#22c55e',
+                          border: '1px solid #22c55e',
                         }}
-                        aria-label="Tandai hadir"
                       >
-                        ✓
+                        <Check size={18} strokeWidth={3} />
                       </button>
                       <button
                         type="button"
-                        onClick={handleMarkAbsent}
+                        onClick={() => handleAbsentClick(record.coderId, record.reason)}
                         disabled={isPending}
+                        title="Tidak Hadir"
                         style={{
                           ...actionButtonStyle,
-                          background: '#dc2626',
+                          background: isAbsent ? '#ef4444' : '#fff',
+                          color: isAbsent ? '#fff' : '#ef4444',
+                          border: '1px solid #ef4444',
                         }}
-                        aria-label="Tandai tidak hadir"
                       >
-                        ✕
+                        <X size={18} strokeWidth={3} />
                       </button>
-                      {record.status !== null ? (
+                      {isMarked && (
                         <button
                           type="button"
-                          onClick={() => setEditingId(null)}
-                          disabled={isPending}
-                          style={cancelButtonStyle}
+                          onClick={() => updateRecord(record.coderId, { status: null, reason: '' })}
+                          style={{ ...actionButtonStyle, border: '1px solid #cbd5e1', color: '#64748b' }}
+                          title="Reset"
                         >
-                          Batal
+                          <RotateCcw size={16} />
                         </button>
-                      ) : null}
+                      )}
                     </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setEditingId(record.coderId)}
-                      disabled={isPending}
-                      style={editButtonStyle}
-                    >
-                      Edit
-                    </button>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Reason Modal */}
+      {absentCandidateId && (
+        <div style={modalOverlayStyle}>
+          <div style={modalContentStyle}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.5rem' }}>Alasan Tidak Hadir</h3>
+            <p style={{ marginBottom: '1rem', color: '#64748b', fontSize: '0.9rem' }}>
+              Wajib mengisi alasan ketidakhadiran coder.
+            </p>
+            <input
+              ref={reasonInputRef}
+              type="text"
+              value={absentReason}
+              onChange={e => setAbsentReason(e.target.value)}
+              placeholder="Contoh: Sakit, Ijin, Tanpa Keterangan..."
+              style={modalInputStyle}
+              onKeyDown={e => e.key === 'Enter' && confirmAbsent()}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+              <button
+                onClick={() => setAbsentCandidateId(null)}
+                style={cancelModalButtonStyle}
+              >
+                Batal
+              </button>
+              <button
+                onClick={confirmAbsent}
+                style={submitModalButtonStyle}
+              >
+                Simpan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -186,82 +260,106 @@ export default function AttendanceList({ sessionId, attendees }: AttendanceListP
 const tableStyle: CSSProperties = {
   width: '100%',
   borderCollapse: 'collapse',
-  border: '1px solid #e2e8f0',
-  borderRadius: '0.75rem',
+  background: '#fff',
+  borderRadius: '12px',
   overflow: 'hidden',
+  boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+  border: '1px solid #e2e8f0'
 };
 
 const nameHeaderStyle: CSSProperties = {
-  padding: '0.85rem 1rem',
+  padding: '1rem',
   textAlign: 'left',
-  background: '#f1f5f9',
-  color: '#475569',
-  fontSize: '0.85rem',
-  fontWeight: 600,
-  width: '40%',
+  background: '#f8fafc',
+  color: '#64748b',
+  fontSize: '0.8rem',
+  fontWeight: 700,
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  borderBottom: '1px solid #e2e8f0'
 };
 
 const statusHeaderStyle: CSSProperties = {
   ...nameHeaderStyle,
-  width: '40%',
+  textAlign: 'center'
 };
 
 const actionHeaderStyle: CSSProperties = {
   ...nameHeaderStyle,
-  textAlign: 'center',
-  width: '20%',
+  textAlign: 'center'
 };
 
 const nameCellStyle: CSSProperties = {
-  padding: '0.85rem 1rem',
-  borderBottom: '1px solid #e2e8f0',
-  color: '#0f172a',
+  padding: '1rem',
   fontWeight: 600,
+  color: '#1e293b'
 };
 
 const statusCellStyle: CSSProperties = {
-  padding: '0.85rem 1rem',
-  borderBottom: '1px solid #e2e8f0',
-  color: '#475569',
-  fontSize: '0.9rem',
+  padding: '1rem',
+  textAlign: 'center'
 };
 
 const actionCellStyle: CSSProperties = {
-  padding: '0.85rem 1rem',
-  borderBottom: '1px solid #e2e8f0',
-  display: 'flex',
-  gap: '0.5rem',
-  justifyContent: 'center',
-  alignItems: 'center',
+  padding: '1rem',
+  textAlign: 'center'
 };
 
 const actionButtonStyle: CSSProperties = {
-  padding: '0.4rem 0.65rem',
-  border: 'none',
-  borderRadius: '0.45rem',
+  width: '36px',
+  height: '36px',
+  borderRadius: '8px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  transition: 'all 0.1s',
+  background: '#fff',
+};
+
+const modalOverlayStyle: CSSProperties = {
+  position: 'fixed',
+  inset: 0,
+  background: 'rgba(0,0,0,0.5)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  zIndex: 100
+};
+
+const modalContentStyle: CSSProperties = {
+  background: '#fff',
+  padding: '1.5rem',
+  borderRadius: '16px',
+  width: '90%',
+  maxWidth: '400px',
+  boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+};
+
+const modalInputStyle: CSSProperties = {
+  width: '100%',
+  padding: '0.75rem',
+  borderRadius: '8px',
+  border: '1px solid #cbd5e1',
+  fontSize: '1rem',
+  outline: 'none'
+};
+
+const submitModalButtonStyle: CSSProperties = {
+  padding: '0.6rem 1.2rem',
+  background: '#1e3a5f',
   color: '#fff',
-  cursor: 'pointer',
-  fontWeight: 700,
-  fontSize: '0.85rem',
-};
-
-const editButtonStyle: CSSProperties = {
-  padding: '0.4rem 0.65rem',
-  borderRadius: '0.45rem',
-  border: '1px solid var(--color-border)',
-  background: 'var(--color-bg-surface)',
-  color: 'var(--color-text-primary)',
-  cursor: 'pointer',
   fontWeight: 600,
-  fontSize: '0.85rem',
+  borderRadius: '8px',
+  border: 'none',
+  cursor: 'pointer'
 };
 
-const cancelButtonStyle: CSSProperties = {
-  padding: '0.3rem 0.6rem',
-  borderRadius: '0.45rem',
-  border: '1px solid rgba(148, 163, 184, 0.6)',
+const cancelModalButtonStyle: CSSProperties = {
+  padding: '0.6rem 1.2rem',
   background: 'transparent',
-  color: 'var(--color-text-muted)',
-  cursor: 'pointer',
-  fontSize: '0.75rem',
+  color: '#64748b',
+  borderRadius: '8px',
+  border: '1px solid #cbd5e1',
+  cursor: 'pointer'
 };

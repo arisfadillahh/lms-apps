@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import { BookOpen, Calendar, FileText, Download } from 'lucide-react';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { getAccessibleLessonsForCoder, getVisibleMaterialsForCoder } from '@/lib/services/coder';
@@ -11,82 +12,92 @@ export default async function CoderMaterialsPage() {
   ]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '3rem' }}>
       <header>
-        <h1 style={{ fontSize: '1.6rem', fontWeight: 600, marginBottom: '0.75rem' }}>Pelajaran &amp; Materi</h1>
-        <p style={{ color: '#64748b' }}>
-          Lihat rangkuman block yang sedang berjalan, slide pembelajaran, dan materi tambahan yang dirilis coach.
+        <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '0.5rem', color: '#1e293b', letterSpacing: '-0.02em' }}>
+          Pelajaran & Materi
+        </h1>
+        <p style={{ color: '#64748b', fontSize: '1.05rem', maxWidth: '800px', lineHeight: 1.6 }}>
+          Akses modul pelajaran, slide presentasi, dan materi tambahan dari coach.
         </p>
       </header>
 
+      {/* 1. Lesson Plans Section */}
       {lessonPlans.map((entry) => {
         const blocksWithLessons = entry.blocks.filter((block) => block.lessons.length > 0);
         return (
           <section key={entry.classId} style={cardStyle}>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1.5rem', color: '#0f172a' }}>{entry.name}</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
+              <span style={{ width: '4px', height: '24px', background: '#3b82f6', borderRadius: '2px' }}></span>
+              <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>{entry.name}</h2>
+            </div>
 
             {blocksWithLessons.length === 0 ? (
-              <p style={{ color: '#6b7280', fontSize: '0.9rem', fontStyle: 'italic' }}>
-                Belum ada materi pelajaran yang tersedia.
-              </p>
+              <div style={emptyStateStyle}>
+                <BookOpen size={32} color="#cbd5e1" />
+                <p>Belum ada materi pelajaran yang tersedia.</p>
+              </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                 {blocksWithLessons.map((block) => (
                   <div key={block.id}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#475569', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ height: '20px', width: '4px', background: '#3b82f6', borderRadius: '4px' }}></span>
+                    <h3 style={{
+                      fontSize: '1.05rem',
+                      fontWeight: 600,
+                      color: '#334155',
+                      marginBottom: '1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.6rem',
+                      background: '#f8fafc',
+                      padding: '0.6rem 1rem',
+                      borderRadius: '8px'
+                    }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6' }}></div>
                       {block.name}
                     </h3>
 
-                    <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '0.75rem' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                    <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.95rem' }}>
                         <thead style={{ background: '#f8fafc' }}>
                           <tr>
                             <th style={thStyle}>Topik Pelajaran</th>
                             <th style={thStyle} className="hide-mobile">Jadwal Sesi</th>
-                            <th style={{ ...thStyle, width: '140px' }}>Aksi</th>
+                            <th style={{ ...thStyle, width: '150px', textAlign: 'center' }}>Aksi</th>
                           </tr>
                         </thead>
                         <tbody>
                           {block.lessons.map((lesson) => (
-                            <tr key={lesson.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <tr key={lesson.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s', background: '#fff' }}>
                               <td style={tdStyle}>
-                                <div style={{ fontWeight: 600, color: '#0f172a', marginBottom: '0.25rem' }}>
-                                  #{lesson.orderIndex + 1} {lesson.title}
+                                <div style={{ fontWeight: 600, color: '#0f172a', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                  <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>#{lesson.orderIndex + 1}</span>
+                                  {lesson.title}
                                 </div>
                                 {lesson.summary && (
-                                  <div style={{ fontSize: '0.85rem', color: '#64748b', maxWidth: '480px', lineHeight: 1.4 }}>
+                                  <div style={{ fontSize: '0.9rem', color: '#64748b', maxWidth: '540px', lineHeight: 1.5 }}>
                                     {lesson.summary}
                                   </div>
                                 )}
-                                <div className="show-mobile" style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#94a3b8' }}>
+                                <div className="show-mobile" style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                  <Calendar size={14} />
                                   {lesson.sessionDate ? new Date(lesson.sessionDate).toLocaleDateString() : 'Belum dijadwalkan'}
                                 </div>
                               </td>
                               <td style={tdStyle} className="hide-mobile">
                                 {lesson.sessionDate ? (
-                                  <span style={{ color: '#334155' }}>
+                                  <span style={{ color: '#334155', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500 }}>
+                                    <Calendar size={16} color="#64748b" />
                                     {new Date(lesson.sessionDate).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })}
                                   </span>
                                 ) : (
-                                  <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>—</span>
+                                  <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.9rem' }}>Belum dijadwalkan</span>
                                 )}
                               </td>
-                              <td style={tdStyle}>
+                              <td style={{ ...tdStyle, textAlign: 'center' }}>
                                 <a
                                   href={`/coder/materials/${lesson.id}`}
-                                  style={{
-                                    display: 'inline-block',
-                                    padding: '0.5rem 1rem',
-                                    borderRadius: '0.5rem',
-                                    background: '#eff6ff',
-                                    color: '#1d4ed8',
-                                    fontWeight: 600,
-                                    fontSize: '0.8rem',
-                                    textDecoration: 'none',
-                                    transition: 'background 0.2s',
-                                    whiteSpace: 'nowrap'
-                                  }}
+                                  style={actionButtonStyle}
                                 >
                                   Buka Materi →
                                 </a>
@@ -104,33 +115,54 @@ export default async function CoderMaterialsPage() {
         );
       })}
 
+      {/* 2. Additional Materials Section */}
       <section style={cardStyle}>
-        <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>Materi Tambahan</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
+          <span style={{ width: '4px', height: '24px', background: '#ec4899', borderRadius: '2px' }}></span>
+          <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Materi Tambahan</h2>
+        </div>
+
         {materialsByClass.length === 0 ? (
-          <p style={{ color: '#6b7280' }}>Belum ada materi tambahan.</p>
+          <div style={emptyStateStyle}>
+            <FileText size={32} color="#cbd5e1" />
+            <p>Belum ada materi tambahan dari coach.</p>
+          </div>
         ) : (
           materialsByClass.map((entry) => (
-            <div key={entry.classId} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 600 }}>{entry.name}</h3>
+            <div key={entry.classId} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#334155' }}>{entry.name}</h3>
               {entry.materials.length === 0 ? (
-                <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Belum ada materi yang dirilis.</p>
+                <p style={{ color: '#94a3b8', fontSize: '0.9rem', fontStyle: 'italic' }}>Belum ada materi yang dirilis.</p>
               ) : (
-                entry.materials.map((material) => (
-                  <div key={material.id} style={materialCard}>
-                    <div>
-                      <strong style={{ color: '#0f172a' }}>{material.title}</strong>
-                      {material.description ? <p style={{ color: '#475569', marginTop: '0.25rem' }}>{material.description}</p> : null}
-                      {material.coach_note ? (
-                        <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>Catatan coach: {material.coach_note}</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+                  {entry.materials.map((material) => (
+                    <div key={material.id} style={materialCardStyle}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                          <div style={{ padding: '0.5rem', background: '#f0f9ff', borderRadius: '8px', color: '#0284c7' }}>
+                            <FileText size={20} />
+                          </div>
+                          <div>
+                            <strong style={{ color: '#1e293b', fontSize: '1rem', display: 'block' }}>{material.title}</strong>
+                            {material.description && <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '0.25rem', lineHeight: 1.4 }}>{material.description}</p>}
+                          </div>
+                        </div>
+                        {material.coach_note ? (
+                          <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: '#fffbeb', borderRadius: '8px', border: '1px solid #fef3c7', fontSize: '0.85rem', color: '#92400e' }}>
+                            <strong>Catatan Coach:</strong> {material.coach_note}
+                          </div>
+                        ) : null}
+                      </div>
+                      {material.file_url ? (
+                        <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
+                          <a href={material.file_url} target="_blank" rel="noreferrer" style={downloadLinkStyle}>
+                            <Download size={16} /> Buka File
+                          </a>
+                        </div>
                       ) : null}
                     </div>
-                    {material.file_url ? (
-                      <a href={material.file_url} target="_blank" rel="noreferrer" style={{ color: '#1e3a5f', fontWeight: 500 }}>
-                        Buka file
-                      </a>
-                    ) : null}
-                  </div>
-                ))
+                  ))}
+                </div>
               )}
             </div>
           ))
@@ -140,90 +172,32 @@ export default async function CoderMaterialsPage() {
   );
 }
 
-function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString();
-}
-
-function getSlideEmbedUrl(url: string): string {
-  try {
-    const parsed = new URL(url);
-    if (parsed.hostname.includes('docs.google.com')) {
-      return url
-        .replace(/\/edit.*$/, '/preview')
-        .replace(/\/view.*$/, '/preview')
-        .replace(/\/present.*$/, '/preview');
-    }
-  } catch {
-    // ignore error and fall through
-  }
-  return url;
-}
-
 const cardStyle: CSSProperties = {
   background: '#ffffff',
-  borderRadius: '0.75rem',
-  border: '1px solid #e5e7eb',
-  padding: '1.25rem 1.5rem',
-  overflowX: 'auto',
+  borderRadius: '16px',
+  border: '1px solid #e2e8f0',
+  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
+  padding: '1.5rem',
 };
 
-const lessonBlockStyle: CSSProperties = {
-  border: '1px solid #e2e8f0',
-  borderRadius: '0.85rem',
-  padding: '1rem 1.1rem',
-  background: '#f8fafc',
+const emptyStateStyle: CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
-  gap: '1rem',
-};
-
-const lessonCardStyle: CSSProperties = {
-  border: '1px solid #e2e8f0',
-  borderRadius: '0.75rem',
-  padding: '0.85rem 1rem',
-  background: '#ffffff',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.75rem',
-  boxShadow: 'var(--shadow-medium)',
-};
-
-const slideContainerStyle: CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.4rem',
-};
-
-const slideFrameStyle: CSSProperties = {
-  width: '100%',
-  minHeight: '320px',
-  border: '1px solid #e2e8f0',
-  borderRadius: '0.75rem',
-};
-
-const slideLinkStyle: CSSProperties = {
-  fontSize: '0.8rem',
-  color: '#1e3a5f',
-  fontWeight: 600,
-  alignSelf: 'flex-start',
-};
-
-const materialCard: CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
   alignItems: 'center',
-  gap: '1rem',
-  padding: '0.85rem 1rem',
-  borderRadius: '0.75rem',
-  border: '1px solid #e2e8f0',
+  justifyContent: 'center',
+  gap: '0.75rem',
+  padding: '3rem',
   background: '#f8fafc',
+  borderRadius: '12px',
+  border: '1px dashed #cbd5e1',
+  color: '#ed8936'
 };
 
 const thStyle: CSSProperties = {
-  padding: '0.75rem 1rem',
+  padding: '1rem',
   fontSize: '0.8rem',
-  color: '#475569',
-  fontWeight: 600,
+  color: '#64748b',
+  fontWeight: 700,
   borderBottom: '1px solid #e2e8f0',
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
@@ -231,6 +205,46 @@ const thStyle: CSSProperties = {
 };
 
 const tdStyle: CSSProperties = {
-  padding: '1rem',
+  padding: '1.25rem 1rem',
   verticalAlign: 'top',
+};
+
+const actionButtonStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '0.4rem',
+  padding: '0.6rem 1rem',
+  borderRadius: '8px',
+  background: '#eff6ff',
+  color: '#3b82f6',
+  fontWeight: 600,
+  fontSize: '0.9rem',
+  textDecoration: 'none',
+  transition: 'all 0.2s',
+  border: '1px solid #dbeafe'
+};
+
+const materialCardStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  padding: '1.25rem',
+  borderRadius: '12px',
+  border: '1px solid #e2e8f0',
+  background: '#ffffff',
+  boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+  transition: 'transform 0.2s, box-shadow 0.2s'
+};
+
+const downloadLinkStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '0.4rem',
+  color: '#0284c7',
+  fontWeight: 600,
+  fontSize: '0.9rem',
+  textDecoration: 'none',
+  padding: '0.5rem 0.8rem',
+  borderRadius: '6px',
+  background: '#f0f9ff',
+  transition: 'background 0.2s'
 };

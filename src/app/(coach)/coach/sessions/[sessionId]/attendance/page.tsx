@@ -1,3 +1,5 @@
+import Link from 'next/link';
+import { Calendar, Monitor, BookOpen } from 'lucide-react';
 import { getSessionOrThrow } from '@/lib/auth';
 import { attendanceDao, classesDao, materialsDao, sessionsDao, usersDao } from '@/lib/dao';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
@@ -21,46 +23,32 @@ export default async function SessionAttendancePage({ params }: PageProps) {
   const sessionId = decodeURIComponent(rawSessionId).trim();
 
   if (!sessionId || !isValidUuid(sessionId)) {
-    return (
-      <div>
-        <h1 style={{ fontSize: '1.4rem', fontWeight: 600 }}>Invalid session</h1>
-        <p style={{ color: '#64748b' }}>Parameter session tidak valid.</p>
-      </div>
-    );
+    return renderError('Session ID tidak valid', 'Parameter URL salah.');
   }
 
   const sessionRecord = await sessionsDao.getSessionById(sessionId);
 
   if (!sessionRecord) {
-    return (
-      <div>
-        <h1 style={{ fontSize: '1.4rem', fontWeight: 600 }}>Session not found</h1>
-      </div>
-    );
+    return renderError('Sesi tidak ditemukan', 'Sesi ini mungkin sudah dihapus.');
   }
 
   const classRecord = await classesDao.getClassById(sessionRecord.class_id);
   if (!classRecord) {
-    return (
-      <div>
-        <h1 style={{ fontSize: '1.4rem', fontWeight: 600 }}>Class not found</h1>
-      </div>
-    );
+    return renderError('Kelas tidak ditemukan', 'Data kelas hilang.');
   }
 
   if (classRecord.coach_id !== session.user.id && sessionRecord.substitute_coach_id !== session.user.id) {
-    return (
-      <div>
-        <h1 style={{ fontSize: '1.4rem', fontWeight: 600 }}>Unauthorized</h1>
-        <p style={{ color: '#64748b' }}>You are not assigned to this session.</p>
-      </div>
-    );
+    return renderError('Akses Ditolak', 'Anda bukan coach untuk sesi ini.');
   }
 
   const [enrollments, classSessions, lessonScheduleMap, materials] = await Promise.all([
-    classesDao.listEnrollmentsByClass(classRecord.id),
+    classesDao.listEnrollmentsByClass(classRecord.id, { includeInactive: true }),
     sessionsDao.listSessionsByClass(classRecord.id),
-    computeLessonSchedule(classRecord.id, classRecord.level_id),
+    computeLessonSchedule(
+      classRecord.id,
+      classRecord.level_id ?? null,
+      (classRecord as any).ekskul_lesson_plan_id
+    ),
     materialsDao.listMaterialsByClass(classRecord.id),
   ]);
 
@@ -84,45 +72,56 @@ export default async function SessionAttendancePage({ params }: PageProps) {
   const currentSessionMap =
     attendanceBySession.get(sessionRecord.id) ?? new Map<string, { status: string; reason: string | null }>();
 
-  const attendees = enrollments.map((enrollment) => ({
-    coderId: enrollment.coder_id,
-    fullName: coderMap.get(enrollment.coder_id) ?? 'Coder',
-    attendance: currentSessionMap.get(enrollment.coder_id)
-      ? {
-        coder_id: enrollment.coder_id,
-        status: currentSessionMap.get(enrollment.coder_id)!.status as any,
-        reason: currentSessionMap.get(enrollment.coder_id)!.reason,
-      }
-      : null,
-  }));
+  // Filter active coders only unless they have attendance record
+  const attendees = enrollments
+    .filter(e => e.status === 'ACTIVE' || currentSessionMap.has(e.coder_id))
+    .map((enrollment) => ({
+      coderId: enrollment.coder_id,
+      fullName: coderMap.get(enrollment.coder_id) ?? 'Unknown Coder',
+      attendance: currentSessionMap.get(enrollment.coder_id)
+        ? {
+          status: currentSessionMap.get(enrollment.coder_id)!.status as any,
+          reason: currentSessionMap.get(enrollment.coder_id)!.reason,
+        }
+        : null,
+    }));
 
   const currentLessonSlot = lessonScheduleMap.get(sessionRecord.id);
   const slideUrl = currentLessonSlot?.lessonTemplate.slide_url ?? null;
   const slideTitle = currentLessonSlot ? formatLessonTitle(currentLessonSlot) : null;
-  const lessonSummary = currentLessonSlot?.lessonTemplate.summary ?? 'No summary available for this lesson.';
+  const lessonSummary = currentLessonSlot?.lessonTemplate.summary ?? 'Tidak ada ringkasan materi.';
 
   const sessionMaterials = materials.filter((m) => m.session_id === sessionId);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <div style={pageContainerStyle}>
       {/* 1. Header with Lesson Title */}
-      <header style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '1.5rem' }}>
-        <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
-          {classRecord.name} • {new Date(sessionRecord.date_time).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' })}
-        </p>
-        <h1 style={{ fontSize: '1.8rem', fontWeight: 700, color: '#1e293b' }}>
-          {slideTitle ?? 'Session Administration'}
+      <div style={{ marginBottom: '1rem' }}>
+        <Link
+          href={`/coach/classes/${classRecord.id}`}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#64748b', fontSize: '0.9rem', fontWeight: 600, textDecoration: 'none', marginBottom: '0.75rem' }}
+        >
+          ← Kembali ke Detail Kelas
+        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
+          <span style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700, background: '#eff6ff', color: '#3b82f6', border: '1px solid #dbeafe' }}>SESSION</span>
+          <span style={{ color: '#64748b', fontSize: '0.9rem', fontWeight: 500 }}>
+            {new Date(sessionRecord.date_time).toLocaleString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+          </span>
+        </div>
+        <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#1e293b', margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+          {slideTitle ?? 'Administrasi Sesi'}
         </h1>
         {currentLessonSlot && (
-          <p style={{ marginTop: '0.5rem', color: '#475569', maxWidth: '800px' }}>
+          <p style={{ marginTop: '0.75rem', color: '#475569', fontSize: '1rem', lineHeight: 1.6, maxWidth: '800px' }}>
+            <BookOpen size={16} style={{ display: 'inline', marginRight: '0.4rem', verticalAlign: 'text-bottom' }} />
             {lessonSummary}
           </p>
         )}
-      </header>
+      </div>
 
       {/* 2. Actions (Start Class, etc) */}
       <section>
-        <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem', color: '#334155' }}>Actions</h2>
         <SessionActions
           sessionId={sessionRecord.id}
           zoomLink={sessionRecord.zoom_link_snapshot}
@@ -132,37 +131,43 @@ export default async function SessionAttendancePage({ params }: PageProps) {
         />
       </section>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem', alignItems: 'start' }}>
         {/* 3. Attendance */}
-        <section style={{ background: '#fff', borderRadius: '1rem', border: '1px solid #e2e8f0', padding: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1.25rem' }}>Absensi Coder</h2>
+        <section style={cardStyle}>
+          <h2 style={sectionTitleStyle}>Absensi Coder</h2>
+          <p style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '0.25rem', marginBottom: '1.25rem' }}>
+            Catat kehadiran siswa untuk sesi ini.
+          </p>
           <AttendanceList sessionId={sessionRecord.id} attendees={attendees} />
         </section>
 
         {/* 4. Documentation / Materials */}
-        <section style={{ background: '#fff', borderRadius: '1rem', border: '1px solid #e2e8f0', padding: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '0.5rem' }}>Dokumentasi & Laporan</h2>
-          <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '1.25rem' }}>
-            Upload foto kelas atau laporan sesi ini.
+        <section style={cardStyle}>
+          <h2 style={sectionTitleStyle}>Dokumentasi & Laporan</h2>
+          <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '1.25rem', marginTop: '0.25rem' }}>
+            Upload foto kelas atau laporan sesi untuk orang tua.
           </p>
 
-          <UploadMaterialForm
-            classId={classRecord.id}
-            sessions={classSessions}
-            defaultSessionId={sessionId}
-          />
+          <div style={{ padding: '1.25rem', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1', marginBottom: '1.5rem' }}>
+            <UploadMaterialForm
+              classId={classRecord.id}
+              sessions={classSessions}
+              defaultSessionId={sessionId}
+            />
+          </div>
 
-          <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#334155' }}>File Sesi Ini</h3>
             {sessionMaterials.length === 0 ? (
-              <p style={{ fontSize: '0.9rem', color: '#94a3b8', fontStyle: 'italic' }}>Belum ada dokumentasi untuk sesi ini.</p>
+              <p style={{ fontSize: '0.9rem', color: '#94a3b8', fontStyle: 'italic' }}>Belum ada dokumentasi diupload.</p>
             ) : (
               sessionMaterials.map(m => (
-                <div key={m.id} style={{ padding: '0.75rem', borderRadius: '0.5rem', background: '#f8fafc', border: '1px solid #f1f5f9' }}>
-                  <div style={{ fontWeight: 500, fontSize: '0.95rem' }}>{m.title}</div>
-                  {m.description && <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{m.description}</div>}
+                <div key={m.id} style={{ padding: '1rem', borderRadius: '12px', background: '#fff', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#1e293b' }}>{m.title}</div>
+                  {m.description && <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.2rem' }}>{m.description}</div>}
                   {m.file_url && (
-                    <a href={m.file_url} target="_blank" rel="noreferrer" style={{ fontSize: '0.85rem', color: '#1e3a5f', display: 'block', marginTop: '0.25rem' }}>
-                      View File
+                    <a href={m.file_url} target="_blank" rel="noreferrer" style={fileLinkStyle}>
+                      📄 Buka File
                     </a>
                   )}
                 </div>
@@ -174,3 +179,51 @@ export default async function SessionAttendancePage({ params }: PageProps) {
     </div>
   );
 }
+
+function renderError(title: string, message: string) {
+  return (
+    <div style={{ padding: '4rem 2rem', textAlign: 'center', maxWidth: '600px', margin: '0 auto' }}>
+      <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b' }}>{title}</h1>
+      <p style={{ color: '#64748b', marginTop: '0.5rem' }}>{message}</p>
+      <Link href="/coach/dashboard" style={{ marginTop: '1.5rem', display: 'inline-block', color: '#3b82f6', fontWeight: 600 }}>← Kembali ke Dashboard</Link>
+    </div>
+  );
+}
+
+// Styles
+const pageContainerStyle: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '2rem',
+  maxWidth: '1200px',
+  width: '100%',
+  margin: '0 auto',
+  padding: '0 1.5rem 3rem',
+};
+
+const cardStyle: React.CSSProperties = {
+  background: '#ffffff',
+  borderRadius: '16px',
+  border: '1px solid #e2e8f0',
+  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+  padding: '1.5rem',
+  width: '100%',
+};
+
+const sectionTitleStyle: React.CSSProperties = {
+  fontSize: '1.2rem',
+  fontWeight: 700,
+  color: '#1e293b',
+  margin: 0
+};
+
+const fileLinkStyle: React.CSSProperties = {
+  fontSize: '0.85rem',
+  color: '#3b82f6',
+  fontWeight: 600,
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '0.3rem',
+  marginTop: '0.5rem',
+  textDecoration: 'none'
+};

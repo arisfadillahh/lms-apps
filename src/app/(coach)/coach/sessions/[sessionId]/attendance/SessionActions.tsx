@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type React from 'react';
+import { Video, BookOpen, CheckCircle, ExternalLink, Play } from 'lucide-react';
 
 import MarkSessionCompleteButton from '@/app/(coach)/coach/classes/[id]/MarkSessionCompleteButton';
 
@@ -12,9 +13,6 @@ type SessionActionsProps = {
   slideUrl?: string | null;
   slideTitle?: string | null;
 };
-
-const DRIVE_UPLOAD_URL =
-  'https://drive.google.com/drive/folders/1ywvqZ3wDPhpQDGwdr4hu4izafyGtCqQc?usp=drive_link';
 
 export default function SessionActions({
   sessionId,
@@ -35,9 +33,11 @@ export default function SessionActions({
   return (
     <>
       <div style={actionsGridStyle}>
-        {/* Main Action Card */}
+        {/* Main Action Card - Zoom */}
         <div style={actionCardStyle}>
-          <div style={iconWrapperStyle}>🎥</div>
+          <div style={{ ...iconWrapperStyle, background: '#eff6ff', color: '#3b82f6' }}>
+            <Video size={24} />
+          </div>
           <div style={{ flex: 1 }}>
             <h3 style={cardTitleStyle}>Kelas Online</h3>
             <p style={cardDescStyle}>Mulai kelas via Zoom</p>
@@ -48,25 +48,26 @@ export default function SessionActions({
             rel="noreferrer"
             style={launchButtonStyle}
           >
-            Mulai Kelas
+            <Play size={16} fill="currentColor" /> Mulai
           </a>
         </div>
 
         {/* Slides Card */}
         <div style={actionCardStyle}>
-          <div style={{ ...iconWrapperStyle, background: 'rgba(147, 51, 234, 0.1)', color: '#9333ea' }}>📑</div>
+          <div style={{ ...iconWrapperStyle, background: '#f5f3ff', color: '#8b5cf6' }}>
+            <BookOpen size={24} />
+          </div>
           <div style={{ flex: 1 }}>
             <h3 style={cardTitleStyle}>Materi & Slide</h3>
-            <p style={cardDescStyle}>{slideTitle ? 'Tersedia' : 'Belum tersedia'}</p>
+            <p style={cardDescStyle}>{slideTitle ? 'Materi tersedia' : 'Belum tersedia'}</p>
           </div>
           <button
             type="button"
             onClick={handleOpenSlides}
             disabled={!slideUrl}
             style={{
-              ...launchButtonStyle,
-              background: slideUrl ? '#9333ea' : '#e2e8f0',
-              color: slideUrl ? '#fff' : '#94a3b8',
+              ...secondaryButtonStyle,
+              opacity: slideUrl ? 1 : 0.5,
               cursor: slideUrl ? 'pointer' : 'not-allowed',
             }}
           >
@@ -77,10 +78,12 @@ export default function SessionActions({
         {/* Status Card */}
         {canComplete ? (
           <div style={actionCardStyle}>
-            <div style={{ ...iconWrapperStyle, background: 'rgba(234, 179, 8, 0.1)', color: '#ca8a04' }}>✓</div>
+            <div style={{ ...iconWrapperStyle, background: '#ecfdf5', color: '#10b981' }}>
+              <CheckCircle size={24} />
+            </div>
             <div style={{ flex: 1 }}>
               <h3 style={cardTitleStyle}>Status Sesi</h3>
-              <p style={cardDescStyle}>Tandai selesai jika sudah</p>
+              <p style={cardDescStyle}>Tandai selesai</p>
             </div>
             <div style={{ transform: 'scale(0.95)', transformOrigin: 'right center' }}>
               <MarkSessionCompleteButton sessionId={sessionId} />
@@ -94,22 +97,32 @@ export default function SessionActions({
           <div style={modalContentStyle}>
             <header style={modalHeaderStyle}>
               <div>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.25rem', color: '#1e293b' }}>
                   Slide Pembelajaran
                 </h3>
                 {slideTitle ? (
-                  <p style={{ fontSize: '0.85rem', color: '#64748b' }}>{slideTitle}</p>
+                  <p style={{ fontSize: '0.9rem', color: '#64748b' }}>{slideTitle}</p>
                 ) : null}
               </div>
-              <button type="button" onClick={() => setShowSlides(false)} style={closeButtonStyle}>
-                Tutup
-              </button>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <a
+                  href={slideUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={externalLinkStyle}
+                >
+                  <ExternalLink size={16} /> Buka di Tab Baru
+                </a>
+                <button type="button" onClick={() => setShowSlides(false)} style={closeButtonStyle}>
+                  Tutup
+                </button>
+              </div>
             </header>
             <div style={modalBodyStyle}>
               <iframe
                 title={slideTitle ?? 'Slide pembelajaran'}
-                src={slideUrl}
-                style={{ width: '100%', height: '100%', border: 'none', borderRadius: '0.75rem' }}
+                src={slideUrl.replace('/pub?', '/embed?')}
+                style={{ width: '100%', height: '100%', border: 'none', borderRadius: '0.75rem', background: '#f1f5f9' }}
                 allow="fullscreen"
                 allowFullScreen
               />
@@ -123,82 +136,74 @@ export default function SessionActions({
 
 const actionsGridStyle: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-  gap: '1rem',
-  marginBottom: '1rem',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+  gap: '1.5rem',
+  marginBottom: '2rem',
 };
 
 const actionCardStyle: React.CSSProperties = {
   background: '#ffffff',
   border: '1px solid #e2e8f0',
-  borderRadius: '0.85rem',
-  padding: '1.25rem',
+  borderRadius: '16px',
+  padding: '1.5rem',
   display: 'flex',
   alignItems: 'center',
   gap: '1rem',
-  boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+  transition: 'transform 0.2s',
 };
 
 const iconWrapperStyle: React.CSSProperties = {
-  width: '3rem',
-  height: '3rem',
-  borderRadius: '0.75rem',
-  background: 'rgba(37, 99, 235, 0.1)',
-  color: '#1e3a5f',
+  width: '3.5rem',
+  height: '3.5rem',
+  borderRadius: '12px',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  fontSize: '1.5rem',
 };
 
 const cardTitleStyle: React.CSSProperties = {
   fontSize: '1rem',
-  fontWeight: 600,
-  color: '#0f172a',
-  marginBottom: '0.2rem',
+  fontWeight: 700,
+  color: '#1e293b',
+  marginBottom: '0.25rem',
 };
 
 const cardDescStyle: React.CSSProperties = {
-  fontSize: '0.85rem',
+  fontSize: '0.9rem',
   color: '#64748b',
-  lineHeight: 1.3,
 };
 
 const launchButtonStyle: React.CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
-  justifyContent: 'center',
-  padding: '0.5rem 1rem',
-  borderRadius: '0.5rem',
-  background: '#1e3a5f',
+  gap: '0.5rem',
+  padding: '0.6rem 1.2rem',
+  borderRadius: '10px',
+  background: '#3b82f6',
   color: '#fff',
   fontWeight: 600,
   fontSize: '0.9rem',
   textDecoration: 'none',
   border: 'none',
   cursor: 'pointer',
-  whiteSpace: 'nowrap',
+  transition: 'background 0.2s',
+  boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.3)'
 };
 
-const primaryButtonStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '0.55rem 1.1rem',
-  borderRadius: '0.5rem',
-  border: '1px solid transparent',
-  color: '#fff',
-  fontWeight: 600,
-  fontSize: '0.95rem',
-  textDecoration: 'none',
-  cursor: 'pointer',
-  transition: 'opacity 0.2s ease',
+const secondaryButtonStyle: React.CSSProperties = {
+  ...launchButtonStyle,
+  background: '#fff',
+  color: '#475569',
+  border: '1px solid #cbd5e1',
+  boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
 };
 
 const modalOverlayStyle: React.CSSProperties = {
   position: 'fixed',
   inset: 0,
-  background: 'rgba(15, 23, 42, 0.6)',
+  background: 'rgba(15, 23, 42, 0.75)',
+  backdropFilter: 'blur(4px)',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -208,10 +213,10 @@ const modalOverlayStyle: React.CSSProperties = {
 
 const modalContentStyle: React.CSSProperties = {
   background: '#fff',
-  borderRadius: '0.85rem',
-  width: 'min(960px, 90vw)',
-  height: 'min(600px, 80vh)',
-  boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.35)',
+  borderRadius: '16px',
+  width: 'min(1000px, 95vw)',
+  height: 'min(700px, 90vh)',
+  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
   display: 'flex',
   flexDirection: 'column',
   overflow: 'hidden',
@@ -221,22 +226,37 @@ const modalHeaderStyle: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  padding: '1rem 1.25rem',
-  borderBottom: '1px solid #e2e8f0',
+  padding: '1.25rem 1.5rem',
+  borderBottom: '1px solid #f1f5f9',
+  background: '#fff'
 };
 
 const closeButtonStyle: React.CSSProperties = {
-  padding: '0.4rem 0.85rem',
-  borderRadius: '0.5rem',
-  border: '1px solid #cbd5f5',
+  padding: '0.5rem 1rem',
+  borderRadius: '8px',
+  border: '1px solid #e2e8f0',
   background: '#f8fafc',
-  color: '#0f172a',
+  color: '#475569',
   fontWeight: 600,
   cursor: 'pointer',
+  fontSize: '0.9rem'
+};
+
+const externalLinkStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.5rem',
+  color: '#3b82f6',
+  fontWeight: 600,
+  fontSize: '0.9rem',
+  textDecoration: 'none',
+  padding: '0.5rem 1rem',
+  borderRadius: '8px',
+  background: '#eff6ff'
 };
 
 const modalBodyStyle: React.CSSProperties = {
   flex: 1,
-  padding: '1rem 1.25rem 1.25rem',
-  background: '#f1f5f9',
+  padding: '0',
+  background: '#000',
 };

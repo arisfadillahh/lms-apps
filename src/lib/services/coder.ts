@@ -621,7 +621,7 @@ export async function getLessonDetailForCoder(coderId: string, lessonId: string)
       class_block_id: 'EKSKUL', // Dummy
       lesson_template_id: null,
       title: ekskulLesson.title,
-      summary: null, // No description in type
+      summary: ekskulLesson.summary,
       order_index: ekskulLesson.order_index ?? 0,
       session_id: null,
       unlock_at: null,

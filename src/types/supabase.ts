@@ -32,6 +32,8 @@ export interface Database {
           address: string | null;
           notes: string | null;
           referral_source: string | null;
+          // Admin permissions (for ADMIN role only)
+          admin_permissions: { menus: string[]; is_superadmin: boolean } | null;
         };
         Insert: {
           id?: string;
@@ -53,6 +55,8 @@ export interface Database {
           address?: string | null;
           notes?: string | null;
           referral_source?: string | null;
+          // Admin permissions
+          admin_permissions?: { menus: string[]; is_superadmin: boolean } | null;
         };
         Update: Partial<Database['public']['Tables']['users']['Insert']>;
         Relationships: [];

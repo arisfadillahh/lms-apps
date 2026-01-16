@@ -4,27 +4,34 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import type { CSSProperties } from 'react';
-import { Home, Users, GraduationCap, BookOpen, CalendarOff, FileText, MessageCircle, Package, Image as ImageIcon, Wallet, BookMarked, Megaphone, Settings, LogOut } from 'lucide-react';
+import { Home, Users, GraduationCap, BookOpen, CalendarOff, FileText, MessageCircle, Package, Image as ImageIcon, Wallet, BookMarked, Megaphone } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { isSuperAdmin, type AdminPermissions } from '@/lib/permissions';
 
-
+// Map menu IDs to nav link data
 const NAV_LINKS = [
-    { href: '/admin/dashboard', label: 'Dashboard', icon: Home },
-    { href: '/admin/users', label: 'Pengguna', icon: Users },
-    { href: '/admin/classes', label: 'Kelas', icon: GraduationCap },
-    { href: '/admin/curriculum', label: 'Kurikulum', icon: BookOpen },
-    { href: '/admin/ekskul', label: 'Ekskul Plans', icon: BookMarked },
-    { href: '/admin/payments', label: 'Pembayaran', icon: Wallet },
-    { href: '/admin/software', label: 'Software', icon: Package },
-    { href: '/admin/banners', label: 'Banner', icon: ImageIcon },
-    { href: '/admin/leave', label: 'Izin Coach', icon: CalendarOff },
-    { href: '/admin/reports', label: 'Laporan', icon: FileText },
-    { href: '/admin/whatsapp', label: 'WhatsApp', icon: MessageCircle },
-    { href: '/admin/broadcast', label: 'Broadcast', icon: Megaphone },
+    { id: 'dashboard', href: '/admin/dashboard', label: 'Dashboard', icon: Home },
+    { id: 'users', href: '/admin/users', label: 'Pengguna', icon: Users },
+    { id: 'classes', href: '/admin/classes', label: 'Kelas', icon: GraduationCap },
+    { id: 'curriculum', href: '/admin/curriculum', label: 'Kurikulum', icon: BookOpen },
+    { id: 'ekskul', href: '/admin/ekskul', label: 'Ekskul Plans', icon: BookMarked },
+    { id: 'payments', href: '/admin/payments', label: 'Pembayaran', icon: Wallet },
+    { id: 'software', href: '/admin/software', label: 'Software', icon: Package },
+    { id: 'banners', href: '/admin/banners', label: 'Banner', icon: ImageIcon },
+    { id: 'leave', href: '/admin/leave', label: 'Izin Coach', icon: CalendarOff },
+    { id: 'reports', href: '/admin/reports', label: 'Laporan', icon: FileText },
+    { id: 'whatsapp', href: '/admin/whatsapp', label: 'WhatsApp', icon: MessageCircle },
+    { id: 'broadcast', href: '/admin/broadcast', label: 'Broadcast', icon: Megaphone },
 ];
 
 type AdminSidebarProps = {
-    session: { user: { fullName: string } } | null;
+    session: {
+        user: {
+            fullName: string;
+            username?: string;
+            adminPermissions?: AdminPermissions;
+        };
+    } | null;
 };
 
 const container = {
@@ -42,6 +49,23 @@ const item = {
 
 export default function AdminSidebar({ session }: AdminSidebarProps) {
     const pathname = usePathname();
+
+    // Get filtered nav links based on permissions
+    const username = session?.user?.username ?? 'admin';
+    const permissions = session?.user?.adminPermissions ?? null;
+
+    const filteredLinks = NAV_LINKS.filter((link) => {
+        // Dashboard is always accessible
+        if (link.id === 'dashboard') return true;
+
+        // Superadmin sees all
+        if (isSuperAdmin(username, permissions)) return true;
+
+        // Check if menu is in allowed list
+        if (permissions?.menus?.includes(link.id)) return true;
+
+        return false;
+    });
 
     return (
         <aside className="admin-sidebar" style={sidebarStyle}>
@@ -73,7 +97,7 @@ export default function AdminSidebar({ session }: AdminSidebarProps) {
                 animate="show"
                 style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}
             >
-                {NAV_LINKS.map((link) => {
+                {filteredLinks.map((link) => {
                     const isActive = pathname.startsWith(link.href);
                     const Icon = link.icon;
                     return (

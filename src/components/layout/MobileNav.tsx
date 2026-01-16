@@ -6,26 +6,28 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Menu, X, Home, Users, GraduationCap, BookOpen, CalendarOff, FileText, MessageCircle, Package, Image as ImageIcon, Wallet, BookMarked, Megaphone, ClipboardCheck, FileUp, LucideIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { isSuperAdmin, type AdminPermissions } from '@/lib/permissions';
 
 type NavLink = {
+    id?: string;  // Menu ID for permission checking
     href: string;
     label: string;
     icon: LucideIcon;
 };
 
 const ADMIN_LINKS: NavLink[] = [
-    { href: '/admin/dashboard', label: 'Dashboard', icon: Home },
-    { href: '/admin/users', label: 'Pengguna', icon: Users },
-    { href: '/admin/classes', label: 'Kelas', icon: GraduationCap },
-    { href: '/admin/curriculum', label: 'Kurikulum', icon: BookOpen },
-    { href: '/admin/ekskul', label: 'Ekskul Plans', icon: BookMarked },
-    { href: '/admin/payments', label: 'Pembayaran', icon: Wallet },
-    { href: '/admin/software', label: 'Software', icon: Package },
-    { href: '/admin/banners', label: 'Banner', icon: ImageIcon },
-    { href: '/admin/leave', label: 'Izin Coach', icon: CalendarOff },
-    { href: '/admin/reports', label: 'Laporan', icon: FileText },
-    { href: '/admin/whatsapp', label: 'WhatsApp', icon: MessageCircle },
-    { href: '/admin/broadcast', label: 'Broadcast', icon: Megaphone },
+    { id: 'dashboard', href: '/admin/dashboard', label: 'Dashboard', icon: Home },
+    { id: 'users', href: '/admin/users', label: 'Pengguna', icon: Users },
+    { id: 'classes', href: '/admin/classes', label: 'Kelas', icon: GraduationCap },
+    { id: 'curriculum', href: '/admin/curriculum', label: 'Kurikulum', icon: BookOpen },
+    { id: 'ekskul', href: '/admin/ekskul', label: 'Ekskul Plans', icon: BookMarked },
+    { id: 'payments', href: '/admin/payments', label: 'Pembayaran', icon: Wallet },
+    { id: 'software', href: '/admin/software', label: 'Software', icon: Package },
+    { id: 'banners', href: '/admin/banners', label: 'Banner', icon: ImageIcon },
+    { id: 'leave', href: '/admin/leave', label: 'Izin Coach', icon: CalendarOff },
+    { id: 'reports', href: '/admin/reports', label: 'Laporan', icon: FileText },
+    { id: 'whatsapp', href: '/admin/whatsapp', label: 'WhatsApp', icon: MessageCircle },
+    { id: 'broadcast', href: '/admin/broadcast', label: 'Broadcast', icon: Megaphone },
 ];
 
 const COACH_LINKS: NavLink[] = [
@@ -44,13 +46,35 @@ const CODER_LINKS: NavLink[] = [
 
 type MobileNavProps = {
     role: 'ADMIN' | 'COACH' | 'CODER';
+    username?: string;
+    adminPermissions?: AdminPermissions;
 };
 
-export default function MobileNav({ role }: MobileNavProps) {
+export default function MobileNav({ role, username = '', adminPermissions = null }: MobileNavProps) {
     const [isOpen, setIsOpen] = useState(false);
     const pathname = usePathname();
 
-    const links = role === 'ADMIN' ? ADMIN_LINKS : role === 'COACH' ? COACH_LINKS : CODER_LINKS;
+    // Get links based on role
+    let links: NavLink[] = [];
+    if (role === 'ADMIN') {
+        // Filter admin links based on permissions
+        links = ADMIN_LINKS.filter((link) => {
+            // Dashboard always accessible
+            if (link.id === 'dashboard') return true;
+
+            // Superadmin sees all
+            if (isSuperAdmin(username, adminPermissions)) return true;
+
+            // Check permissions
+            if (adminPermissions?.menus?.includes(link.id!)) return true;
+
+            return false;
+        });
+    } else if (role === 'COACH') {
+        links = COACH_LINKS;
+    } else {
+        links = CODER_LINKS;
+    }
 
     return (
         <>

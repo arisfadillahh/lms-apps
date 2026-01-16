@@ -45,6 +45,33 @@ body {
   height: 100%;
 }
 
+/* Mobile: Only body should scroll, main content should not have its own scrollbar */
+@media (max-width: 768px) {
+  html {
+    height: auto;
+    overflow: visible;
+  }
+
+  body {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  #__next {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  /* Prevent main content areas from having their own scrollbar */
+  .admin-main-content,
+  .coach-main-content,
+  .coder-main-content {
+    overflow-y: visible !important;
+    height: auto !important;
+    min-height: auto !important;
+  }
+}
+
 /* Custom Scrollbar Styling */
 ::-webkit-scrollbar {
   width: 8px;

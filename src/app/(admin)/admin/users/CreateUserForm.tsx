@@ -6,9 +6,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Shield } from 'lucide-react';
 
 import { createUserSchema, roleEnum } from '@/lib/validation/admin';
+import { ADMIN_MENUS } from '@/lib/permissions';
 
 const formSchema = createUserSchema.extend({
   isActive: z.boolean(),
@@ -20,6 +21,7 @@ export default function CreateUserForm() {
   const router = useRouter();
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [selectedMenus, setSelectedMenus] = useState<string[]>([]);
 
   const {
     register,
@@ -41,15 +43,43 @@ export default function CreateUserForm() {
 
   const selectedRole = watch('role');
 
+  const handleMenuToggle = (menuId: string) => {
+    setSelectedMenus((prev) =>
+      prev.includes(menuId)
+        ? prev.filter((id) => id !== menuId)
+        : [...prev, menuId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedMenus.length === ADMIN_MENUS.length) {
+      setSelectedMenus([]);
+    } else {
+      setSelectedMenus(ADMIN_MENUS.map((m) => m.id));
+    }
+  };
+
   const onSubmit = async (values: FormValues) => {
     setStatusMessage(null);
     setErrorMessage(null);
 
     try {
+      // Build admin permissions if role is ADMIN
+      let adminPermissions = null;
+      if (values.role === 'ADMIN' && selectedMenus.length > 0) {
+        adminPermissions = {
+          menus: selectedMenus,
+          is_superadmin: false,
+        };
+      }
+
       const response = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          ...values,
+          adminPermissions,
+        }),
       });
 
       if (!response.ok) {
@@ -60,6 +90,7 @@ export default function CreateUserForm() {
 
       setStatusMessage('User created successfully');
       reset({ username: '', password: '', role: values.role, fullName: '', parentContactPhone: undefined, isActive: true });
+      setSelectedMenus([]);
       router.refresh();
       // Auto-hide success message
       setTimeout(() => setStatusMessage(null), 3000);
@@ -132,6 +163,71 @@ export default function CreateUserForm() {
             <label style={labelStyle}>Nomor WhatsApp Orang Tua</label>
             <input style={inputStyle} type="text" placeholder="Contoh: +628123456789" {...register('parentContactPhone')} />
             {errors.parentContactPhone ? <span style={errorStyle}>{errors.parentContactPhone.message}</span> : null}
+          </div>
+        )}
+
+        {/* Admin Permissions Section */}
+        {selectedRole === 'ADMIN' && (
+          <div style={{ gridColumn: '1 / -1', background: '#f8fafc', borderRadius: '12px', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Shield size={18} color="#3b82f6" />
+                <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.95rem' }}>Akses Menu Admin</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleSelectAll}
+                style={{
+                  padding: '0.4rem 0.75rem',
+                  fontSize: '0.8rem',
+                  background: selectedMenus.length === ADMIN_MENUS.length ? '#fee2e2' : '#dbeafe',
+                  color: selectedMenus.length === ADMIN_MENUS.length ? '#dc2626' : '#1d4ed8',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                }}
+              >
+                {selectedMenus.length === ADMIN_MENUS.length ? 'Hapus Semua' : 'Pilih Semua'}
+              </button>
+            </div>
+            <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1rem' }}>
+              Kosongkan untuk memberikan akses penuh (Superadmin). Pilih menu tertentu untuk membatasi akses.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '0.5rem' }}>
+              {ADMIN_MENUS.filter(m => m.id !== 'dashboard').map((menu) => (
+                <label
+                  key={menu.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.6rem 0.75rem',
+                    background: selectedMenus.includes(menu.id) ? '#eff6ff' : '#fff',
+                    border: `1px solid ${selectedMenus.includes(menu.id) ? '#3b82f6' : '#e2e8f0'}`,
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    color: selectedMenus.includes(menu.id) ? '#1d4ed8' : '#475569',
+                    fontWeight: selectedMenus.includes(menu.id) ? 600 : 400,
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedMenus.includes(menu.id)}
+                    onChange={() => handleMenuToggle(menu.id)}
+                    style={{ width: '1rem', height: '1rem', accentColor: '#3b82f6' }}
+                  />
+                  {menu.label}
+                </label>
+              ))}
+            </div>
+            {selectedMenus.length > 0 && (
+              <p style={{ fontSize: '0.8rem', color: '#059669', marginTop: '0.75rem', fontWeight: 500 }}>
+                ✓ Akses terbatas: {selectedMenus.length} menu dipilih (+ Dashboard)
+              </p>
+            )}
           </div>
         )}
 

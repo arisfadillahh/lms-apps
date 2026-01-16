@@ -1,5 +1,7 @@
 import type { Role } from '@/types/supabase';
 
+type AdminPermissions = { menus: string[]; is_superadmin: boolean } | null;
+
 declare module 'next-auth' {
   interface Session {
     user: {
@@ -8,6 +10,7 @@ declare module 'next-auth' {
       fullName: string;
       role: Role;
       isActive: boolean;
+      adminPermissions?: AdminPermissions;
     };
   }
 
@@ -17,6 +20,7 @@ declare module 'next-auth' {
     fullName: string;
     role: Role;
     isActive: boolean;
+    adminPermissions?: AdminPermissions;
   }
 }
 
@@ -27,7 +31,8 @@ declare module 'next-auth/jwt' {
     fullName: string;
     role: Role;
     isActive: boolean;
+    adminPermissions?: AdminPermissions;
   }
 }
 
-export {};
+export { };

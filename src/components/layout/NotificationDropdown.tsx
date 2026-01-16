@@ -128,6 +128,7 @@ export default function NotificationDropdown() {
                 <AnimatePresence>
                     {isOpen && (
                         <motion.div
+                            className="notification-dropdown"
                             initial={{ opacity: 0, y: 10, scale: 0.95 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -339,6 +340,18 @@ export default function NotificationDropdown() {
                 }
                 .notif-content p {
                     margin-bottom: 1rem;
+                }
+                
+                /* Mobile responsive notification dropdown */
+                @media (max-width: 768px) {
+                    .notification-dropdown {
+                        position: fixed !important;
+                        left: 1rem !important;
+                        right: 1rem !important;
+                        top: 4rem !important;
+                        width: auto !important;
+                        max-width: calc(100vw - 2rem) !important;
+                    }
                 }
             `}</style>
         </>

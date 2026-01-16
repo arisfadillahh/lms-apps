@@ -12,7 +12,9 @@ type UserSession = {
     id: string;
     fullName: string;
     role: string;
+    username?: string;
     avatarPath?: string | null;
+    adminPermissions?: { menus: string[]; is_superadmin: boolean } | null;
 };
 
 export default function DashboardHeader({ user }: { user: UserSession }) {
@@ -62,7 +64,11 @@ export default function DashboardHeader({ user }: { user: UserSession }) {
                 }}
             >
                 {/* Mobile Navigation - Hamburger Menu */}
-                <MobileNav role={user.role as 'ADMIN' | 'COACH' | 'CODER'} />
+                <MobileNav
+                    role={user.role as 'ADMIN' | 'COACH' | 'CODER'}
+                    username={user.username}
+                    adminPermissions={user.adminPermissions}
+                />
 
                 {/* Spacer for right alignment */}
                 <div style={{ flex: 1 }}></div>

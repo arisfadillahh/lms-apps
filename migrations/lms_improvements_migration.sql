@@ -92,3 +92,15 @@ CREATE POLICY "Admin can manage broadcast logs" ON broadcast_logs
 -- 3. Inserted default WhatsApp templates
 -- 4. Added RLS policies for new tables
 -- =====================================================
+
+-- =====================================================
+-- ADMIN PERMISSIONS SYSTEM
+-- =====================================================
+-- Add admin_permissions column to users table for role-based menu access
+-- NULL = superadmin (full access), used for "admin" username
+-- JSON structure: {"menus": ["users", "classes", ...], "is_superadmin": false}
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_permissions jsonb DEFAULT NULL;
+
+-- Add comment for documentation
+COMMENT ON COLUMN users.admin_permissions IS 'JSON object with menu permissions for ADMIN users. NULL = superadmin (full access). Structure: {"menus": string[], "is_superadmin": boolean}';

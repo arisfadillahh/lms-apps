@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 
 import { SessionProvider } from '@/components/providers/SessionProvider';
+import MobileScrollFix from '@/components/layout/MobileScrollFix';
 
 const geistSans = Geist({
   subsets: ['latin'],
@@ -27,6 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
+        <MobileScrollFix />
         <SessionProvider>{children}</SessionProvider>
       </body>
     </html>

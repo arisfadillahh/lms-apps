@@ -13,6 +13,7 @@ export type AppSession = Session & {
     fullName: string;
     role: Role;
     isActive: boolean;
+    adminPermissions?: { menus: string[]; is_superadmin: boolean } | null;
   };
 };
 

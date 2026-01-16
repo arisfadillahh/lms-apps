@@ -9,7 +9,7 @@ import type { Role } from '@/types/supabase';
 
 type UserRecord = Pick<
   TablesRow<'users'>,
-  'id' | 'username' | 'password_hash' | 'full_name' | 'role' | 'is_active'
+  'id' | 'username' | 'password_hash' | 'full_name' | 'role' | 'is_active' | 'admin_permissions'
 >;
 
 const normalizedNextAuthUrl = normalizeLocalhostUrl(process.env.NEXTAUTH_URL);
@@ -67,7 +67,7 @@ export const authOptions: NextAuthOptions = {
         const supabase = getSupabaseAdmin();
         const { data, error } = await supabase
           .from('users')
-          .select('id, username, password_hash, full_name, role, is_active')
+          .select('id, username, password_hash, full_name, role, is_active, admin_permissions')
           .eq('username', username)
           .maybeSingle();
 
@@ -111,6 +111,7 @@ export const authOptions: NextAuthOptions = {
           fullName: user.full_name,
           role: normalizedRole,
           isActive: user.is_active,
+          adminPermissions: user.admin_permissions ?? null,
         };
       },
     }),
@@ -124,12 +125,14 @@ export const authOptions: NextAuthOptions = {
           fullName: string;
           role: Role;
           isActive: boolean;
+          adminPermissions?: { menus: string[]; is_superadmin: boolean } | null;
         };
         token.userId = typedUser.id;
         token.username = typedUser.username;
         token.role = typedUser.role;
         token.fullName = typedUser.fullName;
         token.isActive = typedUser.isActive;
+        token.adminPermissions = typedUser.adminPermissions ?? null;
       }
       return token;
     },
@@ -143,6 +146,7 @@ export const authOptions: NextAuthOptions = {
       session.user.role = token.role as Role;
       session.user.fullName = (token.fullName as string) ?? '';
       session.user.isActive = Boolean(token.isActive);
+      session.user.adminPermissions = (token.adminPermissions as { menus: string[]; is_superadmin: boolean } | null) ?? null;
 
       return session;
     },

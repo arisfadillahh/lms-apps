@@ -49,6 +49,9 @@ export default async function CoachLayout({ children }: { children: ReactNode })
             padding: 1rem !important;
             max-width: 100vw !important;
             overflow-x: hidden !important;
+            overflow-y: visible !important;
+            min-height: auto !important;
+            height: auto !important;
           }
           .coach-sidebar {
             display: none !important;

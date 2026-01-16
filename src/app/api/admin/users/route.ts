@@ -23,6 +23,8 @@ export async function POST(request: NextRequest) {
   }
 
   const input = parsed.data;
+  const bodyData = body as Record<string, unknown>;
+  const adminPermissions = bodyData.adminPermissions as { menus: string[]; is_superadmin: boolean } | null | undefined;
 
   const existing = await usersDao.getUserByUsername(input.username);
   if (existing) {
@@ -37,6 +39,7 @@ export async function POST(request: NextRequest) {
     fullName: input.fullName,
     parentContactPhone: input.parentContactPhone,
     isActive: input.isActive,
+    adminPermissions: input.role === 'ADMIN' ? (adminPermissions ?? null) : null,
   });
 
   return NextResponse.json(

@@ -1,5 +1,9 @@
+'use client';
+
+import { useState, useMemo } from 'react';
 import type { CSSProperties } from 'react';
 import type { UserSummary } from '@/lib/dao/usersDao';
+import { Search, Filter, X } from 'lucide-react';
 
 import ResetPasswordButton from './ResetPasswordButton';
 import ToggleActiveButton from './ToggleActiveButton';
@@ -10,21 +14,104 @@ interface UsersTableProps {
   users: UserSummary[];
 }
 
+type RoleFilter = 'ALL' | 'ADMIN' | 'COACH' | 'CODER';
+type StatusFilter = 'ALL' | 'ACTIVE' | 'INACTIVE';
+
 export default function UsersTable({ users }: UsersTableProps) {
-  const sorted = [...users].sort((a, b) => a.full_name.localeCompare(b.full_name));
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
+
+  // Filter and sort users
+  const filteredUsers = useMemo(() => {
+    return users
+      .filter((user) => {
+        // Search filter
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase();
+          const matchesName = user.full_name.toLowerCase().includes(query);
+          const matchesUsername = user.username.toLowerCase().includes(query);
+          if (!matchesName && !matchesUsername) return false;
+        }
+
+        // Role filter
+        if (roleFilter !== 'ALL' && user.role !== roleFilter) return false;
+
+        // Status filter
+        if (statusFilter === 'ACTIVE' && !user.is_active) return false;
+        if (statusFilter === 'INACTIVE' && user.is_active) return false;
+
+        return true;
+      })
+      .sort((a, b) => a.full_name.localeCompare(b.full_name));
+  }, [users, searchQuery, roleFilter, statusFilter]);
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setRoleFilter('ALL');
+    setStatusFilter('ALL');
+  };
+
+  const hasActiveFilters = searchQuery || roleFilter !== 'ALL' || statusFilter !== 'ALL';
 
   return (
-    <section style={{
-      background: '#ffffff',
-      borderRadius: '16px',
-      border: '1px solid #e2e8f0',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-      overflow: 'hidden'
-    }}>
-      <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #f1f5f9' }}>
-        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Daftar Pengguna</h3>
+    <section style={sectionStyle}>
+      {/* Header with Filters */}
+      <div style={headerStyle}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <h3 style={titleStyle}>Daftar Pengguna</h3>
+          <span style={countBadgeStyle}>{filteredUsers.length} dari {users.length}</span>
+        </div>
+
+        {/* Filter Controls */}
+        <div style={filtersContainerStyle}>
+          {/* Search Input */}
+          <div style={searchContainerStyle}>
+            <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }} />
+            <input
+              type="text"
+              placeholder="Cari nama atau username..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={searchInputStyle}
+            />
+          </div>
+
+          {/* Role Filter */}
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value as RoleFilter)}
+            style={selectStyle}
+          >
+            <option value="ALL">Semua Role</option>
+            <option value="ADMIN">Admin</option>
+            <option value="COACH">Coach</option>
+            <option value="CODER">Coder</option>
+          </select>
+
+          {/* Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+            style={selectStyle}
+          >
+            <option value="ALL">Semua Status</option>
+            <option value="ACTIVE">Aktif</option>
+            <option value="INACTIVE">Nonaktif</option>
+          </select>
+
+          {/* Clear Filters */}
+          {hasActiveFilters && (
+            <button onClick={clearFilters} style={clearButtonStyle}>
+              <X size={14} />
+              Reset
+            </button>
+          )}
+        </div>
       </div>
-      <div style={{ overflowX: 'auto' }}>
+
+      {/* Table */}
+      <div className="users-table-wrapper" style={{ overflowX: 'auto', overflowY: 'visible' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead style={{ background: '#f8fafc', textAlign: 'left' }}>
             <tr>
@@ -37,15 +124,15 @@ export default function UsersTable({ users }: UsersTableProps) {
             </tr>
           </thead>
           <tbody>
-            {sorted.length === 0 ? (
+            {filteredUsers.length === 0 ? (
               <tr>
                 <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
-                  Belum ada data pengguna.
+                  {hasActiveFilters ? 'Tidak ada pengguna yang sesuai filter.' : 'Belum ada data pengguna.'}
                 </td>
               </tr>
             ) : (
-              sorted.map((user) => (
-                <tr key={user.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }} className="hover:bg-slate-50">
+              filteredUsers.map((user) => (
+                <tr key={user.id} style={trStyle}>
                   <td style={tdStyle}>
                     <div style={{ fontWeight: 600, color: '#1e293b' }}>{user.full_name}</div>
                   </td>
@@ -90,9 +177,98 @@ export default function UsersTable({ users }: UsersTableProps) {
           </tbody>
         </table>
       </div>
+
+      {/* Responsive CSS */}
+      <style>{`
+        @media (max-width: 768px) {
+          .users-filters {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+        }
+      `}</style>
     </section>
   );
 }
+
+// Styles
+const sectionStyle: CSSProperties = {
+  background: '#ffffff',
+  borderRadius: '16px',
+  border: '1px solid #e2e8f0',
+  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+  overflow: 'hidden',
+};
+
+const headerStyle: CSSProperties = {
+  padding: '1.25rem 1.5rem',
+  borderBottom: '1px solid #f1f5f9',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'flex-start',
+  flexWrap: 'wrap',
+  gap: '1rem',
+};
+
+const titleStyle: CSSProperties = {
+  fontSize: '1.1rem',
+  fontWeight: 700,
+  color: '#1e293b',
+  margin: 0,
+};
+
+const countBadgeStyle: CSSProperties = {
+  fontSize: '0.75rem',
+  color: '#64748b',
+  background: '#f1f5f9',
+  padding: '0.25rem 0.6rem',
+  borderRadius: '999px',
+};
+
+const filtersContainerStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.75rem',
+  flexWrap: 'wrap',
+};
+
+const searchContainerStyle: CSSProperties = {
+  position: 'relative',
+};
+
+const searchInputStyle: CSSProperties = {
+  padding: '0.6rem 0.75rem 0.6rem 2.25rem',
+  fontSize: '0.85rem',
+  border: '1px solid #e2e8f0',
+  borderRadius: '8px',
+  outline: 'none',
+  width: '200px',
+  background: '#f8fafc',
+};
+
+const selectStyle: CSSProperties = {
+  padding: '0.6rem 0.75rem',
+  fontSize: '0.85rem',
+  border: '1px solid #e2e8f0',
+  borderRadius: '8px',
+  outline: 'none',
+  background: '#f8fafc',
+  cursor: 'pointer',
+};
+
+const clearButtonStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '0.35rem',
+  padding: '0.6rem 0.75rem',
+  fontSize: '0.85rem',
+  background: '#fee2e2',
+  color: '#dc2626',
+  border: 'none',
+  borderRadius: '8px',
+  cursor: 'pointer',
+  fontWeight: 500,
+};
 
 const thStyle: CSSProperties = {
   padding: '1rem 1.5rem',
@@ -109,4 +285,9 @@ const tdStyle: CSSProperties = {
   fontSize: '0.9rem',
   color: '#334155',
   verticalAlign: 'middle',
+};
+
+const trStyle: CSSProperties = {
+  borderBottom: '1px solid #f1f5f9',
+  transition: 'background 0.2s',
 };

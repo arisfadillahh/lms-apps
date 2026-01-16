@@ -13,6 +13,7 @@ export type CreateUserInput = {
   fullName: string;
   parentContactPhone?: string | null;
   isActive?: boolean;
+  adminPermissions?: { menus: string[]; is_superadmin: boolean } | null;
 };
 
 export async function getUserById(id: string): Promise<UserRecord | null> {
@@ -50,6 +51,7 @@ export async function createUser(input: CreateUserInput): Promise<UserRecord> {
     full_name: input.fullName,
     parent_contact_phone: input.parentContactPhone ?? null,
     is_active: input.isActive ?? true,
+    admin_permissions: input.adminPermissions ?? null,
   };
 
   const { data, error } = await supabase.from('users').insert(payload).select('*').single();

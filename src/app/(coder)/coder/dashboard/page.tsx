@@ -64,12 +64,12 @@ export default async function CoderDashboardPage() {
   return (
     <div style={containerStyle}>
       {/* Main Content - 2 Column Layout */}
-      <div style={mainGridStyle}>
+      <div className="coder-main-grid" style={mainGridStyle}>
         {/* Left Column - Main Content */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
           {/* Welcome Banner */}
-          <div style={welcomeBannerStyle}>
+          <div className="coder-welcome-banner" style={welcomeBannerStyle}>
             <div style={{ position: 'relative', zIndex: 1 }}>
               <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)', marginBottom: '0.25rem' }}>
                 {todayDate}
@@ -108,7 +108,7 @@ export default async function CoderDashboardPage() {
             </div>
 
             {upcomingBlocks.length > 0 ? (
-              <div style={coursesGridStyle}>
+              <div className="coder-courses-grid" style={coursesGridStyle}>
                 {upcomingBlocks.map(({ classId, className, classType, block }) => {
                   const progressPct = Math.round(Math.random() * 60 + 20); // Placeholder
                   const bgColors = ['#fef9c3', '#dbeafe', '#fce7f3', '#dcfce7'];
@@ -150,7 +150,7 @@ export default async function CoderDashboardPage() {
           {upcomingBlocks.some(b => b.block.software && b.block.software.length > 0) && (
             <section>
               <h2 style={sectionTitleStyle}>📦 Software</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
+              <div className="coder-software-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
                 {upcomingBlocks.flatMap(b => b.block.software || []).slice(0, 4).map(sw => (
                   <div key={sw.id} style={softwareCardStyle}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -233,6 +233,30 @@ export default async function CoderDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Responsive Styles */}
+      <style>{`
+        @media (max-width: 1024px) {
+          .coder-main-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .coder-welcome-banner {
+            padding: 1.5rem !important;
+            min-height: auto !important;
+          }
+          .coder-welcome-banner h1 {
+            font-size: 1.25rem !important;
+          }
+          .coder-courses-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .coder-software-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

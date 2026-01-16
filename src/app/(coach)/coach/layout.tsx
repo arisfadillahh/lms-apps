@@ -26,6 +26,7 @@ export default async function CoachLayout({ children }: { children: ReactNode })
     <div style={{ minHeight: '100vh', display: 'flex', background: '#F5F7FA' }}>
       <CoachSidebar session={session} />
       <main
+        className="coach-main-content"
         style={{
           flex: 1,
           marginLeft: '240px',
@@ -39,6 +40,21 @@ export default async function CoachLayout({ children }: { children: ReactNode })
         <DashboardHeader user={userForHeader} />
         <PageTransition>{children}</PageTransition>
       </main>
+
+      {/* Responsive CSS for mobile */}
+      <style>{`
+        @media (max-width: 768px) {
+          .coach-main-content {
+            margin-left: 0 !important;
+            padding: 1rem !important;
+            max-width: 100vw !important;
+            overflow-x: hidden !important;
+          }
+          .coach-sidebar {
+            display: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

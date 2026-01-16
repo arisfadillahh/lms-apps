@@ -44,7 +44,7 @@ export default function AdminSidebar({ session }: AdminSidebarProps) {
     const pathname = usePathname();
 
     return (
-        <aside style={sidebarStyle}>
+        <aside className="admin-sidebar" style={sidebarStyle}>
             <style>{`aside::-webkit-scrollbar { display: none; }`}</style>
 
             {/* Logo */}
@@ -99,7 +99,14 @@ export default function AdminSidebar({ session }: AdminSidebarProps) {
                 })}
             </motion.nav>
 
-
+            {/* Responsive: Hide sidebar on mobile */}
+            <style>{`
+                @media (max-width: 768px) {
+                    .admin-sidebar {
+                        display: none !important;
+                    }
+                }
+            `}</style>
         </aside>
     );
 }

@@ -29,8 +29,31 @@ export default async function AdminDashboardPage() {
 
   return (
     <div style={containerStyle}>
+      {/* Responsive CSS for mobile dashboard */}
+      <style>{`
+        @media (max-width: 1024px) {
+          .admin-dashboard-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .admin-stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+        @media (max-width: 768px) {
+          .admin-stats-grid {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 0.75rem !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .admin-stats-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
+
       {/* Main Grid */}
-      <div style={mainGridStyle}>
+      <div className="admin-dashboard-grid" style={mainGridStyle}>
         {/* Left Column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
@@ -53,7 +76,7 @@ export default async function AdminDashboardPage() {
           </div>
 
           {/* Stats Grid */}
-          <div style={statsGridStyle}>
+          <div className="admin-stats-grid" style={statsGridStyle}>
             <Link href="/admin/classes" style={{ textDecoration: 'none' }}>
               <div style={{ ...statCardStyle, background: '#fef9c3' }}>
                 <div style={statIconStyle}>

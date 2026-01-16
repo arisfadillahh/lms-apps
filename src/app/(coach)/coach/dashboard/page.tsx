@@ -33,7 +33,7 @@ export default async function CoachDashboardPage() {
         <div style={{ fontFamily: 'system-ui, sans-serif', color: '#1e293b', paddingBottom: '40px' }}>
 
             {/* Quick Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+            <div className="coach-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
                 <Link href="/coach/sessions" style={{
                     background: '#eff6ff', padding: '16px 20px', borderRadius: '12px', textDecoration: 'none',
                     border: '1px solid #bfdbfe', display: 'flex', flexDirection: 'column', gap: '4px'
@@ -83,7 +83,7 @@ export default async function CoachDashboardPage() {
                 />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
+            <div className="coach-main-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
 
                 {/* Left Column: Schedule & Tasks */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
@@ -96,7 +96,7 @@ export default async function CoachDashboardPage() {
                         {todaySessions.length > 0 ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                 {todaySessions.map(session => (
-                                    <div key={session.id} style={{
+                                    <div key={session.id} className="coach-session-card" style={{
                                         background: 'white', padding: '20px', borderRadius: '16px',
                                         border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
                                         display: 'flex', gap: '16px', alignItems: 'center'
@@ -266,6 +266,30 @@ export default async function CoachDashboardPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Responsive Styles */}
+            <style>{`
+                @media (max-width: 768px) {
+                    .coach-stats-grid {
+                        grid-template-columns: 1fr !important;
+                    }
+                    .coach-main-grid {
+                        grid-template-columns: 1fr !important;
+                    }
+                    .coach-session-card {
+                        flex-direction: column !important;
+                        align-items: flex-start !important;
+                        gap: 1rem !important;
+                    }
+                    .coach-session-card > div:last-child {
+                        width: 100% !important;
+                    }
+                    .coach-session-card a {
+                        width: 100% !important;
+                        text-align: center !important;
+                    }
+                }
+            `}</style>
         </div>
     );
 }

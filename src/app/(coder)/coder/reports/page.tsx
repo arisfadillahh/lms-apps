@@ -35,7 +35,7 @@ export default async function CoderReportsPage() {
             reports.map((report) => {
               const isSent = report.sent_via_whatsapp;
               return (
-                <div key={report.id} style={cardStyle}>
+                <div key={report.id} className="report-card" style={cardStyle}>
                   <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                     <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#f5f3ff', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <FileText size={24} />
@@ -78,6 +78,21 @@ export default async function CoderReportsPage() {
           )}
         </div>
       </section>
+
+      {/* Responsive Styles */}
+      <style>{`
+        @media (max-width: 768px) {
+          .report-card {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 1rem !important;
+          }
+          .report-card a {
+            width: 100% !important;
+            justify-content: center !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

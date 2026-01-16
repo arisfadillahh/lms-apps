@@ -13,7 +13,7 @@ export default async function CoderMaterialsPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem', paddingBottom: '4rem', maxWidth: '1000px', margin: '0 auto' }}>
-      <header style={{ textAlign: 'center', marginBottom: '1rem' }}>
+      <header className="materials-header" style={{ textAlign: 'center', marginBottom: '1rem' }}>
         <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.75rem', color: '#1e293b', letterSpacing: '-0.03em', background: 'linear-gradient(to right, #1e293b, #334155)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
           Materi Pembelajaran
         </h1>
@@ -50,7 +50,7 @@ export default async function CoderMaterialsPage() {
                     </div>
 
                     {/* Timeline Container */}
-                    <div style={{ position: 'relative', paddingLeft: '2rem' }}>
+                    <div className="timeline-container" style={{ position: 'relative', paddingLeft: '2rem' }}>
                       {/* Vertical Line */}
                       <div style={{ position: 'absolute', left: '15px', top: '10px', bottom: '20px', width: '2px', background: '#e2e8f0', zIndex: 0 }} />
 
@@ -168,7 +168,7 @@ export default async function CoderMaterialsPage() {
             <p style={{ fontSize: '0.9rem', color: '#94a3b8' }}>Materi ekstra dari coach akan muncul di sini.</p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+          <div className="materials-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
             {materialsByClass.map((entry) => (
               entry.materials.map((material) => (
                 <div key={material.id} style={materialCardStyle}>
@@ -198,6 +198,38 @@ export default async function CoderMaterialsPage() {
           </div>
         )}
       </section>
+
+      {/* Responsive Styles */}
+      <style>{`
+        @media (max-width: 768px) {
+          .materials-header h1 {
+            font-size: 1.75rem !important;
+          }
+          .materials-header p {
+            font-size: 0.95rem !important;
+          }
+          .materials-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .lesson-card-content {
+            flex-direction: column !important;
+            gap: 1rem !important;
+          }
+          .lesson-date-badge {
+            flex-direction: row !important;
+            min-width: auto !important;
+            padding: 0.5rem 0.75rem !important;
+          }
+          .timeline-container {
+            padding-left: 1rem !important;
+          }
+          .timeline-dot {
+            left: -1.15rem !important;
+            width: 24px !important;
+            height: 24px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

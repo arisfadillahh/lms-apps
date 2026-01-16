@@ -16,6 +16,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     <div style={{ minHeight: '100vh', display: 'flex', background: '#f8fafc' }}>
       <AdminSidebar session={session} />
       <main
+        className="admin-main-content"
         style={{
           flex: 1,
           marginLeft: '240px',
@@ -27,6 +28,18 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         <DashboardHeader user={session.user} />
         <PageTransition>{children}</PageTransition>
       </main>
+
+      {/* Responsive CSS for mobile */}
+      <style>{`
+        @media (max-width: 768px) {
+          .admin-main-content {
+            margin-left: 0 !important;
+            padding: 1rem !important;
+            max-width: 100vw !important;
+            overflow-x: hidden !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

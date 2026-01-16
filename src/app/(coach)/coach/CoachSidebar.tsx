@@ -37,7 +37,7 @@ export default function CoachSidebar({ session }: CoachSidebarProps) {
     const pathname = usePathname();
 
     return (
-        <aside style={sidebarStyle}>
+        <aside className="coach-sidebar" style={sidebarStyle}>
             {/* Logo */}
             <div style={{ padding: '0.5rem 0.75rem', marginBottom: '0.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

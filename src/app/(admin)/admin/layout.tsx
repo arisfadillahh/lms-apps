@@ -4,13 +4,26 @@ import AdminSidebar from './AdminSidebar';
 import PageTransition from '@/components/PageTransition';
 import DashboardHeader from '@/components/layout/DashboardHeader';
 import { redirect } from 'next/navigation';
+import { usersDao } from '@/lib/dao';
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const session = await getServerAuthSession();
 
-  if (!session) {
+  if (!session?.user?.id) {
     redirect('/login');
   }
+
+  const user = await usersDao.getUserById(session.user.id);
+
+  if (!user) return null;
+
+  const userForHeader = {
+    id: user.id,
+    fullName: user.full_name,
+    role: user.role,
+    avatarPath: user.avatar_path ?? null,
+    adminPermissions: user.admin_permissions,
+  };
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', background: '#f8fafc' }}>
@@ -25,7 +38,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           color: '#1e293b',
         }}
       >
-        <DashboardHeader user={session.user} />
+        <DashboardHeader user={userForHeader} />
         <PageTransition>{children}</PageTransition>
       </main>
 
@@ -46,4 +59,3 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     </div>
   );
 }
-

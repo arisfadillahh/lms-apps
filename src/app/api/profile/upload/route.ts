@@ -25,7 +25,7 @@ export async function POST(request: Request) {
         const filePath = path.join(uploadDir, filename);
         await writeFile(filePath, buffer);
 
-        const publicPath = `/uploads/avatars/${filename}`;
+        const publicPath = `/api/avatars/${filename}`;
 
         return NextResponse.json({ success: true, filePath: publicPath });
     } catch (error: any) {

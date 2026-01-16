@@ -21,7 +21,7 @@ export default async function CoderLayout({ children }: { children: ReactNode })
     id: user.id,
     fullName: user.full_name,
     role: user.role,
-    // avatarPath: user.avatar_path // Commented out as type says it doesn't exist
+    avatarPath: user.avatar_path ?? null,
   };
 
   return (
@@ -54,6 +54,7 @@ export default async function CoderLayout({ children }: { children: ReactNode })
             overflow-y: visible !important;
             min-height: auto !important;
             height: auto !important;
+            max-height: none !important;
           }
           .coder-sidebar {
             display: none !important;

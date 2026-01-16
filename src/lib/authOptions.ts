@@ -9,7 +9,7 @@ import type { Role } from '@/types/supabase';
 
 type UserRecord = Pick<
   TablesRow<'users'>,
-  'id' | 'username' | 'password_hash' | 'full_name' | 'role' | 'is_active' | 'admin_permissions'
+  'id' | 'username' | 'password_hash' | 'full_name' | 'role' | 'is_active' | 'admin_permissions' | 'avatar_path'
 >;
 
 const normalizedNextAuthUrl = normalizeLocalhostUrl(process.env.NEXTAUTH_URL);
@@ -67,7 +67,7 @@ export const authOptions: NextAuthOptions = {
         const supabase = getSupabaseAdmin();
         const { data, error } = await supabase
           .from('users')
-          .select('id, username, password_hash, full_name, role, is_active, admin_permissions')
+          .select('id, username, password_hash, full_name, role, is_active, admin_permissions, avatar_path')
           .eq('username', username)
           .maybeSingle();
 
@@ -112,6 +112,7 @@ export const authOptions: NextAuthOptions = {
           role: normalizedRole,
           isActive: user.is_active,
           adminPermissions: user.admin_permissions ?? null,
+          avatarPath: user.avatar_path ?? null,
         };
       },
     }),
@@ -126,6 +127,7 @@ export const authOptions: NextAuthOptions = {
           role: Role;
           isActive: boolean;
           adminPermissions?: { menus: string[]; is_superadmin: boolean } | null;
+          avatarPath?: string | null;
         };
         token.userId = typedUser.id;
         token.username = typedUser.username;
@@ -133,6 +135,7 @@ export const authOptions: NextAuthOptions = {
         token.fullName = typedUser.fullName;
         token.isActive = typedUser.isActive;
         token.adminPermissions = typedUser.adminPermissions ?? null;
+        token.avatarPath = typedUser.avatarPath ?? null;
       }
       return token;
     },
@@ -147,6 +150,7 @@ export const authOptions: NextAuthOptions = {
       session.user.fullName = (token.fullName as string) ?? '';
       session.user.isActive = Boolean(token.isActive);
       session.user.adminPermissions = (token.adminPermissions as { menus: string[]; is_superadmin: boolean } | null) ?? null;
+      session.user.avatarPath = (token.avatarPath as string | null) ?? null;
 
       return session;
     },

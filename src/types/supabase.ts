@@ -34,6 +34,7 @@ export interface Database {
           referral_source: string | null;
           // Admin permissions (for ADMIN role only)
           admin_permissions: { menus: string[]; is_superadmin: boolean } | null;
+          avatar_path: string | null;
         };
         Insert: {
           id?: string;

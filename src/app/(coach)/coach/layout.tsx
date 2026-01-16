@@ -13,13 +13,11 @@ export default async function CoachLayout({ children }: { children: ReactNode })
   const user = await usersDao.getUserById(session.user.id);
   if (!user) return null;
 
-  const userWithAvatar = user as typeof user & { avatar_path?: string | null };
-
   const userForHeader = {
     id: user.id,
     fullName: user.full_name,
     role: user.role,
-    avatarPath: userWithAvatar.avatar_path ?? null
+    avatarPath: user.avatar_path ?? null
   };
 
   return (

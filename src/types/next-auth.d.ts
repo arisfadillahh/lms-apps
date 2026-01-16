@@ -11,6 +11,7 @@ declare module 'next-auth' {
       role: Role;
       isActive: boolean;
       adminPermissions?: AdminPermissions;
+      avatarPath?: string | null;
     };
   }
 
@@ -21,6 +22,7 @@ declare module 'next-auth' {
     role: Role;
     isActive: boolean;
     adminPermissions?: AdminPermissions;
+    avatarPath?: string | null;
   }
 }
 
@@ -32,6 +34,7 @@ declare module 'next-auth/jwt' {
     role: Role;
     isActive: boolean;
     adminPermissions?: AdminPermissions;
+    avatarPath?: string | null;
   }
 }
 

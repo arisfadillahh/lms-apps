@@ -249,7 +249,10 @@ export async function sendSingleInvoiceReminder(invoiceId: string): Promise<{ su
         }
 
         // Generate message
+        console.log(`[WhatsApp] Generating reminder for ${invoice.invoice_number}`);
         const message = formatInvoiceMessage(invoice, settings);
+
+        console.log(`[WhatsApp] Sending message to ${invoice.parent_phone}`);
 
         // Send
         const result = await sendWhatsAppMessage(invoice.parent_phone, message);
@@ -261,6 +264,10 @@ export async function sendSingleInvoiceReminder(invoiceId: string): Promise<{ su
 
     } catch (error) {
         console.error('[WhatsApp] Single reminder error:', error);
+        // Log stack trace if available
+        if (error instanceof Error) {
+            console.error(error.stack);
+        }
         return { success: false, error: String(error) };
     }
 }

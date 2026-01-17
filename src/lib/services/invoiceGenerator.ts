@@ -88,6 +88,9 @@ export async function generateInvoicesForMonth(
         const startDate = new Date(year, month - 1, 1).toISOString();
         const endDate = new Date(year, month, 0).toISOString();
 
+        console.log(`[InvoiceGenerator] Generating for ${month}/${year}`);
+        console.log(`[InvoiceGenerator] Window: ${startDate} to ${endDate}`);
+
         const supabase = getSupabaseAdmin();
         const { data: periods, error } = await supabase
             .from('coder_payment_periods' as any)
@@ -99,32 +102,36 @@ export async function generateInvoicesForMonth(
         pricing(*)
       `)
             .eq('status', 'ACTIVE')
-            // Filter: Only pick periods that "match" this month. 
-            // If the system presumes 1 period row = 1 month billing, we check if a row exists for this month.
-            // If the row spans 3 months, we only invoice if this specific row is FOR this month.
-            // Let's assume 'start_date' determines the billing month.
-            .gte('start_date', startDate)
-            .lte('start_date', endDate);
+            // Filter: Active periods that OVERLAP with the current month
+            // 1. Started before or during this month
+            .lte('start_date', endDate)
+            // 2. Ends after this month starts (is still active in this month)
+            .gte('end_date', startDate);
 
         if (error) {
+            console.error('[InvoiceGenerator] Query error:', error);
             result.success = false;
             result.errors.push(`Database error: ${error.message}`);
             return result;
         }
 
+        console.log(`[InvoiceGenerator] Found ${periods?.length || 0} matching periods`);
+
         if (!periods || periods.length === 0) {
-            result.errors.push('No active payment periods found.');
+            result.errors.push('No active payment periods found for this month.');
             return result;
         }
 
         // 3. Group by parent phone
         const parentGroups = groupByParentPhone(periods as unknown as CoderPaymentData[]);
+        console.log(`[InvoiceGenerator] Grouped into ${parentGroups.length} parent groups`);
 
         // 4. Generate invoice for each parent group
         for (const group of parentGroups) {
             try {
                 // Skip if no valid phone
                 if (!group.parentPhone) {
+                    console.warn(`[InvoiceGenerator] Skipping group ${group.parentName} - No phone`);
                     result.skipped++;
                     result.errors.push(`Skipped: No parent phone for ${group.parentName}`);
                     continue;
@@ -133,6 +140,7 @@ export async function generateInvoicesForMonth(
                 // Check if invoice already exists for this parent/month
                 const exists = await invoiceExistsForParent(group.parentPhone, month, year);
                 if (exists) {
+                    console.log(`[InvoiceGenerator] Invoice exists for ${group.parentName}`);
                     result.skipped++;
                     continue;
                 }
@@ -140,6 +148,7 @@ export async function generateInvoicesForMonth(
                 // Get or create CCR number
                 const ccr = await getOrCreateCCR(group.parentPhone, group.parentName);
                 if (!ccr) {
+                    console.error(`[InvoiceGenerator] Failed Get/Create CCR for ${group.parentName}`);
                     result.errors.push(`Failed to create CCR for ${group.parentName}`);
                     continue;
                 }

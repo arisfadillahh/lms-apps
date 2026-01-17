@@ -113,7 +113,7 @@ export default function InvoiceManagement({
             if (genData.success) {
                 setMessage({
                     type: 'success',
-                    text: `Berhasil generate ${genData.generated} invoice. (${genData.skipped} skipped, ${genData.errors.length} errors)`
+                    text: `Berhasil generate ${genData.generated} invoice. (${genData.skipped} skipped). ${genData.errors.length > 0 ? '\nErrors: ' + genData.errors.join(', ') : ''}`
                 });
                 await fetchInvoices();
             } else {
@@ -261,22 +261,34 @@ export default function InvoiceManagement({
                     <h1 style={titleStyle}>Invoice Management</h1>
                     <p style={subtitleStyle}>Kelola invoice dan kirim reminder pembayaran</p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                    <button
-                        onClick={handleGenerate}
-                        disabled={generating || isProcessingQueue}
-                        style={{ ...secondaryButtonStyle, opacity: generating ? 0.7 : 1 }}
-                    >
-                        {generating ? '⏳ Generating...' : '⚙️ Generate Invoice'}
-                    </button>
-                    <button
-                        onClick={handlePrepareReminders}
-                        disabled={generating || isProcessingQueue}
-                        style={{ ...primaryButtonStyle, opacity: isProcessingQueue ? 0.7 : 1 }}
-                    >
-                        📤 Kirim Reminder
-                    </button>
-                </div>
+            </div>
+
+            {/* Action Buttons - Full Width */}
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+                <button
+                    onClick={handleGenerate}
+                    disabled={generating || isProcessingQueue}
+                    style={{
+                        ...secondaryButtonStyle,
+                        width: 'auto',
+                        padding: '0.75rem 2rem',
+                        fontSize: '1rem'
+                    }}
+                >
+                    {generating ? '⏳ Generating...' : '⚙️ Generate Invoice'}
+                </button>
+                <button
+                    onClick={handlePrepareReminders}
+                    disabled={generating || isProcessingQueue}
+                    style={{
+                        ...primaryButtonStyle,
+                        width: 'auto',
+                        padding: '0.75rem 2rem',
+                        fontSize: '1rem'
+                    }}
+                >
+                    📤 Kirim Reminder
+                </button>
             </div>
 
             {/* Message */}
@@ -579,7 +591,7 @@ export default function InvoiceManagement({
 }
 
 // Styles
-const containerStyle: CSSProperties = { padding: '2rem', maxWidth: '1200px', margin: '0 auto', fontFamily: 'Inter, sans-serif' };
+const containerStyle: CSSProperties = { padding: '2rem', width: '100%', fontFamily: 'Inter, sans-serif' };
 const headerStyle: CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' };
 const titleStyle: CSSProperties = { fontSize: '1.8rem', fontWeight: 800, color: '#1e293b', margin: 0, letterSpacing: '-0.02em' };
 const subtitleStyle: CSSProperties = { color: '#64748b', fontSize: '1rem', marginTop: '0.5rem' };

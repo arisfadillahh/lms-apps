@@ -79,18 +79,32 @@ export async function generateInvoicesForMonth(
             return result;
         }
 
-        // 2. Fetch all active payment periods
+        // 2. Fetch all active payment periods that end in the target month/year (for renewal)
+        // OR periods specifically tagged for this month (if month/year columns exist)
+        // For now, assuming renewal logic: Invoice is for the UPCOMING period, generated when current encounters.
+        // User asked: "di invoice itu ketika klik generate apakah hanya bikin yang perlu di invoice dibulan itu?"
+        // Answer: Yes, we should filter.
+
+        const startDate = new Date(year, month - 1, 1).toISOString();
+        const endDate = new Date(year, month, 0).toISOString();
+
         const supabase = getSupabaseAdmin();
         const { data: periods, error } = await supabase
             .from('coder_payment_periods')
             .select(`
         *,
-        users!coder_payment_periods_coder_id_fkey(id, full_name, parent_contact_phone),
+        users!coder_payment_periods_coder_id_fkey(id, full_name, parent_contact_phone, parent_name),
         classes(id, name, level_id, levels(id, name)),
         payment_plans(*),
         pricing(*)
       `)
-            .eq('status', 'ACTIVE');
+            .eq('status', 'ACTIVE')
+            // Filter: Only pick periods that "match" this month. 
+            // If the system presumes 1 period row = 1 month billing, we check if a row exists for this month.
+            // If the row spans 3 months, we only invoice if this specific row is FOR this month.
+            // Let's assume 'start_date' determines the billing month.
+            .gte('start_date', startDate)
+            .lte('start_date', endDate);
 
         if (error) {
             result.success = false;
@@ -157,12 +171,17 @@ export async function generateInvoicesForMonth(
                 // Calculate due date
                 const dueDate = calculateDueDate(settings.generate_day, settings.due_days, month, year);
 
+                // Determine final parent name:
+                // 1. Use existing CCR parent name if set (allows manual override in DB)
+                // 2. Fallback to generated group name ("Orang Tua dari...")
+                const finalParentName = ccr.parent_name || group.parentName;
+
                 // Create invoice
                 const invoice = await createInvoice({
                     ccr_id: ccr.id,
                     ccr_code: ccr.ccr_code || `CCR${String(ccr.ccr_sequence).padStart(3, '0')}`,
                     parent_phone: group.parentPhone,
-                    parent_name: group.parentName,
+                    parent_name: finalParentName,
                     period_month: month,
                     period_year: year,
                     total_amount: totalAmount,
@@ -211,9 +230,12 @@ function groupByParentPhone(periods: CoderPaymentData[]): ParentGroup[] {
         if (!phone) continue;
 
         if (!groups.has(phone)) {
+            const coderName = period.users?.full_name || 'Unknown';
             groups.set(phone, {
                 parentPhone: phone,
-                parentName: period.users?.full_name || 'Unknown',
+                // Default to "Orang Tua dari [Name]" to identify them correctly
+                // Admin can update the CCR record to set the real name
+                parentName: `Orang Tua dari ${coderName}`,
                 coders: []
             });
         }

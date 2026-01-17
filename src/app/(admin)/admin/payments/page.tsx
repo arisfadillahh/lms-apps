@@ -35,7 +35,7 @@ export default async function PaymentDashboardPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '3rem' }}>
             <header>
                 <div style={{ marginBottom: '1rem' }}>
-                    <h1 style={titleStyle}>Dashboard Pembayaran</h1>
+                    <h1 style={titleStyle}>Master Paket & Tarif</h1>
                     <p style={subtitleStyle}>Pusat kontrol pembayaran, tagihan, dan reminder tagihan siswa.</p>
                 </div>
             </header>
@@ -70,17 +70,6 @@ export default async function PaymentDashboardPage() {
                             <span style={actionLinkStyle}>Buka Data Siswa →</span>
                         </div>
                     </Link>
-
-                    <div style={actionCardStyle}>
-                        <h3 style={cardTitleStyle}>📢 Reminder Serempak</h3>
-                        <p style={cardDescStyle}>Kirim pengingat pembayaran ke <strong>SEMUA</strong> siswa yang jatuh tempo bulan ini/depan.</p>
-                        <div style={{ marginTop: 'auto' }}>
-                            <SendRemindersButton mode="BATCH" />
-                            <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>
-                                *Mengirim ke semua periode aktif yg berakhir dalam 10 hari.
-                            </p>
-                        </div>
-                    </div>
 
                     <Link href="/admin/payments/expired" style={{ textDecoration: 'none' }}>
                         <div style={{ ...actionCardStyle, background: '#fef2f2', borderColor: '#fecaca' }} className="hover-card-red">

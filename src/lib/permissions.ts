@@ -17,13 +17,16 @@ export const ADMIN_MENUS = [
     { id: 'classes', label: 'Kelas', href: '/admin/classes' },
     { id: 'curriculum', label: 'Kurikulum', href: '/admin/curriculum' },
     { id: 'ekskul', label: 'Ekskul Plans', href: '/admin/ekskul' },
-    { id: 'payments', label: 'Pembayaran', href: '/admin/payments' },
+    { id: 'payments', label: 'Paket & Tarif', href: '/admin/payments' },
+    { id: 'invoices', label: 'Invoice', href: '/admin/payments/invoices' },
+    { id: 'ccr', label: 'Assign CCR', href: '/admin/coders/assign-ccr' },
     { id: 'software', label: 'Software', href: '/admin/software' },
     { id: 'banners', label: 'Banner', href: '/admin/banners' },
     { id: 'leave', label: 'Izin Coach', href: '/admin/leave' },
     { id: 'reports', label: 'Rapor', href: '/admin/reports' },
     { id: 'whatsapp', label: 'WhatsApp', href: '/admin/whatsapp' },
     { id: 'broadcast', label: 'Broadcast', href: '/admin/broadcast' },
+    { id: 'settings', label: 'Settings', href: '/admin/settings' },
 ] as const;
 
 export type AdminMenuId = typeof ADMIN_MENUS[number]['id'];

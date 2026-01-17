@@ -46,3 +46,4 @@ locust/locust-ui.log
 
 # whatsapp session (do not commit to git!)
 .wwebjs_auth/
+baileys_auth_info/

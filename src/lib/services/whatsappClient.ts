@@ -1,12 +1,9 @@
 /**
- * WhatsApp Client Service using whatsapp-web.js
+ * WhatsApp Client Service using @whiskeysockets/baileys
  * 
  * Handles WhatsApp connection, session management, and message sending
- * with random delays to avoid spam detection.
+ * using a lightweight socket connection (no browser required).
  */
-
-// Note: wwebjs requires these imports - ensure packages are installed:
-// npm install whatsapp-web.js qrcode
 
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import {
@@ -14,23 +11,37 @@ import {
     getPendingInvoicesForMonth
 } from '@/lib/dao/invoicesDao';
 import type { Invoice, SendRemindersResponse, WhatsAppStatus } from '@/lib/types/invoice';
+import makeWASocket, {
+    useMultiFileAuthState,
+    DisconnectReason,
+    fetchLatestBaileysVersion,
+    makeCacheableSignalKeyStore,
+    WASocket,
+    ConnectionState
+} from '@whiskeysockets/baileys';
+import pino from 'pino';
+import QRCode from 'qrcode';
+import fs from 'fs';
 
-// Client ID for session persistence
+// Constants
+const AUTH_FOLDER = 'baileys_auth_info';
 const CLIENT_ID = process.env.WHATSAPP_CLIENT_ID || 'clevio-wa-client';
 
-// In-memory state (in production, this would be managed differently)
-let clientInstance: unknown = null;
-let isConnected = false;
-let connectedPhone: string | null = null;
+// Global state (Singleton for Next.js HMR)
+const globalForWA = global as unknown as { sock: WASocket | null };
+
+let sock: WASocket | null = globalForWA.sock || null;
+let isConnected = !!sock?.user;
+let connectedPhone: string | null = sock?.user?.id.split(':')[0] || null;
 let currentQRCode: string | null = null;
+let qrRetryCount = 0;
 
 // ============================================================================
 // Connection Management
 // ============================================================================
 
 /**
- * Initialize WhatsApp client
- * Returns QR code if not authenticated, or connection status if already connected
+ * Initialize WhatsApp client (Baileys)
  */
 export async function initializeWhatsApp(): Promise<{
     success: boolean;
@@ -38,67 +49,92 @@ export async function initializeWhatsApp(): Promise<{
     error?: string
 }> {
     try {
-        // Dynamic import to avoid issues during build
-        const { Client, LocalAuth } = await import('whatsapp-web.js');
-        const QRCode = await import('qrcode');
+        // Singleton check: If socket exists and is open, reuse it
+        if (sock) {
+            console.log('[WhatsApp] Reusing existing connection');
 
-        if (clientInstance) {
+            // Ensure state vars are synced
+            isConnected = true;
+            const user = sock?.user;
+            if (user) connectedPhone = user.id.split(':')[0];
+
             return {
                 success: true,
-                qrCode: isConnected ? undefined : currentQRCode || undefined
+                qrCode: undefined
             };
         }
 
-        const client = new Client({
-            authStrategy: new LocalAuth({ clientId: CLIENT_ID }),
-            puppeteer: {
-                headless: true,
-                args: ['--no-sandbox', '--disable-setuid-sandbox']
+        const { state, saveCreds } = await useMultiFileAuthState(AUTH_FOLDER);
+        const { version, isLatest } = await fetchLatestBaileysVersion();
+
+        console.log(`[WhatsApp] Using Baileys v${version.join('.')}, isLatest: ${isLatest}`);
+
+        sock = makeWASocket({
+            version,
+            logger: pino({ level: 'silent' }) as any,
+            printQRInTerminal: false, // We handle QR manually for UI
+            auth: {
+                creds: state.creds,
+                keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' }) as any),
             },
-            // Disable features that cause markedUnread error
-            webVersionCache: {
-                type: 'remote',
-                remotePath: 'https://raw.githubusercontent.com/AhmadDanial/nicmessage/master/nicmessage.json'
+            browser: ['Clevio Helper', 'Chrome', '1.0.0'],
+            generateHighQualityLinkPreview: true,
+            // Optimization: slightly increased timeouts
+            connectTimeoutMs: 60000,
+            keepAliveIntervalMs: 10000,
+        });
+
+        // Save to global to prevent duplicate connections on hot reload
+        globalForWA.sock = sock;
+
+        // Connection updates (QR, connection status)
+        sock.ev.on('connection.update', async (update: any) => {
+            const { connection, lastDisconnect, qr } = update;
+
+            if (qr) {
+                // Generate QR as Data URL for UI
+                currentQRCode = await QRCode.toDataURL(qr);
+                qrRetryCount++;
+                console.log(`[WhatsApp] QR Code generated (Attempt ${qrRetryCount})`);
+            }
+
+            if (connection === 'close') {
+                const shouldReconnect = (lastDisconnect?.error as any)?.output?.statusCode !== DisconnectReason.loggedOut;
+
+                console.log('[WhatsApp] Connection closed due to ', lastDisconnect?.error, ', reconnecting ', shouldReconnect);
+
+                isConnected = false;
+                connectedPhone = null;
+                currentQRCode = null;
+
+                if (shouldReconnect) {
+                    // Reconnect automatically
+                    sock = null;
+                    initializeWhatsApp();
+                } else {
+                    console.log('[WhatsApp] Logged out. Delete auth folder to restart.');
+                    // Optional: Delete credentials here if desired
+                    // await fs.promises.rm(AUTH_FOLDER, { recursive: true, force: true });
+                    sock = null;
+                }
+
+                await updateSessionStatus(false, null);
+            } else if (connection === 'open') {
+                console.log('[WhatsApp] Connection opened!');
+                isConnected = true;
+                currentQRCode = null;
+                qrRetryCount = 0;
+
+                const user = sock?.user;
+                connectedPhone = user ? user.id.split(':')[0] : 'Unknown';
+
+                console.log(`[WhatsApp] Connected as ${connectedPhone}`);
+                await updateSessionStatus(true, connectedPhone);
             }
         });
 
-        // QR Code event
-        client.on('qr', async (qr: string) => {
-            currentQRCode = await QRCode.toDataURL(qr);
-            console.log('[WhatsApp] QR Code generated');
-        });
-
-        // Ready event
-        client.on('ready', async () => {
-            isConnected = true;
-            currentQRCode = null;
-
-            const info = await client.getWWebVersion();
-            connectedPhone = client.info?.wid?.user || null;
-
-            console.log('[WhatsApp] Client ready. Version:', info);
-
-            // Update session in DB
-            await updateSessionStatus(true, connectedPhone);
-        });
-
-        // Disconnected event
-        client.on('disconnected', async (reason: string) => {
-            isConnected = false;
-            connectedPhone = null;
-            console.log('[WhatsApp] Disconnected:', reason);
-
-            await updateSessionStatus(false, null);
-        });
-
-        // Authentication failure
-        client.on('auth_failure', (msg: string) => {
-            console.error('[WhatsApp] Auth failure:', msg);
-            isConnected = false;
-        });
-
-        clientInstance = client;
-        await client.initialize();
+        // Credential updates
+        sock.ev.on('creds.update', saveCreds);
 
         return { success: true, qrCode: currentQRCode || undefined };
 
@@ -128,10 +164,9 @@ export async function getWhatsAppStatus(): Promise<WhatsAppStatus> {
  */
 export async function disconnectWhatsApp(): Promise<boolean> {
     try {
-        if (clientInstance) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            await (clientInstance as any).destroy();
-            clientInstance = null;
+        if (sock) {
+            sock.end(undefined);
+            sock = null;
             isConnected = false;
             connectedPhone = null;
             currentQRCode = null;
@@ -156,7 +191,7 @@ export async function sendWhatsAppMessage(
     phoneNumber: string,
     message: string
 ): Promise<{ success: boolean; error?: string }> {
-    if (!isConnected || !clientInstance) {
+    if (!isConnected || !sock) {
         return { success: false, error: 'WhatsApp not connected' };
     }
 
@@ -166,35 +201,21 @@ export async function sendWhatsAppMessage(
             return { success: false, error: 'Invalid phone number' };
         }
 
-        const chatId = `${normalizedPhone}@c.us`;
+        const jid = `${normalizedPhone}@s.whatsapp.net`;
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const client = clientInstance as any;
+        console.log(`[WhatsApp] Sending to ${jid}`);
 
-        // Try to get the chat first and send via chat object
-        try {
-            const chat = await client.getChatById(chatId);
-            if (chat) {
-                await chat.sendMessage(message);
-                return { success: true };
-            }
-        } catch {
-            // If getChatById fails, try direct sendMessage
-            console.log('[WhatsApp] getChatById failed, trying direct send...');
+        // Baileys check: Verify valid number exists on WA
+        const onWhatsAppResult = await sock.onWhatsApp(jid);
+
+        if (!onWhatsAppResult || !Array.isArray(onWhatsAppResult) || onWhatsAppResult.length === 0 || !onWhatsAppResult[0].exists) {
+            return { success: false, error: `Number ${normalizedPhone} not on WhatsApp` };
         }
 
-        // Fallback: Direct send (may trigger markedUnread on some versions)
-        try {
-            await client.sendMessage(chatId, message);
-            return { success: true };
-        } catch (sendErr) {
-            // If it's the markedUnread error, it usually means message was sent anyway
-            if (String(sendErr).includes('markedUnread')) {
-                console.log('[WhatsApp] markedUnread error but message likely sent');
-                return { success: true };
-            }
-            throw sendErr;
-        }
+        // Send Message
+        await sock.sendMessage(jid, { text: message });
+
+        return { success: true };
 
     } catch (error) {
         console.error('[WhatsApp] Send error:', error);
@@ -203,8 +224,49 @@ export async function sendWhatsAppMessage(
 }
 
 /**
+ * Send a single invoice reminder by ID
+ */
+export async function sendSingleInvoiceReminder(invoiceId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        // Check connection
+        if (!isConnected || !sock) {
+            return { success: false, error: 'WhatsApp not connected' };
+        }
+
+        // Get invoice
+        // Dynamic import to avoid circular dependency
+        const { getInvoiceById, getInvoiceSettings } = await import('@/lib/dao/invoicesDao');
+
+        const invoice = await getInvoiceById(invoiceId);
+        if (!invoice) {
+            return { success: false, error: 'Invoice not found' };
+        }
+
+        // Get settings
+        const settings = await getInvoiceSettings();
+        if (!settings) {
+            return { success: false, error: 'Invoice settings not found' };
+        }
+
+        // Generate message
+        const message = formatInvoiceMessage(invoice, settings);
+
+        // Send
+        const result = await sendWhatsAppMessage(invoice.parent_phone, message);
+
+        // Log result
+        await logWhatsAppMessage(invoice, result.success ? 'SENT' : 'FAILED', result.error);
+
+        return result;
+
+    } catch (error) {
+        console.error('[WhatsApp] Single reminder error:', error);
+        return { success: false, error: String(error) };
+    }
+}
+
+/**
  * Send invoice reminders to all pending invoices for a month
- * Includes random delay between messages (10s - 3min)
  */
 export async function sendInvoiceReminders(
     month: number,
@@ -253,20 +315,16 @@ export async function sendInvoiceReminders(
 
                 if (sendResult.success) {
                     result.sent++;
-
-                    // Log to database
                     await logWhatsAppMessage(invoice, 'SENT');
-
                 } else {
                     result.failed++;
                     result.errors.push(`Failed to send to ${invoice.parent_name}: ${sendResult.error}`);
-
                     await logWhatsAppMessage(invoice, 'FAILED', sendResult.error);
                 }
 
-                // Random delay between 10 seconds and 3 minutes (except for last message)
+                // Random delay between 5 seconds and 1 minute
                 if (i < invoices.length - 1) {
-                    const delay = getRandomDelay(10000, 180000);
+                    const delay = getRandomDelay(5000, 60000);
                     console.log(`[WhatsApp] Waiting ${delay / 1000}s before next message...`);
                     await sleep(delay);
                 }
@@ -334,12 +392,31 @@ function formatInvoiceMessage(
         year: 'numeric'
     });
 
+    // Format new variables
+    const periodDate = new Date(invoice.period_year, invoice.period_month - 1);
+    const periodMonthYear = periodDate.toLocaleDateString('id-ID', {
+        month: 'long',
+        year: 'numeric'
+    });
+
+    // Generate student list
+    let studentList = '';
+    if (invoice.items && invoice.items.length > 0) {
+        studentList = invoice.items.map(item =>
+            `- ${item.coder_name} (${item.class_name})`
+        ).join('\n');
+    } else {
+        studentList = '- (Detail tidak tersedia)';
+    }
+
     return template
         .replace(/{parent_name}/g, invoice.parent_name)
         .replace(/{invoice_number}/g, invoice.invoice_number)
         .replace(/{total_amount}/g, formattedAmount)
         .replace(/{due_date}/g, formattedDueDate)
-        .replace(/{invoice_url}/g, invoiceUrl);
+        .replace(/{invoice_url}/g, invoiceUrl)
+        .replace(/{period_month_year}/g, periodMonthYear)
+        .replace(/{student_list}/g, studentList);
 }
 
 /**
@@ -363,13 +440,13 @@ async function updateSessionStatus(connected: boolean, phone: string | null) {
     const supabase = getSupabaseAdmin();
 
     await supabase
-        .from('whatsapp_sessions')
+        .from('whatsapp_sessions' as any)
         .upsert({
             client_id: CLIENT_ID,
             is_connected: connected,
             connected_phone: phone,
             last_activity_at: new Date().toISOString()
-        }, { onConflict: 'client_id' });
+        }, { onConflict: 'client_id' } as any);
 }
 
 /**
@@ -385,15 +462,28 @@ async function logWhatsAppMessage(
     await supabase
         .from('whatsapp_message_logs')
         .insert({
-            category: 'INVOICE',
+            category: 'INVOICE' as any,
             payload: {
                 invoice_id: invoice.id,
                 invoice_number: invoice.invoice_number,
                 parent_phone: invoice.parent_phone,
                 parent_name: invoice.parent_name
             },
-            response: error ? { error } : null,
-            status,
+            status: status,
+            response: error ? { error } : { success: true },
             processed_at: new Date().toISOString()
         });
+}
+
+// Ensure clean shutdown
+if (process.env.NODE_ENV !== 'production') {
+    const cleanup = () => {
+        if (sock) {
+            console.log('[WhatsApp] Closing connection due to process exit');
+            sock.end(undefined);
+            sock = null;
+        }
+    };
+    process.on('SIGINT', cleanup);
+    process.on('SIGTERM', cleanup);
 }

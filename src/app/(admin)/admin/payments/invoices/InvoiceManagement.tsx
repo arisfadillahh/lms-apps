@@ -31,7 +31,9 @@ export default function InvoiceManagement({
     const [statusFilter, setStatusFilter] = useState<string>('');
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(false);
-    const [sendingReminders, setSendingReminders] = useState(false);
+
+    // Modal & Action States
+    const [generating, setGenerating] = useState(false);
     const [markingPaid, setMarkingPaid] = useState<string | null>(null);
     const [showPaidModal, setShowPaidModal] = useState<Invoice | null>(null);
     const [paidDate, setPaidDate] = useState('');
@@ -39,6 +41,17 @@ export default function InvoiceManagement({
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const [showDeleteModal, setShowDeleteModal] = useState<Invoice | null>(null);
     const [deleting, setDeleting] = useState<string | null>(null);
+
+    // Reminder Queue State
+    const [showReminderModal, setShowReminderModal] = useState(false);
+    const [reminderQueue, setReminderQueue] = useState<Array<{
+        id: string;
+        invoice_number: string;
+        parent_name: string;
+        status: 'pending' | 'sending' | 'success' | 'error';
+        error?: string;
+    }>>([]);
+    const [isProcessingQueue, setIsProcessingQueue] = useState(false);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('id-ID', {
@@ -84,12 +97,12 @@ export default function InvoiceManagement({
         }
     }, [month, year, statusFilter, search]);
 
-    const handleGenerateAndSend = async () => {
-        setSendingReminders(true);
+    // Action: Generate Invoices ONLY
+    const handleGenerate = async () => {
+        setGenerating(true);
         setMessage(null);
 
         try {
-            // Step 1: Generate invoices
             const genRes = await fetch('/api/invoices/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -97,32 +110,84 @@ export default function InvoiceManagement({
             });
             const genData = await genRes.json();
 
-            if (!genData.success && genData.errors?.length > 0) {
-                setMessage({ type: 'error', text: genData.errors.join(', ') });
-                return;
+            if (genData.success) {
+                setMessage({
+                    type: 'success',
+                    text: `Berhasil generate ${genData.generated} invoice. (${genData.skipped} skipped, ${genData.errors.length} errors)`
+                });
+                await fetchInvoices();
+            } else {
+                setMessage({ type: 'error', text: genData.errors?.join(', ') || 'Failed to generate' });
             }
-
-            // Step 2: Send reminders
-            const sendRes = await fetch('/api/whatsapp/send-reminders', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ month, year })
-            });
-            const sendData = await sendRes.json();
-
-            setMessage({
-                type: sendData.success ? 'success' : 'error',
-                text: `Generated: ${genData.generated || 0} invoices. Sent: ${sendData.sent || 0} reminders. Failed: ${sendData.failed || 0}`
-            });
-
-            // Refresh list
-            await fetchInvoices();
 
         } catch (error) {
             setMessage({ type: 'error', text: 'Error: ' + String(error) });
         } finally {
-            setSendingReminders(false);
+            setGenerating(false);
         }
+    };
+
+    // Action: Prepare Reminder Queue
+    const handlePrepareReminders = () => {
+        // Filter pending invoices
+        const pendingInvoices = invoices.filter(inv => inv.status === 'PENDING');
+
+        if (pendingInvoices.length === 0) {
+            setMessage({ type: 'error', text: 'Tidak ada invoice pending untuk dikirim reminder.' });
+            return;
+        }
+
+        const queue = pendingInvoices.map(inv => ({
+            id: inv.id,
+            invoice_number: inv.invoice_number,
+            parent_name: inv.parent_name,
+            status: 'pending' as const
+        }));
+
+        setReminderQueue(queue);
+        setShowReminderModal(true);
+        setIsProcessingQueue(false); // User must click "Start" in modal
+    };
+
+    // Action: Process Queue
+    const processQueue = async () => {
+        setIsProcessingQueue(true);
+
+        // Iterate through queue using index to update state
+        // Note: logical clone of queue for processing
+        const currentQueue = [...reminderQueue];
+
+        for (let i = 0; i < currentQueue.length; i++) {
+            if (currentQueue[i].status === 'success') continue; // Skip already sent if any
+
+            // Update status to sending
+            setReminderQueue(prev => prev.map((item, idx) => idx === i ? { ...item, status: 'sending' } : item));
+
+            try {
+                // Send API request
+                const res = await fetch('/api/whatsapp/send-single-reminder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ invoiceId: currentQueue[i].id })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    setReminderQueue(prev => prev.map((item, idx) => idx === i ? { ...item, status: 'success' } : item));
+                } else {
+                    setReminderQueue(prev => prev.map((item, idx) => idx === i ? { ...item, status: 'error', error: data.error } : item));
+                }
+
+            } catch (error) {
+                setReminderQueue(prev => prev.map((item, idx) => idx === i ? { ...item, status: 'error', error: String(error) } : item));
+            }
+
+            // Small delay to prevent rate limit/UI jitter
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+        setIsProcessingQueue(false);
+        await fetchInvoices(); // Refresh main list
     };
 
     const handleMarkPaid = async () => {
@@ -196,19 +261,96 @@ export default function InvoiceManagement({
                     <h1 style={titleStyle}>Invoice Management</h1>
                     <p style={subtitleStyle}>Kelola invoice dan kirim reminder pembayaran</p>
                 </div>
-                <button
-                    onClick={handleGenerateAndSend}
-                    disabled={sendingReminders}
-                    style={primaryButtonStyle}
-                >
-                    {sendingReminders ? '⏳ Processing...' : '📤 Kirim Reminder Bulan Ini'}
-                </button>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <button
+                        onClick={handleGenerate}
+                        disabled={generating || isProcessingQueue}
+                        style={{ ...secondaryButtonStyle, opacity: generating ? 0.7 : 1 }}
+                    >
+                        {generating ? '⏳ Generating...' : '⚙️ Generate Invoice'}
+                    </button>
+                    <button
+                        onClick={handlePrepareReminders}
+                        disabled={generating || isProcessingQueue}
+                        style={{ ...primaryButtonStyle, opacity: isProcessingQueue ? 0.7 : 1 }}
+                    >
+                        📤 Kirim Reminder
+                    </button>
+                </div>
             </div>
 
             {/* Message */}
             {message && (
                 <div style={message.type === 'success' ? successMessageStyle : errorMessageStyle}>
                     {message.text}
+                </div>
+            )}
+
+            {/* Progress Modal */}
+            {showReminderModal && (
+                <div style={modalOverlayStyle}>
+                    <div style={{ ...modalContentStyle, maxWidth: '600px', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+                        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem' }}>
+                            Kirim Reminder WhatsApp
+                        </h2>
+
+                        <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px', marginBottom: '1rem' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                                <thead style={{ background: '#f8fafc', position: 'sticky', top: 0 }}>
+                                    <tr>
+                                        <th style={{ padding: '0.5rem', textAlign: 'left' }}>Invoice</th>
+                                        <th style={{ padding: '0.5rem', textAlign: 'left' }}>Orang Tua</th>
+                                        <th style={{ padding: '0.5rem', textAlign: 'center' }}>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {reminderQueue.map((item) => (
+                                        <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                            <td style={{ padding: '0.5rem' }}>{item.invoice_number}</td>
+                                            <td style={{ padding: '0.5rem' }}>{item.parent_name}</td>
+                                            <td style={{ padding: '0.5rem', textAlign: 'center' }}>
+                                                {item.status === 'pending' && <span style={{ color: '#64748b' }}>⏳ Waiting</span>}
+                                                {item.status === 'sending' && <span style={{ color: '#f59e0b' }}>📤 Sending...</span>}
+                                                {item.status === 'success' && <span style={{ color: '#16a34a' }}>✅ Sent</span>}
+                                                {item.status === 'error' && <span style={{ color: '#ef4444' }}>❌ Error</span>}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Summary */}
+                        <div style={{ marginBottom: '1rem', fontSize: '0.9rem', color: '#64748b' }}>
+                            Progress: {reminderQueue.filter(i => i.status === 'success' || i.status === 'error').length} / {reminderQueue.length}
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                            {!isProcessingQueue && (
+                                <button
+                                    onClick={() => setShowReminderModal(false)}
+                                    style={secondaryButtonStyle}
+                                >
+                                    Tutup
+                                </button>
+                            )}
+
+                            {!isProcessingQueue && reminderQueue.some(i => i.status === 'pending') && (
+                                <button
+                                    onClick={processQueue}
+                                    style={primaryButtonStyle}
+                                >
+                                    ▶️ Mulai Kirim ({reminderQueue.filter(i => i.status === 'pending').length})
+                                </button>
+                            )}
+
+                            {isProcessingQueue && (
+                                <button disabled style={{ ...primaryButtonStyle, opacity: 0.7, cursor: 'wait' }}>
+                                    Sedang Mengirim...
+                                </button>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -248,6 +390,7 @@ export default function InvoiceManagement({
                         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(m => (
                             <option key={m} value={m}>{getMonthName(m)}</option>
                         ))}
+
                     </select>
                 </div>
                 <div style={filterGroupStyle}>
@@ -436,45 +579,86 @@ export default function InvoiceManagement({
 }
 
 // Styles
-const containerStyle: CSSProperties = { padding: '20px' };
-const headerStyle: CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' };
-const titleStyle: CSSProperties = { fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: 0 };
-const subtitleStyle: CSSProperties = { color: '#64748b', marginTop: '4px' };
-const primaryButtonStyle: CSSProperties = { backgroundColor: '#00a8e8', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' };
+const containerStyle: CSSProperties = { padding: '2rem', maxWidth: '1200px', margin: '0 auto', fontFamily: 'Inter, sans-serif' };
+const headerStyle: CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' };
+const titleStyle: CSSProperties = { fontSize: '1.8rem', fontWeight: 800, color: '#1e293b', margin: 0, letterSpacing: '-0.02em' };
+const subtitleStyle: CSSProperties = { color: '#64748b', fontSize: '1rem', marginTop: '0.5rem' };
 
-const successMessageStyle: CSSProperties = { backgroundColor: '#e8f5e9', color: '#2e7d32', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px' };
-const errorMessageStyle: CSSProperties = { backgroundColor: '#ffebee', color: '#c62828', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px' };
+const primaryButtonStyle: CSSProperties = {
+    padding: '0.75rem 1.5rem',
+    background: '#3b82f6',
+    color: 'white',
+    border: 'none',
+    borderRadius: '10px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    fontSize: '0.95rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2)',
+    transition: 'all 0.2s',
+};
 
-const statsGridStyle: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '20px' };
-const statCardStyle: CSSProperties = { backgroundColor: '#fff', padding: '16px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' };
-const statLabelStyle: CSSProperties = { color: '#64748b', fontSize: '12px', marginBottom: '4px' };
-const statValueStyle: CSSProperties = { fontSize: '24px', fontWeight: 'bold', color: '#1e293b' };
+const secondaryButtonStyle: CSSProperties = {
+    padding: '0.75rem 1.5rem',
+    background: '#ffffff',
+    color: '#475569',
+    border: '1px solid #cbd5e1',
+    borderRadius: '10px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    fontSize: '0.95rem',
+    transition: 'all 0.2s',
+};
 
-const filtersStyle: CSSProperties = { display: 'flex', gap: '16px', alignItems: 'flex-end', marginBottom: '20px', flexWrap: 'wrap' };
-const filterGroupStyle: CSSProperties = { display: 'flex', flexDirection: 'column', gap: '4px' };
-const filterLabelStyle: CSSProperties = { fontSize: '12px', color: '#64748b' };
-const selectStyle: CSSProperties = { padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '14px', minWidth: '100px' };
-const inputStyle: CSSProperties = { padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '14px', width: '100%' };
-const filterButtonStyle: CSSProperties = { padding: '8px 16px', backgroundColor: '#1e293b', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' };
+const statsGridStyle: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' };
+const statCardStyle: CSSProperties = { background: 'white', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' };
+const statLabelStyle: CSSProperties = { color: '#64748b', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' };
+const statValueStyle: CSSProperties = { fontSize: '2rem', fontWeight: 700, color: '#1e293b', margin: 0, lineHeight: 1 };
 
-const tableContainerStyle: CSSProperties = { backgroundColor: '#fff', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden' };
+const filtersStyle: CSSProperties = { display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', background: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' };
+const filterGroupStyle: CSSProperties = { display: 'flex', flexDirection: 'column', gap: '0.25rem' };
+const filterLabelStyle: CSSProperties = { fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' };
+const selectStyle: CSSProperties = { padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', minWidth: '140px', outline: 'none' };
+const inputStyle: CSSProperties = { padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', width: '250px', outline: 'none' };
+const filterButtonStyle: CSSProperties = { padding: '0.6rem 1rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.9rem', alignSelf: 'flex-end' };
+
+
+const successMessageStyle: CSSProperties = { padding: '1rem', background: '#dcfce7', color: '#166534', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid #bbf7d0', fontWeight: 500 };
+const errorMessageStyle: CSSProperties = { padding: '1rem', background: '#fee2e2', color: '#991b1b', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid #fecaca', fontWeight: 500 };
+
+const modalOverlayStyle: CSSProperties = {
+    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    zIndex: 1000, backdropFilter: 'blur(4px)'
+};
+
+const modalContentStyle: CSSProperties = {
+    background: 'white', padding: '2rem', borderRadius: '16px', width: '90%', maxWidth: '500px',
+    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+};
+const modalStyle = modalContentStyle; // Alias for compatibility
+
+const modalActionsStyle: CSSProperties = { display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' };
+const labelStyle: CSSProperties = { display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 600, color: '#475569' };
+const textAreaStyle: CSSProperties = { width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '1rem', minHeight: '80px', fontSize: '0.9rem' };
+
+// Table Styles
+const tableContainerStyle: CSSProperties = { background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' };
 const tableStyle: CSSProperties = { width: '100%', borderCollapse: 'collapse' };
-const thStyle: CSSProperties = { textAlign: 'left', padding: '12px 16px', backgroundColor: '#f8fafc', color: '#64748b', fontSize: '12px', fontWeight: 600, borderBottom: '1px solid #e2e8f0' };
-const tdStyle: CSSProperties = { padding: '12px 16px', borderBottom: '1px solid #f1f5f9', fontSize: '14px' };
-const trStyle: CSSProperties = { transition: 'background-color 0.15s' };
-const emptyStyle: CSSProperties = { textAlign: 'center', padding: '40px', color: '#94a3b8' };
-const linkStyle: CSSProperties = { color: '#00a8e8', textDecoration: 'none', fontWeight: 500 };
-const actionsStyle: CSSProperties = { display: 'flex', gap: '8px' };
-const actionLinkStyle: CSSProperties = { textDecoration: 'none', fontSize: '16px' };
-const actionButtonStyle: CSSProperties = { background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', padding: '4px' };
-
-const modalOverlayStyle: CSSProperties = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 };
-const modalStyle: CSSProperties = { backgroundColor: '#fff', padding: '24px', borderRadius: '12px', width: '400px', maxWidth: '90vw' };
+const thStyle: CSSProperties = { textAlign: 'left', padding: '1rem', background: '#f8fafc', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', borderBottom: '1px solid #e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' };
+const tdStyle: CSSProperties = { padding: '1rem', borderBottom: '1px solid #f1f5f9', color: '#334155', fontSize: '0.9rem' };
+const trStyle: CSSProperties = { transition: 'background 0.2s' };
+const emptyStyle: CSSProperties = { padding: '3rem', textAlign: 'center', color: '#94a3b8' };
+const linkStyle: CSSProperties = { color: '#3b82f6', textDecoration: 'none', fontWeight: 600 };
+const actionsStyle: CSSProperties = { display: 'flex', gap: '0.5rem' };
+const actionButtonStyle: CSSProperties = { padding: '0.4rem', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white', cursor: 'pointer', color: '#64748b', transition: 'all 0.2s' };
+const actionLinkStyle: CSSProperties = { display: 'block' };
 const modalTitleStyle: CSSProperties = { fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' };
 const modalSubtitleStyle: CSSProperties = { color: '#64748b', marginBottom: '20px' };
 const formGroupStyle: CSSProperties = { marginBottom: '16px' };
 const formLabelStyle: CSSProperties = { display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: 500 };
 const textareaStyle: CSSProperties = { ...inputStyle, minHeight: '80px', resize: 'vertical' };
-const modalActionsStyle: CSSProperties = { display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '20px' };
 const cancelButtonStyle: CSSProperties = { padding: '8px 16px', backgroundColor: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer' };
 const confirmButtonStyle: CSSProperties = { padding: '8px 16px', backgroundColor: '#2e7d32', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' };

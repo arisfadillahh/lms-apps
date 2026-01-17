@@ -22,19 +22,25 @@ CREATE TABLE IF NOT EXISTS public.invoice_settings (
   bank_account_holder text NOT NULL DEFAULT '',
   admin_whatsapp_number text NOT NULL DEFAULT '',
   base_url text NOT NULL DEFAULT 'http://localhost:3000',
-  invoice_message_template text NOT NULL DEFAULT 'Yth. Bpk/Ibu {parent_name},
+  invoice_message_template text NOT NULL DEFAULT 'Yth. Bpk/Ibu *{parent_name}*,
 
-Tagihan kursus telah tersedia:
+Tagihan kursus bulan *{period_month_year}*
 
-📄 Invoice: {invoice_number}
-💰 Total: Rp {total_amount}
-📅 Jatuh Tempo: {due_date}
+━━━━━━━━━━━━━━━━━━
+👦 Siswa:
+{student_list}
 
-Lihat detail:
+💰 Total Tagihan: *Rp {total_amount}*
+📅 Jatuh Tempo: *{due_date}*
+━━━━━━━━━━━━━━━━━━
+
+📄 Lihat invoice lengkap:
 {invoice_url}
 
+Setelah transfer, mohon konfirmasi dengan mengirim bukti ke nomor ini.
+
 Terima kasih 🙏
-CLEVIO Coder',
+*CLEVIO Coder Team*',
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 

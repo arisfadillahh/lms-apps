@@ -223,6 +223,7 @@ export async function getCodersWithoutCCR(): Promise<Array<{
             id,
             full_name,
             parent_contact_phone,
+            parent_name,
             enrollments(
                 classes(
                     name,
@@ -250,34 +251,59 @@ export async function getCodersWithoutCCR(): Promise<Array<{
     const groups = new Map<string, {
         parent_phone: string;
         parent_name: string;
+        db_parent_names: Set<string>; // Start collecting real parent names
         coders: Array<{ id: string; full_name: string; class_name?: string; level_name?: string }>;
     }>();
 
     for (const coder of coders) {
-        const phone = coder.parent_contact_phone;
+        // cast because our select includes parent_name which might missing in strict type inference
+        const u = coder as typeof coder & { parent_name: string | null };
+        const phone = u.parent_contact_phone;
         if (!phone || ccrPhones.has(phone)) continue;
 
-        const enrollment = (coder.enrollments as Array<{ classes: { name: string; levels: { name: string } | null } | null }>)?.[0];
+        const enrollment = (u.enrollments as Array<{ classes: { name: string; levels: { name: string } | null } | null }>)?.[0];
         const className = enrollment?.classes?.name || undefined;
         const levelName = enrollment?.classes?.levels?.name || undefined;
 
         if (!groups.has(phone)) {
             groups.set(phone, {
                 parent_phone: phone,
-                parent_name: coder.full_name.split(' ')[0] || 'Parent',
+                parent_name: '',
+                db_parent_names: new Set(),
                 coders: []
             });
         }
 
-        groups.get(phone)!.coders.push({
-            id: coder.id,
-            full_name: coder.full_name,
+        const group = groups.get(phone)!;
+
+        if (u.parent_name) {
+            group.db_parent_names.add(u.parent_name.trim());
+        }
+
+        group.coders.push({
+            id: u.id,
+            full_name: u.full_name,
             class_name: className,
             level_name: levelName
         });
     }
 
-    return Array.from(groups.values());
+    // Post-process to generate final parent name
+    for (const group of groups.values()) {
+        const uniqueDbNames = Array.from(group.db_parent_names);
+
+        if (uniqueDbNames.length > 0) {
+            // Case 1: Use DB parent names (joined if multiple)
+            group.parent_name = uniqueDbNames.join(' / ');
+        } else {
+            // Case 2: Fallback to "Orang Tua [Student...]" if DB parent_name is empty
+            const uniqueStudentNames = Array.from(new Set(group.coders.map(c => c.full_name)));
+            group.parent_name = `Orang Tua ${uniqueStudentNames.join(' / ')}`;
+        }
+    }
+
+    // Cleanup internal set before returning
+    return Array.from(groups.values()).map(({ db_parent_names, ...rest }) => rest);
 }
 
 export async function getAllCCRs(): Promise<CCRNumber[]> {

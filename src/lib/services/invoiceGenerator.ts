@@ -1,0 +1,272 @@
+/**
+ * Invoice Generator Service
+ * 
+ * Business logic for generating invoices from active payment periods.
+ * Groups coders by parent phone to create combined invoices.
+ */
+
+import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import {
+    getOrCreateCCR,
+    createInvoice,
+    createInvoiceItems,
+    getInvoiceSettings,
+    invoiceExistsForParent
+} from '@/lib/dao/invoicesDao';
+import type { GenerateInvoicesResponse, Invoice, InvoiceItem } from '@/lib/types/invoice';
+
+interface CoderPaymentData {
+    id: string;
+    coder_id: string;
+    class_id: string;
+    total_amount: number;
+    start_date: string;
+    end_date: string;
+    status: string;
+    users: {
+        id: string;
+        full_name: string;
+        parent_contact_phone: string | null;
+    } | null;
+    classes: {
+        id: string;
+        name: string;
+        level_id: string | null;
+        levels: {
+            id: string;
+            name: string;
+        } | null;
+    } | null;
+    payment_plans: {
+        id: string;
+        name: string;
+        discount_percent: number;
+    } | null;
+    pricing: {
+        id: string;
+        base_price_monthly: number;
+    } | null;
+}
+
+interface ParentGroup {
+    parentPhone: string;
+    parentName: string;
+    coders: CoderPaymentData[];
+}
+
+/**
+ * Generate invoices for a specific month/year
+ * Groups coders by parent phone to create combined invoices
+ */
+export async function generateInvoicesForMonth(
+    month: number,
+    year: number
+): Promise<GenerateInvoicesResponse> {
+    const result: GenerateInvoicesResponse = {
+        success: true,
+        generated: 0,
+        skipped: 0,
+        invoices: [],
+        errors: []
+    };
+
+    try {
+        // 1. Get settings for due date calculation
+        const settings = await getInvoiceSettings();
+        if (!settings) {
+            result.success = false;
+            result.errors.push('Invoice settings not found. Please configure settings first.');
+            return result;
+        }
+
+        // 2. Fetch all active payment periods
+        const supabase = getSupabaseAdmin();
+        const { data: periods, error } = await supabase
+            .from('coder_payment_periods')
+            .select(`
+        *,
+        users!coder_payment_periods_coder_id_fkey(id, full_name, parent_contact_phone),
+        classes(id, name, level_id, levels(id, name)),
+        payment_plans(*),
+        pricing(*)
+      `)
+            .eq('status', 'ACTIVE');
+
+        if (error) {
+            result.success = false;
+            result.errors.push(`Database error: ${error.message}`);
+            return result;
+        }
+
+        if (!periods || periods.length === 0) {
+            result.errors.push('No active payment periods found.');
+            return result;
+        }
+
+        // 3. Group by parent phone
+        const parentGroups = groupByParentPhone(periods as unknown as CoderPaymentData[]);
+
+        // 4. Generate invoice for each parent group
+        for (const group of parentGroups) {
+            try {
+                // Skip if no valid phone
+                if (!group.parentPhone) {
+                    result.skipped++;
+                    result.errors.push(`Skipped: No parent phone for ${group.parentName}`);
+                    continue;
+                }
+
+                // Check if invoice already exists for this parent/month
+                const exists = await invoiceExistsForParent(group.parentPhone, month, year);
+                if (exists) {
+                    result.skipped++;
+                    continue;
+                }
+
+                // Get or create CCR number
+                const ccr = await getOrCreateCCR(group.parentPhone, group.parentName);
+                if (!ccr) {
+                    result.errors.push(`Failed to create CCR for ${group.parentName}`);
+                    continue;
+                }
+
+                // Calculate total and prepare items
+                let totalAmount = 0;
+                const items: Omit<InvoiceItem, 'id' | 'created_at' | 'invoice_id'>[] = [];
+
+                for (const coder of group.coders) {
+                    const basePrice = coder.pricing?.base_price_monthly || coder.total_amount;
+                    const discountPercent = coder.payment_plans?.discount_percent || 0;
+                    const discountAmount = Math.floor(basePrice * (discountPercent / 100));
+                    const finalPrice = basePrice - discountAmount;
+
+                    items.push({
+                        coder_id: coder.coder_id,
+                        coder_name: coder.users?.full_name || 'Unknown',
+                        class_name: coder.classes?.name || 'Unknown Class',
+                        level_name: coder.classes?.levels?.name || 'Unknown Level',
+                        base_price: basePrice,
+                        discount_amount: discountAmount,
+                        final_price: finalPrice,
+                        payment_period_id: coder.id
+                    });
+
+                    totalAmount += finalPrice;
+                }
+
+                // Calculate due date
+                const dueDate = calculateDueDate(settings.generate_day, settings.due_days, month, year);
+
+                // Create invoice
+                const invoice = await createInvoice({
+                    ccr_id: ccr.id,
+                    ccr_code: ccr.ccr_code || `CCR${String(ccr.ccr_sequence).padStart(3, '0')}`,
+                    parent_phone: group.parentPhone,
+                    parent_name: group.parentName,
+                    period_month: month,
+                    period_year: year,
+                    total_amount: totalAmount,
+                    due_date: dueDate
+                });
+
+                if (!invoice) {
+                    result.errors.push(`Failed to create invoice for ${group.parentName}`);
+                    continue;
+                }
+
+                // Create invoice items
+                const invoiceItems = await createInvoiceItems(
+                    items.map(item => ({ ...item, invoice_id: invoice.id }))
+                );
+
+                // Add to result
+                result.generated++;
+                result.invoices.push({
+                    ...invoice,
+                    items: invoiceItems as InvoiceItem[]
+                });
+
+            } catch (err) {
+                result.errors.push(`Error processing ${group.parentName}: ${String(err)}`);
+            }
+        }
+
+        return result;
+
+    } catch (err) {
+        result.success = false;
+        result.errors.push(`Unexpected error: ${String(err)}`);
+        return result;
+    }
+}
+
+/**
+ * Group payment periods by parent phone
+ */
+function groupByParentPhone(periods: CoderPaymentData[]): ParentGroup[] {
+    const groups = new Map<string, ParentGroup>();
+
+    for (const period of periods) {
+        const phone = period.users?.parent_contact_phone;
+        if (!phone) continue;
+
+        if (!groups.has(phone)) {
+            groups.set(phone, {
+                parentPhone: phone,
+                parentName: period.users?.full_name || 'Unknown',
+                coders: []
+            });
+        }
+
+        groups.get(phone)!.coders.push(period);
+    }
+
+    return Array.from(groups.values());
+}
+
+/**
+ * Calculate due date based on settings
+ */
+function calculateDueDate(
+    generateDay: number,
+    dueDays: number,
+    month: number,
+    year: number
+): string {
+    // Start from generate day of the month
+    const baseDate = new Date(year, month - 1, generateDay);
+    // Add due days
+    baseDate.setDate(baseDate.getDate() + dueDays);
+
+    return baseDate.toISOString().split('T')[0];
+}
+
+/**
+ * Get invoice statistics for current month
+ */
+export async function getInvoiceStats(month: number, year: number) {
+    const supabase = getSupabaseAdmin();
+
+    const [pending, paid, overdue, total] = await Promise.all([
+        supabase.from('invoices').select('*', { count: 'exact', head: true })
+            .eq('period_month', month).eq('period_year', year).eq('status', 'PENDING'),
+        supabase.from('invoices').select('*', { count: 'exact', head: true })
+            .eq('period_month', month).eq('period_year', year).eq('status', 'PAID'),
+        supabase.from('invoices').select('*', { count: 'exact', head: true })
+            .eq('period_month', month).eq('period_year', year).eq('status', 'OVERDUE'),
+        supabase.from('invoices').select('total_amount')
+            .eq('period_month', month).eq('period_year', year)
+    ]);
+
+    const totalAmount = (total.data || []).reduce(
+        (sum, inv) => sum + (inv.total_amount || 0),
+        0
+    );
+
+    return {
+        pending: pending.count || 0,
+        paid: paid.count || 0,
+        overdue: overdue.count || 0,
+        totalAmount
+    };
+}

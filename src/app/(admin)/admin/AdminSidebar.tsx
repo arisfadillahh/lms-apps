@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import type { CSSProperties } from 'react';
-import { Home, Users, GraduationCap, BookOpen, CalendarOff, FileText, MessageCircle, Package, Image as ImageIcon, Wallet, BookMarked, Megaphone } from 'lucide-react';
+import { Home, Users, GraduationCap, BookOpen, CalendarOff, FileText, MessageCircle, Package, Image as ImageIcon, Wallet, BookMarked, Megaphone, Receipt, Settings, UserCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { isSuperAdmin, type AdminPermissions } from '@/lib/permissions';
 
@@ -16,12 +16,15 @@ const NAV_LINKS = [
     { id: 'curriculum', href: '/admin/curriculum', label: 'Kurikulum', icon: BookOpen },
     { id: 'ekskul', href: '/admin/ekskul', label: 'Ekskul Plans', icon: BookMarked },
     { id: 'payments', href: '/admin/payments', label: 'Pembayaran', icon: Wallet },
+    { id: 'invoices', href: '/admin/payments/invoices', label: 'Invoice', icon: Receipt },
+    { id: 'ccr', href: '/admin/coders/assign-ccr', label: 'Assign CCR', icon: UserCheck },
     { id: 'software', href: '/admin/software', label: 'Software', icon: Package },
     { id: 'banners', href: '/admin/banners', label: 'Banner', icon: ImageIcon },
     { id: 'leave', href: '/admin/leave', label: 'Izin Coach', icon: CalendarOff },
     { id: 'reports', href: '/admin/reports', label: 'Laporan', icon: FileText },
     { id: 'whatsapp', href: '/admin/whatsapp', label: 'WhatsApp', icon: MessageCircle },
     { id: 'broadcast', href: '/admin/broadcast', label: 'Broadcast', icon: Megaphone },
+    { id: 'settings', href: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 
 type AdminSidebarProps = {

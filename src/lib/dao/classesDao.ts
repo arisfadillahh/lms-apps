@@ -192,6 +192,19 @@ export async function deleteClassBlock(id: string): Promise<void> {
 
 export async function deleteClass(id: string): Promise<void> {
   const supabase = getSupabaseAdmin();
+
+  // Manually cleanup related payment periods first
+  // (This ensures no ghost bills remain if the DB constraint isn't CASCADE)
+  const { error: paymentError } = await supabase
+    .from('coder_payment_periods' as any)
+    .delete()
+    .eq('class_id', id);
+
+  if (paymentError) {
+    console.warn(`[ClassDelete] Failed to cleanup payment periods for class ${id}:`, paymentError);
+    // We continue to try deleting the class anyway
+  }
+
   const { error } = await supabase.from('classes').delete().eq('id', id);
 
   if (error) {

@@ -31,6 +31,7 @@ interface CoderPaymentData {
     classes: {
         id: string;
         name: string;
+        type: string;
         level_id: string | null;
         levels: {
             id: string;
@@ -97,7 +98,7 @@ export async function generateInvoicesForMonth(
             .select(`
         *,
         users!coder_payment_periods_coder_id_fkey(id, full_name, parent_contact_phone, parent_name),
-        classes(id, name, level_id, levels(id, name)),
+        classes(id, name, level_id, type, levels(id, name)),
         payment_plans(*),
         pricing(*)
       `)
@@ -158,6 +159,12 @@ export async function generateInvoicesForMonth(
                 const items: Omit<InvoiceItem, 'id' | 'created_at' | 'invoice_id'>[] = [];
 
                 for (const coder of group.coders) {
+                    // Skip 'EKSKUL' classes as they are paid via school (external)
+                    if (coder.classes?.type === 'EKSKUL') {
+                        console.log(`[InvoiceGenerator] Skipping EKSKUL class: ${coder.classes.name}`);
+                        continue;
+                    }
+
                     const basePrice = coder.pricing?.base_price_monthly || coder.total_amount;
                     const discountPercent = coder.payment_plans?.discount_percent || 0;
                     const discountAmount = Math.floor(basePrice * (discountPercent / 100));

@@ -149,8 +149,15 @@ export async function initializeWhatsApp(): Promise<{
 
 /**
  * Get current connection status
+ * Optionally try to reconnect if disconnected
  */
-export async function getWhatsAppStatus(): Promise<WhatsAppStatus> {
+export async function getWhatsAppStatus(tryReconnect = false): Promise<WhatsAppStatus> {
+    // If we're disconnected but a request comes in, check if we should try to restore session
+    if (!isConnected && !sock && tryReconnect) {
+        console.log('[WhatsApp] Status check triggered reconnection attempt...');
+        await initializeWhatsApp();
+    }
+
     return {
         isConnected,
         connectedPhone,
@@ -192,7 +199,13 @@ export async function sendWhatsAppMessage(
     message: string
 ): Promise<{ success: boolean; error?: string }> {
     if (!isConnected || !sock) {
-        return { success: false, error: 'WhatsApp not connected' };
+        // Try one last attempt to reconnect if just starting up
+        console.log('[WhatsApp] Not connected, attempting to restore session before sending...');
+        await initializeWhatsApp();
+
+        if (!isConnected || !sock) {
+            return { success: false, error: 'WhatsApp not connected' };
+        }
     }
 
     try {
@@ -230,7 +243,11 @@ export async function sendSingleInvoiceReminder(invoiceId: string): Promise<{ su
     try {
         // Check connection
         if (!isConnected || !sock) {
-            return { success: false, error: 'WhatsApp not connected' };
+            // Try one last attempt to reconnect
+            await initializeWhatsApp();
+            if (!isConnected || !sock) {
+                return { success: false, error: 'WhatsApp not connected' };
+            }
         }
 
         // Get invoice

@@ -18,7 +18,7 @@ export async function GET() {
             );
         }
 
-        const status = await getWhatsAppStatus();
+        const status = await getWhatsAppStatus(true);
 
         return NextResponse.json(status);
 

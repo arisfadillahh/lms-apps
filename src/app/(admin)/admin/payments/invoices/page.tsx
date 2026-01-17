@@ -17,25 +17,29 @@ export default async function AdminInvoicesPage() {
     const currentYear = now.getFullYear();
 
     // Fetch initial data
-    const { data: invoices } = await supabase
-        .from('invoices')
+    const { data: invoicesData } = await supabase
+        .from('invoices' as any)
         .select('*, items:invoice_items(*)')
         .eq('period_month', currentMonth)
         .eq('period_year', currentYear)
         .order('created_at', { ascending: false })
         .limit(50);
 
+    const invoices = invoicesData as any[] || [];
+
     // Get stats
-    const { data: stats } = await supabase
-        .from('invoices')
+    const { data: statsData } = await supabase
+        .from('invoices' as any)
         .select('status, total_amount')
         .eq('period_month', currentMonth)
         .eq('period_year', currentYear);
 
-    const pendingCount = stats?.filter(i => i.status === 'PENDING').length || 0;
-    const paidCount = stats?.filter(i => i.status === 'PAID').length || 0;
-    const overdueCount = stats?.filter(i => i.status === 'OVERDUE').length || 0;
-    const totalAmount = stats?.reduce((sum, i) => sum + (i.total_amount || 0), 0) || 0;
+    const stats = statsData as any[] || [];
+
+    const pendingCount = stats.filter((i: any) => i.status === 'PENDING').length || 0;
+    const paidCount = stats.filter((i: any) => i.status === 'PAID').length || 0;
+    const overdueCount = stats.filter((i: any) => i.status === 'OVERDUE').length || 0;
+    const totalAmount = stats.reduce((sum: number, i: any) => sum + (i.total_amount || 0), 0) || 0;
 
     return (
         <InvoiceManagement

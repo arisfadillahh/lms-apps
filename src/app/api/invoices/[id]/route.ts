@@ -111,13 +111,13 @@ export async function DELETE(
 
         // First delete invoice items
         await supabase
-            .from('invoice_items')
+            .from('invoice_items' as any)
             .delete()
             .eq('invoice_id', id);
 
         // Then delete the invoice
         const { error } = await supabase
-            .from('invoices')
+            .from('invoices' as any)
             .delete()
             .eq('id', id);
 

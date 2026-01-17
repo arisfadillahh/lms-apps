@@ -23,7 +23,7 @@ export async function getInvoiceSettings(): Promise<InvoiceSettings | null> {
     const supabase = getSupabaseAdmin();
 
     const { data, error } = await supabase
-        .from('invoice_settings')
+        .from('invoice_settings' as any)
         .select('*')
         .limit(1)
         .single();
@@ -33,7 +33,7 @@ export async function getInvoiceSettings(): Promise<InvoiceSettings | null> {
         return null;
     }
 
-    return data as InvoiceSettings;
+    return (data as unknown) as InvoiceSettings;
 }
 
 export async function updateInvoiceSettings(
@@ -43,7 +43,7 @@ export async function updateInvoiceSettings(
 
     // Get the existing settings ID first
     const { data: existing } = await supabase
-        .from('invoice_settings')
+        .from('invoice_settings' as any)
         .select('id')
         .limit(1)
         .single();
@@ -54,9 +54,9 @@ export async function updateInvoiceSettings(
     }
 
     const { data, error } = await supabase
-        .from('invoice_settings')
+        .from('invoice_settings' as any)
         .update(settings)
-        .eq('id', existing.id)
+        .eq('id', (existing as any).id)
         .select()
         .single();
 
@@ -65,7 +65,7 @@ export async function updateInvoiceSettings(
         return null;
     }
 
-    return data as InvoiceSettings;
+    return (data as unknown) as InvoiceSettings;
 }
 
 // ============================================================================
@@ -80,24 +80,24 @@ export async function getOrCreateCCR(
 
     // Check if CCR already exists for this phone
     const { data: existing } = await supabase
-        .from('ccr_numbers')
+        .from('ccr_numbers' as any)
         .select('*')
         .eq('parent_phone', parentPhone)
         .single();
 
     if (existing) {
-        return existing as CCRNumber;
+        return (existing as unknown) as CCRNumber;
     }
 
     // Get next sequence number
-    const { data: seqData } = await supabase
+    const { data: seqData } = await (supabase as any)
         .rpc('get_next_ccr_sequence');
 
     const nextSeq = seqData || 1;
 
     // Create new CCR
     const { data: newCCR, error } = await supabase
-        .from('ccr_numbers')
+        .from('ccr_numbers' as any)
         .insert({
             parent_phone: parentPhone,
             ccr_sequence: nextSeq,
@@ -111,7 +111,7 @@ export async function getOrCreateCCR(
         return null;
     }
 
-    return newCCR as CCRNumber;
+    return (newCCR as unknown) as CCRNumber;
 }
 
 export function formatCCRCode(sequence: number): string {
@@ -130,7 +130,7 @@ export function formatInvoiceNumber(ccrCode: string, month: number, year: number
 export async function getNextAvailableCCR(): Promise<string> {
     const supabase = getSupabaseAdmin();
 
-    const { data } = await supabase
+    const { data } = await (supabase as any)
         .rpc('get_next_ccr_code');
 
     return data || 'CCR001';
@@ -140,24 +140,24 @@ export async function getCCRByPhone(parentPhone: string): Promise<CCRNumber | nu
     const supabase = getSupabaseAdmin();
 
     const { data } = await supabase
-        .from('ccr_numbers')
+        .from('ccr_numbers' as any)
         .select('*')
         .eq('parent_phone', parentPhone)
         .single();
 
-    return data as CCRNumber | null;
+    return (data as unknown) as CCRNumber | null;
 }
 
 export async function getCCRByCode(ccrCode: string): Promise<CCRNumber | null> {
     const supabase = getSupabaseAdmin();
 
     const { data } = await supabase
-        .from('ccr_numbers')
+        .from('ccr_numbers' as any)
         .select('*')
         .eq('ccr_code', ccrCode)
         .single();
 
-    return data as CCRNumber | null;
+    return (data as unknown) as CCRNumber | null;
 }
 
 export async function assignCCRToParent(
@@ -191,7 +191,7 @@ export async function assignCCRToParent(
 
     // Create new CCR
     const { data: newCCR, error } = await supabase
-        .from('ccr_numbers')
+        .from('ccr_numbers' as any)
         .insert({
             parent_phone: parentPhone,
             ccr_sequence: sequence,
@@ -206,7 +206,7 @@ export async function assignCCRToParent(
         return null;
     }
 
-    return newCCR as CCRNumber;
+    return (newCCR as unknown) as CCRNumber;
 }
 
 export async function getCodersWithoutCCR(): Promise<Array<{
@@ -242,10 +242,10 @@ export async function getCodersWithoutCCR(): Promise<Array<{
 
     // Get all existing CCR parent phones
     const { data: existingCCRs } = await supabase
-        .from('ccr_numbers')
+        .from('ccr_numbers' as any)
         .select('parent_phone');
 
-    const ccrPhones = new Set((existingCCRs || []).map(c => c.parent_phone));
+    const ccrPhones = new Set(((existingCCRs as any[]) || []).map(c => c.parent_phone));
 
     // Filter coders without CCR and group by parent phone
     const groups = new Map<string, {
@@ -257,7 +257,7 @@ export async function getCodersWithoutCCR(): Promise<Array<{
 
     for (const coder of coders) {
         // cast because our select includes parent_name which might missing in strict type inference
-        const u = coder as typeof coder & { parent_name: string | null };
+        const u = (coder as unknown) as typeof coder & { parent_name: string | null };
         const phone = u.parent_contact_phone;
         if (!phone || ccrPhones.has(phone)) continue;
 
@@ -310,7 +310,7 @@ export async function getAllCCRs(): Promise<CCRNumber[]> {
     const supabase = getSupabaseAdmin();
 
     const { data, error } = await supabase
-        .from('ccr_numbers')
+        .from('ccr_numbers' as any)
         .select('*')
         .order('ccr_sequence', { ascending: true });
 
@@ -319,7 +319,7 @@ export async function getAllCCRs(): Promise<CCRNumber[]> {
         return [];
     }
 
-    return data as CCRNumber[];
+    return (data as unknown) as CCRNumber[];
 }
 
 // ============================================================================
@@ -345,7 +345,7 @@ export async function createInvoice(data: {
     );
 
     const { data: invoice, error } = await supabase
-        .from('invoices')
+        .from('invoices' as any)
         .insert({
             invoice_number: invoiceNumber,
             ccr_id: data.ccr_id,
@@ -365,7 +365,7 @@ export async function createInvoice(data: {
         return null;
     }
 
-    return invoice as Invoice;
+    return (invoice as unknown) as Invoice;
 }
 
 export async function createInvoiceItems(
@@ -374,7 +374,7 @@ export async function createInvoiceItems(
     const supabase = getSupabaseAdmin();
 
     const { data, error } = await supabase
-        .from('invoice_items')
+        .from('invoice_items' as any)
         .insert(items)
         .select();
 
@@ -383,14 +383,14 @@ export async function createInvoiceItems(
         return [];
     }
 
-    return data as InvoiceItem[];
+    return (data as unknown) as InvoiceItem[];
 }
 
 export async function getInvoiceByNumber(invoiceNumber: string): Promise<Invoice | null> {
     const supabase = getSupabaseAdmin();
 
     const { data, error } = await supabase
-        .from('invoices')
+        .from('invoices' as any)
         .select(`
       *,
       items:invoice_items(*)
@@ -403,14 +403,14 @@ export async function getInvoiceByNumber(invoiceNumber: string): Promise<Invoice
         return null;
     }
 
-    return data as Invoice;
+    return (data as unknown) as Invoice;
 }
 
 export async function getInvoiceById(id: string): Promise<Invoice | null> {
     const supabase = getSupabaseAdmin();
 
     const { data, error } = await supabase
-        .from('invoices')
+        .from('invoices' as any)
         .select(`
       *,
       items:invoice_items(*)
@@ -423,7 +423,7 @@ export async function getInvoiceById(id: string): Promise<Invoice | null> {
         return null;
     }
 
-    return data as Invoice;
+    return (data as unknown) as Invoice;
 }
 
 export async function listInvoices(filters: InvoiceFilters): Promise<InvoiceListResult> {
@@ -431,7 +431,7 @@ export async function listInvoices(filters: InvoiceFilters): Promise<InvoiceList
     const { month, year, status, search, page = 1, limit = 20 } = filters;
 
     let query = supabase
-        .from('invoices')
+        .from('invoices' as any)
         .select('*, items:invoice_items(*)', { count: 'exact' });
 
     if (month) {
@@ -464,7 +464,7 @@ export async function listInvoices(filters: InvoiceFilters): Promise<InvoiceList
     }
 
     return {
-        invoices: data as Invoice[],
+        invoices: (data as unknown) as Invoice[],
         total: count || 0,
         page,
         limit
@@ -478,7 +478,7 @@ export async function getPendingInvoicesForMonth(
     const supabase = getSupabaseAdmin();
 
     const { data, error } = await supabase
-        .from('invoices')
+        .from('invoices' as any)
         .select('*, items:invoice_items(*)')
         .eq('period_month', month)
         .eq('period_year', year)
@@ -489,7 +489,7 @@ export async function getPendingInvoicesForMonth(
         return [];
     }
 
-    return data as Invoice[];
+    return (data as unknown) as Invoice[];
 }
 
 export async function invoiceExistsForParent(
@@ -500,7 +500,7 @@ export async function invoiceExistsForParent(
     const supabase = getSupabaseAdmin();
 
     const { data } = await supabase
-        .from('invoices')
+        .from('invoices' as any)
         .select('id')
         .eq('parent_phone', parentPhone)
         .eq('period_month', month)
@@ -518,7 +518,7 @@ export async function markInvoiceAsPaid(
     const supabase = getSupabaseAdmin();
 
     const { data, error } = await supabase
-        .from('invoices')
+        .from('invoices' as any)
         .update({
             status: 'PAID' as InvoiceStatus,
             paid_at: paidAt,
@@ -533,7 +533,7 @@ export async function markInvoiceAsPaid(
         return null;
     }
 
-    return data as Invoice;
+    return (data as unknown) as Invoice;
 }
 
 export async function updateInvoiceStatus(
@@ -543,7 +543,7 @@ export async function updateInvoiceStatus(
     const supabase = getSupabaseAdmin();
 
     const { data, error } = await supabase
-        .from('invoices')
+        .from('invoices' as any)
         .update({ status })
         .eq('id', id)
         .select()
@@ -554,14 +554,14 @@ export async function updateInvoiceStatus(
         return null;
     }
 
-    return data as Invoice;
+    return (data as unknown) as Invoice;
 }
 
 export async function getInvoiceHistoryByParent(parentPhone: string): Promise<Invoice[]> {
     const supabase = getSupabaseAdmin();
 
     const { data, error } = await supabase
-        .from('invoices')
+        .from('invoices' as any)
         .select('*, items:invoice_items(*)')
         .eq('parent_phone', parentPhone)
         .order('period_year', { ascending: false })
@@ -572,7 +572,7 @@ export async function getInvoiceHistoryByParent(parentPhone: string): Promise<In
         return [];
     }
 
-    return data as Invoice[];
+    return (data as unknown) as Invoice[];
 }
 
 // ============================================================================
@@ -583,7 +583,7 @@ export async function getWhatsAppSession(clientId: string) {
     const supabase = getSupabaseAdmin();
 
     const { data } = await supabase
-        .from('whatsapp_sessions')
+        .from('whatsapp_sessions' as any)
         .select('*')
         .eq('client_id', clientId)
         .single();
@@ -603,7 +603,7 @@ export async function upsertWhatsAppSession(
     const supabase = getSupabaseAdmin();
 
     const { data: result, error } = await supabase
-        .from('whatsapp_sessions')
+        .from('whatsapp_sessions' as any)
         .upsert({
             client_id: clientId,
             ...data

@@ -90,7 +90,7 @@ export async function generateInvoicesForMonth(
 
         const supabase = getSupabaseAdmin();
         const { data: periods, error } = await supabase
-            .from('coder_payment_periods')
+            .from('coder_payment_periods' as any)
             .select(`
         *,
         users!coder_payment_periods_coder_id_fkey(id, full_name, parent_contact_phone, parent_name),
@@ -270,17 +270,17 @@ export async function getInvoiceStats(month: number, year: number) {
     const supabase = getSupabaseAdmin();
 
     const [pending, paid, overdue, total] = await Promise.all([
-        supabase.from('invoices').select('*', { count: 'exact', head: true })
+        supabase.from('invoices' as any).select('*', { count: 'exact', head: true })
             .eq('period_month', month).eq('period_year', year).eq('status', 'PENDING'),
-        supabase.from('invoices').select('*', { count: 'exact', head: true })
+        supabase.from('invoices' as any).select('*', { count: 'exact', head: true })
             .eq('period_month', month).eq('period_year', year).eq('status', 'PAID'),
-        supabase.from('invoices').select('*', { count: 'exact', head: true })
+        supabase.from('invoices' as any).select('*', { count: 'exact', head: true })
             .eq('period_month', month).eq('period_year', year).eq('status', 'OVERDUE'),
-        supabase.from('invoices').select('total_amount')
+        supabase.from('invoices' as any).select('total_amount')
             .eq('period_month', month).eq('period_year', year)
     ]);
 
-    const totalAmount = (total.data || []).reduce(
+    const totalAmount = ((total.data as any[]) || []).reduce(
         (sum, inv) => sum + (inv.total_amount || 0),
         0
     );

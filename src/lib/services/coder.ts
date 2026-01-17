@@ -247,6 +247,7 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
       if (currentOrUpcoming) {
         const software = await getSoftwareByBlockId(currentOrUpcoming.block_id);
 
+
         // Find next upcoming session and its lesson
         const now = new Date();
         const nextSession = sessions

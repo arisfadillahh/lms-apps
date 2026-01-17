@@ -8,6 +8,9 @@
 import { getInvoiceSettings } from '@/lib/dao/invoicesDao';
 import InvoiceSettingsForm from './InvoiceSettingsForm';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function InvoiceSettingsPage() {
     const settings = await getInvoiceSettings();
 

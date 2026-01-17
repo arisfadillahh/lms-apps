@@ -9,6 +9,10 @@ const updateUserSchema = z.object({
     id: z.string().uuid(),
     fullName: z.string().min(1).max(100),
     parentContactPhone: z.string().nullable().optional(),
+    adminPermissions: z.object({
+        menus: z.array(z.string()),
+        is_superadmin: z.boolean(),
+    }).nullable().optional(),
 });
 
 export async function PUT(request: Request) {
@@ -27,6 +31,13 @@ export async function PUT(request: Request) {
         return NextResponse.json({ error: 'Validation failed', details: parsed.error.flatten() }, { status: 400 });
     }
 
+    // Security check: Only superadmin (username 'admin') can update permissions
+    // And they can only update permissions provided the target is also an ADMIN (though the UI handles this, strictly enforcing here is good)
+    // For now, simplistically check if adminPermissions is present
+    if (parsed.data.adminPermissions && session.user.username !== 'admin') {
+        return NextResponse.json({ error: 'Only Super Admin can update permissions' }, { status: 403 });
+    }
+
     const supabase = getSupabaseAdmin();
 
     const updateData: Record<string, unknown> = {
@@ -35,6 +46,10 @@ export async function PUT(request: Request) {
 
     if (parsed.data.parentContactPhone !== undefined) {
         updateData.parent_contact_phone = parsed.data.parentContactPhone;
+    }
+
+    if (parsed.data.adminPermissions !== undefined) {
+        updateData.admin_permissions = parsed.data.adminPermissions;
     }
 
     const { data, error } = await supabase

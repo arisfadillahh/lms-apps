@@ -16,7 +16,9 @@ export default function InvoiceSettingsForm({ initialSettings }: Props) {
         bank_account_holder: initialSettings?.bank_account_holder || '',
         admin_whatsapp_number: initialSettings?.admin_whatsapp_number || '',
         base_url: initialSettings?.base_url || 'http://localhost:3000',
-        invoice_message_template: initialSettings?.invoice_message_template || ''
+        invoice_message_template: initialSettings?.invoice_message_template || '',
+        whatsapp_delay_min: initialSettings?.whatsapp_delay_min || 10,
+        whatsapp_delay_max: initialSettings?.whatsapp_delay_max || 30
     });
 
     const [saving, setSaving] = useState(false);
@@ -138,6 +140,31 @@ export default function InvoiceSettingsForm({ initialSettings }: Props) {
                         style={inputStyle}
                     />
                     <p style={helpTextStyle}>Nomor ini akan digunakan untuk tombol &quot;Hubungi Admin&quot; di invoice.</p>
+                </div>
+
+                <div style={formRowStyle}>
+                    <div style={formGroupStyle}>
+                        <label style={labelStyle}>Min Delay WhatsApp (detik)</label>
+                        <input
+                            type="number"
+                            min={1}
+                            value={settings.whatsapp_delay_min}
+                            onChange={(e) => handleChange('whatsapp_delay_min', parseInt(e.target.value))}
+                            style={inputStyle}
+                        />
+                        <p style={helpTextStyle}>Jeda minimum antar pesan.</p>
+                    </div>
+                    <div style={formGroupStyle}>
+                        <label style={labelStyle}>Max Delay WhatsApp (detik)</label>
+                        <input
+                            type="number"
+                            min={1}
+                            value={settings.whatsapp_delay_max}
+                            onChange={(e) => handleChange('whatsapp_delay_max', parseInt(e.target.value))}
+                            style={inputStyle}
+                        />
+                        <p style={helpTextStyle}>Jeda maksimum antar pesan.</p>
+                    </div>
                 </div>
 
                 <div style={formGroupStyle}>

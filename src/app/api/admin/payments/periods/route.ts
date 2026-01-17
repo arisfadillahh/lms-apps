@@ -45,14 +45,20 @@ export async function POST(request: Request) {
     // Get coder's active class if not provided
     let classId = parsed.data.classId;
     if (!classId) {
-        const { data: enrollment } = await supabase
+        const { data: enrollments } = await supabase
             .from('enrollments')
-            .select('class_id')
+            .select(`
+                class_id,
+                classes ( type )
+            `)
             .eq('coder_id', parsed.data.coderId)
-            .eq('status', 'ACTIVE')
-            .maybeSingle();
+            .eq('status', 'ACTIVE');
 
-        classId = enrollment?.class_id;
+        if (enrollments && enrollments.length > 0) {
+            // Priority: Non-EKSKUL class (e.g. WEEKLY)
+            const mainClass = enrollments.find(e => e.classes?.type !== 'EKSKUL');
+            classId = mainClass ? mainClass.class_id : enrollments[0].class_id;
+        }
     }
 
     if (!classId) {

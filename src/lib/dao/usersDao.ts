@@ -110,7 +110,7 @@ export async function listUsers(): Promise<UserSummary[]> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from('users')
-    .select('id, username, full_name, role, is_active, created_at, updated_at, parent_contact_phone')
+    .select('id, username, full_name, role, is_active, created_at, updated_at, parent_contact_phone, admin_permissions')
     .order('full_name', { ascending: true });
 
   if (error) {

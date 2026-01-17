@@ -52,6 +52,7 @@ export default function InvoiceManagement({
         error?: string;
     }>>([]);
     const [isProcessingQueue, setIsProcessingQueue] = useState(false);
+    const [whatsappDelay, setWhatsappDelay] = useState({ min: 5, max: 10 });
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('id-ID', {
@@ -128,13 +129,27 @@ export default function InvoiceManagement({
     };
 
     // Action: Prepare Reminder Queue
-    const handlePrepareReminders = () => {
+    const handlePrepareReminders = async () => {
         // Filter pending invoices
         const pendingInvoices = invoices.filter(inv => inv.status === 'PENDING');
 
         if (pendingInvoices.length === 0) {
             setMessage({ type: 'error', text: 'Tidak ada invoice pending untuk dikirim reminder.' });
             return;
+        }
+
+        // Fetch latest settings for delay configuration
+        try {
+            const res = await fetch('/api/invoices/settings');
+            const settings = await res.json();
+            if (res.ok && settings) {
+                setWhatsappDelay({
+                    min: settings.whatsapp_delay_min || 10,
+                    max: settings.whatsapp_delay_max || 30
+                });
+            }
+        } catch (error) {
+            console.error('Failed to fetch settings, using defaults', error);
         }
 
         const queue = pendingInvoices.map(inv => ({
@@ -182,8 +197,12 @@ export default function InvoiceManagement({
                 setReminderQueue(prev => prev.map((item, idx) => idx === i ? { ...item, status: 'error', error: String(error) } : item));
             }
 
-            // Small delay to prevent rate limit/UI jitter
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Dynamic Delay from Settings
+            if (i < currentQueue.length - 1) { // Don't wait after last item
+                const delayMs = Math.floor(Math.random() * (whatsappDelay.max - whatsappDelay.min + 1) + whatsappDelay.min) * 1000;
+                // console.log(`Waiting ${delayMs}ms before next message...`);
+                await new Promise(resolve => setTimeout(resolve, delayMs));
+            }
         }
 
         setIsProcessingQueue(false);

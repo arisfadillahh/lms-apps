@@ -12,6 +12,8 @@ export interface InvoiceSettings {
     admin_whatsapp_number: string;
     base_url: string;
     invoice_message_template: string;
+    whatsapp_delay_min: number;
+    whatsapp_delay_max: number;
     updated_at: string;
 }
 

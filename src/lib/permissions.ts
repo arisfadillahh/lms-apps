@@ -6,30 +6,20 @@
  * - Limited Admin: admin_permissions.menus contains allowed menu IDs
  */
 
+import { MENU_ITEMS } from '@/lib/adminMenu';
+
 export type AdminPermissions = {
     menus: string[];
     is_superadmin: boolean;
 } | null;
 
-export const ADMIN_MENUS = [
-    { id: 'dashboard', label: 'Dashboard', href: '/admin/dashboard' },
-    { id: 'users', label: 'Pengguna', href: '/admin/users' },
-    { id: 'classes', label: 'Kelas', href: '/admin/classes' },
-    { id: 'curriculum', label: 'Kurikulum', href: '/admin/curriculum' },
-    { id: 'ekskul', label: 'Ekskul Plans', href: '/admin/ekskul' },
-    { id: 'payments', label: 'Paket & Tarif', href: '/admin/payments' },
-    { id: 'invoices', label: 'Invoice', href: '/admin/payments/invoices' },
-    { id: 'ccr', label: 'Assign CCR', href: '/admin/coders/assign-ccr' },
-    { id: 'software', label: 'Software', href: '/admin/software' },
-    { id: 'banners', label: 'Banner', href: '/admin/banners' },
-    { id: 'leave', label: 'Izin Coach', href: '/admin/leave' },
-    { id: 'reports', label: 'Rapor', href: '/admin/reports' },
-    { id: 'whatsapp', label: 'WhatsApp', href: '/admin/whatsapp' },
-    { id: 'broadcast', label: 'Broadcast', href: '/admin/broadcast' },
-    { id: 'settings', label: 'Settings', href: '/admin/settings' },
-] as const;
+export const ADMIN_MENUS = Object.entries(MENU_ITEMS).map(([key, value]) => ({
+    id: key,
+    label: value.label,
+    href: value.href
+}));
 
-export type AdminMenuId = typeof ADMIN_MENUS[number]['id'];
+export type AdminMenuId = keyof typeof MENU_ITEMS;
 
 /**
  * Check if user is superadmin (full access to all menus)

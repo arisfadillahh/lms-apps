@@ -42,6 +42,7 @@ interface CoderPaymentData {
         id: string;
         name: string;
         discount_percent: number;
+        duration_months: number;
     } | null;
     pricing: {
         id: string;
@@ -165,7 +166,13 @@ export async function generateInvoicesForMonth(
                         continue;
                     }
 
-                    const basePrice = coder.pricing?.base_price_monthly || coder.total_amount;
+                    const duration = coder.payment_plans?.duration_months || 1;
+                    const monthlyPrice = coder.pricing?.base_price_monthly || 0;
+
+                    // Base Price = Monthly * Duration
+                    // If no pricing linked, fallback to stored total_amount (assuming it's already final, so base=final)
+                    const basePrice = monthlyPrice > 0 ? (monthlyPrice * duration) : coder.total_amount;
+
                     const discountPercent = coder.payment_plans?.discount_percent || 0;
                     const discountAmount = Math.floor(basePrice * (discountPercent / 100));
                     const finalPrice = basePrice - discountAmount;

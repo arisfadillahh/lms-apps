@@ -72,6 +72,25 @@ export async function PUT(request: NextRequest) {
             }
         }
 
+        // Validate WhatsApp Delay
+        if (body.whatsapp_delay_min !== undefined) {
+            if (body.whatsapp_delay_min < 1) {
+                return NextResponse.json({ error: 'Min delay must be at least 1 second' }, { status: 400 });
+            }
+        }
+
+        if (body.whatsapp_delay_max !== undefined) {
+            if (body.whatsapp_delay_max < 1) {
+                return NextResponse.json({ error: 'Max delay must be at least 1 second' }, { status: 400 });
+            }
+        }
+
+        if (body.whatsapp_delay_min !== undefined && body.whatsapp_delay_max !== undefined) {
+            if (body.whatsapp_delay_min > body.whatsapp_delay_max) {
+                return NextResponse.json({ error: 'Min delay cannot be greater than Max delay' }, { status: 400 });
+            }
+        }
+
         const settings = await updateInvoiceSettings(body);
 
         if (!settings) {

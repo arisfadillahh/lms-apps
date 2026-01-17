@@ -11,67 +11,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { isSuperAdmin, type AdminPermissions } from '@/lib/permissions';
-
-// Define the Leaf Menu Items (Source of Truth for Icons & Links)
-const MENU_ITEMS: Record<string, { href: string; label: string; icon: any }> = {
-    dashboard: { href: '/admin/dashboard', label: 'Dashboard', icon: Home },
-    users: { href: '/admin/users', label: 'Pengguna', icon: Users },
-    classes: { href: '/admin/classes', label: 'Kelas', icon: GraduationCap },
-    curriculum: { href: '/admin/curriculum', label: 'Kurikulum', icon: BookOpen },
-    ekskul: { href: '/admin/ekskul', label: 'Ekskul Plans', icon: BookMarked },
-    payments: { href: '/admin/payments', label: 'Paket & Tarif', icon: Wallet },
-    invoices: { href: '/admin/payments/invoices', label: 'Invoice', icon: Receipt },
-    ccr: { href: '/admin/coders/assign-ccr', label: 'Assign CCR', icon: UserCheck },
-    software: { href: '/admin/software', label: 'Software', icon: Package },
-    banners: { href: '/admin/banners', label: 'Banner', icon: ImageIcon },
-    leave: { href: '/admin/leave', label: 'Izin Coach', icon: CalendarOff },
-    reports: { href: '/admin/reports', label: 'Laporan', icon: FileText },
-    whatsapp: { href: '/admin/whatsapp', label: 'WhatsApp', icon: MessageCircle },
-    broadcast: { href: '/admin/broadcast', label: 'Broadcast', icon: Megaphone },
-    settings: { href: '/admin/settings', label: 'Settings', icon: Settings },
-};
-
-// Define the Structure (Groups vs Single Items)
-type SidebarGroup = {
-    type: 'group';
-    label: string;
-    icon: any;
-    children: string[]; // IDs from MENU_ITEMS
-};
-
-type SidebarSingle = {
-    type: 'single';
-    id: string; // ID from MENU_ITEMS
-};
-
-const SIDEBAR_STRUCTURE: (SidebarGroup | SidebarSingle)[] = [
-    { type: 'single', id: 'dashboard' },
-    { type: 'single', id: 'users' },
-    {
-        type: 'group',
-        label: 'Akademik',
-        icon: GraduationCap,
-        children: ['classes', 'curriculum', 'ekskul']
-    },
-    {
-        type: 'group',
-        label: 'Keuangan',
-        icon: Wallet,
-        children: ['payments', 'invoices', 'ccr']
-    },
-    {
-        type: 'group',
-        label: 'Komunikasi',
-        icon: MessageCircle,
-        children: ['whatsapp', 'broadcast']
-    },
-    {
-        type: 'group',
-        label: 'Lainnya',
-        icon: Settings,
-        children: ['software', 'banners', 'leave', 'reports', 'settings']
-    }
-];
+import { MENU_ITEMS, SIDEBAR_STRUCTURE } from '@/lib/adminMenu';
 
 type AdminSidebarProps = {
     session: {

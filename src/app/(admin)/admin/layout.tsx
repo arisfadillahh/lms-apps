@@ -3,6 +3,7 @@ import { getServerAuthSession } from '@/lib/auth';
 import AdminSidebar from './AdminSidebar';
 import PageTransition from '@/components/PageTransition';
 import DashboardHeader from '@/components/layout/DashboardHeader';
+import AdminClientWrapper from '@/components/admin/AdminClientWrapper';
 import { redirect } from 'next/navigation';
 import { usersDao } from '@/lib/dao';
 
@@ -39,7 +40,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         }}
       >
         <DashboardHeader user={userForHeader} />
-        <PageTransition>{children}</PageTransition>
+        <AdminClientWrapper>
+          <PageTransition>{children}</PageTransition>
+        </AdminClientWrapper>
       </main>
 
       {/* Responsive CSS for mobile */}

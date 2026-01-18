@@ -3,6 +3,7 @@
 import { useState, type CSSProperties, useCallback } from 'react';
 import Link from 'next/link';
 import type { Invoice } from '@/lib/types/invoice';
+import { useReminder } from '@/contexts/ReminderContext';
 
 interface Stats {
     pending: number;
@@ -42,17 +43,8 @@ export default function InvoiceManagement({
     const [showDeleteModal, setShowDeleteModal] = useState<Invoice | null>(null);
     const [deleting, setDeleting] = useState<string | null>(null);
 
-    // Reminder Queue State
-    const [showReminderModal, setShowReminderModal] = useState(false);
-    const [reminderQueue, setReminderQueue] = useState<Array<{
-        id: string;
-        invoice_number: string;
-        parent_name: string;
-        status: 'pending' | 'sending' | 'success' | 'error';
-        error?: string;
-    }>>([]);
-    const [isProcessingQueue, setIsProcessingQueue] = useState(false);
-    const [whatsappDelay, setWhatsappDelay] = useState({ min: 5, max: 10 });
+    // Reminder Hook (from global context)
+    const { startReminder, isProcessing: isProcessingQueue } = useReminder();
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('id-ID', {
@@ -139,74 +131,28 @@ export default function InvoiceManagement({
         }
 
         // Fetch latest settings for delay configuration
+        let delay = { min: 10, max: 30 };
         try {
             const res = await fetch('/api/invoices/settings');
             const settings = await res.json();
             if (res.ok && settings) {
-                setWhatsappDelay({
+                delay = {
                     min: settings.whatsapp_delay_min || 10,
                     max: settings.whatsapp_delay_max || 30
-                });
+                };
             }
         } catch (error) {
             console.error('Failed to fetch settings, using defaults', error);
         }
 
-        const queue = pendingInvoices.map(inv => ({
+        // Transform to reminder items and start via context
+        const items = pendingInvoices.map(inv => ({
             id: inv.id,
             invoice_number: inv.invoice_number,
-            parent_name: inv.parent_name,
-            status: 'pending' as const
+            parent_name: inv.parent_name
         }));
 
-        setReminderQueue(queue);
-        setShowReminderModal(true);
-        setIsProcessingQueue(false); // User must click "Start" in modal
-    };
-
-    // Action: Process Queue
-    const processQueue = async () => {
-        setIsProcessingQueue(true);
-
-        // Iterate through queue using index to update state
-        // Note: logical clone of queue for processing
-        const currentQueue = [...reminderQueue];
-
-        for (let i = 0; i < currentQueue.length; i++) {
-            if (currentQueue[i].status === 'success') continue; // Skip already sent if any
-
-            // Update status to sending
-            setReminderQueue(prev => prev.map((item, idx) => idx === i ? { ...item, status: 'sending' } : item));
-
-            try {
-                // Send API request
-                const res = await fetch('/api/whatsapp/send-single-reminder', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ invoiceId: currentQueue[i].id })
-                });
-                const data = await res.json();
-
-                if (data.success) {
-                    setReminderQueue(prev => prev.map((item, idx) => idx === i ? { ...item, status: 'success' } : item));
-                } else {
-                    setReminderQueue(prev => prev.map((item, idx) => idx === i ? { ...item, status: 'error', error: data.error } : item));
-                }
-
-            } catch (error) {
-                setReminderQueue(prev => prev.map((item, idx) => idx === i ? { ...item, status: 'error', error: String(error) } : item));
-            }
-
-            // Dynamic Delay from Settings
-            if (i < currentQueue.length - 1) { // Don't wait after last item
-                const delayMs = Math.floor(Math.random() * (whatsappDelay.max - whatsappDelay.min + 1) + whatsappDelay.min) * 1000;
-                // console.log(`Waiting ${delayMs}ms before next message...`);
-                await new Promise(resolve => setTimeout(resolve, delayMs));
-            }
-        }
-
-        setIsProcessingQueue(false);
-        await fetchInvoices(); // Refresh main list
+        startReminder(items, delay);
     };
 
     const handleMarkPaid = async () => {
@@ -335,74 +281,6 @@ export default function InvoiceManagement({
             {message && (
                 <div style={message.type === 'success' ? successMessageStyle : errorMessageStyle}>
                     {message.text}
-                </div>
-            )}
-
-            {/* Progress Modal */}
-            {showReminderModal && (
-                <div style={modalOverlayStyle}>
-                    <div style={{ ...modalContentStyle, maxWidth: '600px', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
-                        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem' }}>
-                            Kirim Reminder WhatsApp
-                        </h2>
-
-                        <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px', marginBottom: '1rem' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                                <thead style={{ background: '#f8fafc', position: 'sticky', top: 0 }}>
-                                    <tr>
-                                        <th style={{ padding: '0.5rem', textAlign: 'left' }}>Invoice</th>
-                                        <th style={{ padding: '0.5rem', textAlign: 'left' }}>Orang Tua</th>
-                                        <th style={{ padding: '0.5rem', textAlign: 'center' }}>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {reminderQueue.map((item) => (
-                                        <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                            <td style={{ padding: '0.5rem' }}>{item.invoice_number}</td>
-                                            <td style={{ padding: '0.5rem' }}>{item.parent_name}</td>
-                                            <td style={{ padding: '0.5rem', textAlign: 'center' }}>
-                                                {item.status === 'pending' && <span style={{ color: '#64748b' }}>⏳ Waiting</span>}
-                                                {item.status === 'sending' && <span style={{ color: '#f59e0b' }}>📤 Sending...</span>}
-                                                {item.status === 'success' && <span style={{ color: '#16a34a' }}>✅ Sent</span>}
-                                                {item.status === 'error' && <span style={{ color: '#ef4444' }}>❌ Error</span>}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {/* Summary */}
-                        <div style={{ marginBottom: '1rem', fontSize: '0.9rem', color: '#64748b' }}>
-                            Progress: {reminderQueue.filter(i => i.status === 'success' || i.status === 'error').length} / {reminderQueue.length}
-                        </div>
-
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-                            {!isProcessingQueue && (
-                                <button
-                                    onClick={() => setShowReminderModal(false)}
-                                    style={secondaryButtonStyle}
-                                >
-                                    Tutup
-                                </button>
-                            )}
-
-                            {!isProcessingQueue && reminderQueue.some(i => i.status === 'pending') && (
-                                <button
-                                    onClick={processQueue}
-                                    style={primaryButtonStyle}
-                                >
-                                    ▶️ Mulai Kirim ({reminderQueue.filter(i => i.status === 'pending').length})
-                                </button>
-                            )}
-
-                            {isProcessingQueue && (
-                                <button disabled style={{ ...primaryButtonStyle, opacity: 0.7, cursor: 'wait' }}>
-                                    Sedang Mengirim...
-                                </button>
-                            )}
-                        </div>
-                    </div>
                 </div>
             )}
 
@@ -722,5 +600,5 @@ const modalSubtitleStyle: CSSProperties = { color: '#64748b', marginBottom: '20p
 const formGroupStyle: CSSProperties = { marginBottom: '16px' };
 const formLabelStyle: CSSProperties = { display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: 500 };
 const textareaStyle: CSSProperties = { ...inputStyle, minHeight: '80px', resize: 'vertical' };
-const cancelButtonStyle: CSSProperties = { padding: '8px 16px', backgroundColor: '#f1f5f9', border: 'none', borderRadius: '6px', cursor: 'pointer' };
+const cancelButtonStyle: CSSProperties = { padding: '10px 20px', backgroundColor: '#fff', border: '2px solid #cbd5e1', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, color: '#475569', fontSize: '0.9rem' };
 const confirmButtonStyle: CSSProperties = { padding: '8px 16px', backgroundColor: '#2e7d32', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' };

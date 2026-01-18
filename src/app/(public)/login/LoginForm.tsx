@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, ShieldAlert, MessageCircle } from 'lucide-react';
 
 import { getRoleDashboardPath } from '@/lib/routing';
 import type { Role } from '@/types/supabase';
@@ -35,6 +37,7 @@ export default function LoginForm() {
   const router = useRouter();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
 
   const {
     register,
@@ -92,8 +95,6 @@ export default function LoginForm() {
         onSubmit={handleSubmit(onSubmit)}
         style={{
           background: '#ffffff',
-          // Removed shadow/card style to match the "clean right side" look of the reference
-          // It sits natively on the white background
           display: 'flex',
           flexDirection: 'column',
           gap: '1.5rem',
@@ -101,14 +102,13 @@ export default function LoginForm() {
       >
         {/* Header Section */}
         <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-          {/* Clevio Logo - Centered */}
           <div style={{
             display: 'inline-flex',
             justifyContent: 'center',
             marginBottom: '1.5rem',
             width: '64px',
             height: '64px',
-            background: '#eff6ff', // Light Blue
+            background: '#eff6ff',
             borderRadius: '16px',
             alignItems: 'center'
           }}>
@@ -156,12 +156,9 @@ export default function LoginForm() {
         )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {/* Username Input with Icon */}
+          {/* Username Input */}
           <div style={{ position: 'relative' }}>
-            <div style={{
-              position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)',
-              color: '#94a3b8', pointerEvents: 'none'
-            }}>
+            <div style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
             </div>
             <input
@@ -170,36 +167,19 @@ export default function LoginForm() {
               autoComplete="username"
               {...register('username')}
               style={{
-                width: '100%',
-                padding: '1rem 1rem 1rem 3rem', // Left padding for icon
-                borderRadius: '12px',
-                border: '1px solid #e2e8f0',
-                fontSize: '1rem',
-                background: '#f8fafc',
-                outline: 'none',
-                transition: 'all 0.2s',
-                color: '#1e293b'
+                width: '100%', padding: '1rem 1rem 1rem 3rem', borderRadius: '12px',
+                border: '1px solid #e2e8f0', fontSize: '1rem', background: '#f8fafc',
+                outline: 'none', transition: 'all 0.2s', color: '#1e293b'
               }}
-              onFocus={(e) => {
-                e.target.style.borderColor = '#2563eb';
-                e.target.style.background = '#fff';
-                e.target.style.boxShadow = '0 0 0 4px rgba(37, 99, 235, 0.1)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = '#e2e8f0';
-                e.target.style.background = '#f8fafc';
-                e.target.style.boxShadow = 'none';
-              }}
+              onFocus={(e) => { e.target.style.borderColor = '#2563eb'; e.target.style.background = '#fff'; e.target.style.boxShadow = '0 0 0 4px rgba(37, 99, 235, 0.1)'; }}
+              onBlur={(e) => { e.target.style.borderColor = '#e2e8f0'; e.target.style.background = '#f8fafc'; e.target.style.boxShadow = 'none'; }}
             />
             {errors.username && <span style={{ color: '#ef4444', fontSize: '0.85rem', marginTop: '0.25rem', display: 'block' }}>{errors.username.message}</span>}
           </div>
 
-          {/* Password Input with Icon */}
+          {/* Password Input */}
           <div style={{ position: 'relative' }}>
-            <div style={{
-              position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)',
-              color: '#94a3b8', pointerEvents: 'none'
-            }}>
+            <div style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
             </div>
             <input
@@ -208,26 +188,12 @@ export default function LoginForm() {
               autoComplete="current-password"
               {...register('password')}
               style={{
-                width: '100%',
-                padding: '1rem 1rem 1rem 3rem',
-                borderRadius: '12px',
-                border: '1px solid #e2e8f0',
-                fontSize: '1rem',
-                background: '#f8fafc',
-                outline: 'none',
-                transition: 'all 0.2s',
-                color: '#1e293b'
+                width: '100%', padding: '1rem 1rem 1rem 3rem', borderRadius: '12px',
+                border: '1px solid #e2e8f0', fontSize: '1rem', background: '#f8fafc',
+                outline: 'none', transition: 'all 0.2s', color: '#1e293b'
               }}
-              onFocus={(e) => {
-                e.target.style.borderColor = '#2563eb';
-                e.target.style.background = '#fff';
-                e.target.style.boxShadow = '0 0 0 4px rgba(37, 99, 235, 0.1)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = '#e2e8f0';
-                e.target.style.background = '#f8fafc';
-                e.target.style.boxShadow = 'none';
-              }}
+              onFocus={(e) => { e.target.style.borderColor = '#2563eb'; e.target.style.background = '#fff'; e.target.style.boxShadow = '0 0 0 4px rgba(37, 99, 235, 0.1)'; }}
+              onBlur={(e) => { e.target.style.borderColor = '#e2e8f0'; e.target.style.background = '#f8fafc'; e.target.style.boxShadow = 'none'; }}
             />
             {errors.password && <span style={{ color: '#ef4444', fontSize: '0.85rem', marginTop: '0.25rem', display: 'block' }}>{errors.password.message}</span>}
           </div>
@@ -241,10 +207,12 @@ export default function LoginForm() {
           </label>
           <button
             type="button"
-            onClick={() => alert("Untuk menjaga keamanan data dan akun Anda, pemulihan password LMS tidak dapat dilakukan secara mandiri. Silakan menghubungi Admin Clevio agar dapat dibantu lebih lanjut.")}
-            style={{ color: '#64748b', textDecoration: 'none', fontWeight: 600, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' }}
+            onClick={() => setShowForgotModal(true)}
+            style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 600, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', transition: 'color 0.2s' }}
+            onMouseOver={(e) => e.currentTarget.style.color = '#1d4ed8'}
+            onMouseOut={(e) => e.currentTarget.style.color = '#2563eb'}
           >
-            Recovery Password
+            Lupa Password?
           </button>
         </div>
 
@@ -253,19 +221,10 @@ export default function LoginForm() {
           type="submit"
           disabled={submitting}
           style={{
-            width: '100%',
-            padding: '1rem',
-            borderRadius: '12px',
-            background: '#2563eb', // Brand Blue
-            color: '#fff',
-            fontSize: '1rem',
-            fontWeight: 700,
-            border: 'none',
-            cursor: submitting ? 'not-allowed' : 'pointer',
-            transition: 'all 0.2s',
-            marginTop: '1rem',
-            opacity: submitting ? 0.7 : 1,
-            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)'
+            width: '100%', padding: '1rem', borderRadius: '12px',
+            background: '#2563eb', color: '#fff', fontSize: '1rem', fontWeight: 700, border: 'none',
+            cursor: submitting ? 'not-allowed' : 'pointer', transition: 'all 0.2s', marginTop: '1rem',
+            opacity: submitting ? 0.7 : 1, boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)'
           }}
           onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
           onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
@@ -273,6 +232,104 @@ export default function LoginForm() {
           {submitting ? 'Signing in...' : 'Login'}
         </button>
       </form>
+
+      {/* Forgot Password Modal */}
+      <AnimatePresence>
+        {showForgotModal && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setShowForgotModal(false)}
+              style={{
+                position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)',
+                zIndex: 1000, backdropFilter: 'blur(4px)'
+              }}
+            />
+            {/* Modal Content */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              style={{
+                position: 'fixed', inset: 0, zIndex: 1001,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                pointerEvents: 'none'
+              }}
+            >
+              <div style={{
+                background: '#fff', borderRadius: '20px', width: '90%', maxWidth: '420px',
+                boxShadow: '0 25px 60px rgba(0, 0, 0, 0.25)', overflow: 'hidden',
+                pointerEvents: 'auto'
+              }}>
+                {/* Blue Header */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                  padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem',
+                  position: 'relative'
+                }}>
+                  <div style={{
+                    width: '56px', height: '56px', borderRadius: '16px',
+                    background: 'rgba(255, 255, 255, 0.2)', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <ShieldAlert size={28} color="#fff" />
+                  </div>
+                  <div>
+                    <h2 style={{ color: '#fff', fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>
+                      Recovery Password
+                    </h2>
+                  </div>
+                </div>
+
+                {/* Body Content */}
+                <div style={{ padding: '1.5rem' }}>
+                  <p style={{
+                    color: '#475569', fontSize: '0.95rem', lineHeight: 1.7, margin: '0 0 1.5rem 0'
+                  }}>
+                    Untuk menjaga <strong>keamanan data dan akun</strong> Anda, pemulihan password LMS tidak dapat dilakukan secara mandiri.
+                  </p>
+
+                  <div style={{
+                    background: '#f8fafc', borderRadius: '12px', padding: '1rem',
+                    border: '1px solid #e2e8f0', marginBottom: '1.5rem'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                      <MessageCircle size={20} color="#2563eb" style={{ marginTop: '2px', flexShrink: 0 }} />
+                      <div>
+                        <p style={{ color: '#334155', fontSize: '0.9rem', fontWeight: 600, margin: '0 0 0.25rem 0' }}>
+                          Hubungi Admin Clevio
+                        </p>
+                        <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0, lineHeight: 1.5 }}>
+                          Silakan hubungi tim admin melalui WhatsApp atau email untuk bantuan reset password.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setShowForgotModal(false)}
+                    style={{
+                      width: '100%', padding: '0.875rem 1rem', borderRadius: '12px',
+                      background: '#1e293b', color: '#fff', fontSize: '0.95rem', fontWeight: 600,
+                      border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+                      boxShadow: '0 2px 8px rgba(30, 41, 59, 0.15)'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.background = '#0f172a'}
+                    onMouseOut={(e) => e.currentTarget.style.background = '#1e293b'}
+                  >
+                    Mengerti
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

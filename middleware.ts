@@ -7,6 +7,9 @@ import type { Role } from '@/types/supabase';
 
 const PUBLIC_PATHS = new Set<string>(['/']);
 
+// Additional public path prefixes (no auth required)
+const PUBLIC_PREFIXES = ['/invoice'];
+
 type Guard = {
   test: (pathname: string) => boolean;
   roles: Role[];
@@ -42,6 +45,10 @@ function isPublicPath(pathname: string): boolean {
     return true;
   }
   if (pathname.startsWith('/api/auth')) {
+    return true;
+  }
+  // Check public prefixes (like /invoice/*)
+  if (PUBLIC_PREFIXES.some(prefix => pathname.startsWith(prefix))) {
     return true;
   }
   return PUBLIC_PATHS.has(pathname);

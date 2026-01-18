@@ -61,9 +61,32 @@ export async function PATCH(
 
         const { id } = await params;
         const body = await request.json();
-        const { paid_at, paid_notes } = body;
+        const { paid_at, paid_notes, action } = body;
 
-        // Validate paid_at
+        const supabase = getSupabaseAdmin();
+
+        // Handle unmark paid action
+        if (action === 'unmark_paid') {
+            const { data, error } = await supabase
+                .from('invoices' as any)
+                .update({
+                    status: 'PENDING',
+                    paid_at: null,
+                    paid_notes: null
+                })
+                .eq('id', id)
+                .select()
+                .single();
+
+            if (error) {
+                console.error('[API] Unmark paid error:', error);
+                return NextResponse.json({ error: 'Failed to update invoice' }, { status: 500 });
+            }
+
+            return NextResponse.json(data);
+        }
+
+        // Default: Mark as paid
         if (!paid_at) {
             return NextResponse.json(
                 { error: 'paid_at is required' },
@@ -71,7 +94,6 @@ export async function PATCH(
             );
         }
 
-        // Mark as paid
         const invoice = await markInvoiceAsPaid(id, paid_at, paid_notes);
 
         if (!invoice) {

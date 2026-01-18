@@ -12,6 +12,7 @@ interface Coder {
 interface ParentGroup {
     parent_phone: string;
     parent_name: string;
+    existing_ccr?: string; // CCR already exists for this parent (sibling case)
     coders: Coder[];
 }
 
@@ -35,12 +36,17 @@ export default function CCRAssignment() {
             setGroups(data.groups || []);
             setNextCCR(data.nextCCR || 'CCR001');
 
-            // Initialize CCR inputs with suggested next CCR
+            // Initialize CCR inputs - use existing CCR for siblings or new sequence
             const inputs: Record<string, string> = {};
             let currentSeq = parseInt(data.nextCCR?.substring(3) || '1', 10);
             for (const group of data.groups || []) {
-                inputs[group.parent_phone] = `CCR${String(currentSeq).padStart(3, '0')}`;
-                currentSeq++;
+                if (group.existing_ccr) {
+                    // Sibling case: pre-fill with existing CCR
+                    inputs[group.parent_phone] = group.existing_ccr;
+                } else {
+                    inputs[group.parent_phone] = `CCR${String(currentSeq).padStart(3, '0')}`;
+                    currentSeq++;
+                }
             }
             setCcrInputs(inputs);
         } catch (error) {
@@ -133,6 +139,11 @@ export default function CCRAssignment() {
                                 <span style={badgeStyle}>
                                     {group.coders.length} Anak
                                 </span>
+                                {group.existing_ccr && (
+                                    <span style={siblingBadgeStyle}>
+                                        👨‍👩‍👧‍👦 Sibling
+                                    </span>
+                                )}
                             </div>
 
                             <div style={codersListStyle}>
@@ -159,7 +170,11 @@ export default function CCRAssignment() {
                                         placeholder="CCR001"
                                         style={inputStyle}
                                     />
-                                    <span style={hintStyle}>Next available: {nextCCR}</span>
+                                    <span style={hintStyle}>
+                                        {group.existing_ccr
+                                            ? `✅ Parent sudah punya CCR: ${group.existing_ccr}`
+                                            : `Next available: ${nextCCR}`}
+                                    </span>
                                 </div>
 
                                 <div style={actionsStyle}>
@@ -225,3 +240,4 @@ const actionsStyle: CSSProperties = { display: 'flex', gap: '8px' };
 const assignButtonStyle: CSSProperties = { backgroundColor: '#3b82f6', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 };
 const skipButtonStyle: CSSProperties = { backgroundColor: '#f1f5f9', color: '#64748b', border: 'none', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer' };
 const refreshButtonStyle: CSSProperties = { backgroundColor: '#f1f5f9', color: '#475569', border: 'none', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', marginTop: '24px', fontWeight: 500 };
+const siblingBadgeStyle: CSSProperties = { backgroundColor: '#fef3c7', color: '#d97706', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, marginLeft: '8px' };

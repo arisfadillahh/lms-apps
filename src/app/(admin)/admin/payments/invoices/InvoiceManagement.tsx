@@ -262,6 +262,27 @@ export default function InvoiceManagement({
         }
     };
 
+    const handleUnmarkPaid = async (invoiceId: string) => {
+        if (!confirm('Yakin ingin membatalkan status lunas invoice ini?')) return;
+
+        try {
+            const res = await fetch(`/api/invoices/${invoiceId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'unmark_paid' })
+            });
+
+            if (res.ok) {
+                setMessage({ type: 'success', text: 'Status invoice dikembalikan ke Pending' });
+                await fetchInvoices();
+            } else {
+                setMessage({ type: 'error', text: 'Gagal membatalkan status lunas' });
+            }
+        } catch (error) {
+            setMessage({ type: 'error', text: 'Error: ' + String(error) });
+        }
+    };
+
     const getStatusBadge = (status: string) => {
         const styles: Record<string, CSSProperties> = {
             PENDING: { backgroundColor: '#fff3e0', color: '#ef6c00', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600 },
@@ -510,8 +531,18 @@ export default function InvoiceManagement({
                                                         setPaidDate(new Date().toISOString().split('T')[0]);
                                                     }}
                                                     style={actionButtonStyle}
+                                                    title="Tandai Lunas"
                                                 >
                                                     ✅
+                                                </button>
+                                            )}
+                                            {inv.status === 'PAID' && (
+                                                <button
+                                                    onClick={() => handleUnmarkPaid(inv.id)}
+                                                    style={{ ...actionButtonStyle, color: '#f59e0b' }}
+                                                    title="Batalkan Lunas"
+                                                >
+                                                    ↩️
                                                 </button>
                                             )}
                                             <button

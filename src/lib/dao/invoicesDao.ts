@@ -212,6 +212,7 @@ export async function assignCCRToParent(
 export async function getCodersWithoutCCR(): Promise<Array<{
     parent_phone: string;
     parent_name: string;
+    existing_ccr?: string; // NEW: If parent phone already has CCR, show it here
     coders: Array<{ id: string; full_name: string; class_name?: string; level_name?: string }>;
 }>> {
     const supabase = getSupabaseAdmin();
@@ -240,26 +241,39 @@ export async function getCodersWithoutCCR(): Promise<Array<{
         return [];
     }
 
-    // Get all existing CCR parent phones
+    // Get all existing CCR records (phone -> ccr_code mapping)
     const { data: existingCCRs } = await supabase
         .from('ccr_numbers' as any)
-        .select('parent_phone');
+        .select('parent_phone, ccr_code');
 
-    const ccrPhones = new Set(((existingCCRs as any[]) || []).map(c => c.parent_phone));
+    const ccrMap = new Map<string, string>();
+    for (const c of (existingCCRs as any[]) || []) {
+        ccrMap.set(c.parent_phone, c.ccr_code);
+    }
+
+    // Get invoices to check which coders already have their CCR linked via invoices
+    const { data: invoices } = await supabase
+        .from('invoices' as any)
+        .select('coder_id, ccr_id');
+
+    const codersWithInvoice = new Set(((invoices as any[]) || []).map(inv => inv.coder_id));
 
     // Filter coders without CCR and group by parent phone
     const groups = new Map<string, {
         parent_phone: string;
         parent_name: string;
-        db_parent_names: Set<string>; // Start collecting real parent names
+        existing_ccr?: string;
+        db_parent_names: Set<string>;
         coders: Array<{ id: string; full_name: string; class_name?: string; level_name?: string }>;
     }>();
 
     for (const coder of coders) {
-        // cast because our select includes parent_name which might missing in strict type inference
         const u = (coder as unknown) as typeof coder & { parent_name: string | null };
         const phone = u.parent_contact_phone;
-        if (!phone || ccrPhones.has(phone)) continue;
+        if (!phone) continue;
+
+        // Skip coders who already have invoices linked (they already have CCR)
+        if (codersWithInvoice.has(u.id)) continue;
 
         const enrollment = (u.enrollments as Array<{ classes: { name: string; levels: { name: string } | null } | null }>)?.[0];
         const className = enrollment?.classes?.name || undefined;
@@ -269,6 +283,7 @@ export async function getCodersWithoutCCR(): Promise<Array<{
             groups.set(phone, {
                 parent_phone: phone,
                 parent_name: '',
+                existing_ccr: ccrMap.get(phone), // Attach existing CCR if parent phone has one
                 db_parent_names: new Set(),
                 coders: []
             });
@@ -293,10 +308,8 @@ export async function getCodersWithoutCCR(): Promise<Array<{
         const uniqueDbNames = Array.from(group.db_parent_names);
 
         if (uniqueDbNames.length > 0) {
-            // Case 1: Use DB parent names (joined if multiple)
             group.parent_name = uniqueDbNames.join(' / ');
         } else {
-            // Case 2: Fallback to "Orang Tua [Student...]" if DB parent_name is empty
             const uniqueStudentNames = Array.from(new Set(group.coders.map(c => c.full_name)));
             group.parent_name = `Orang Tua ${uniqueStudentNames.join(' / ')}`;
         }

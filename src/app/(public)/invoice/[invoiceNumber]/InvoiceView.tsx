@@ -113,8 +113,6 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
                                         <strong>{item.coder_name}</strong>
                                         <br />
                                         <span style={itemDetailStyle}>• {item.level_name}</span>
-                                        <br />
-                                        <span style={itemDetailStyle}>• {item.class_name}</span>
                                         {item.discount_amount > 0 && (
                                             <>
                                                 <br />
@@ -175,7 +173,7 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
 
                 {/* Footer */}
                 <div style={footerStyle}>
-                    <p>Terima kasih atas kepercayaan Anda 😊</p>
+                    <p>Terima kasih atas kepercayaan Anda</p>
                     <p style={footerBrandStyle}>Clevio Innovator Camp</p>
                 </div>
             </div>

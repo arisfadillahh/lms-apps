@@ -1,15 +1,15 @@
 /**
- * Assign ID Invoice
- * Route: /admin/coders/assign-ccr
+ * List ID Invoice (CCR)
+ * Route: /admin/coders/list-ccr
  * 
- * Assign CCR (ID Invoice) numbers to new coders/families.
+ * View and edit existing CCR (ID Invoice) assignments.
  */
 
-import CCRAssignment from './CCRAssignment';
+import CCRList from './CCRList';
 
 export const dynamic = 'force-dynamic';
 
-export default function AssignCCRPage() {
+export default function ListCCRPage() {
     return (
         <div style={{ padding: '2rem' }}>
             <div style={{ marginBottom: '1.5rem' }}>
@@ -19,13 +19,13 @@ export default function AssignCCRPage() {
                     color: '#1e293b',
                     marginBottom: '0.5rem'
                 }}>
-                    Assign ID Invoice
+                    Daftar ID Invoice
                 </h1>
                 <p style={{ color: '#64748b', fontSize: '0.95rem' }}>
-                    Tetapkan nomor ID Invoice (CCR) untuk coder/keluarga baru
+                    Lihat dan edit nomor ID Invoice (CCR) yang sudah terdaftar
                 </p>
             </div>
-            <CCRAssignment />
+            <CCRList />
         </div>
     );
 }

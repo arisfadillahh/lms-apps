@@ -155,12 +155,29 @@ export async function getUsersByIds(ids: string[]): Promise<UserRecord[]> {
 export async function deleteUser(userId: string): Promise<void> {
   const supabase = getSupabaseAdmin();
 
-  const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+  // Delete related records first to avoid FK constraint errors
+  // 1. Delete coder_payment_periods
+  await supabase.from('coder_payment_periods' as any).delete().eq('coder_id', userId);
 
+  // 2. Delete enrollments
+  await supabase.from('enrollments').delete().eq('coder_id', userId);
+
+  // 3. Delete attendance records
+  await supabase.from('attendance').delete().eq('coder_id', userId);
+
+  // 4. Delete coder_block_progress
+  await supabase.from('coder_block_progress').delete().eq('coder_id', userId);
+
+  // 5. Delete invoices
+  await supabase.from('invoices' as any).delete().eq('coder_id', userId);
+
+  // Delete from Supabase Auth (ignore errors if not exists)
+  const { error: authError } = await supabase.auth.admin.deleteUser(userId);
   if (authError) {
     console.error(`Failed to delete user from auth: ${authError.message}`);
   }
 
+  // Finally delete the user record
   const { error: dbError } = await supabase.from('users').delete().eq('id', userId);
 
   if (dbError) {

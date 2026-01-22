@@ -61,30 +61,8 @@ import { classesDao } from '@/lib/dao';
 /**
  * Computes which lesson should be shown for each session.
  * 
- * Logic:
- * 1. Filter out CANCELLED sessions (they don't get lessons)
- * 2. Active sessions are numbered 0, 1, 2, 3...
- * 3. Each active session gets a lesson based on (sessionIndex % totalLessonSlots)
- * 4. This creates cycling behavior: after all lessons, start from Block 1 again
- * 
- * UPDATE: Checks for class_blocks to determine the correct order of lessons.
- * If class starts at Block 3, lessons will be ordered starting from Block 3 lessons.
- * 
- * @param classId - The class to compute schedule for
- * @param levelId - The curriculum level
- * @returns Map of session ID to lesson slot
- */
-/**
- * Computes which lesson should be shown for each session.
- * 
- * Logic:
- * 1. Filter out CANCELLED sessions (they don't get lessons)
- * 2. Active sessions are numbered 0, 1, 2, 3...
- * 3. Each active session gets a lesson based on (sessionIndex % totalLessonSlots)
- * 4. This creates cycling behavior: after all lessons, start from Block 1 again
- * 
- * UPDATE: Checks for class_blocks to determine the correct order of lessons.
- * If class starts at Block 3, lessons will be ordered starting from Block 3 lessons.
+ * UPDATED: Now reads from class_lessons (which may be filtered based on starting lesson)
+ * instead of building from lesson_templates directly.
  * 
  * @param classId - The class to compute schedule for
  * @param levelId - The curriculum level
@@ -98,51 +76,107 @@ export async function computeLessonSchedule(
 ): Promise<Map<string, LessonSlot>> {
     if (!levelId && !ekskulLessonPlanId) return new Map();
 
-    const [sessions, lessonSlots, classBlocks] = await Promise.all([
+    const [sessions, classBlocks] = await Promise.all([
         sessionsDao.listSessionsByClass(classId),
-        ekskulLessonPlanId ? buildEkskulSlots(ekskulLessonPlanId) : (levelId ? buildLessonSlots(levelId) : []),
         classesDao.getClassBlocks(classId),
     ]);
 
-    if (lessonSlots.length === 0) return new Map();
+    // For Ekskul, use the old buildEkskulSlots approach
+    if (ekskulLessonPlanId) {
+        const lessonSlots = await buildEkskulSlots(ekskulLessonPlanId);
+        if (lessonSlots.length === 0) return new Map();
 
-    // Re-order lessonSlots based on classBlocks order if available (Only for Standard Curriculum)
-    let orderedSlots = lessonSlots;
-    if (levelId && classBlocks.length > 0) {
+        const activeSessions = sessions
+            .filter(s => s.status !== 'CANCELLED')
+            .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
+
+        const result = new Map<string, LessonSlot>();
+        activeSessions.forEach((session, index) => {
+            const slotIndex = index % lessonSlots.length;
+            result.set(session.id, lessonSlots[slotIndex]);
+        });
+        return result;
+    }
+
+    // For WEEKLY classes: Build slots from class_lessons (respects filtered lessons)
+    let orderedSlots: LessonSlot[] = [];
+
+    if (classBlocks.length > 0) {
         // Sort class blocks by start date
         const sortedBlocks = [...classBlocks].sort((a, b) =>
             new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
         );
 
-        // Extract block IDs in order
-        const blockOrder = sortedBlocks.map(b => b.block_id);
+        // Build slots from class_lessons for each block
+        const supabase = getSupabaseAdmin();
+        let globalIndex = 0;
 
-        // Group slots by block ID
-        const slotsByBlock = new Map<string, LessonSlot[]>();
-        lessonSlots.forEach(slot => {
-            const bid = slot.block.id;
-            if (!slotsByBlock.has(bid)) slotsByBlock.set(bid, []);
-            slotsByBlock.get(bid)!.push(slot);
-        });
+        for (const classBlock of sortedBlocks) {
+            if (!classBlock.block_id) continue;
 
-        // Reconstruct orderedSlots
-        const newOrder: LessonSlot[] = [];
-        // 1. Add slots for blocks in classBlocks order
-        for (const blockId of blockOrder) {
-            if (slotsByBlock.has(blockId)) {
-                newOrder.push(...slotsByBlock.get(blockId)!);
-                slotsByBlock.delete(blockId); // Remove so we don't add again
+            // Get the block info
+            const block = await blocksDao.getBlockById(classBlock.block_id);
+            if (!block) continue;
+
+            // Fetch class_lessons for this class_block
+            const { data: classLessons } = await supabase
+                .from('class_lessons')
+                .select('*, lesson_templates(*)')
+                .eq('class_block_id', classBlock.id)
+                .order('order_index', { ascending: true });
+
+            if (!classLessons || classLessons.length === 0) continue;
+
+            // Group by lesson_template_id to calculate total parts per lesson
+            const lessonGroups = new Map<string, any[]>();
+            for (const cl of classLessons) {
+                const templateId = cl.lesson_template_id;
+                if (!templateId) continue;  // Skip if no template_id
+                if (!lessonGroups.has(templateId)) {
+                    lessonGroups.set(templateId, []);
+                }
+                lessonGroups.get(templateId)!.push(cl);
+            }
+
+            for (const cl of classLessons) {
+                const lessonTemplate = cl.lesson_templates as unknown as LessonTemplateRecord | null;
+                if (!lessonTemplate) continue;
+
+                const templateId = cl.lesson_template_id;
+                if (!templateId) continue;
+
+                // Calculate total parts for this lesson
+                const totalParts = lessonGroups.get(templateId)?.length || 1;
+
+                // Parse part number from title if it contains "(Part X)"
+                let partNumber = 1;
+                const partMatch = cl.title?.match(/\(Part (\d+)\)/);
+                if (partMatch) {
+                    partNumber = parseInt(partMatch[1], 10);
+                } else if (totalParts > 1) {
+                    // If no Part in title but multiple parts exist, find position
+                    const group = lessonGroups.get(templateId) || [];
+                    partNumber = group.findIndex((g: any) => g.id === cl.id) + 1;
+                }
+
+                orderedSlots.push({
+                    lessonTemplate,
+                    block,
+                    partNumber,
+                    totalParts,
+                    globalIndex,
+                });
+                globalIndex++;
             }
         }
-        // 2. Append any remaining blocks (those not in classBlocks for some reason)
-        for (const [_, slots] of slotsByBlock) {
-            newOrder.push(...slots);
-        }
-
-        if (newOrder.length > 0) {
-            orderedSlots = newOrder;
-        }
     }
+
+    // Fallback: If no class_lessons exist, use old approach (for backwards compatibility)
+    if (orderedSlots.length === 0 && levelId) {
+        orderedSlots = await buildLessonSlots(levelId);
+    }
+
+    if (orderedSlots.length === 0) return new Map();
 
     // Only consider active (non-cancelled) sessions, sorted by date
     const activeSessions = sessions

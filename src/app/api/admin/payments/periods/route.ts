@@ -74,30 +74,35 @@ export async function POST(request: Request) {
         }
     }
 
-    if (!classId) {
+    // For new registration, class is optional - they will be assigned later
+    // For regular payment periods, class is required
+    if (!classId && !parsed.data.isNewRegistration) {
         return NextResponse.json({ error: 'Coder tidak memiliki kelas aktif' }, { status: 400 });
     }
 
-    // Expire any existing active periods for this coder
-    await supabase
-        .from('coder_payment_periods')
-        .update({ status: 'EXPIRED' })
-        .eq('coder_id', parsed.data.coderId)
-        .eq('status', 'ACTIVE');
+    // Only expire existing periods if we have a class (for regular renewals)
+    if (classId) {
+        // Expire any existing active periods for this coder
+        await supabase
+            .from('coder_payment_periods')
+            .update({ status: 'EXPIRED' })
+            .eq('coder_id', parsed.data.coderId)
+            .eq('status', 'ACTIVE');
+    }
 
-    // Create new payment period
+    // Create new payment period (class_id can be null for new registrations)
     const { data, error } = await supabase
         .from('coder_payment_periods')
         .insert({
             coder_id: parsed.data.coderId,
-            class_id: classId,
+            class_id: classId || null,
             payment_plan_id: parsed.data.paymentPlanId,
             pricing_id: parsed.data.pricingId,
             start_date: parsed.data.startDate,
             end_date: parsed.data.endDate,
             total_amount: parsed.data.totalAmount,
             status: 'ACTIVE',
-        })
+        } as any)
         .select('*')
         .single();
 

@@ -58,9 +58,15 @@ export async function createClassLessons(
     return [];
   }
   const supabase = getSupabaseAdmin();
+
+  // Use onConflict to skip duplicates instead of throwing error
+  // This handles cases where class_lessons with same (class_block_id, order_index) already exist
   const { data, error } = await supabase
     .from('class_lessons')
-    .insert(inputs)
+    .upsert(inputs, {
+      onConflict: 'class_block_id,order_index',
+      ignoreDuplicates: true
+    })
     .select('*');
 
   if (error) {

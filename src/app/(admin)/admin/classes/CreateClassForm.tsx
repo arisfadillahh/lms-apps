@@ -111,6 +111,7 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
     }
 
     try {
+      console.log('[CreateClassForm] Submitting:', JSON.stringify(values, null, 2));
       const response = await fetch('/api/admin/classes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

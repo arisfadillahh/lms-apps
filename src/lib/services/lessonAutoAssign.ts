@@ -251,9 +251,11 @@ async function instantiateBlockFromTemplate({
     return;
   }
 
-  const createdLessonsPayload = templateLessons.flatMap((lesson) => {
+  const createdLessonsPayload: any[] = [];
+  let orderIndex = 1;  // Start with sequential order_index
+
+  for (const lesson of templateLessons) {
     const sessionCount = Math.max(1, lesson.estimated_meeting_count || 1);
-    const parts = [];
 
     for (let i = 1; i <= sessionCount; i++) {
       let title = lesson.title;
@@ -261,20 +263,19 @@ async function instantiateBlockFromTemplate({
         title = `${lesson.title} (Part ${i})`;
       }
 
-      parts.push({
+      createdLessonsPayload.push({
         class_block_id: block.id,
         lesson_template_id: lesson.id,
         title: title,
         summary: lesson.summary ?? null,
-        order_index: (lesson.order_index * 1000) + i, // Spaced index to allow multiple parts without collision
+        order_index: orderIndex++,  // Sequential order_index
         make_up_instructions: lesson.make_up_instructions ?? null,
         slide_url: lesson.slide_url ?? null,
         coach_example_url: lesson.example_url ?? null,
         coach_example_storage_path: lesson.example_storage_path ?? null,
       });
     }
-    return parts;
-  });
+  }
 
   const createdLessons = await classLessonsDao.createClassLessons(createdLessonsPayload);
 
@@ -305,9 +306,26 @@ async function syncLessonsWithTemplates(
         return;
       }
       const existing = lessonsByBlock.get(block.id) ?? [];
+
+      // Get the set of lesson_template_ids that exist in this block
+      // This respects filtered lessons when a starting lesson was set
+      const existingTemplateIds = new Set(existing.map(l => l.lesson_template_id));
+
+      // Calculate max order_index to avoid conflicts
+      const maxExistingOrderIndex = existing.length > 0
+        ? Math.max(...existing.map(l => l.order_index))
+        : 0;
+      let nextOrderIndex = maxExistingOrderIndex + 1;
+
       const newLessonsPayload: any[] = [];
 
       for (const lesson of templateLessons) {
+        // IMPORTANT: Only sync parts for lessons that already exist in the block
+        // This prevents adding lessons that were filtered out by starting lesson selection
+        if (!existingTemplateIds.has(lesson.id)) {
+          continue;
+        }
+
         const expectedCount = Math.max(1, lesson.estimated_meeting_count || 1);
         const existingMatches = existing.filter((l) => l.lesson_template_id === lesson.id);
 
@@ -324,7 +342,7 @@ async function syncLessonsWithTemplates(
               lesson_template_id: lesson.id,
               title: title,
               summary: lesson.summary ?? null,
-              order_index: (lesson.order_index * 1000) + i,
+              order_index: nextOrderIndex++,  // Use sequential order_index to avoid conflicts
               make_up_instructions: lesson.make_up_instructions ?? null,
               slide_url: lesson.slide_url ?? null,
               coach_example_url: lesson.example_url ?? null,

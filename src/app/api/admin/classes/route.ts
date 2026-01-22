@@ -19,6 +19,52 @@ function computeTentativeEndDate(startDate: string): string {
   return tentative.toISOString().slice(0, 10);
 }
 
+// GET: List all classes
+export async function GET() {
+  const session = await getSessionOrThrow();
+  await assertRole(session, 'ADMIN');
+
+  try {
+    const { getSupabaseAdmin } = await import('@/lib/supabaseServer');
+    const supabase = getSupabaseAdmin();
+
+    const { data, error } = await supabase
+      .from('classes')
+      .select(`
+        id,
+        name,
+        type,
+        schedule_day,
+        schedule_time,
+        level_id,
+        coach_id,
+        levels ( name ),
+        users!classes_coach_id_fkey ( full_name )
+      `)
+      .order('name', { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    // Transform to include coach_name and level_name
+    const classes = (data || []).map((cls: any) => ({
+      id: cls.id,
+      name: cls.name,
+      type: cls.type,
+      level_name: cls.levels?.name || null,
+      coach_name: cls.users?.full_name || 'Unknown',
+      schedule_day: cls.schedule_day,
+      schedule_time: cls.schedule_time,
+    }));
+
+    return NextResponse.json({ classes });
+  } catch (error) {
+    console.error('[List Classes] Error:', error);
+    return NextResponse.json({ error: 'Failed to list classes' }, { status: 500 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   const session = await getSessionOrThrow();
   await assertRole(session, 'ADMIN');
@@ -100,6 +146,7 @@ export async function POST(request: NextRequest) {
 
   if (created.type === 'WEEKLY') {
     try {
+      console.log('[Create Class] Auto planning with initialBlockId:', initialBlockId, 'initialLessonId:', initialLessonId);
       await autoPlanWeeklyClass(created, initialBlockId, initialLessonId);
     } catch (error) {
       console.error('Auto planning weekly class failed', error);

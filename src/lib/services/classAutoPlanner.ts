@@ -110,9 +110,11 @@ export async function autoPlanWeeklyClass(classRecord: ClassRow, preferredStartB
     let filteredLessons = lessonTemplates;
     if (isFirst && preferredStartLessonId) {
       const startIndex = lessonTemplates.findIndex(l => l.id === preferredStartLessonId);
+      console.log('[AutoPlan] preferredStartLessonId:', preferredStartLessonId, 'startIndex:', startIndex, 'total lessons:', lessonTemplates.length);
       if (startIndex >= 0) {
         // Only include lessons from the starting lesson onwards
         filteredLessons = lessonTemplates.slice(startIndex);
+        console.log('[AutoPlan] Filtered to', filteredLessons.length, 'lessons starting from index', startIndex);
       }
     }
 
@@ -144,21 +146,50 @@ export async function autoPlanWeeklyClass(classRecord: ClassRow, preferredStartB
     }
 
     // Create class_lessons for this block (use filtered lessons for first block)
+    // IMPORTANT: Expand lessons based on estimated_meeting_count
     const lessonsToCreate = isFirst ? filteredLessons : lessonTemplates;
     if (lessonsToCreate.length > 0) {
-      await classLessonsDao.createClassLessons(
-        lessonsToCreate.map((lesson) => ({
-          class_block_id: classBlock.id,
-          lesson_template_id: lesson.id,
-          title: lesson.title,
-          summary: lesson.summary ?? null,
-          order_index: lesson.order_index,
-          make_up_instructions: lesson.make_up_instructions ?? null,
-          slide_url: lesson.slide_url ?? null,
-          coach_example_url: lesson.example_url ?? null,
-          coach_example_storage_path: lesson.example_storage_path ?? null,
-        })),
-      );
+      const expandedLessons: Array<{
+        class_block_id: string;
+        lesson_template_id: string;
+        title: string;
+        summary: string | null;
+        order_index: number;
+        make_up_instructions: string | null;
+        slide_url: string | null;
+        coach_example_url: string | null;
+        coach_example_storage_path: string | null;
+      }> = [];
+
+      let orderIndex = 1;
+
+      for (const lesson of lessonsToCreate) {
+        const meetingCount = Math.max(1, lesson.estimated_meeting_count ?? 1);
+
+        for (let part = 1; part <= meetingCount; part++) {
+          // Add "(Part X)" suffix if lesson has multiple parts
+          let title = lesson.title;
+          if (meetingCount > 1) {
+            title = `${lesson.title} (Part ${part})`;
+          }
+
+          expandedLessons.push({
+            class_block_id: classBlock.id,
+            lesson_template_id: lesson.id,
+            title,
+            summary: lesson.summary ?? null,
+            order_index: orderIndex++,
+            make_up_instructions: lesson.make_up_instructions ?? null,
+            slide_url: lesson.slide_url ?? null,
+            coach_example_url: lesson.example_url ?? null,
+            coach_example_storage_path: lesson.example_storage_path ?? null,
+          });
+        }
+      }
+
+      if (expandedLessons.length > 0) {
+        await classLessonsDao.createClassLessons(expandedLessons);
+      }
     }
 
     // Move start date to after this block ends

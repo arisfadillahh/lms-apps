@@ -29,7 +29,6 @@ export default function AssignClassModal({ open, onClose, coder }: AssignClassMo
     const [classes, setClasses] = useState<ClassItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
-    const [typeFilter, setTypeFilter] = useState<'' | 'WEEKLY' | 'EKSKUL'>('');
     const [assigning, setAssigning] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
 
@@ -45,7 +44,9 @@ export default function AssignClassModal({ open, onClose, coder }: AssignClassMo
             const res = await fetch('/api/admin/classes');
             if (res.ok) {
                 const data = await res.json();
-                setClasses(data.classes || []);
+                // Filter to only WEEKLY classes
+                const weeklyClasses = (data.classes || []).filter((c: ClassItem) => c.type === 'WEEKLY');
+                setClasses(weeklyClasses);
             }
         } catch (error) {
             console.error('Error fetching classes:', error);
@@ -80,7 +81,6 @@ export default function AssignClassModal({ open, onClose, coder }: AssignClassMo
     };
 
     const filteredClasses = classes.filter(c => {
-        if (typeFilter && c.type !== typeFilter) return false;
         if (search) {
             const query = search.toLowerCase();
             return c.name.toLowerCase().includes(query) ||
@@ -92,7 +92,6 @@ export default function AssignClassModal({ open, onClose, coder }: AssignClassMo
 
     const handleClose = () => {
         setSearch('');
-        setTypeFilter('');
         setSuccess(false);
         onClose();
     };
@@ -134,7 +133,7 @@ export default function AssignClassModal({ open, onClose, coder }: AssignClassMo
                         <>
                             {/* Filters */}
                             <div style={filtersStyle}>
-                                <div style={searchBoxStyle}>
+                                <div style={{ ...searchBoxStyle, flex: 1 }}>
                                     <Search size={16} color="#94a3b8" />
                                     <input
                                         type="text"
@@ -144,15 +143,6 @@ export default function AssignClassModal({ open, onClose, coder }: AssignClassMo
                                         style={searchInputStyle}
                                     />
                                 </div>
-                                <select
-                                    value={typeFilter}
-                                    onChange={(e) => setTypeFilter(e.target.value as any)}
-                                    style={selectStyle}
-                                >
-                                    <option value="">Semua Tipe</option>
-                                    <option value="WEEKLY">Weekly</option>
-                                    <option value="EKSKUL">Ekskul</option>
-                                </select>
                             </div>
 
                             {/* Class List */}

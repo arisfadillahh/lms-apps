@@ -81,17 +81,26 @@ export async function generateInvoicesForMonth(
             return result;
         }
 
-        // 2. Fetch all active payment periods that end in the target month/year (for renewal)
-        // OR periods specifically tagged for this month (if month/year columns exist)
-        // For now, assuming renewal logic: Invoice is for the UPCOMING period, generated when current encounters.
-        // User asked: "di invoice itu ketika klik generate apakah hanya bikin yang perlu di invoice dibulan itu?"
-        // Answer: Yes, we should filter.
+        // 2. Validate that we're not generating for future months
+        const now = new Date();
+        const currentMonth = now.getMonth() + 1; // 1-12
+        const currentYear = now.getFullYear();
 
+        // Check if target month is in the future
+        if (year > currentYear || (year === currentYear && month > currentMonth)) {
+            result.success = false;
+            result.errors.push(`Tidak dapat generate invoice untuk bulan depan. Bulan target (${month}/${year}) belum tiba.`);
+            return result;
+        }
+
+        // 3. Fetch payment periods that NEED TO BE RENEWED in this month
+        // Logic: Generate invoice for periods whose end_date falls in the target month
+        // This means their current payment is expiring and they need to pay for the next period
         const startDate = new Date(year, month - 1, 1).toISOString();
         const endDate = new Date(year, month, 0).toISOString();
 
         console.log(`[InvoiceGenerator] Generating for ${month}/${year}`);
-        console.log(`[InvoiceGenerator] Window: ${startDate} to ${endDate}`);
+        console.log(`[InvoiceGenerator] Looking for periods ending between: ${startDate} to ${endDate}`);
 
         const supabase = getSupabaseAdmin();
         const { data: periods, error } = await supabase
@@ -104,11 +113,10 @@ export async function generateInvoicesForMonth(
         pricing(*)
       `)
             .eq('status', 'ACTIVE')
-            // Filter: Active periods that OVERLAP with the current month
-            // 1. Started before or during this month
-            .lte('start_date', endDate)
-            // 2. Ends after this month starts (is still active in this month)
-            .gte('end_date', startDate);
+            // NEW Logic: Periods that END within this month (need renewal)
+            // end_date >= first day of month AND end_date <= last day of month
+            .gte('end_date', startDate)
+            .lte('end_date', endDate);
 
         if (error) {
             console.error('[InvoiceGenerator] Query error:', error);

@@ -174,16 +174,67 @@ export async function disconnectWhatsApp(): Promise<boolean> {
         if (sock) {
             sock.end(undefined);
             sock = null;
-            isConnected = false;
-            connectedPhone = null;
-            currentQRCode = null;
-
-            await updateSessionStatus(false, null);
+            globalForWA.sock = null;
         }
+
+        isConnected = false;
+        connectedPhone = null;
+        currentQRCode = null;
+
+        await updateSessionStatus(false, null);
         return true;
     } catch (error) {
         console.error('[WhatsApp] Disconnect error:', error);
         return false;
+    }
+}
+
+/**
+ * Force reset WhatsApp - clears all session data
+ * Use when connection is stuck after HP logout
+ */
+export async function forceResetWhatsApp(): Promise<{ success: boolean; message: string }> {
+    try {
+        console.log('[WhatsApp] Force resetting - clearing all session data...');
+
+        // 1. Close existing socket
+        if (sock) {
+            try {
+                sock.end(undefined);
+            } catch (e) {
+                console.log('[WhatsApp] Socket already closed');
+            }
+            sock = null;
+            globalForWA.sock = null;
+        }
+
+        // 2. Reset state
+        isConnected = false;
+        connectedPhone = null;
+        currentQRCode = null;
+        qrRetryCount = 0;
+
+        // 3. Delete auth folder to clear old credentials
+        if (fs.existsSync(AUTH_FOLDER)) {
+            console.log('[WhatsApp] Deleting auth folder...');
+            fs.rmSync(AUTH_FOLDER, { recursive: true, force: true });
+            console.log('[WhatsApp] Auth folder deleted');
+        }
+
+        // 4. Update database
+        await updateSessionStatus(false, null);
+
+        return {
+            success: true,
+            message: 'Session reset berhasil. Silakan Connect ulang dan scan QR baru.'
+        };
+
+    } catch (error) {
+        console.error('[WhatsApp] Force reset error:', error);
+        return {
+            success: false,
+            message: `Reset gagal: ${String(error)}`
+        };
     }
 }
 

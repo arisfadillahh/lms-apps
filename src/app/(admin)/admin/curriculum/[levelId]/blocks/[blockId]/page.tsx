@@ -9,6 +9,7 @@ import { assertRole } from '@/lib/roles';
 import UpdateBlockForm from '../../../UpdateBlockForm';
 import LessonTable from '../../../LessonTable';
 import CreateLessonButton from '../../../CreateLessonButton';
+import ImportLessonsButton from '../../../ImportLessonsButton';
 
 import { ChevronRight } from 'lucide-react';
 
@@ -62,7 +63,10 @@ export default async function BlockDetailPage({ params }: { params: Promise<{ le
             <main style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#334155' }}>Daftar Lesson</h2>
-                    <CreateLessonButton blockId={blockId} suggestedOrderIndex={lessons.length} />
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <ImportLessonsButton blockId={blockId} currentLessonCount={lessons.length} />
+                        <CreateLessonButton blockId={blockId} suggestedOrderIndex={lessons.length} />
+                    </div>
                 </div>
 
                 <LessonTable lessons={lessons} />

@@ -8,7 +8,9 @@ export default function WhatsAppSettings() {
     const [loading, setLoading] = useState(true);
     const [connecting, setConnecting] = useState(false);
     const [disconnecting, setDisconnecting] = useState(false);
+    const [resetting, setResetting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [successMsg, setSuccessMsg] = useState<string | null>(null);
     const [logs, setLogs] = useState<Array<{
         id: string;
         category: string;
@@ -82,6 +84,32 @@ export default function WhatsAppSettings() {
         }
     };
 
+    const handleForceReset = async () => {
+        if (!confirm('Apakah Anda yakin ingin reset session WhatsApp? Anda harus scan QR code ulang setelah ini.')) {
+            return;
+        }
+
+        setResetting(true);
+        setError(null);
+        setSuccessMsg(null);
+
+        try {
+            const res = await fetch('/api/whatsapp/reset', { method: 'POST' });
+            const data = await res.json();
+
+            if (data.success) {
+                setSuccessMsg(data.message);
+                await fetchStatus();
+            } else {
+                setError(data.message || 'Reset gagal');
+            }
+        } catch (err) {
+            setError('Reset error: ' + String(err));
+        } finally {
+            setResetting(false);
+        }
+    };
+
     const formatDate = (dateStr: string) => {
         return new Date(dateStr).toLocaleString('id-ID');
     };
@@ -108,6 +136,7 @@ export default function WhatsAppSettings() {
                     )}
 
                     {error && <p style={errorTextStyle}>{error}</p>}
+                    {successMsg && <p style={successTextStyle}>{successMsg}</p>}
                 </div>
 
                 {/* QR Code Display */}
@@ -143,6 +172,14 @@ export default function WhatsAppSettings() {
 
                     <button onClick={fetchStatus} style={refreshButtonStyle}>
                         🔄 Refresh Status
+                    </button>
+
+                    <button
+                        onClick={handleForceReset}
+                        disabled={resetting}
+                        style={resetButtonStyle}
+                    >
+                        {resetting ? '⏳ Resetting...' : '🔧 Force Reset'}
                     </button>
                 </div>
             </div>
@@ -235,10 +272,12 @@ const qrInstructionStyle: CSSProperties = { marginBottom: '16px', fontWeight: 50
 const qrImageStyle: CSSProperties = { maxWidth: '280px', borderRadius: '8px' };
 const qrHelpStyle: CSSProperties = { marginTop: '16px', color: '#64748b', fontSize: '14px' };
 
-const actionsStyle: CSSProperties = { display: 'flex', gap: '12px' };
+const actionsStyle: CSSProperties = { display: 'flex', gap: '12px', flexWrap: 'wrap' };
 const connectButtonStyle: CSSProperties = { backgroundColor: '#25d366', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 };
 const disconnectButtonStyle: CSSProperties = { backgroundColor: '#ef4444', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 };
 const refreshButtonStyle: CSSProperties = { backgroundColor: '#f1f5f9', color: '#475569', border: 'none', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: 500 };
+const resetButtonStyle: CSSProperties = { backgroundColor: '#fef3c7', color: '#d97706', border: 'none', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 };
+const successTextStyle: CSSProperties = { color: '#16a34a', marginTop: '12px', fontWeight: 500 };
 
 const instructionsListStyle: CSSProperties = { paddingLeft: '20px', lineHeight: '1.8', color: '#475569' };
 const warningBoxStyle: CSSProperties = { backgroundColor: '#fff3e0', padding: '16px', borderRadius: '8px', marginTop: '16px' };

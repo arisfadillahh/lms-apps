@@ -4,6 +4,7 @@ import { useState, type CSSProperties, useCallback } from 'react';
 import Link from 'next/link';
 import type { Invoice } from '@/lib/types/invoice';
 import { useReminder } from '@/contexts/ReminderContext';
+import AssignClassModal from './AssignClassModal';
 
 interface Stats {
     pending: number;
@@ -45,6 +46,10 @@ export default function InvoiceManagement({
 
     // Reminder Hook (from global context)
     const { startReminder, isProcessing: isProcessingQueue } = useReminder();
+
+    // Assign Class Modal for registration invoices
+    const [showAssignClassModal, setShowAssignClassModal] = useState(false);
+    const [assignClassCoder, setAssignClassCoder] = useState<{ id: string; name: string } | null>(null);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('id-ID', {
@@ -171,6 +176,20 @@ export default function InvoiceManagement({
 
             if (res.ok) {
                 setMessage({ type: 'success', text: 'Invoice marked as paid!' });
+
+                // Check if this is a REGISTRATION invoice - show assign class modal
+                const invoice = showPaidModal as any;
+                if (invoice.invoice_type === 'REGISTRATION' && invoice.items?.[0]?.coder_id) {
+                    const coderItem = invoice.items.find((item: any) => item.coder_id);
+                    if (coderItem) {
+                        setAssignClassCoder({
+                            id: coderItem.coder_id,
+                            name: coderItem.coder_name || 'Coder'
+                        });
+                        setShowAssignClassModal(true);
+                    }
+                }
+
                 setShowPaidModal(null);
                 setPaidDate('');
                 setPaidNotes('');
@@ -514,6 +533,16 @@ export default function InvoiceManagement({
                     </div>
                 </div>
             )}
+
+            {/* Assign Class Modal for Registration Invoices */}
+            <AssignClassModal
+                open={showAssignClassModal}
+                onClose={() => {
+                    setShowAssignClassModal(false);
+                    setAssignClassCoder(null);
+                }}
+                coder={assignClassCoder}
+            />
         </div>
     );
 }

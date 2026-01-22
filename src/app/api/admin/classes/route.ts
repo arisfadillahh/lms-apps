@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 import { getSessionOrThrow } from '@/lib/auth';
-import { blocksDao, classesDao } from '@/lib/dao';
+import { blocksDao, classesDao, lessonTemplatesDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
 import { createClassSchema } from '@/lib/validation/admin';
 import { autoPlanWeeklyClass } from '@/lib/services/classAutoPlanner';
@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
   }
 
   let initialBlockId: string | undefined;
+  let initialLessonId: string | undefined;
   if (input.initialBlockId) {
     if (input.type !== 'WEEKLY') {
       return NextResponse.json({ error: 'initialBlockId is only valid for weekly classes' }, { status: 400 });
@@ -72,6 +73,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Initial block does not belong to selected level' }, { status: 400 });
     }
     initialBlockId = block.id;
+
+    // Validate initialLessonId if provided
+    if (input.initialLessonId) {
+      const lessons = await lessonTemplatesDao.listLessonsByBlock(input.initialBlockId);
+      const lessonExists = lessons.some(l => l.id === input.initialLessonId);
+      if (!lessonExists) {
+        return NextResponse.json({ error: 'Initial lesson does not belong to selected block' }, { status: 400 });
+      }
+      initialLessonId = input.initialLessonId;
+    }
   }
 
   const created = await classesDao.createClass({
@@ -89,7 +100,7 @@ export async function POST(request: NextRequest) {
 
   if (created.type === 'WEEKLY') {
     try {
-      await autoPlanWeeklyClass(created, initialBlockId);
+      await autoPlanWeeklyClass(created, initialBlockId, initialLessonId);
     } catch (error) {
       console.error('Auto planning weekly class failed', error);
     }

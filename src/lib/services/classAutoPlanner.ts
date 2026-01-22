@@ -38,7 +38,7 @@ function computeSessionDates(first: Date, count: number): Date[] {
   return dates;
 }
 
-export async function autoPlanWeeklyClass(classRecord: ClassRow, preferredStartBlockId?: string): Promise<AutoPlanResult> {
+export async function autoPlanWeeklyClass(classRecord: ClassRow, preferredStartBlockId?: string, preferredStartLessonId?: string): Promise<AutoPlanResult> {
   if (classRecord.type !== 'WEEKLY') {
     return { skipped: true, reason: 'Not a weekly class' };
   }
@@ -105,6 +105,17 @@ export async function autoPlanWeeklyClass(classRecord: ClassRow, preferredStartB
     const isFirst = i === 0;
 
     const lessonTemplates = await lessonTemplatesDao.listLessonsByBlock(block.id);
+
+    // Filter lessons if this is the first block and initialLessonId is provided
+    let filteredLessons = lessonTemplates;
+    if (isFirst && preferredStartLessonId) {
+      const startIndex = lessonTemplates.findIndex(l => l.id === preferredStartLessonId);
+      if (startIndex >= 0) {
+        // Only include lessons from the starting lesson onwards
+        filteredLessons = lessonTemplates.slice(startIndex);
+      }
+    }
+
     let sessionsRequired = block.estimated_sessions ?? lessonTemplates.length;
     if (!sessionsRequired || sessionsRequired <= 0) {
       sessionsRequired = Math.max(lessonTemplates.length, 1);
@@ -132,10 +143,11 @@ export async function autoPlanWeeklyClass(classRecord: ClassRow, preferredStartB
       firstBlockId = classBlock.id;
     }
 
-    // Create class_lessons for this block
-    if (lessonTemplates.length > 0) {
+    // Create class_lessons for this block (use filtered lessons for first block)
+    const lessonsToCreate = isFirst ? filteredLessons : lessonTemplates;
+    if (lessonsToCreate.length > 0) {
       await classLessonsDao.createClassLessons(
-        lessonTemplates.map((lesson) => ({
+        lessonsToCreate.map((lesson) => ({
           class_block_id: classBlock.id,
           lesson_template_id: lesson.id,
           title: lesson.title,

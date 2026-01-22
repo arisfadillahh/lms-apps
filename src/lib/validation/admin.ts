@@ -46,6 +46,10 @@ export const createClassSchema = z.object({
     .union([z.string().uuid(), z.literal('')])
     .transform((value) => (value === '' ? undefined : value))
     .optional(),
+  initialLessonId: z
+    .union([z.string().uuid(), z.literal('')])
+    .transform((value) => (value === '' ? undefined : value))
+    .optional(),
   ekskulLessonPlanId: z
     .union([z.string().uuid(), z.literal('')])
     .transform((value) => (value === '' ? undefined : value))

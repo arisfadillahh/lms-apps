@@ -1,398 +1,522 @@
--- Supabase schema for the LMS application
--- Run this script inside your Supabase/Postgres instance.
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
 
-create extension if not exists "pgcrypto";
-
--- Enumerated types
-do $$
-begin
-  if not exists (select 1 from pg_type where typname = 'role_enum') then
-    create type public.role_enum as enum ('ADMIN', 'COACH', 'CODER');
-  end if;
-  if not exists (select 1 from pg_type where typname = 'class_type_enum') then
-    create type public.class_type_enum as enum ('WEEKLY', 'EKSKUL');
-  end if;
-  if not exists (select 1 from pg_type where typname = 'class_block_status_enum') then
-    create type public.class_block_status_enum as enum ('UPCOMING', 'CURRENT', 'COMPLETED');
-  end if;
-  if not exists (select 1 from pg_type where typname = 'session_status_enum') then
-    create type public.session_status_enum as enum ('SCHEDULED', 'COMPLETED', 'CANCELLED');
-  end if;
-  if not exists (select 1 from pg_type where typname = 'enrollment_status_enum') then
-    create type public.enrollment_status_enum as enum ('ACTIVE', 'INACTIVE');
-  end if;
-  if not exists (select 1 from pg_type where typname = 'attendance_status_enum') then
-    create type public.attendance_status_enum as enum ('PRESENT', 'LATE', 'EXCUSED', 'ABSENT');
-  end if;
-  if not exists (select 1 from pg_type where typname = 'make_up_status_enum') then
-    create type public.make_up_status_enum as enum ('PENDING_UPLOAD', 'SUBMITTED', 'REVIEWED');
-  end if;
-  if not exists (select 1 from pg_type where typname = 'rubric_submission_status_enum') then
-    create type public.rubric_submission_status_enum as enum ('DRAFT', 'FINAL');
-  end if;
-  if not exists (select 1 from pg_type where typname = 'whatsapp_category_enum') then
-    create type public.whatsapp_category_enum as enum ('PARENT_ABSENT', 'REPORT_SEND', 'REMINDER');
-  end if;
-  if not exists (select 1 from pg_type where typname = 'whatsapp_status_enum') then
-    create type public.whatsapp_status_enum as enum ('QUEUED', 'SENT', 'FAILED');
-  end if;
-  if not exists (select 1 from pg_type where typname = 'coach_leave_status_enum') then
-    create type public.coach_leave_status_enum as enum ('PENDING', 'APPROVED', 'REJECTED');
-  end if;
-end
-$$;
-
--- Enum used for coder journeys
-do $$
-begin
-  if not exists (select 1 from pg_type where typname = 'coder_block_status_enum') then
-    create type public.coder_block_status_enum as enum ('PENDING', 'IN_PROGRESS', 'COMPLETED');
-  end if;
-end $$;
-
--- Helper function to keep updated_at current
-create or replace function public.set_updated_at_timestamp()
-returns trigger as $$
-begin
-  new.updated_at = now();
-  return new;
-end;
-$$ language plpgsql;
-
--- Users =========================================================================================
-create table public.users (
-  id uuid primary key default gen_random_uuid(),
-  username text not null,
-  password_hash text not null,
-  full_name text not null,
-  role public.role_enum not null,
-  parent_contact_phone text,
-  is_active boolean not null default true,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-create unique index users_username_key on public.users (username);
-create trigger trg_users_updated_at
-before update on public.users
-for each row execute function public.set_updated_at_timestamp();
-
--- Levels ========================================================================================
-create table public.levels (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,
-  description text,
-  order_index integer not null check (order_index >= 0),
-  created_at timestamptz not null default now()
-);
-
-create unique index levels_name_key on public.levels (name);
-create unique index levels_order_index_key on public.levels (order_index);
-
--- Blocks ========================================================================================
-create table public.blocks (
-  id uuid primary key default gen_random_uuid(),
-  level_id uuid not null references public.levels(id) on delete cascade,
-  name text not null,
-  summary text,
-  order_index integer not null check (order_index >= 0),
-  estimated_sessions integer check (estimated_sessions >= 0),
-  is_published boolean not null default false,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique (level_id, name),
-  unique (level_id, order_index)
-);
-
-create trigger trg_blocks_updated_at
-before update on public.blocks
-for each row execute function public.set_updated_at_timestamp();
-
--- Classes =======================================================================================
-create table public.classes (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,
-  type public.class_type_enum not null,
-  level_id uuid references public.levels(id) on delete set null,
-  coach_id uuid not null references public.users(id) on delete restrict,
-  schedule_day text not null,
-  schedule_time time not null,
-  zoom_link text not null,
-  start_date date not null,
-  end_date date not null,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-create index classes_coach_id_idx on public.classes (coach_id);
-create trigger trg_classes_updated_at
-before update on public.classes
-for each row execute function public.set_updated_at_timestamp();
-
--- Class Blocks ==================================================================================
-create table public.class_blocks (
-  id uuid primary key default gen_random_uuid(),
-  class_id uuid not null references public.classes(id) on delete cascade,
-  block_id uuid not null references public.blocks(id) on delete restrict,
-  status public.class_block_status_enum not null default 'UPCOMING',
-  start_date date not null,
-  end_date date not null,
-  pitching_day_date date,
-  created_at timestamptz not null default now()
-);
-
-create index class_blocks_class_id_idx on public.class_blocks (class_id);
-create index class_blocks_block_id_idx on public.class_blocks (block_id);
-
--- Lesson Templates ==============================================================================
-create table public.lesson_templates (
-  id uuid primary key default gen_random_uuid(),
-  block_id uuid not null references public.blocks(id) on delete cascade,
-  title text not null,
-  summary text,
-  slide_url text,
-  example_url text,
-  example_storage_path text,
-  order_index integer not null check (order_index >= 0),
-  duration_minutes integer check (duration_minutes >= 0),
-  make_up_instructions text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique (block_id, order_index)
-);
-
-create index lesson_templates_block_id_idx on public.lesson_templates (block_id, order_index);
-create trigger trg_lesson_templates_updated_at
-before update on public.lesson_templates
-for each row execute function public.set_updated_at_timestamp();
-
--- Sessions ======================================================================================
-create table public.sessions (
-  id uuid primary key default gen_random_uuid(),
-  class_id uuid not null references public.classes(id) on delete cascade,
-  date_time timestamptz not null,
-  zoom_link_snapshot text not null,
-  status public.session_status_enum not null default 'SCHEDULED',
-  substitute_coach_id uuid references public.users(id) on delete set null,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-create index sessions_class_id_idx on public.sessions (class_id, date_time);
-create index sessions_substitute_coach_id_idx on public.sessions (substitute_coach_id);
-create trigger trg_sessions_updated_at
-before update on public.sessions
-for each row execute function public.set_updated_at_timestamp();
-
--- Enrollments ===================================================================================
-create table public.enrollments (
-  id uuid primary key default gen_random_uuid(),
-  class_id uuid not null references public.classes(id) on delete cascade,
-  coder_id uuid not null references public.users(id) on delete cascade,
-  enrolled_at timestamptz not null default now(),
-  status public.enrollment_status_enum not null default 'ACTIVE',
-  unique (class_id, coder_id)
-);
-
-create index enrollments_coder_id_idx on public.enrollments (coder_id);
-
--- Attendance ====================================================================================
-create table public.attendance (
-  id uuid primary key default gen_random_uuid(),
-  session_id uuid not null references public.sessions(id) on delete cascade,
-  coder_id uuid not null references public.users(id) on delete cascade,
-  status public.attendance_status_enum not null,
+CREATE TABLE public.attendance (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  session_id uuid NOT NULL,
+  coder_id uuid NOT NULL,
+  status USER-DEFINED NOT NULL,
   reason text,
-  make_up_task_created boolean not null default false,
-  recorded_by uuid not null references public.users(id) on delete restrict,
-  recorded_at timestamptz not null default now(),
-  unique (session_id, coder_id)
+  make_up_task_created boolean NOT NULL DEFAULT false,
+  recorded_by uuid NOT NULL,
+  recorded_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT attendance_pkey PRIMARY KEY (id),
+  CONSTRAINT attendance_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id),
+  CONSTRAINT attendance_coder_id_fkey FOREIGN KEY (coder_id) REFERENCES public.users(id),
+  CONSTRAINT attendance_recorded_by_fkey FOREIGN KEY (recorded_by) REFERENCES public.users(id)
 );
-
-create index attendance_session_id_idx on public.attendance (session_id);
-create index attendance_coder_id_idx on public.attendance (coder_id);
-
--- Class Lessons =================================================================================
-create table public.class_lessons (
-  id uuid primary key default gen_random_uuid(),
-  class_block_id uuid not null references public.class_blocks(id) on delete cascade,
-  lesson_template_id uuid references public.lesson_templates(id) on delete set null,
-  title text not null,
+CREATE TABLE public.block_software (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  block_id uuid NOT NULL,
+  software_id uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT block_software_pkey PRIMARY KEY (id),
+  CONSTRAINT block_software_block_id_fkey FOREIGN KEY (block_id) REFERENCES public.blocks(id),
+  CONSTRAINT block_software_software_id_fkey FOREIGN KEY (software_id) REFERENCES public.software(id)
+);
+CREATE TABLE public.blocks (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  level_id uuid NOT NULL,
+  name text NOT NULL,
   summary text,
-  order_index integer not null check (order_index >= 0),
-  session_id uuid references public.sessions(id) on delete set null,
-  unlock_at timestamptz,
+  order_index integer NOT NULL CHECK (order_index >= 0),
+  estimated_sessions integer CHECK (estimated_sessions >= 0),
+  is_published boolean NOT NULL DEFAULT false,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  software_id uuid,
+  CONSTRAINT blocks_pkey PRIMARY KEY (id),
+  CONSTRAINT blocks_level_id_fkey FOREIGN KEY (level_id) REFERENCES public.levels(id)
+);
+CREATE TABLE public.broadcast_logs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  title character varying NOT NULL,
+  content text NOT NULL,
+  target_audience character varying NOT NULL DEFAULT 'ALL'::character varying CHECK (target_audience::text = ANY (ARRAY['ALL'::character varying, 'COACHES'::character varying, 'CODERS'::character varying]::text[])),
+  sent_by uuid,
+  sent_at timestamp with time zone NOT NULL DEFAULT now(),
+  total_recipients integer DEFAULT 0,
+  successful_count integer DEFAULT 0,
+  failed_count integer DEFAULT 0,
+  scheduled_for timestamp with time zone,
+  status character varying NOT NULL DEFAULT 'SENT'::character varying CHECK (status::text = ANY (ARRAY['PENDING'::character varying, 'SENT'::character varying, 'SCHEDULED'::character varying, 'FAILED'::character varying]::text[])),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT broadcast_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT broadcast_logs_sent_by_fkey FOREIGN KEY (sent_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.ccr_numbers (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  parent_phone text NOT NULL UNIQUE,
+  ccr_sequence integer NOT NULL,
+  parent_name text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  ccr_code text NOT NULL,
+  CONSTRAINT ccr_numbers_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.class_blocks (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  class_id uuid NOT NULL,
+  block_id uuid NOT NULL,
+  status USER-DEFINED NOT NULL DEFAULT 'UPCOMING'::class_block_status_enum,
+  start_date date NOT NULL,
+  end_date date NOT NULL,
+  pitching_day_date date,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT class_blocks_pkey PRIMARY KEY (id),
+  CONSTRAINT class_blocks_class_id_fkey FOREIGN KEY (class_id) REFERENCES public.classes(id),
+  CONSTRAINT class_blocks_block_id_fkey FOREIGN KEY (block_id) REFERENCES public.blocks(id)
+);
+CREATE TABLE public.class_lessons (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  class_block_id uuid NOT NULL,
+  lesson_template_id uuid,
+  title text NOT NULL,
+  summary text,
+  order_index integer NOT NULL CHECK (order_index >= 0),
+  session_id uuid UNIQUE,
+  unlock_at timestamp with time zone,
   make_up_instructions text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
   slide_url text,
   coach_example_url text,
   coach_example_storage_path text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique (session_id)
+  CONSTRAINT class_lessons_pkey PRIMARY KEY (id),
+  CONSTRAINT class_lessons_class_block_id_fkey FOREIGN KEY (class_block_id) REFERENCES public.class_blocks(id),
+  CONSTRAINT class_lessons_lesson_template_id_fkey FOREIGN KEY (lesson_template_id) REFERENCES public.lesson_templates(id),
+  CONSTRAINT class_lessons_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id)
 );
-
-create index class_lessons_class_block_idx on public.class_lessons (class_block_id, order_index);
-create trigger trg_class_lessons_updated_at
-before update on public.class_lessons
-for each row execute function public.set_updated_at_timestamp();
-
--- Coder Block Progress ========================================================================
-create table public.coder_block_progress (
-  id uuid primary key default gen_random_uuid(),
-  coder_id uuid not null references public.users(id) on delete cascade,
-  level_id uuid not null references public.levels(id) on delete cascade,
-  block_id uuid not null references public.blocks(id) on delete cascade,
-  journey_order integer not null check (journey_order >= 0),
-  status public.coder_block_status_enum not null default 'PENDING',
-  completed_at timestamptz,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique (coder_id, block_id),
-  unique (coder_id, level_id, journey_order)
+CREATE TABLE public.classes (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  type USER-DEFINED NOT NULL,
+  level_id uuid,
+  coach_id uuid NOT NULL,
+  schedule_day text NOT NULL,
+  schedule_time time without time zone NOT NULL,
+  zoom_link text NOT NULL,
+  start_date date NOT NULL,
+  end_date date NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  ekskul_lesson_plan_id uuid,
+  CONSTRAINT classes_pkey PRIMARY KEY (id),
+  CONSTRAINT classes_level_id_fkey FOREIGN KEY (level_id) REFERENCES public.levels(id),
+  CONSTRAINT classes_coach_id_fkey FOREIGN KEY (coach_id) REFERENCES public.users(id)
 );
+CREATE TABLE public.coach_leave_requests (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  coach_id uuid NOT NULL,
+  session_id uuid NOT NULL,
+  status USER-DEFINED NOT NULL DEFAULT 'PENDING'::coach_leave_status_enum,
+  note text,
+  substitute_coach_id uuid,
+  approved_by uuid,
+  approved_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT coach_leave_requests_pkey PRIMARY KEY (id),
+  CONSTRAINT coach_leave_requests_coach_id_fkey FOREIGN KEY (coach_id) REFERENCES public.users(id),
+  CONSTRAINT coach_leave_requests_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id),
+  CONSTRAINT coach_leave_requests_substitute_coach_id_fkey FOREIGN KEY (substitute_coach_id) REFERENCES public.users(id),
+  CONSTRAINT coach_leave_requests_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.coaches (
+  id bigint NOT NULL DEFAULT nextval('coaches_id_seq'::regclass),
+  content text,
+  metadata jsonb,
+  embedding USER-DEFINED,
+  CONSTRAINT coaches_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.coder_block_completions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  coder_id uuid NOT NULL,
+  block_id uuid NOT NULL,
+  completed_at timestamp with time zone DEFAULT now(),
+  completed_by_admin boolean DEFAULT false,
+  notes text,
+  CONSTRAINT coder_block_completions_pkey PRIMARY KEY (id),
+  CONSTRAINT coder_block_completions_coder_id_fkey FOREIGN KEY (coder_id) REFERENCES public.users(id),
+  CONSTRAINT coder_block_completions_block_id_fkey FOREIGN KEY (block_id) REFERENCES public.blocks(id)
+);
+CREATE TABLE public.coder_block_progress (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  coder_id uuid NOT NULL,
+  level_id uuid NOT NULL,
+  block_id uuid NOT NULL,
+  journey_order integer NOT NULL CHECK (journey_order >= 0),
+  status USER-DEFINED NOT NULL DEFAULT 'PENDING'::coder_block_status_enum,
+  completed_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT coder_block_progress_pkey PRIMARY KEY (id),
+  CONSTRAINT coder_block_progress_coder_id_fkey FOREIGN KEY (coder_id) REFERENCES public.users(id),
+  CONSTRAINT coder_block_progress_level_id_fkey FOREIGN KEY (level_id) REFERENCES public.levels(id),
+  CONSTRAINT coder_block_progress_block_id_fkey FOREIGN KEY (block_id) REFERENCES public.blocks(id)
+);
+CREATE TABLE public.coder_payment_periods (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  coder_id uuid,
+  class_id uuid,
+  payment_plan_id uuid,
+  pricing_id uuid,
+  start_date date NOT NULL,
+  end_date date NOT NULL,
+  total_amount numeric NOT NULL,
+  status text DEFAULT 'ACTIVE'::text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT coder_payment_periods_pkey PRIMARY KEY (id),
+  CONSTRAINT coder_payment_periods_coder_id_fkey FOREIGN KEY (coder_id) REFERENCES public.users(id),
+  CONSTRAINT coder_payment_periods_class_id_fkey FOREIGN KEY (class_id) REFERENCES public.classes(id),
+  CONSTRAINT coder_payment_periods_payment_plan_id_fkey FOREIGN KEY (payment_plan_id) REFERENCES public.payment_plans(id),
+  CONSTRAINT coder_payment_periods_pricing_id_fkey FOREIGN KEY (pricing_id) REFERENCES public.pricing(id)
+);
+CREATE TABLE public.documents (
+  id bigint NOT NULL DEFAULT nextval('documents_id_seq'::regclass),
+  content text,
+  metadata jsonb,
+  embedding USER-DEFINED,
+  CONSTRAINT documents_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.ekskul_lesson_plans (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  description text,
+  total_lessons integer DEFAULT 0,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT ekskul_lesson_plans_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.ekskul_lessons (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  plan_id uuid,
+  title text NOT NULL,
+  summary text,
+  slide_url text,
+  example_url text,
+  order_index integer NOT NULL,
+  estimated_meetings integer DEFAULT 1,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT ekskul_lessons_pkey PRIMARY KEY (id),
+  CONSTRAINT ekskul_lessons_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES public.ekskul_lesson_plans(id)
+);
+CREATE TABLE public.ekskul_plan_software (
+  plan_id uuid NOT NULL,
+  software_id uuid NOT NULL,
+  CONSTRAINT ekskul_plan_software_pkey PRIMARY KEY (plan_id, software_id),
+  CONSTRAINT ekskul_plan_software_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES public.ekskul_lesson_plans(id),
+  CONSTRAINT ekskul_plan_software_software_id_fkey FOREIGN KEY (software_id) REFERENCES public.software(id)
+);
+CREATE TABLE public.enrollments (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  class_id uuid NOT NULL,
+  coder_id uuid NOT NULL,
+  enrolled_at timestamp with time zone NOT NULL DEFAULT now(),
+  status USER-DEFINED NOT NULL DEFAULT 'ACTIVE'::enrollment_status_enum,
+  CONSTRAINT enrollments_pkey PRIMARY KEY (id),
+  CONSTRAINT enrollments_class_id_fkey FOREIGN KEY (class_id) REFERENCES public.classes(id),
+  CONSTRAINT enrollments_coder_id_fkey FOREIGN KEY (coder_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.exkul_session_competencies (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  session_id uuid NOT NULL UNIQUE,
+  competencies jsonb NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT exkul_session_competencies_pkey PRIMARY KEY (id),
+  CONSTRAINT exkul_session_competencies_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id)
+);
+CREATE TABLE public.invoice_items (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  invoice_id uuid NOT NULL,
+  coder_id uuid NOT NULL,
+  coder_name text NOT NULL,
+  class_name text NOT NULL,
+  level_name text NOT NULL,
+  base_price integer NOT NULL DEFAULT 0 CHECK (base_price >= 0),
+  discount_amount integer NOT NULL DEFAULT 0 CHECK (discount_amount >= 0),
+  final_price integer NOT NULL DEFAULT 0 CHECK (final_price >= 0),
+  payment_period_id uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT invoice_items_pkey PRIMARY KEY (id),
+  CONSTRAINT invoice_items_invoice_id_fkey FOREIGN KEY (invoice_id) REFERENCES public.invoices(id),
+  CONSTRAINT invoice_items_coder_id_fkey FOREIGN KEY (coder_id) REFERENCES public.users(id),
+  CONSTRAINT invoice_items_payment_period_id_fkey FOREIGN KEY (payment_period_id) REFERENCES public.coder_payment_periods(id)
+);
+CREATE TABLE public.invoice_settings (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  generate_day integer NOT NULL DEFAULT 15 CHECK (generate_day >= 1 AND generate_day <= 28),
+  due_days integer NOT NULL DEFAULT 10 CHECK (due_days >= 1),
+  bank_name text NOT NULL DEFAULT ''::text,
+  bank_account_number text NOT NULL DEFAULT ''::text,
+  bank_account_holder text NOT NULL DEFAULT ''::text,
+  admin_whatsapp_number text NOT NULL DEFAULT ''::text,
+  base_url text NOT NULL DEFAULT 'http://localhost:3000'::text,
+  invoice_message_template text NOT NULL DEFAULT 'Yth. Bpk/Ibu {parent_name},
 
-create index coder_block_progress_coder_level_idx on public.coder_block_progress (coder_id, level_id, status);
-create trigger trg_coder_block_progress_updated_at
-before update on public.coder_block_progress
-for each row execute function public.set_updated_at_timestamp();
+Tagihan kursus telah tersedia:
 
--- Make-up Tasks =================================================================================
-create table public.make_up_tasks (
-  id uuid primary key default gen_random_uuid(),
-  attendance_id uuid not null references public.attendance(id) on delete cascade,
-  coder_id uuid not null references public.users(id) on delete cascade,
-  session_id uuid not null references public.sessions(id) on delete cascade,
-  class_lesson_id uuid references public.class_lessons(id) on delete set null,
-  due_date timestamptz not null,
-  status public.make_up_status_enum not null default 'PENDING_UPLOAD',
+📄 Invoice: {invoice_number}
+💰 Total: Rp {total_amount}
+📅 Jatuh Tempo: {due_date}
+
+Lihat detail:
+{invoice_url}
+
+Terima kasih 🙏
+CLEVIO Coder'::text,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  whatsapp_delay_min integer NOT NULL DEFAULT 10,
+  whatsapp_delay_max integer NOT NULL DEFAULT 30,
+  registration_fee integer DEFAULT 150000,
+  registration_fee_discount_percent integer DEFAULT 0,
+  CONSTRAINT invoice_settings_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.invoices (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  invoice_number text NOT NULL UNIQUE,
+  ccr_id uuid NOT NULL,
+  parent_phone text NOT NULL,
+  parent_name text NOT NULL,
+  period_month integer NOT NULL CHECK (period_month >= 1 AND period_month <= 12),
+  period_year integer NOT NULL CHECK (period_year >= 2020),
+  total_amount integer NOT NULL DEFAULT 0 CHECK (total_amount >= 0),
+  status USER-DEFINED NOT NULL DEFAULT 'PENDING'::invoice_status_enum,
+  due_date date NOT NULL,
+  paid_at timestamp with time zone,
+  paid_notes text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  invoice_type character varying DEFAULT 'MONTHLY'::character varying,
+  CONSTRAINT invoices_pkey PRIMARY KEY (id),
+  CONSTRAINT invoices_ccr_id_fkey FOREIGN KEY (ccr_id) REFERENCES public.ccr_numbers(id)
+);
+CREATE TABLE public.knowledge_internal (
+  id bigint NOT NULL DEFAULT nextval('knowledge_internal_id_seq'::regclass),
+  content text,
+  metadata jsonb,
+  embedding USER-DEFINED,
+  CONSTRAINT knowledge_internal_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.lesson_reports (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  lesson_template_id uuid,
+  coach_id uuid,
+  report_type text,
+  description text,
+  status text DEFAULT 'PENDING'::text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT lesson_reports_pkey PRIMARY KEY (id),
+  CONSTRAINT lesson_reports_lesson_template_id_fkey FOREIGN KEY (lesson_template_id) REFERENCES public.lesson_templates(id),
+  CONSTRAINT lesson_reports_coach_id_fkey FOREIGN KEY (coach_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.lesson_templates (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  block_id uuid NOT NULL,
+  title text NOT NULL,
+  summary text,
+  order_index integer NOT NULL CHECK (order_index >= 0),
+  estimated_meeting_count integer CHECK (estimated_meeting_count >= 0),
+  make_up_instructions text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  slide_url text,
+  example_url text,
+  example_storage_path text,
+  CONSTRAINT lesson_templates_pkey PRIMARY KEY (id),
+  CONSTRAINT lesson_templates_block_id_fkey FOREIGN KEY (block_id) REFERENCES public.blocks(id)
+);
+CREATE TABLE public.levels (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  description text,
+  order_index integer NOT NULL CHECK (order_index >= 0),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT levels_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.make_up_tasks (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  attendance_id uuid NOT NULL UNIQUE,
+  coder_id uuid NOT NULL,
+  session_id uuid NOT NULL,
+  class_lesson_id uuid,
+  due_date timestamp with time zone NOT NULL,
+  status USER-DEFINED NOT NULL DEFAULT 'PENDING_UPLOAD'::make_up_status_enum,
   instructions text,
   submission_files jsonb,
-  submitted_at timestamptz,
-  reviewed_by_coach_id uuid references public.users(id) on delete set null,
-  reviewed_at timestamptz,
+  submitted_at timestamp with time zone,
+  reviewed_by_coach_id uuid,
+  reviewed_at timestamp with time zone,
   feedback text,
-  created_at timestamptz not null default now(),
-  unique (attendance_id)
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT make_up_tasks_pkey PRIMARY KEY (id),
+  CONSTRAINT make_up_tasks_attendance_id_fkey FOREIGN KEY (attendance_id) REFERENCES public.attendance(id),
+  CONSTRAINT make_up_tasks_coder_id_fkey FOREIGN KEY (coder_id) REFERENCES public.users(id),
+  CONSTRAINT make_up_tasks_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id),
+  CONSTRAINT make_up_tasks_class_lesson_id_fkey FOREIGN KEY (class_lesson_id) REFERENCES public.class_lessons(id),
+  CONSTRAINT make_up_tasks_reviewed_by_coach_id_fkey FOREIGN KEY (reviewed_by_coach_id) REFERENCES public.users(id)
 );
-
-create index make_up_tasks_status_due_idx on public.make_up_tasks (status, due_date);
-
--- Coach Leave Requests ========================================================================
-create table public.coach_leave_requests (
-  id uuid primary key default gen_random_uuid(),
-  coach_id uuid not null references public.users(id) on delete cascade,
-  session_id uuid not null references public.sessions(id) on delete cascade,
-  status public.coach_leave_status_enum not null default 'PENDING',
-  note text,
-  substitute_coach_id uuid references public.users(id) on delete set null,
-  approved_by uuid references public.users(id) on delete set null,
-  approved_at timestamptz,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique (coach_id, session_id)
-);
-
-create index coach_leave_requests_status_idx on public.coach_leave_requests (status);
-create trigger trg_coach_leave_requests_updated_at
-before update on public.coach_leave_requests
-for each row execute function public.set_updated_at_timestamp();
-
--- Ekskul Session Competencies =================================================================
-create table public.exkul_session_competencies (
-  id uuid primary key default gen_random_uuid(),
-  session_id uuid not null references public.sessions(id) on delete cascade,
-  competencies jsonb not null,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique (session_id)
-);
-
-create trigger trg_exkul_session_competencies_updated_at
-before update on public.exkul_session_competencies
-for each row execute function public.set_updated_at_timestamp();
-
--- Materials =====================================================================================
-create table public.materials (
-  id uuid primary key default gen_random_uuid(),
-  class_id uuid not null references public.classes(id) on delete cascade,
-  session_id uuid references public.sessions(id) on delete set null,
-  block_id uuid references public.blocks(id) on delete set null,
-  title text not null,
+CREATE TABLE public.materials (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  class_id uuid NOT NULL,
+  session_id uuid,
+  block_id uuid,
+  title text NOT NULL,
   description text,
   file_url text,
   coach_note text,
-  visible_from_session_id uuid references public.sessions(id) on delete set null,
-  uploaded_by_user_id uuid not null references public.users(id) on delete restrict,
-  uploaded_by_role public.role_enum not null,
-  created_at timestamptz not null default now()
+  visible_from_session_id uuid,
+  uploaded_by_user_id uuid NOT NULL,
+  uploaded_by_role USER-DEFINED NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT materials_pkey PRIMARY KEY (id),
+  CONSTRAINT materials_class_id_fkey FOREIGN KEY (class_id) REFERENCES public.classes(id),
+  CONSTRAINT materials_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id),
+  CONSTRAINT materials_block_id_fkey FOREIGN KEY (block_id) REFERENCES public.blocks(id),
+  CONSTRAINT materials_visible_from_session_id_fkey FOREIGN KEY (visible_from_session_id) REFERENCES public.sessions(id),
+  CONSTRAINT materials_uploaded_by_user_id_fkey FOREIGN KEY (uploaded_by_user_id) REFERENCES public.users(id)
 );
-
-create index materials_class_id_created_at_idx on public.materials (class_id, created_at desc);
-
--- Rubric Templates ==============================================================================
-create table public.rubric_templates (
-  id uuid primary key default gen_random_uuid(),
-  class_type public.class_type_enum not null,
-  level_id uuid references public.levels(id) on delete set null,
-  competencies jsonb not null,
-  positive_characters text[] not null default '{}',
-  created_by uuid not null references public.users(id) on delete restrict,
-  created_at timestamptz not null default now()
+CREATE TABLE public.n8n_chat_histories (
+  id integer NOT NULL DEFAULT nextval('n8n_chat_histories_id_seq'::regclass),
+  session_id character varying NOT NULL,
+  message jsonb NOT NULL,
+  CONSTRAINT n8n_chat_histories_pkey PRIMARY KEY (id)
 );
-
-create index rubric_templates_class_type_idx on public.rubric_templates (class_type, level_id);
-
--- Rubric Submissions ============================================================================
-create table public.rubric_submissions (
-  id uuid primary key default gen_random_uuid(),
-  class_id uuid not null references public.classes(id) on delete cascade,
-  coder_id uuid not null references public.users(id) on delete cascade,
-  block_id uuid references public.blocks(id) on delete set null,
+CREATE TABLE public.notifications (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  title text NOT NULL,
+  message text NOT NULL,
+  is_read boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  type character varying DEFAULT 'SYSTEM'::character varying,
+  CONSTRAINT notifications_pkey PRIMARY KEY (id),
+  CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.payment_plans (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  duration_months integer NOT NULL,
+  discount_percent numeric DEFAULT 0,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT payment_plans_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.payment_pricing (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  plan_id uuid,
+  level_id uuid,
+  mode text NOT NULL DEFAULT 'WEEKLY'::text,
+  amount numeric NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT payment_pricing_pkey PRIMARY KEY (id),
+  CONSTRAINT payment_pricing_level_id_fkey FOREIGN KEY (level_id) REFERENCES public.levels(id),
+  CONSTRAINT payment_pricing_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES public.payment_plans(id)
+);
+CREATE TABLE public.payment_reminders (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  payment_period_id uuid,
+  reminder_type text NOT NULL,
+  sent_at timestamp with time zone DEFAULT now(),
+  status text DEFAULT 'SENT'::text,
+  CONSTRAINT payment_reminders_pkey PRIMARY KEY (id),
+  CONSTRAINT payment_reminders_payment_period_id_fkey FOREIGN KEY (payment_period_id) REFERENCES public.coder_payment_periods(id)
+);
+CREATE TABLE public.payments (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  payment_period_id uuid,
+  amount numeric NOT NULL,
+  payment_date timestamp with time zone DEFAULT now(),
+  payment_method text,
+  notes text,
+  created_by uuid,
+  CONSTRAINT payments_pkey PRIMARY KEY (id),
+  CONSTRAINT payments_payment_period_id_fkey FOREIGN KEY (payment_period_id) REFERENCES public.coder_payment_periods(id),
+  CONSTRAINT payments_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.pitching_day_reports (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  rubric_submission_id uuid NOT NULL UNIQUE,
+  pdf_url text NOT NULL,
+  storage_path text NOT NULL,
+  generated_at timestamp with time zone NOT NULL DEFAULT now(),
+  sent_via_whatsapp boolean NOT NULL DEFAULT false,
+  sent_to_parent_at timestamp with time zone,
+  CONSTRAINT pitching_day_reports_pkey PRIMARY KEY (id),
+  CONSTRAINT pitching_day_reports_rubric_submission_id_fkey FOREIGN KEY (rubric_submission_id) REFERENCES public.rubric_submissions(id)
+);
+CREATE TABLE public.pricing (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  level_id uuid,
+  mode text NOT NULL,
+  base_price_monthly numeric NOT NULL,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT pricing_pkey PRIMARY KEY (id),
+  CONSTRAINT pricing_level_id_fkey FOREIGN KEY (level_id) REFERENCES public.levels(id)
+);
+CREATE TABLE public.rubric_submissions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  class_id uuid NOT NULL,
+  coder_id uuid NOT NULL,
+  block_id uuid,
   semester_tag text,
-  rubric_template_id uuid not null references public.rubric_templates(id) on delete restrict,
-  grades jsonb not null,
-  positive_character_chosen text[] not null default '{}',
-  narrative text not null,
-  submitted_by uuid not null references public.users(id) on delete restrict,
-  submitted_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  status public.rubric_submission_status_enum not null default 'FINAL'
+  rubric_template_id uuid NOT NULL,
+  grades jsonb NOT NULL,
+  positive_character_chosen ARRAY NOT NULL DEFAULT '{}'::text[],
+  narrative text NOT NULL,
+  submitted_by uuid NOT NULL,
+  submitted_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  status USER-DEFINED NOT NULL DEFAULT 'FINAL'::rubric_submission_status_enum,
+  CONSTRAINT rubric_submissions_pkey PRIMARY KEY (id),
+  CONSTRAINT rubric_submissions_class_id_fkey FOREIGN KEY (class_id) REFERENCES public.classes(id),
+  CONSTRAINT rubric_submissions_coder_id_fkey FOREIGN KEY (coder_id) REFERENCES public.users(id),
+  CONSTRAINT rubric_submissions_block_id_fkey FOREIGN KEY (block_id) REFERENCES public.blocks(id),
+  CONSTRAINT rubric_submissions_rubric_template_id_fkey FOREIGN KEY (rubric_template_id) REFERENCES public.rubric_templates(id),
+  CONSTRAINT rubric_submissions_submitted_by_fkey FOREIGN KEY (submitted_by) REFERENCES public.users(id)
 );
-
-create index rubric_submissions_class_coder_idx on public.rubric_submissions (class_id, coder_id);
-create trigger trg_rubric_submissions_updated_at
-before update on public.rubric_submissions
-for each row execute function public.set_updated_at_timestamp();
-
--- Pitching Day Reports =========================================================================
-create table public.pitching_day_reports (
-  id uuid primary key default gen_random_uuid(),
-  rubric_submission_id uuid not null references public.rubric_submissions(id) on delete cascade,
-  pdf_url text not null,
-  storage_path text not null,
-  generated_at timestamptz not null default now(),
-  sent_via_whatsapp boolean not null default false,
-  sent_to_parent_at timestamptz,
-  unique (rubric_submission_id)
+CREATE TABLE public.rubric_templates (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  class_type USER-DEFINED NOT NULL,
+  level_id uuid,
+  competencies jsonb NOT NULL,
+  positive_characters ARRAY NOT NULL DEFAULT '{}'::text[],
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT rubric_templates_pkey PRIMARY KEY (id),
+  CONSTRAINT rubric_templates_level_id_fkey FOREIGN KEY (level_id) REFERENCES public.levels(id),
+  CONSTRAINT rubric_templates_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
 );
-
--- WhatsApp Message Logs =========================================================================
-create table public.whatsapp_message_logs (
-  id uuid primary key default gen_random_uuid(),
-  category public.whatsapp_category_enum not null,
-  payload jsonb not null,
-  response jsonb,
-  status public.whatsapp_status_enum not null default 'QUEUED',
-  created_at timestamptz not null default now(),
-  processed_at timestamptz
+CREATE TABLE public.sessions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  class_id uuid NOT NULL,
+  date_time timestamp with time zone NOT NULL,
+  zoom_link_snapshot text NOT NULL,
+  status USER-DEFINED NOT NULL DEFAULT 'SCHEDULED'::session_status_enum,
+  substitute_coach_id uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  ekskul_lesson_id uuid,
+  CONSTRAINT sessions_pkey PRIMARY KEY (id),
+  CONSTRAINT sessions_class_id_fkey FOREIGN KEY (class_id) REFERENCES public.classes(id),
+  CONSTRAINT sessions_substitute_coach_id_fkey FOREIGN KEY (substitute_coach_id) REFERENCES public.users(id)
 );
-
-create index whatsapp_message_logs_created_at_idx on public.whatsapp_message_logs (created_at desc);
-
--- Software =====================================================================================
-create table public.software (
-  id uuid primary key default gen_random_uuid(),
-  name text not null unique,
+CREATE TABLE public.software (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL UNIQUE,
   description text,
   version text,
   installation_url text,
@@ -400,58 +524,81 @@ create table public.software (
   minimum_specs jsonb,
   access_info text,
   icon_url text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT software_pkey PRIMARY KEY (id)
 );
-
-create trigger trg_software_updated_at
-before update on public.software
-for each row execute function public.set_updated_at_timestamp();
-
--- Block Software (many-to-many) ================================================================
-create table public.block_software (
-  id uuid primary key default gen_random_uuid(),
-  block_id uuid not null references public.blocks(id) on delete cascade,
-  software_id uuid not null references public.software(id) on delete cascade,
-  created_at timestamptz not null default now(),
-  unique (block_id, software_id)
+CREATE TABLE public.submissions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  makeup_id uuid NOT NULL,
+  session_id uuid NOT NULL,
+  coder_id uuid NOT NULL,
+  file_path text NOT NULL,
+  file_type text,
+  notes text,
+  reviewed_by uuid,
+  reviewed_at timestamp with time zone,
+  verdict text CHECK (verdict = ANY (ARRAY['APPROVED'::text, 'REJECTED'::text, 'NEEDS_REVISION'::text])),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT submissions_pkey PRIMARY KEY (id),
+  CONSTRAINT submissions_makeup_id_fkey FOREIGN KEY (makeup_id) REFERENCES public.make_up_tasks(id),
+  CONSTRAINT submissions_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id),
+  CONSTRAINT submissions_coder_id_fkey FOREIGN KEY (coder_id) REFERENCES public.users(id),
+  CONSTRAINT submissions_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.users(id)
 );
-
-create index block_software_block_id_idx on public.block_software (block_id);
-
--- WhatsApp Templates ===========================================================================
--- Stores customizable message templates for different notification categories
-create table public.whatsapp_templates (
-  id uuid primary key default gen_random_uuid(),
-  category varchar(50) not null unique,
-  template_content text not null,
-  variables jsonb default '[]'::jsonb,
-  updated_at timestamptz not null default now(),
-  updated_by uuid references public.users(id),
-  created_at timestamptz not null default now(),
-  constraint valid_whatsapp_template_category check (category in ('PARENT_ABSENT', 'REPORT_SEND', 'REMINDER'))
+CREATE TABLE public.users (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  username text NOT NULL,
+  password_hash text NOT NULL,
+  full_name text NOT NULL,
+  role USER-DEFINED NOT NULL,
+  parent_contact_phone text,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  avatar_path text,
+  birth_date date,
+  gender text,
+  school_name text,
+  school_grade text,
+  parent_name text,
+  parent_email text,
+  address text,
+  notes text,
+  referral_source text,
+  admin_permissions jsonb,
+  CONSTRAINT users_pkey PRIMARY KEY (id)
 );
-
-create index whatsapp_templates_category_idx on public.whatsapp_templates (category);
-
--- Broadcast Logs ===============================================================================
--- Stores history of broadcast messages sent by admin
-create table public.broadcast_logs (
-  id uuid primary key default gen_random_uuid(),
-  title varchar(255) not null,
-  content text not null,
-  target_audience varchar(50) not null default 'ALL',
-  sent_by uuid references public.users(id),
-  sent_at timestamptz not null default now(),
-  total_recipients integer default 0,
-  successful_count integer default 0,
-  failed_count integer default 0,
-  scheduled_for timestamptz,
-  status varchar(50) not null default 'SENT',
-  created_at timestamptz not null default now(),
-  constraint valid_broadcast_target check (target_audience in ('ALL', 'COACHES', 'CODERS')),
-  constraint valid_broadcast_status check (status in ('PENDING', 'SENT', 'SCHEDULED', 'FAILED'))
+CREATE TABLE public.whatsapp_message_logs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  category USER-DEFINED NOT NULL,
+  payload jsonb NOT NULL,
+  response jsonb,
+  status USER-DEFINED NOT NULL DEFAULT 'QUEUED'::whatsapp_status_enum,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  processed_at timestamp with time zone,
+  CONSTRAINT whatsapp_message_logs_pkey PRIMARY KEY (id)
 );
-
-create index broadcast_logs_sent_at_idx on public.broadcast_logs (sent_at desc);
-create index broadcast_logs_status_idx on public.broadcast_logs (status);
+CREATE TABLE public.whatsapp_sessions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  client_id text NOT NULL UNIQUE,
+  session_data jsonb,
+  is_connected boolean NOT NULL DEFAULT false,
+  connected_phone text,
+  last_activity_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT whatsapp_sessions_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.whatsapp_templates (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  category character varying NOT NULL UNIQUE CHECK (category::text = ANY (ARRAY['PARENT_ABSENT'::character varying, 'REPORT_SEND'::character varying, 'REMINDER'::character varying]::text[])),
+  template_content text NOT NULL,
+  variables jsonb DEFAULT '[]'::jsonb,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_by uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT whatsapp_templates_pkey PRIMARY KEY (id),
+  CONSTRAINT whatsapp_templates_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id)
+);

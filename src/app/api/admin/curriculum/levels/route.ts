@@ -10,6 +10,21 @@ const createLevelSchema = z.object({
     description: z.string().max(500).nullable().optional(),
 });
 
+// GET: List all levels
+export async function GET() {
+    const session = await getSessionOrThrow();
+    await assertRole(session, 'ADMIN');
+
+    try {
+        const levels = await levelsDao.listLevels();
+        return NextResponse.json({ levels });
+    } catch (error) {
+        console.error('[List Levels] Error:', error);
+        const message = error instanceof Error ? error.message : 'Failed to list levels';
+        return NextResponse.json({ error: message }, { status: 500 });
+    }
+}
+
 export async function POST(request: Request) {
     const session = await getSessionOrThrow();
     await assertRole(session, 'ADMIN');

@@ -1,6 +1,7 @@
 // Invoice System Types
 
 export type InvoiceStatus = 'PENDING' | 'PAID' | 'OVERDUE';
+export type InvoiceType = 'MONTHLY' | 'REGISTRATION';
 
 export interface InvoiceSettings {
     id: string;
@@ -14,6 +15,9 @@ export interface InvoiceSettings {
     invoice_message_template: string;
     whatsapp_delay_min: number;
     whatsapp_delay_max: number;
+    // Registration fee settings
+    registration_fee: number;
+    registration_fee_discount_percent: number;
     updated_at: string;
 }
 
@@ -36,6 +40,7 @@ export interface Invoice {
     period_year: number;
     total_amount: number;
     status: InvoiceStatus;
+    invoice_type: InvoiceType;
     due_date: string;
     paid_at: string | null;
     paid_notes: string | null;

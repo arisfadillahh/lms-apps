@@ -37,6 +37,8 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
   const activeCoaches = useMemo(() => coaches.filter((coach) => coach.is_active), [coaches]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [availableLessons, setAvailableLessons] = useState<Array<{ id: string; title: string; order_index: number }>>([]);
+  const [loadingLessons, setLoadingLessons] = useState(false);
 
   const {
     register,
@@ -52,12 +54,14 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
       scheduleDay: 'MONDAY',
       scheduleTime: '16:00',
       initialBlockId: '',
+      initialLessonId: '',
       ekskulLessonPlanId: '',
     } as FormValues,
   });
 
   const selectedType = watch('type');
   const selectedLevelId = watch('levelId');
+  const selectedBlockId = watch('initialBlockId');
 
   const availableBlocks = useMemo(() => {
     if (selectedType !== 'WEEKLY' || !selectedLevelId) {
@@ -66,8 +70,35 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
     return levelBlocks[selectedLevelId] ?? [];
   }, [levelBlocks, selectedLevelId, selectedType]);
 
+  // Fetch lessons when block changes
+  useEffect(() => {
+    if (!selectedBlockId) {
+      setAvailableLessons([]);
+      setValue('initialLessonId', '' as any);
+      return;
+    }
+
+    const fetchLessons = async () => {
+      setLoadingLessons(true);
+      try {
+        const res = await fetch(`/api/admin/curriculum/blocks/${selectedBlockId}/lessons`);
+        if (res.ok) {
+          const data = await res.json();
+          setAvailableLessons(data.lessons || []);
+        }
+      } catch (error) {
+        console.error('Error fetching lessons:', error);
+      } finally {
+        setLoadingLessons(false);
+      }
+    };
+
+    fetchLessons();
+  }, [selectedBlockId, setValue]);
+
   useEffect(() => {
     setValue('initialBlockId', '' as FormValues['initialBlockId']);
+    setValue('initialLessonId', '' as any);
   }, [selectedLevelId, selectedType, setValue]);
 
   const onSubmit = async (values: FormValues) => {
@@ -93,7 +124,8 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
       }
 
       setSuccessMessage('Kelas berhasil dibuat');
-      reset({ ...values, name: '', zoomLink: '', startDate: '', initialBlockId: '' });
+      reset({ ...values, name: '', zoomLink: '', startDate: '', initialBlockId: '', initialLessonId: '' });
+      setAvailableLessons([]);
       router.refresh();
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error) {
@@ -192,6 +224,27 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
           </div>
         ) : (
           <input type="hidden" value="" {...register('initialBlockId')} />
+        )}
+
+        {/* Starting Lesson Dropdown */}
+        {selectedType === 'WEEKLY' && selectedBlockId ? (
+          <div style={fieldStyle}>
+            <label style={labelStyle}>Mulai dari Lesson (Opsional)</label>
+            {loadingLessons ? (
+              <div style={{ ...inputStyle, color: '#94a3b8' }}>Loading lessons...</div>
+            ) : (
+              <select style={inputStyle} {...register('initialLessonId')}>
+                <option value="">Gunakan lesson pertama block ini</option>
+                {availableLessons.map((lesson) => (
+                  <option key={lesson.id} value={lesson.id}>
+                    {lesson.order_index}. {lesson.title}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        ) : (
+          <input type="hidden" value="" {...register('initialLessonId')} />
         )}
 
         {selectedType === 'EKSKUL' ? (

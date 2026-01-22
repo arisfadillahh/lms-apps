@@ -36,6 +36,11 @@ export default function AssignPaymentButton({ coderId, coderName, plans, pricing
     const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
     const [error, setError] = useState<string | null>(null);
 
+    // New registration fields
+    const [isNewRegistration, setIsNewRegistration] = useState(false);
+    const [registrationFee, setRegistrationFee] = useState(150000);
+    const [registrationDiscount, setRegistrationDiscount] = useState(0);
+
     // Calculate end date and total
     const selectedPlan = plans.find((p) => p.id === planId);
     const selectedPricing = pricing.find((p) => p.id === pricingId);
@@ -45,6 +50,16 @@ export default function AssignPaymentButton({ coderId, coderName, plans, pricing
         const baseTotal = selectedPricing.base_price_monthly * selectedPlan.duration_months;
         const discount = (baseTotal * selectedPlan.discount_percent) / 100;
         return baseTotal - discount;
+    };
+
+    const calculateRegistrationFee = () => {
+        if (!isNewRegistration) return 0;
+        const discountAmount = Math.floor(registrationFee * (registrationDiscount / 100));
+        return registrationFee - discountAmount;
+    };
+
+    const calculateGrandTotal = () => {
+        return calculateTotal() + calculateRegistrationFee();
     };
 
     const calculateEndDate = () => {
@@ -64,6 +79,9 @@ export default function AssignPaymentButton({ coderId, coderName, plans, pricing
         setPricingId('');
         setStartDate(new Date().toISOString().split('T')[0]);
         setError(null);
+        setIsNewRegistration(false);
+        setRegistrationFee(150000);
+        setRegistrationDiscount(0);
     };
 
     const handleSubmit = () => {
@@ -84,6 +102,11 @@ export default function AssignPaymentButton({ coderId, coderName, plans, pricing
                         startDate,
                         endDate: calculateEndDate(),
                         totalAmount: calculateTotal(),
+                        // New registration fields
+                        isNewRegistration,
+                        registrationFee: isNewRegistration ? registrationFee : 0,
+                        registrationDiscount: isNewRegistration ? registrationDiscount : 0,
+                        registrationTotal: calculateRegistrationFee(),
                     }),
                 });
 
@@ -148,6 +171,52 @@ export default function AssignPaymentButton({ coderId, coderName, plans, pricing
                             />
                         </div>
 
+                        {/* New Registration Checkbox */}
+                        <div style={{ ...fieldStyle, flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+                            <input
+                                type="checkbox"
+                                id="newRegistration"
+                                checked={isNewRegistration}
+                                onChange={(e) => setIsNewRegistration(e.target.checked)}
+                                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                            />
+                            <label htmlFor="newRegistration" style={{ ...labelStyle, margin: 0, cursor: 'pointer' }}>
+                                Pendaftar Baru (termasuk biaya pendaftaran)
+                            </label>
+                        </div>
+
+                        {/* Registration Fee Fields */}
+                        {isNewRegistration && (
+                            <div style={registrationBoxStyle}>
+                                <div style={{ display: 'flex', gap: '1rem' }}>
+                                    <div style={{ flex: 1 }}>
+                                        <label style={labelStyle}>Biaya Pendaftaran</label>
+                                        <input
+                                            type="number"
+                                            value={registrationFee}
+                                            onChange={(e) => setRegistrationFee(Number(e.target.value))}
+                                            style={inputStyle}
+                                        />
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <label style={labelStyle}>Diskon (%)</label>
+                                        <input
+                                            type="number"
+                                            value={registrationDiscount}
+                                            onChange={(e) => setRegistrationDiscount(Number(e.target.value))}
+                                            style={inputStyle}
+                                            min={0}
+                                            max={100}
+                                        />
+                                    </div>
+                                </div>
+                                <div style={{ marginTop: '0.75rem', display: 'flex', justifyContent: 'space-between', color: '#7c3aed', fontWeight: 600 }}>
+                                    <span>Biaya Pendaftaran:</span>
+                                    <span>{formatCurrency(calculateRegistrationFee())}</span>
+                                </div>
+                            </div>
+                        )}
+
                         {selectedPlan && selectedPricing && (
                             <div style={summaryStyle}>
                                 <div style={summaryRowStyle}>
@@ -155,8 +224,18 @@ export default function AssignPaymentButton({ coderId, coderName, plans, pricing
                                     <span>{calculateEndDate()}</span>
                                 </div>
                                 <div style={summaryRowStyle}>
+                                    <span>Biaya Paket:</span>
+                                    <span>{formatCurrency(calculateTotal())}</span>
+                                </div>
+                                {isNewRegistration && (
+                                    <div style={summaryRowStyle}>
+                                        <span>Biaya Pendaftaran:</span>
+                                        <span>{formatCurrency(calculateRegistrationFee())}</span>
+                                    </div>
+                                )}
+                                <div style={{ ...summaryRowStyle, borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem', marginTop: '0.5rem' }}>
                                     <span>Total:</span>
-                                    <strong>{formatCurrency(calculateTotal())}</strong>
+                                    <strong style={{ fontSize: '1.1rem', color: '#16a34a' }}>{formatCurrency(calculateGrandTotal())}</strong>
                                 </div>
                             </div>
                         )}
@@ -240,6 +319,14 @@ const inputStyle: CSSProperties = {
     border: '1px solid #cbd5e1',
     fontSize: '0.9rem',
     color: '#0f172a',
+};
+
+const registrationBoxStyle: CSSProperties = {
+    background: '#f5f3ff',
+    border: '1px solid #ddd6fe',
+    padding: '1rem',
+    borderRadius: '0.5rem',
+    marginBottom: '1rem',
 };
 
 const summaryStyle: CSSProperties = {

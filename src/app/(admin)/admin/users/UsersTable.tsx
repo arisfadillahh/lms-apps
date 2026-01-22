@@ -9,6 +9,7 @@ import ResetPasswordButton from './ResetPasswordButton';
 import ToggleActiveButton from './ToggleActiveButton';
 import DeleteUserButton from './DeleteUserButton';
 import EditUserButton from './EditUserButton';
+import ProgressOverrideButton from './ProgressOverrideButton';
 
 interface UsersTableProps {
   users: UserSummary[];
@@ -168,6 +169,7 @@ export default function UsersTable({ users }: UsersTableProps) {
                       <EditUserButton user={user} />
                       <ToggleActiveButton userId={user.id} initialActive={user.is_active} />
                       {user.role === 'CODER' || user.role === 'COACH' ? <ResetPasswordButton userId={user.id} /> : null}
+                      {user.role === 'CODER' && <ProgressOverrideButton coderId={user.id} coderName={user.full_name} />}
                       <DeleteUserButton userId={user.id} />
                     </div>
                   </td>

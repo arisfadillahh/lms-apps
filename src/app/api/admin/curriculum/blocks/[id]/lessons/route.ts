@@ -10,6 +10,27 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
+// GET: Fetch lessons for a block
+export async function GET(request: Request, context: RouteContext) {
+  const session = await getSessionOrThrow();
+  await assertRole(session, 'ADMIN');
+
+  const { id } = await context.params;
+  const blockId = decodeURIComponent(id ?? '').trim();
+
+  if (!blockId || !isValidUuid(blockId)) {
+    return NextResponse.json({ error: 'Invalid block id' }, { status: 400 });
+  }
+
+  try {
+    const lessons = await lessonTemplatesDao.listLessonsByBlock(blockId);
+    return NextResponse.json({ lessons });
+  } catch (error: any) {
+    console.error('GET Lessons Error:', error);
+    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  }
+}
+
 export async function POST(request: Request, context: RouteContext) {
   const session = await getSessionOrThrow();
   await assertRole(session, 'ADMIN');

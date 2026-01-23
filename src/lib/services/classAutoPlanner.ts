@@ -84,39 +84,57 @@ export async function autoPlanWeeklyClass(classRecord: ClassRow, preferredStartB
     return { skipped: true, reason: `Invalid schedule day "${classRecord.schedule_day}"` };
   }
 
-  // Determine starting block index
-  let startingBlockIndex = 0;
-  if (preferredStartBlockId) {
-    const preferredIndex = allBlocks.findIndex((b) => b.id === preferredStartBlockId);
-    if (preferredIndex >= 0) {
-      startingBlockIndex = preferredIndex;
-    }
+  // Pre-calculate session offset for migration (Backfill logic)
+  let pastSessionCount = 0;
+  let targetFound = false;
+
+  // If no preference is given, we start at the beginning (offset 0)
+  if (!preferredStartBlockId && !preferredStartLessonId) {
+    targetFound = true;
   }
 
   const classStart = new Date(classRecord.start_date ?? new Date().toISOString());
-  let currentStartDate = alignDateToWeekday(classStart, scheduleInfo.index);
-  let totalSessionsCreated = 0;
-  let firstBlockId: string | null = null;
 
-  // Create class_blocks for ALL blocks in the level
-  for (let i = 0; i < allBlocks.length; i++) {
-    const blockIndex = (startingBlockIndex + i) % allBlocks.length;
-    const block = allBlocks[blockIndex];
-    const isFirst = i === 0;
+  // Phase 1: Count how many sessions should be "Backdated/Completed"
+  // We strictly iterate ALL blocks now, ignoring startingBlockIndex skipping
+  for (const block of allBlocks) {
+    if (targetFound) break;
+
+    // If target is block-based (and we hit the block), we stop counting at the START of this block
+    if (preferredStartBlockId && block.id === preferredStartBlockId && !preferredStartLessonId) {
+      targetFound = true;
+      break;
+    }
 
     const lessonTemplates = await lessonTemplatesDao.listLessonsByBlock(block.id);
 
-    // Filter lessons if this is the first block and initialLessonId is provided
-    let filteredLessons = lessonTemplates;
-    if (isFirst && preferredStartLessonId) {
-      const startIndex = lessonTemplates.findIndex(l => l.id === preferredStartLessonId);
-      console.log('[AutoPlan] preferredStartLessonId:', preferredStartLessonId, 'startIndex:', startIndex, 'total lessons:', lessonTemplates.length);
-      if (startIndex >= 0) {
-        // Only include lessons from the starting lesson onwards
-        filteredLessons = lessonTemplates.slice(startIndex);
-        console.log('[AutoPlan] Filtered to', filteredLessons.length, 'lessons starting from index', startIndex);
+    for (const lesson of lessonTemplates) {
+      if (preferredStartLessonId && lesson.id === preferredStartLessonId) {
+        targetFound = true;
+        break;
       }
+
+      // Add to past count
+      const meetingCount = Math.max(1, lesson.estimated_meeting_count ?? 1);
+      pastSessionCount += meetingCount;
     }
+  }
+
+  // Phase 2: Execution
+  // Start date is shifted back by the number of past sessions
+  // We use strict weekly intervals (7 days) for the history
+  let currentStartDate = addDays(classStart, -(pastSessionCount * 7));
+  let totalSessionsCreated = 0;
+  let firstBlockId: string | null = null;
+  let accumulatedSessionCount = 0; // Track global session index to determine status
+
+  // Create class_blocks for ALL blocks in the level (No longer skipping blocks)
+  for (let i = 0; i < allBlocks.length; i++) {
+    const block = allBlocks[i];
+    const isFirst = i === 0;
+
+    const lessonTemplates = await lessonTemplatesDao.listLessonsByBlock(block.id);
+    // Note: We no longer filter lessons here. We process ALL lessons.
 
     let sessionsRequired = block.estimated_sessions ?? lessonTemplates.length;
     if (!sessionsRequired || sessionsRequired <= 0) {
@@ -129,8 +147,25 @@ export async function autoPlanWeeklyClass(classRecord: ClassRow, preferredStartB
     const blockStartDate = toDateOnly(currentStartDate);
     const blockEndDate = toDateOnly(lastSessionDate);
 
-    // Determine status: first block is CURRENT, rest are UPCOMING
-    const status: 'CURRENT' | 'UPCOMING' = isFirst ? 'CURRENT' : 'UPCOMING';
+    // Determine Block Status
+    // If all sessions in this block are in the past -> COMPLETED
+    // If mixed or current -> CURRENT (or UPCOMING if we haven't reached it)
+    // Simplified: Check if we have passed the migration point completely
+    let status: 'CURRENT' | 'UPCOMING' | 'COMPLETED' = 'UPCOMING';
+
+    // We calculate the range of global session indices for this block
+    const blockStartSessionIndex = accumulatedSessionCount;
+    const blockEndSessionIndex = accumulatedSessionCount + sessionsRequired;
+
+    if (blockEndSessionIndex <= pastSessionCount) {
+      status = 'COMPLETED';
+    } else if (blockStartSessionIndex < pastSessionCount && blockEndSessionIndex > pastSessionCount) {
+      status = 'CURRENT';
+    } else if (blockStartSessionIndex === pastSessionCount) {
+      status = 'CURRENT';
+    } else {
+      status = 'UPCOMING';
+    }
 
     const classBlock = await createClassBlock({
       classId: classRecord.id,
@@ -138,17 +173,15 @@ export async function autoPlanWeeklyClass(classRecord: ClassRow, preferredStartB
       startDate: blockStartDate,
       endDate: blockEndDate,
       pitchingDayDate: blockEndDate,
-      status,
+      status: status as 'CURRENT' | 'UPCOMING', // Type cast for safety if enum restriction exists
     });
 
     if (isFirst) {
       firstBlockId = classBlock.id;
     }
 
-    // Create class_lessons for this block (use filtered lessons for first block)
-    // IMPORTANT: Expand lessons based on estimated_meeting_count
-    const lessonsToCreate = isFirst ? filteredLessons : lessonTemplates;
-    if (lessonsToCreate.length > 0) {
+    // Create class_lessons
+    if (lessonTemplates.length > 0) {
       const expandedLessons: Array<{
         class_block_id: string;
         lesson_template_id: string;
@@ -159,15 +192,26 @@ export async function autoPlanWeeklyClass(classRecord: ClassRow, preferredStartB
         slide_url: string | null;
         coach_example_url: string | null;
         coach_example_storage_path: string | null;
+        session_id?: string; // We will mistakenly not assign session_id here, but need to assign it later?
+        // Wait, createClassLessons doesn't take session_id. 
+        // Valid point. Sessions are created later/concurrently?
+        // Ah, session generation logic is below (implied but not shown in original file? No, it IS NOT in original file)
+        // Wait, original file DOES NOT create sessions for Weekly classes here?
+        // Checks original file... 
+        // Original file: 
+        // 1. Create Class Block
+        // 2. Create Class Lessons
+        // 3. Move Start Date
+        // 4. End Loop
+        // 5. sessionsDao.ensureFutureSessions() <--- THIS creates the sessions!
       }> = [];
 
       let orderIndex = 1;
 
-      for (const lesson of lessonsToCreate) {
+      for (const lesson of lessonTemplates) {
         const meetingCount = Math.max(1, lesson.estimated_meeting_count ?? 1);
 
         for (let part = 1; part <= meetingCount; part++) {
-          // Add "(Part X)" suffix if lesson has multiple parts
           let title = lesson.title;
           if (meetingCount > 1) {
             title = `${lesson.title} (Part ${part})`;
@@ -195,15 +239,64 @@ export async function autoPlanWeeklyClass(classRecord: ClassRow, preferredStartB
     // Move start date to after this block ends
     currentStartDate = addDays(lastSessionDate, 7);
     totalSessionsCreated += sessionsRequired;
+    accumulatedSessionCount += sessionsRequired; // Advance global counter
+  }
+
+  // Ensure sessions are generated (including the backdated ones)
+  // ensureFutureSessions generates sessions starting from Last Session Date.
+  // Since we have NO sessions yet, it will look at class_start_date. 
+  // PROBLEM: ensureFutureSessions uses Date.now() or class_start_date.
+  // We physically need to force it to start generating from our calculated `currentStartDate` (the backdated one).
+
+  // We need to MANUALLY generate the initial batch of sessions here because ensureFutureSessions 
+  // is designed for "Future" rolling updates, not "Past" backfills.
+
+  // Actually, we can just call generateSessions directly for the whole range we just calculated.
+  const fullScheduleInfo = normalizeScheduleDay(classRecord.schedule_day);
+  if (fullScheduleInfo) {
+    // Re-calculate the very first start date
+    const initialDate = addDays(classStart, -(pastSessionCount * 7));
+    const alignedInitial = alignDateToWeekday(initialDate, fullScheduleInfo.index);
+
+    // Calculate end date (active horizon)
+    // We want to generate enough sessions for Past + say 12 weeks Future
+    const horizonWeeks = pastSessionCount + 12;
+    const targetEndDate = addDays(alignedInitial, horizonWeeks * 7);
+
+    const generatedSessions = await sessionsDao.generateSessions({
+      classId: classRecord.id,
+      startDate: toDateOnly(alignedInitial),
+      endDate: toDateOnly(targetEndDate),
+      byDay: [fullScheduleInfo.code],
+      time: classRecord.schedule_time,
+    });
+
+    // KEY STEP: Mark past sessions as COMPLETED
+    // We rely on the order of generated sessions (should be chronological)
+    if (generatedSessions.length > 0) {
+      // Sort just in case
+      generatedSessions.sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
+
+      // Mark the first `pastSessionCount` sessions as COMPLETED
+      const pastSessionsToUpdate = generatedSessions.slice(0, pastSessionCount);
+
+      await Promise.all(pastSessionsToUpdate.map(s =>
+        sessionsDao.updateSessionStatus(s.id, 'COMPLETED')
+      ));
+    }
+
+    // Assign lessons to these sessions
+    const { reassignLessonsToSessions } = await import('@/lib/services/lessonRebalancer');
+    await reassignLessonsToSessions(classRecord.id);
   }
 
   // Ensure 12 weeks buffer of sessions
   await sessionsDao.ensureFutureSessions(classRecord.id);
 
   // Extend class end date if needed
-  const lastBlock = allBlocks[(startingBlockIndex + allBlocks.length - 1) % allBlocks.length];
-  const lessonTemplatesLast = await lessonTemplatesDao.listLessonsByBlock(lastBlock.id);
-  let lastBlockSessions = lastBlock.estimated_sessions ?? lessonTemplatesLast.length;
+  const finalBlock = allBlocks[allBlocks.length - 1]; // Simply last block
+  const lessonTemplatesLast = await lessonTemplatesDao.listLessonsByBlock(finalBlock.id);
+  let lastBlockSessions = finalBlock.estimated_sessions ?? lessonTemplatesLast.length;
   if (!lastBlockSessions || lastBlockSessions <= 0) {
     lastBlockSessions = Math.max(lessonTemplatesLast.length, 1);
   }
@@ -283,8 +376,8 @@ export async function autoPlanEkskulClass(classRecord: ClassRow): Promise<AutoPl
 
     for (let meeting = 0; meeting < lessonMeetings; meeting++) {
       const sessionDate = toDateOnly(currentDate);
-      // Combine date and time into ISO datetime string
-      const dateTime = `${sessionDate}T${classRecord.schedule_time}:00`;
+      // Combine date and time into ISO datetime string with Explicit +07:00 (WIB) offset
+      const dateTime = `${sessionDate}T${classRecord.schedule_time}:00+07:00`;
 
       sessionsToCreate.push({
         class_id: classRecord.id,

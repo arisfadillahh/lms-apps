@@ -2,6 +2,7 @@
 
 import { useTransition, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Trash2 } from 'lucide-react';
 
 type RemoveCoderButtonProps = {
   classId: string;
@@ -47,25 +48,30 @@ export default function RemoveCoderButton({ classId, coderId, disabled }: Remove
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'center' }}>
       <button
         type="button"
         onClick={handleRemove}
         disabled={disabled || isPending}
+        title="Hapus Siswa"
         style={{
-          padding: '0.35rem 0.8rem',
-          borderRadius: '0.5rem',
+          width: '32px',
+          height: '32px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: '6px',
           border: '1px solid #dc2626',
           background: '#fef2f2',
           color: '#b91c1c',
-          fontSize: '0.8rem',
           cursor: disabled ? 'not-allowed' : 'pointer',
           opacity: disabled || isPending ? 0.6 : 1,
+          transition: 'all 0.2s',
         }}
       >
-        {isPending ? 'Menghapus…' : 'Remove'}
+        <Trash2 size={16} />
       </button>
-      {errorMessage ? <span style={{ color: '#b91c1c', fontSize: '0.75rem' }}>{errorMessage}</span> : null}
+      {errorMessage ? <span style={{ color: '#b91c1c', fontSize: '0.65rem' }}>Error</span> : null}
     </div>
   );
 }

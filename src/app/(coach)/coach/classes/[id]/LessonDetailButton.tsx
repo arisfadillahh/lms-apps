@@ -4,13 +4,16 @@ import { useState, type CSSProperties } from 'react';
 import { BookOpen, X, ExternalLink, Presentation } from 'lucide-react';
 import type { LessonSlot } from '@/lib/services/lessonScheduler';
 
+import ReportLessonButton from '../../lesson/[id]/ReportLessonButton';
+
 interface LessonDetailButtonProps {
     lessonSlot: LessonSlot | null;
     sessionId: string;
     sessionDate: string;
+    coachId: string;
 }
 
-export default function LessonDetailButton({ lessonSlot, sessionId, sessionDate }: LessonDetailButtonProps) {
+export default function LessonDetailButton({ lessonSlot, sessionId, sessionDate, coachId }: LessonDetailButtonProps) {
     const [isOpen, setIsOpen] = useState(false);
 
     if (!lessonSlot) return null;
@@ -110,6 +113,11 @@ export default function LessonDetailButton({ lessonSlot, sessionId, sessionDate 
 
                         {/* Footer */}
                         <div style={footerStyle}>
+                            <ReportLessonButton
+                                lessonId={lessonTemplate.id}
+                                lessonTitle={title}
+                                coachId={coachId}
+                            />
                             <a
                                 href={`/coach/sessions/${sessionId}/attendance`}
                                 style={primaryButtonStyle}
@@ -224,7 +232,9 @@ const footerStyle: CSSProperties = {
     padding: '1rem 1.5rem',
     borderTop: '1px solid #e2e8f0',
     display: 'flex',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
+    gap: '1rem',
+    alignItems: 'center',
 };
 
 const primaryButtonStyle: CSSProperties = {

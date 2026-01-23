@@ -15,6 +15,7 @@ import { autoAssignLessonsForClass } from '@/lib/services/lessonAutoAssign';
 
 import AssignSubstituteForm from './AssignSubstituteForm';
 import EnrollCoderForm from './EnrollCoderForm';
+import CoderJourneyOverride from './CoderJourneyOverride';
 import EkskulCompetencyEditor from './EkskulCompetencyEditor';
 import RemoveCoderButton from './RemoveCoderButton';
 import SetCoderStatusButton from './SetCoderStatusButton';
@@ -24,7 +25,7 @@ type ClassBlockRow = Awaited<ReturnType<typeof classesDao.getClassBlocks>>[numbe
 type BlockSummary = {
   block: ClassBlockRow;
   totalLessons: number;
-  assignedLessons: number;
+  completedLessons: number;
   nextLessonTitle: string | null;
   lessons: ClassLessonRecord[];
 };
@@ -68,19 +69,36 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
     usersDao.listUsersByRole('COACH'),
     usersDao.listUsersByRole('CODER'),
   ]);
+
+  const sessionMap = new Map(sessions.map(s => [s.id, s]));
   const classBlocks = await classesDao.getClassBlocks(classIdParam);
 
   const blockSummaries: BlockSummary[] = await Promise.all(
     classBlocks.map(async (block) => {
       const classLessons = await classLessonsDao.listLessonsByClassBlock(block.id);
       const sortedLessons = classLessons.slice().sort((a, b) => a.order_index - b.order_index);
-      const assignedLessons = sortedLessons.filter((lesson) => lesson.session_id).length;
-      const nextLesson = sortedLessons.find((lesson) => !lesson.session_id);
+
+      // Calculate progress: Logic "Waterfall" / "Implicit Completion"
+      // Find the last lesson that is COMPLETED. All lessons before it are considered completed.
+      let lastCompletedIndex = -1;
+
+      for (let i = 0; i < sortedLessons.length; i++) {
+        const lesson = sortedLessons[i];
+        if (lesson.session_id) {
+          const session = sessionMap.get(lesson.session_id);
+          if (session?.status === 'COMPLETED') {
+            lastCompletedIndex = i;
+          }
+        }
+      }
+
+      const completedLessons = lastCompletedIndex + 1;
+      const nextLesson = sortedLessons[lastCompletedIndex + 1];
 
       return {
         block,
         totalLessons: sortedLessons.length,
-        assignedLessons,
+        completedLessons,
         nextLessonTitle: nextLesson?.title ?? null,
         lessons: sortedLessons,
       };
@@ -285,7 +303,9 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
               <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Daftar Coder</h2>
               <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '0.25rem' }}>Siswa yang terdaftar.</p>
             </div>
-            <EnrollCoderForm classId={classIdParam} coders={availableCoders} />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+              <EnrollCoderForm classId={classIdParam} coders={availableCoders} />
+            </div>
           </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -325,6 +345,11 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
                       </td>
                       <td style={tdStyle}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <CoderJourneyOverride
+                            classId={classIdParam}
+                            coderId={enrollment.coder_id}
+                            coderName={coderMap.get(enrollment.coder_id) ?? 'Unknown'}
+                          />
                           {enrollment.status === 'ACTIVE' ? (
                             <>
                               <SetCoderStatusButton classId={classIdParam} coderId={enrollment.coder_id} targetStatus="INACTIVE" />
@@ -388,13 +413,13 @@ function BlockInfoCard({ label, summary, emphasis, action }: BlockInfoCardProps)
     );
   }
 
-  const { block, totalLessons, assignedLessons, nextLessonTitle } = summary;
+  const { block, totalLessons, completedLessons, nextLessonTitle } = summary;
   const nextLessonDescription =
     totalLessons === 0
       ? 'Belum ada lesson di block ini'
       : nextLessonTitle
         ? `Lesson berikutnya: ${nextLessonTitle}`
-        : 'Semua lesson sudah terpasang ke sesi';
+        : 'Semua lesson sudah selesai';
 
   return (
     <div style={blockInfoCardStyle(emphasis)} className={emphasis ? 'emphasis-card' : ''}>
@@ -420,12 +445,12 @@ function BlockInfoCard({ label, summary, emphasis, action }: BlockInfoCardProps)
           <div style={{ height: '6px', flex: 1, background: '#f1f5f9', borderRadius: '99px', overflow: 'hidden' }}>
             <div style={{
               height: '100%',
-              width: totalLessons > 0 ? `${(assignedLessons / totalLessons) * 100}%` : '0%',
+              width: totalLessons > 0 ? `${(completedLessons / totalLessons) * 100}%` : '0%',
               background: emphasis ? '#3b82f6' : '#94a3b8',
               borderRadius: '99px'
             }} />
           </div>
-          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>{assignedLessons}/{totalLessons}</span>
+          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>{completedLessons}/{totalLessons}</span>
         </div>
         <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '0.5rem', fontStyle: 'italic' }}>
           {nextLessonDescription}

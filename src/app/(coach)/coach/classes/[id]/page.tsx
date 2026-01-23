@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { toZonedTime } from 'date-fns-tz';
 import UploadMaterialForm from './UploadMaterialForm';
 import CollapsibleUpload from './CollapsibleUpload';
 import LessonListClient from './LessonListClient';
@@ -99,10 +100,10 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
                         <div>
                             <div style={sessionDateStyle}>
-                                {format(new Date(nextSession.date_time), 'EEEE, d MMMM yyyy', { locale: id })}
+                                {format(toZonedTime(nextSession.date_time, 'Asia/Jakarta'), 'EEEE, d MMMM yyyy', { locale: id })}
                             </div>
                             <div style={sessionTimeStyle}>
-                                {format(new Date(nextSession.date_time), 'HH:mm')} WIB
+                                {format(toZonedTime(nextSession.date_time, 'Asia/Jakarta'), 'HH:mm')} WIB
                             </div>
                             {nextLessonSlot && (
                                 <div style={lessonTitleStyle}>
@@ -144,7 +145,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
                 {sessionsForLessonList.length === 0 ? (
                     <p style={{ color: '#64748b', fontStyle: 'italic' }}>Tidak ada sesi yang akan datang.</p>
                 ) : (
-                    <LessonListClient sessions={sessionsForLessonList} />
+                    <LessonListClient sessions={sessionsForLessonList} coachId={session.user.id} />
                 )}
             </section>
 

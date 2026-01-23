@@ -189,7 +189,8 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
       const journey = klass.level_id ? await coderProgressDao.getCoderJourney(coderId, klass.level_id) : [];
       const journeyOrderMap = new Map(journey.map(j => [j.block_id, j.journey_order]));
 
-      const completedBlocks = submissions.filter((submission) => submission.block_id).length;
+      // Fix: Calculate progress based on Journey Status (supports Manual Override), not just Submissions
+      const completedBlocks = journey.filter(j => j.status === 'COMPLETED').length;
       const totalBlocks = blocks.length;
       const currentBlock = blocks.find((block) => block.status === 'CURRENT');
       const upcomingBlock = blocks.find((block) => block.status === 'UPCOMING');
@@ -229,14 +230,26 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
         }));
 
       // Use the sorted index as the display order
-      const journeyBlocks = sortedBlocks.map((block, index) => ({
-        blockId: block.block_id,
-        name: block.block_name ?? 'Block',
-        status: block.status,
-        startDate: block.start_date,
-        endDate: block.end_date,
-        orderIndex: index,
-      }));
+      const journeyBlocks = sortedBlocks.map((block, index) => {
+        // Find personal status override
+        const personal = journey.find(j => j.block_id === block.block_id);
+        let displayStatus = block.status; // Default to class schedule status
+
+        if (personal) {
+          if (personal.status === 'COMPLETED') displayStatus = 'COMPLETED';
+          else if (personal.status === 'IN_PROGRESS') displayStatus = 'CURRENT';
+          else displayStatus = 'UPCOMING'; // PENDING -> UPCOMING
+        }
+
+        return {
+          blockId: block.block_id,
+          name: block.block_name ?? 'Block',
+          status: displayStatus,
+          startDate: block.start_date,
+          endDate: block.end_date,
+          orderIndex: index,
+        };
+      });
 
       let upNext: CoderClassProgress['upNext'] = null;
 

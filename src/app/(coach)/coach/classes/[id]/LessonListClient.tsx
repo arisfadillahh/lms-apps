@@ -45,9 +45,10 @@ interface SessionLesson {
 
 interface LessonListClientProps {
     sessions: SessionLesson[];
+    coachId: string;
 }
 
-export default function LessonListClient({ sessions }: LessonListClientProps) {
+export default function LessonListClient({ sessions, coachId }: LessonListClientProps) {
     return (
         <div style={lessonListStyle}>
             {sessions.map((sess, idx) => {
@@ -80,6 +81,7 @@ export default function LessonListClient({ sessions }: LessonListClientProps) {
                                 lessonSlot={lessonSlot as LessonSlot | null}
                                 sessionId={sess.sessionId}
                                 sessionDate={dateStr}
+                                coachId={coachId}
                             />
                             <Link
                                 href={`/coach/sessions/${sess.sessionId}/attendance`}

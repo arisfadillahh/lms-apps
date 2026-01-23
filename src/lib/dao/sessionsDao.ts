@@ -25,10 +25,16 @@ function toWeekdayCode(date: Date): string {
 }
 
 function combineDateWithTime(date: Date, time: string): string {
-  const [hours, minutes] = time.split(':').map((value) => Number(value));
-  const combined = new Date(date);
-  combined.setHours(hours, minutes ?? 0, 0, 0);
-  return combined.toISOString();
+  // Manual text construction to verify +07:00 (WIB)
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+
+  // time is expected to be HH:mm or HH:mm:ss
+  // We take the first 5 chars for HH:mm and append :00 if needed
+  const timePart = time.length === 5 ? `${time}:00` : time;
+
+  return `${yyyy}-${mm}-${dd}T${timePart}+07:00`;
 }
 
 export type GenerateSessionsInput = {

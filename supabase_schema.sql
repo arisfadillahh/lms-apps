@@ -36,7 +36,7 @@ CREATE TABLE public.blocks (
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   software_id uuid,
   CONSTRAINT blocks_pkey PRIMARY KEY (id),
-  CONSTRAINT blocks_level_id_fkey FOREIGN KEY (level_id) REFERENCES public.levels(id)
+  CONSTRAINT blocks_level_id_fkey FOREIGN KEY (level_id) REFERENCES public.levels(id) ON DELETE CASCADE
 );
 CREATE TABLE public.broadcast_logs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -240,7 +240,7 @@ CREATE TABLE public.exkul_session_competencies (
 CREATE TABLE public.invoice_items (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   invoice_id uuid NOT NULL,
-  coder_id uuid NOT NULL,
+  coder_id uuid, -- Changed to nullable for seasonal
   coder_name text NOT NULL,
   class_name text NOT NULL,
   level_name text NOT NULL,
@@ -249,6 +249,7 @@ CREATE TABLE public.invoice_items (
   final_price integer NOT NULL DEFAULT 0 CHECK (final_price >= 0),
   payment_period_id uuid,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
+  description text, -- Added for seasonal items
   CONSTRAINT invoice_items_pkey PRIMARY KEY (id),
   CONSTRAINT invoice_items_invoice_id_fkey FOREIGN KEY (invoice_id) REFERENCES public.invoices(id),
   CONSTRAINT invoice_items_coder_id_fkey FOREIGN KEY (coder_id) REFERENCES public.users(id),
@@ -281,12 +282,35 @@ CLEVIO Coder'::text,
   whatsapp_delay_max integer NOT NULL DEFAULT 30,
   registration_fee integer DEFAULT 150000,
   registration_fee_discount_percent integer DEFAULT 0,
+  payment_confirmation_template text DEFAULT 'Yth. Bpk/Ibu {parent_name},
+
+Pembayaran invoice {invoice_number} sebesar Rp {amount} telah kami terima.
+
+Silakan unduh bukti pembayaran di:
+{invoice_url}
+
+Terima kasih atas pembayarannya.
+CLEVIO Coder'::text,
+  payment_confirmation_template text DEFAULT 'Yth. Bpk/Ibu {parent_name},
+
+Pembayaran invoice {invoice_number} sebesar Rp {amount} telah kami terima.
+
+Terima kasih atas pembayarannya.
+CLEVIO Coder'::text,
+  seasonal_invoice_message_template text DEFAULT 'Halo Kak {student_name},
+
+Berikut invoice untuk pembayaran program *{program_name}*:
+
+📋 Invoice: {invoice_number}
+🔗 Link: {invoice_url}
+
+Mohon dilakukan pembayaran sebelum jatuh tempo. Terima kasih!'::text,
   CONSTRAINT invoice_settings_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.invoices (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   invoice_number text NOT NULL UNIQUE,
-  ccr_id uuid NOT NULL,
+  ccr_id uuid,
   parent_phone text NOT NULL,
   parent_name text NOT NULL,
   period_month integer NOT NULL CHECK (period_month >= 1 AND period_month <= 12),
@@ -299,6 +323,8 @@ CREATE TABLE public.invoices (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   invoice_type character varying DEFAULT 'MONTHLY'::character varying,
+  seasonal_student_name text,
+  seasonal_student_phone text,
   CONSTRAINT invoices_pkey PRIMARY KEY (id),
   CONSTRAINT invoices_ccr_id_fkey FOREIGN KEY (ccr_id) REFERENCES public.ccr_numbers(id)
 );
@@ -335,7 +361,7 @@ CREATE TABLE public.lesson_templates (
   example_url text,
   example_storage_path text,
   CONSTRAINT lesson_templates_pkey PRIMARY KEY (id),
-  CONSTRAINT lesson_templates_block_id_fkey FOREIGN KEY (block_id) REFERENCES public.blocks(id)
+  CONSTRAINT lesson_templates_block_id_fkey FOREIGN KEY (block_id) REFERENCES public.blocks(id) ON DELETE CASCADE
 );
 CREATE TABLE public.levels (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -464,6 +490,8 @@ CREATE TABLE public.pricing (
   is_active boolean DEFAULT true,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  pricing_type character varying DEFAULT 'WEEKLY'::character varying,
+  seasonal_name text,
   CONSTRAINT pricing_pkey PRIMARY KEY (id),
   CONSTRAINT pricing_level_id_fkey FOREIGN KEY (level_id) REFERENCES public.levels(id)
 );

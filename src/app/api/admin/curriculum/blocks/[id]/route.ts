@@ -40,3 +40,16 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: error.message ?? 'Failed to update block' }, { status: 400 });
   }
 }
+
+export async function DELETE(request: Request, context: RouteContext) {
+  const { id } = await context.params;
+  const session = await getSessionOrThrow();
+  await assertRole(session, 'ADMIN');
+
+  try {
+    await blocksDao.deleteBlock(id);
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message ?? 'Failed to delete block' }, { status: 400 });
+  }
+}

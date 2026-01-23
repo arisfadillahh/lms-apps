@@ -14,22 +14,30 @@ export default function AddPricingButton({ levels }: { levels: Level[] }) {
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
 
+    const [pricingType, setPricingType] = useState<'WEEKLY' | 'SEASONAL'>('WEEKLY');
     const [levelId, setLevelId] = useState('');
+    const [seasonalName, setSeasonalName] = useState('');
     const [mode, setMode] = useState<'ONLINE' | 'OFFLINE'>('ONLINE');
     const [price, setPrice] = useState('');
     const [error, setError] = useState<string | null>(null);
 
     const handleClose = () => {
         setOpen(false);
+        setPricingType('WEEKLY');
         setLevelId('');
+        setSeasonalName('');
         setMode('ONLINE');
         setPrice('');
         setError(null);
     };
 
     const handleSubmit = () => {
-        if (!levelId) {
+        if (pricingType === 'WEEKLY' && !levelId) {
             setError('Pilih level');
+            return;
+        }
+        if (pricingType === 'SEASONAL' && !seasonalName) {
+            setError('Isi nama program seasonal');
             return;
         }
         if (!price || Number(price) <= 0) {
@@ -44,7 +52,9 @@ export default function AddPricingButton({ levels }: { levels: Level[] }) {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        levelId,
+                        pricingType,
+                        levelId: pricingType === 'WEEKLY' ? levelId : undefined,
+                        seasonalName: pricingType === 'SEASONAL' ? seasonalName : undefined,
                         mode,
                         basePriceMonthly: Number(price),
                     }),
@@ -74,17 +84,42 @@ export default function AddPricingButton({ levels }: { levels: Level[] }) {
             {open && (
                 <div style={backdropStyle} onClick={handleClose}>
                     <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-                        <h3 style={titleStyle}>Tambah Harga Level</h3>
+                        <h3 style={titleStyle}>Tambah Harga</h3>
 
                         <div style={fieldStyle}>
-                            <label style={labelStyle}>Level *</label>
-                            <select value={levelId} onChange={(e) => setLevelId(e.target.value)} style={inputStyle}>
-                                <option value="">-- Pilih Level --</option>
-                                {levels.map((level) => (
-                                    <option key={level.id} value={level.id}>{level.name}</option>
-                                ))}
+                            <label style={labelStyle}>Tipe *</label>
+                            <select
+                                value={pricingType}
+                                onChange={(e) => setPricingType(e.target.value as 'WEEKLY' | 'SEASONAL')}
+                                style={inputStyle}
+                            >
+                                <option value="WEEKLY">Weekly (Regular)</option>
+                                <option value="SEASONAL">Seasonal (Special Program)</option>
                             </select>
                         </div>
+
+                        {pricingType === 'WEEKLY' ? (
+                            <div style={fieldStyle}>
+                                <label style={labelStyle}>Level *</label>
+                                <select value={levelId} onChange={(e) => setLevelId(e.target.value)} style={inputStyle}>
+                                    <option value="">-- Pilih Level --</option>
+                                    {levels.map((level) => (
+                                        <option key={level.id} value={level.id}>{level.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        ) : (
+                            <div style={fieldStyle}>
+                                <label style={labelStyle}>Nama Program Seasonal *</label>
+                                <input
+                                    type="text"
+                                    value={seasonalName}
+                                    onChange={(e) => setSeasonalName(e.target.value)}
+                                    placeholder="Contoh: Ramadhan Camp 2026"
+                                    style={inputStyle}
+                                />
+                            </div>
+                        )}
 
                         <div style={fieldStyle}>
                             <label style={labelStyle}>Mode *</label>

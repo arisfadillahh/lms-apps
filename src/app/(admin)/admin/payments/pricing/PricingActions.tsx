@@ -12,7 +12,9 @@ type Level = {
 
 type Pricing = {
     id: string;
-    level_id: string;
+    level_id: string | null;
+    seasonal_name: string | null;
+    pricing_type: 'WEEKLY' | 'SEASONAL';
     mode: 'ONLINE' | 'OFFLINE';
     base_price_monthly: number;
     is_active: boolean;
@@ -30,14 +32,18 @@ export default function PricingActions({ pricing, levels, levelName }: Props) {
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
 
-    const [levelId, setLevelId] = useState(pricing.level_id);
+    const [pricingType, setPricingType] = useState<'WEEKLY' | 'SEASONAL'>(pricing.pricing_type || 'WEEKLY');
+    const [levelId, setLevelId] = useState(pricing.level_id || '');
+    const [seasonalName, setSeasonalName] = useState(pricing.seasonal_name || '');
     const [mode, setMode] = useState<'ONLINE' | 'OFFLINE'>(pricing.mode);
     const [price, setPrice] = useState(String(pricing.base_price_monthly));
     const [isActive, setIsActive] = useState(pricing.is_active);
     const [error, setError] = useState<string | null>(null);
 
     const handleEditOpen = () => {
-        setLevelId(pricing.level_id);
+        setPricingType(pricing.pricing_type || 'WEEKLY');
+        setLevelId(pricing.level_id || '');
+        setSeasonalName(pricing.seasonal_name || '');
         setMode(pricing.mode);
         setPrice(String(pricing.base_price_monthly));
         setIsActive(pricing.is_active);
@@ -51,8 +57,12 @@ export default function PricingActions({ pricing, levels, levelName }: Props) {
     };
 
     const handleEdit = () => {
-        if (!levelId) {
+        if (pricingType === 'WEEKLY' && !levelId) {
             setError('Pilih level');
+            return;
+        }
+        if (pricingType === 'SEASONAL' && !seasonalName) {
+            setError('Isi nama program seasonal');
             return;
         }
         if (!price || Number(price) <= 0) {
@@ -68,7 +78,9 @@ export default function PricingActions({ pricing, levels, levelName }: Props) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         id: pricing.id,
-                        levelId,
+                        pricingType,
+                        levelId: pricingType === 'WEEKLY' ? levelId : undefined,
+                        seasonalName: pricingType === 'SEASONAL' ? seasonalName : undefined,
                         mode,
                         basePriceMonthly: Number(price),
                         isActive,
@@ -128,17 +140,42 @@ export default function PricingActions({ pricing, levels, levelName }: Props) {
             {editOpen && (
                 <div style={backdropStyle} onClick={handleEditClose}>
                     <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-                        <h3 style={titleStyle}>Edit Harga Level</h3>
+                        <h3 style={titleStyle}>Edit Harga</h3>
 
                         <div style={fieldStyle}>
-                            <label style={labelStyle}>Level *</label>
-                            <select value={levelId} onChange={(e) => setLevelId(e.target.value)} style={inputStyle}>
-                                <option value="">-- Pilih Level --</option>
-                                {levels.map((level) => (
-                                    <option key={level.id} value={level.id}>{level.name}</option>
-                                ))}
+                            <label style={labelStyle}>Tipe *</label>
+                            <select
+                                value={pricingType}
+                                onChange={(e) => setPricingType(e.target.value as 'WEEKLY' | 'SEASONAL')}
+                                style={inputStyle}
+                            >
+                                <option value="WEEKLY">Weekly (Regular)</option>
+                                <option value="SEASONAL">Seasonal (Special Program)</option>
                             </select>
                         </div>
+
+                        {pricingType === 'WEEKLY' ? (
+                            <div style={fieldStyle}>
+                                <label style={labelStyle}>Level *</label>
+                                <select value={levelId} onChange={(e) => setLevelId(e.target.value)} style={inputStyle}>
+                                    <option value="">-- Pilih Level --</option>
+                                    {levels.map((level) => (
+                                        <option key={level.id} value={level.id}>{level.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        ) : (
+                            <div style={fieldStyle}>
+                                <label style={labelStyle}>Nama Program Seasonal *</label>
+                                <input
+                                    type="text"
+                                    value={seasonalName}
+                                    onChange={(e) => setSeasonalName(e.target.value)}
+                                    placeholder="Contoh: Ramadhan Camp 2026"
+                                    style={inputStyle}
+                                />
+                            </div>
+                        )}
 
                         <div style={fieldStyle}>
                             <label style={labelStyle}>Mode *</label>

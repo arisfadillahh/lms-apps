@@ -110,9 +110,17 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
                             {invoice.items?.map((item) => (
                                 <tr key={item.id} style={tableRowStyle}>
                                     <td style={tdLeftStyle}>
-                                        <strong>{item.coder_name}</strong>
+                                        <strong>
+                                            {/* For seasonal, coder_name IS the student name, but check invoice type or fallback */}
+                                            {invoice.invoice_type === 'SEASONAL'
+                                                ? invoice.seasonal_student_name
+                                                : (item.coder_name || invoice.parent_name)
+                                            }
+                                        </strong>
                                         <br />
-                                        <span style={itemDetailStyle}>• {item.level_name}</span>
+                                        <span style={itemDetailStyle}>
+                                            • {item.level_name || item.description || 'Program Details'}
+                                        </span>
                                         {item.discount_amount > 0 && (
                                             <>
                                                 <br />
@@ -121,7 +129,7 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
                                         )}
                                     </td>
                                     <td style={tdCenterStyle}>Rp {formatCurrency(item.base_price)}</td>
-                                    <td style={tdCenterStyle}>01</td>
+                                    <td style={tdCenterStyle}>1</td>
                                     <td style={tdRightStyle}>Rp {formatCurrency(item.final_price)}</td>
                                 </tr>
                             ))}
@@ -155,18 +163,26 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
                         {/* Bank Info (only if not paid) */}
                         {!isPaid && bankInfo && (
                             <div style={paymentInfoStyle}>
-                                <p style={paymentTitleStyle}>Transfer ke:</p>
-                                <p style={bankDetailStyle}>
-                                    <strong>{bankInfo.bank_name}</strong> - {bankInfo.bank_account_number}
-                                </p>
-                                <p style={bankDetailStyle}>a.n. <strong>{bankInfo.bank_account_holder}</strong></p>
+                                <div style={{ marginBottom: '15px' }}>
+                                    <p style={paymentTitleStyle}>Transfer ke:</p>
+                                    <p style={bankDetailStyle}>
+                                        <strong>{bankInfo.bank_name}</strong> - {bankInfo.bank_account_number}
+                                    </p>
+                                    <p style={bankDetailStyle}>a.n. <strong>{bankInfo.bank_account_holder}</strong></p>
+                                </div>
+                                <button onClick={handleContactAdmin} style={waButtonStyle}>
+                                    Konfirmasi Pembayaran
+                                </button>
                             </div>
                         )}
                     </div>
 
                     <div style={issuedToColumnStyle}>
                         <p style={issuedToLabelStyle}>Issued To:</p>
-                        <p style={issuedToNameStyle}>{invoice.parent_name}</p>
+                        <p style={issuedToNameStyle}>
+                            {invoice.invoice_type === 'SEASONAL' ? invoice.seasonal_student_name : invoice.parent_name}
+                        </p>
+                        {invoice.invoice_type === 'SEASONAL' && <p style={issuedToDetailStyle}>{invoice.parent_name} (Parent)</p>}
                         <p style={issuedToDetailStyle}>INVOICE: {invoice.invoice_number}</p>
                     </div>
                 </div>

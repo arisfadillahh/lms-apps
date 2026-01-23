@@ -94,7 +94,7 @@ export default function LessonTemplateRow({ lesson }: LessonTemplateRowProps) {
   };
 
   return (
-    <div style={containerStyle}>
+    <div id={`lesson-${lesson.id}`} style={containerStyle}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
         <div style={headerRowStyle}>
           <strong style={{ color: 'var(--color-text-primary)' }}>{lesson.title}</strong>

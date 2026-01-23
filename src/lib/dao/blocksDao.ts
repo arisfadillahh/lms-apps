@@ -100,3 +100,12 @@ export async function getClassBlocksByStatus(classId: string): Promise<ClassBloc
 
   return data ?? [];
 }
+
+export async function deleteBlock(id: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase.from('blocks').delete().eq('id', id);
+
+  if (error) {
+    throw new Error(`Failed to delete block: ${error.message}`);
+  }
+}

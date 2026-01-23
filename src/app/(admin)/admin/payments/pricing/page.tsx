@@ -8,15 +8,30 @@ import { levelsDao } from '@/lib/dao';
 import AddPricingButton from './AddPricingButton';
 import PricingActions from './PricingActions';
 
+interface PricingItem {
+    id: string;
+    level_id: string | null;
+    mode: 'ONLINE' | 'OFFLINE';
+    base_price_monthly: number;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+    pricing_type: 'WEEKLY' | 'SEASONAL';
+    seasonal_name: string | null;
+}
+
 export default async function PricingPage() {
     const session = await getSessionOrThrow();
     await assertRole(session, 'ADMIN');
 
     const supabase = getSupabaseAdmin();
-    const [{ data: pricing }, levels] = await Promise.all([
+    const [{ data }, levels] = await Promise.all([
         supabase.from('pricing').select('*').order('created_at', { ascending: false }),
         levelsDao.listLevels(),
     ]);
+
+    // Cast to explicit type to fix lint errors since Supabase types might be outdated
+    const pricing = (data || []) as unknown as PricingItem[];
 
     // Create a map of level names
     const levelMap = new Map(levels.map((l) => [l.id, l.name]));
@@ -41,7 +56,8 @@ export default async function PricingPage() {
                     <table style={tableStyle}>
                         <thead>
                             <tr>
-                                <th style={thStyle}>Level</th>
+                                <th style={thStyle}>Tipe</th>
+                                <th style={thStyle}>Level / Program</th>
                                 <th style={thStyle}>Mode</th>
                                 <th style={thStyle}>Harga/Bulan</th>
                                 <th style={thStyle}>Status</th>
@@ -51,7 +67,24 @@ export default async function PricingPage() {
                         <tbody>
                             {pricing.map((item) => (
                                 <tr key={item.id}>
-                                    <td style={tdStyle}>{levelMap.get(item.level_id) || 'Unknown'}</td>
+                                    <td style={tdStyle}>
+                                        <span style={{
+                                            padding: '0.2rem 0.5rem',
+                                            borderRadius: '4px',
+                                            fontSize: '0.75rem',
+                                            fontWeight: 600,
+                                            background: item.pricing_type === 'SEASONAL' ? '#f3e8ff' : '#e0e7ff',
+                                            color: item.pricing_type === 'SEASONAL' ? '#7e22ce' : '#3730a3',
+                                        }}>
+                                            {item.pricing_type || 'WEEKLY'}
+                                        </span>
+                                    </td>
+                                    <td style={tdStyle}>
+                                        {item.pricing_type === 'SEASONAL'
+                                            ? (item.seasonal_name || '-')
+                                            : (item.level_id ? (levelMap.get(item.level_id) || 'Unknown') : '-')
+                                        }
+                                    </td>
                                     <td style={tdStyle}>
                                         <span style={{
                                             padding: '0.2rem 0.5rem',
@@ -81,7 +114,7 @@ export default async function PricingPage() {
                                         <PricingActions
                                             pricing={item}
                                             levels={levels}
-                                            levelName={levelMap.get(item.level_id) || 'Unknown'}
+                                            levelName={item.pricing_type === 'SEASONAL' ? (item.seasonal_name || '-') : (item.level_id ? (levelMap.get(item.level_id) || 'Unknown') : '-')}
                                         />
                                     </td>
                                 </tr>

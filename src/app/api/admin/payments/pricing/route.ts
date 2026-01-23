@@ -6,18 +6,43 @@ import { assertRole } from '@/lib/roles';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
 const createPricingSchema = z.object({
-    levelId: z.string().uuid(),
+    pricingType: z.enum(['WEEKLY', 'SEASONAL']).default('WEEKLY'),
+    levelId: z.string().uuid().optional(),
+    seasonalName: z.string().min(2).optional(),
     mode: z.enum(['ONLINE', 'OFFLINE']),
     basePriceMonthly: z.number().min(0),
+}).refine((data) => {
+    if (data.pricingType === 'WEEKLY' && !data.levelId) {
+        return false;
+    }
+    if (data.pricingType === 'SEASONAL' && !data.seasonalName) {
+        return false;
+    }
+    return true;
+}, {
+    message: 'Weekly pricing requires level, Seasonal pricing requires name'
 });
 
 const updatePricingSchema = z.object({
     id: z.string().uuid(),
-    levelId: z.string().uuid(),
+    pricingType: z.enum(['WEEKLY', 'SEASONAL']).default('WEEKLY'),
+    levelId: z.string().uuid().optional().nullable(),
+    seasonalName: z.string().min(2).optional().nullable(),
     mode: z.enum(['ONLINE', 'OFFLINE']),
     basePriceMonthly: z.number().min(0),
     isActive: z.boolean().optional(),
+}).refine((data) => {
+    if (data.pricingType === 'WEEKLY' && !data.levelId) {
+        return false;
+    }
+    if (data.pricingType === 'SEASONAL' && !data.seasonalName) {
+        return false;
+    }
+    return true;
+}, {
+    message: 'Weekly pricing requires level, Seasonal pricing requires name'
 });
+
 
 export async function POST(request: Request) {
     const session = await getSessionOrThrow();
@@ -35,24 +60,34 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Validation failed', details: parsed.error.flatten() }, { status: 400 });
     }
 
-    const supabase = getSupabaseAdmin();
+    // Cast to any because supabase-js generic types don't account for dynamic column selection/insertion very well with nullable checks
+    const supabase = getSupabaseAdmin() as any;
 
-    // Check for existing pricing with same level + mode
-    const { data: existing } = await supabase
+    // Check for existing pricing with same level + mode OR seasonal name + mode
+    let query = supabase
         .from('pricing')
         .select('id')
-        .eq('level_id', parsed.data.levelId)
         .eq('mode', parsed.data.mode)
-        .maybeSingle();
+        .eq('pricing_type', parsed.data.pricingType);
+
+    if (parsed.data.pricingType === 'WEEKLY') {
+        query = query.eq('level_id', parsed.data.levelId);
+    } else {
+        query = query.eq('seasonal_name', parsed.data.seasonalName);
+    }
+
+    const { data: existing } = await query.maybeSingle();
 
     if (existing) {
-        return NextResponse.json({ error: 'Harga untuk level dan mode ini sudah ada' }, { status: 409 });
+        return NextResponse.json({ error: 'Harga untuk paket ini sudah ada' }, { status: 409 });
     }
 
     const { data, error } = await supabase
         .from('pricing')
         .insert({
-            level_id: parsed.data.levelId,
+            pricing_type: parsed.data.pricingType,
+            level_id: parsed.data.levelId || null,
+            seasonal_name: parsed.data.seasonalName || null,
             mode: parsed.data.mode,
             base_price_monthly: parsed.data.basePriceMonthly,
             is_active: true,
@@ -102,25 +137,34 @@ export async function PUT(request: Request) {
         return NextResponse.json({ error: 'Validation failed', details: parsed.error.flatten() }, { status: 400 });
     }
 
-    const supabase = getSupabaseAdmin();
+    const supabase = getSupabaseAdmin() as any;
 
-    // Check for duplicate level + mode (excluding current entry)
-    const { data: existing } = await supabase
+    // Check for duplicate level + mode OR seasonal name + mode (excluding current entry)
+    let query = supabase
         .from('pricing')
         .select('id')
-        .eq('level_id', parsed.data.levelId)
         .eq('mode', parsed.data.mode)
-        .neq('id', parsed.data.id)
-        .maybeSingle();
+        .eq('pricing_type', parsed.data.pricingType)
+        .neq('id', parsed.data.id);
+
+    if (parsed.data.pricingType === 'WEEKLY') {
+        query = query.eq('level_id', parsed.data.levelId);
+    } else {
+        query = query.eq('seasonal_name', parsed.data.seasonalName);
+    }
+
+    const { data: existing } = await query.maybeSingle();
 
     if (existing) {
-        return NextResponse.json({ error: 'Harga untuk level dan mode ini sudah ada' }, { status: 409 });
+        return NextResponse.json({ error: 'Harga untuk paket ini sudah ada' }, { status: 409 });
     }
 
     const { data, error } = await supabase
         .from('pricing')
         .update({
-            level_id: parsed.data.levelId,
+            pricing_type: parsed.data.pricingType,
+            level_id: parsed.data.levelId || null,
+            seasonal_name: parsed.data.seasonalName || null,
             mode: parsed.data.mode,
             base_price_monthly: parsed.data.basePriceMonthly,
             is_active: parsed.data.isActive ?? true,

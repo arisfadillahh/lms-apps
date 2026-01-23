@@ -29,7 +29,7 @@ export default function BlockList({ items }: BlockListProps) {
           <li key={item.id} style={listItemStyle}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <strong style={{ fontSize: '1rem', color: '#0f172a' }}>
-                {item.order + 1}. {item.title}
+                {item.order}. {item.title}
               </strong>
               {item.summary ? <p style={{ fontSize: '0.85rem', color: '#64748b' }}>{item.summary}</p> : null}
               <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Total lesson: {item.lessonCount}</span>

@@ -113,7 +113,7 @@ export default function CreateBlockForm({ levelId, suggestedOrderIndex }: Create
                 type="number"
                 value={orderIndex}
                 onChange={(e) => setOrderIndex(e.target.value)}
-                min={0}
+                min={1}
                 style={{ ...inputStyle, width: '100px' }}
               />
             </div>

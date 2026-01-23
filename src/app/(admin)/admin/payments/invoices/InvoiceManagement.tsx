@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { Invoice } from '@/lib/types/invoice';
 import { useReminder } from '@/contexts/ReminderContext';
 import AssignClassModal from './AssignClassModal';
+import SeasonalInvoiceModal from './SeasonalInvoiceModal';
 
 interface Stats {
     pending: number;
@@ -50,6 +51,9 @@ export default function InvoiceManagement({
     // Assign Class Modal for registration invoices
     const [showAssignClassModal, setShowAssignClassModal] = useState(false);
     const [assignClassCoder, setAssignClassCoder] = useState<{ id: string; name: string } | null>(null);
+
+    // Seasonal Invoice Modal
+    const [showSeasonalModal, setShowSeasonalModal] = useState(false);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('id-ID', {
@@ -269,7 +273,7 @@ export default function InvoiceManagement({
             </div>
 
             {/* Action Buttons - Full Width */}
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
                 <button
                     onClick={handleGenerate}
                     disabled={generating || isProcessingQueue}
@@ -281,6 +285,20 @@ export default function InvoiceManagement({
                     }}
                 >
                     {generating ? '⏳ Generating...' : '⚙️ Generate Invoice'}
+                </button>
+                <button
+                    onClick={() => setShowSeasonalModal(true)}
+                    style={{
+                        ...secondaryButtonStyle,
+                        width: 'auto',
+                        padding: '0.75rem 2rem',
+                        fontSize: '1rem',
+                        background: '#fef3c7',
+                        borderColor: '#fbbf24',
+                        color: '#92400e',
+                    }}
+                >
+                    📅 Invoice Seasonal
                 </button>
                 <button
                     onClick={handlePrepareReminders}
@@ -542,6 +560,13 @@ export default function InvoiceManagement({
                     setAssignClassCoder(null);
                 }}
                 coder={assignClassCoder}
+            />
+
+            {/* Seasonal Invoice Modal */}
+            <SeasonalInvoiceModal
+                isOpen={showSeasonalModal}
+                onClose={() => setShowSeasonalModal(false)}
+                onSuccess={() => fetchInvoices()}
             />
         </div>
     );

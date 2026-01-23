@@ -17,6 +17,8 @@ export default function InvoiceSettingsForm({ initialSettings }: Props) {
         admin_whatsapp_number: initialSettings?.admin_whatsapp_number || '',
         base_url: initialSettings?.base_url || 'http://localhost:3000',
         invoice_message_template: initialSettings?.invoice_message_template || '',
+        payment_confirmation_template: initialSettings?.payment_confirmation_template || '',
+        seasonal_invoice_message_template: initialSettings?.seasonal_invoice_message_template || '',
         whatsapp_delay_min: initialSettings?.whatsapp_delay_min || 10,
         whatsapp_delay_max: initialSettings?.whatsapp_delay_max || 30
     });
@@ -189,10 +191,36 @@ export default function InvoiceSettingsForm({ initialSettings }: Props) {
                         value={settings.invoice_message_template}
                         onChange={(e) => handleChange('invoice_message_template', e.target.value)}
                         style={textareaStyle}
-                        rows={10}
+                        rows={8}
                     />
                     <p style={helpTextStyle}>
-                        Variables yang tersedia: {'{parent_name}'}, {'{invoice_number}'}, {'{total_amount}'}, {'{due_date}'}, {'{invoice_url}'}
+                        Variables: {'{parent_name}'}, {'{invoice_number}'}, {'{total_amount}'}, {'{due_date}'}, {'{invoice_url}'}, {'{period_month_year}'}, {'{student_list}'}
+                    </p>
+                </div>
+
+                <div style={formGroupStyle}>
+                    <label style={labelStyle}>Template Konfirmasi Pembayaran</label>
+                    <textarea
+                        value={settings.payment_confirmation_template}
+                        onChange={(e) => handleChange('payment_confirmation_template', e.target.value)}
+                        style={textareaStyle}
+                        rows={8}
+                    />
+                    <p style={helpTextStyle}>
+                        Variables: {'{parent_name}'}, {'{invoice_number}'}, {'{amount}'}, {'{paid_date}'}, {'{invoice_url}'}
+                    </p>
+                </div>
+
+                <div style={formGroupStyle}>
+                    <label style={labelStyle}>Template Message - Seasonal Invoices</label>
+                    <textarea
+                        value={settings.seasonal_invoice_message_template}
+                        onChange={(e) => handleChange('seasonal_invoice_message_template', e.target.value)}
+                        style={textareaStyle}
+                        rows={8}
+                    />
+                    <p style={helpTextStyle}>
+                        Variables: {'{student_name}'}, {'{program_name}'}, {'{invoice_number}'}, {'{invoice_url}'}
                     </p>
                 </div>
             </div>

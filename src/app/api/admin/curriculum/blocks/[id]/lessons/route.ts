@@ -88,6 +88,12 @@ export async function POST(request: Request, context: RouteContext) {
       makeUpInstructions: parsed.data.makeUpInstructions || null,
     });
 
+    if (lesson.block_id) {
+      // Propagate to active classes (Fix for "Live Reference" gap on creation)
+      const { syncClassesForBlockTemplate } = await import('@/lib/services/lessonRebalancer');
+      await syncClassesForBlockTemplate(lesson.block_id);
+    }
+
     return NextResponse.json({ lesson }, { status: 201 });
   } catch (error: any) {
     console.error('API Route Error:', error);

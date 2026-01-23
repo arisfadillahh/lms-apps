@@ -11,6 +11,7 @@ export const MENU_ITEMS: Record<string, { href: string; label: string; icon: any
     users: { href: '/admin/users', label: 'Pengguna', icon: Users },
     classes: { href: '/admin/classes', label: 'Kelas', icon: GraduationCap },
     curriculum: { href: '/admin/curriculum', label: 'Kurikulum', icon: BookOpen },
+    lessonReports: { href: '/admin/curriculum/reports', label: 'Laporan Lesson', icon: FileText },
     ekskul: { href: '/admin/ekskul', label: 'Ekskul Plans', icon: BookMarked },
     payments: { href: '/admin/payments', label: 'Paket & Tarif', icon: Wallet },
     invoices: { href: '/admin/payments/invoices', label: 'Invoice', icon: Receipt },
@@ -45,7 +46,7 @@ export const SIDEBAR_STRUCTURE: (SidebarGroup | SidebarSingle)[] = [
         type: 'group',
         label: 'Akademik',
         icon: GraduationCap,
-        children: ['classes', 'curriculum', 'ekskul']
+        children: ['classes', 'curriculum', 'lessonReports', 'ekskul']
     },
     {
         type: 'group',

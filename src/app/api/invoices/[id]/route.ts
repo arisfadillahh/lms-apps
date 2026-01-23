@@ -5,8 +5,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
-import { getInvoiceById, markInvoiceAsPaid } from '@/lib/dao/invoicesDao';
+import { getInvoiceById, markInvoiceAsPaid, getInvoiceSettings } from '@/lib/dao/invoicesDao';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { sendWhatsAppMessage } from '@/lib/services/whatsappClient';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -101,6 +102,38 @@ export async function PATCH(
                 { error: 'Failed to update invoice' },
                 { status: 500 }
             );
+        }
+
+        // Send Payment Confirmation WhatsApp
+        try {
+            const settings = await getInvoiceSettings();
+            if (settings?.payment_confirmation_template) {
+                const formattedAmount = new Intl.NumberFormat('id-ID').format(invoice.total_amount);
+                const paidDate = new Date(paid_at).toLocaleDateString('id-ID', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+
+                const invoiceUrl = `${settings.base_url}/invoice/${invoice.invoice_number}`;
+
+                const message = settings.payment_confirmation_template
+                    .replace(/{parent_name}/g, invoice.parent_name)
+                    .replace(/{invoice_number}/g, invoice.invoice_number)
+                    .replace(/{amount}/g, formattedAmount)
+                    .replace(/{paid_date}/g, paidDate)
+                    .replace(/{invoice_url}/g, invoiceUrl);
+
+                // Send message asynchronously (fire and forget from API perspective, but log error if any)
+                await sendWhatsAppMessage(invoice.parent_phone, message)
+                    .then(res => {
+                        if (!res.success) console.error('[API] Failed to send payment confirmation:', res.error);
+                        else console.log('[API] Payment confirmation sent to', invoice.parent_phone);
+                    });
+            }
+        } catch (waError) {
+            console.error('[API] Error sending payment confirmation:', waError);
+            // Don't block the response, just log
         }
 
         return NextResponse.json(invoice);

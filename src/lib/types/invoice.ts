@@ -1,7 +1,7 @@
 // Invoice System Types
 
 export type InvoiceStatus = 'PENDING' | 'PAID' | 'OVERDUE';
-export type InvoiceType = 'MONTHLY' | 'REGISTRATION';
+export type InvoiceType = 'MONTHLY' | 'REGISTRATION' | 'SEASONAL';
 
 export interface InvoiceSettings {
     id: string;
@@ -18,6 +18,8 @@ export interface InvoiceSettings {
     // Registration fee settings
     registration_fee: number;
     registration_fee_discount_percent: number;
+    payment_confirmation_template: string;
+    seasonal_invoice_message_template: string; // New field
     updated_at: string;
 }
 
@@ -33,7 +35,7 @@ export interface CCRNumber {
 export interface Invoice {
     id: string;
     invoice_number: string;
-    ccr_id: string;
+    ccr_id: string | null; // Nullable for seasonal
     parent_phone: string;
     parent_name: string;
     period_month: number;
@@ -46,6 +48,9 @@ export interface Invoice {
     paid_notes: string | null;
     created_at: string;
     updated_at: string;
+    // Seasonal fields
+    seasonal_student_name?: string;
+    seasonal_student_phone?: string;
     // Joined relations
     ccr?: CCRNumber;
     items?: InvoiceItem[];
@@ -54,7 +59,7 @@ export interface Invoice {
 export interface InvoiceItem {
     id: string;
     invoice_id: string;
-    coder_id: string;
+    coder_id: string | null; // Nullable for seasonal
     coder_name: string;
     class_name: string;
     level_name: string;
@@ -63,6 +68,7 @@ export interface InvoiceItem {
     final_price: number;
     payment_period_id: string | null;
     created_at: string;
+    description?: string; // Optional for seasonal items
 }
 
 export interface WhatsAppSession {

@@ -133,7 +133,7 @@ export default function CoderJourneyOverride({ classId, coderId, coderName }: Co
                                             onClick={() => toggleBlock(block.block_id)}
                                             style={{
                                                 display: 'flex', alignItems: 'center', gap: '0.75rem',
-                                                padding: '0.75rem 1rem', background: 'white', borderRadius: '8px',
+                                                padding: '0.75rem 1rem', borderRadius: '8px',
                                                 border: block.status === 'COMPLETED' ? '1px solid #86efac' : '1px solid #e2e8f0',
                                                 cursor: 'pointer', transition: 'all 0.2s',
                                                 background: block.status === 'COMPLETED' ? '#f0fdf4' : 'white'

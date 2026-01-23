@@ -83,7 +83,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const completedSet = new Set(completedBlockIds);
 
     for (const item of journey) {
-        let newStatus = 'PENDING';
+        let newStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' = 'PENDING';
 
         if (completedSet.has(item.block_id)) {
             newStatus = 'COMPLETED';

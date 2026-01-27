@@ -28,7 +28,7 @@ export default function LessonPlanItem({ lesson, template, highlight }: LessonPl
       <div style={{ ...cardStyle, ...getHighlightStyle(highlight) }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
           <strong style={{ color: '#0f172a' }}>
-            #{(lesson.order_index ?? 0) + 1} {lesson.title}
+            #{lesson.order_index ?? 1} {lesson.title}
           </strong>
           {summary ? <p style={{ color: '#475569', fontSize: '0.85rem' }}>{summary}</p> : null}
           {normalizedSlideUrl ? (
@@ -52,7 +52,7 @@ export default function LessonPlanItem({ lesson, template, highlight }: LessonPl
               <div>
                 <p style={modalSubtitleStyle}>Lesson plan</p>
                 <h3 style={modalTitleStyle}>
-                  #{(lesson.order_index ?? 0) + 1} {lesson.title}
+                  #{lesson.order_index ?? 1} {lesson.title}
                 </h3>
               </div>
               <button type="button" onClick={() => setOpen(false)} style={closeButtonStyle}>
@@ -82,7 +82,7 @@ export default function LessonPlanItem({ lesson, template, highlight }: LessonPl
                 <h4 style={detailHeadingStyle}>Detail Lesson</h4>
                 <ul style={detailListStyle}>
                   <li>
-                    <strong>Urutan:</strong> {lesson.order_index + 1}
+                    <strong>Urutan:</strong> {lesson.order_index}
                   </li>
                   <li>
                     <strong>Sesi:</strong> {estimatedMeetingCount ?? '—'}

@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { X } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 
 type Session = {
     id: string;
+    class_id: string;
     date_time: string;
     status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
     class_name?: string;
@@ -71,19 +72,24 @@ export default function CalendarModal({ sessions, children, triggerClassName, tr
                 <Dialog.Portal>
                     <Dialog.Overlay style={overlayStyle} />
                     <Dialog.Content style={contentStyle}>
-                        {/* Accessibility Title */}
-                        <Dialog.Title asChild>
-                            <h2 style={{ fontSize: '1.4rem', fontWeight: 600 }}>Kalender Kelas</h2>
-                        </Dialog.Title>
                         {/* Header */}
                         <div style={headerStyle}>
-                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                <button onClick={prevMonth} style={navIconStyle}>◀</button>
-                                <span style={{ fontSize: '1.1rem', fontWeight: 500, minWidth: '150px', textAlign: 'center' }}>
+                            <Dialog.Title asChild>
+                                <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: 0 }}>Kalender Kelas</h2>
+                            </Dialog.Title>
+
+                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', background: '#f8fafc', padding: '0.25rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0' }}>
+                                <button onClick={prevMonth} style={navIconStyle} title="Bulan Sebelumnya">
+                                    <ChevronLeft size={20} />
+                                </button>
+                                <span style={{ fontSize: '1rem', fontWeight: 600, minWidth: '140px', textAlign: 'center', color: '#1e293b' }}>
                                     {format(currentMonth, 'MMMM yyyy', { locale: localeId })}
                                 </span>
-                                <button onClick={nextMonth} style={navIconStyle}>▶</button>
+                                <button onClick={nextMonth} style={navIconStyle} title="Bulan Berikutnya">
+                                    <ChevronRight size={20} />
+                                </button>
                             </div>
+
                             <Dialog.Close asChild>
                                 <button style={closeButtonStyle}>
                                     <X size={24} />
@@ -106,38 +112,61 @@ export default function CalendarModal({ sessions, children, triggerClassName, tr
                                 return (
                                     <div key={i} style={{
                                         ...cellStyle,
-                                        opacity: isCurrentMonth ? 1 : 0.4,
-                                        background: isToday ? '#eff6ff' : 'white'
+                                        background: isCurrentMonth ? 'white' : '#f8fafc',
                                     }}>
-                                        <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#64748b', marginBottom: '0.5rem' }}>
-                                            {format(date, 'd')}
+                                        <div style={{
+                                            marginBottom: '0.5rem',
+                                            display: 'flex',
+                                            justifyContent: 'center'
+                                        }}>
+                                            <span style={isToday ? todayNumberStyle : dateNumberStyle}>
+                                                {format(date, 'd')}
+                                            </span>
                                         </div>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                            {daySessions.map(session => (
-                                                <button
-                                                    key={session.id}
-                                                    onClick={() => setSelectedSession(session)}
-                                                    style={{
-                                                        ...sessionBadgeStyle,
-                                                        borderColor: session.status === 'CANCELLED' ? '#e2e8f0' : '#bfdbfe',
-                                                        background: session.status === 'CANCELLED' ? '#f1f5f9' : '#eff6ff',
-                                                        color: session.status === 'CANCELLED' ? '#94a3b8' : '#1e40af',
-                                                        cursor: 'pointer',
-                                                        textAlign: 'left'
-                                                    }}
-                                                >
-                                                    <div style={{ fontWeight: 600 }}>{format(new Date(session.date_time), 'HH:mm')}</div>
-                                                    <div style={{
-                                                        fontSize: '0.7rem',
-                                                        whiteSpace: 'nowrap',
-                                                        overflow: 'hidden',
-                                                        textOverflow: 'ellipsis',
-                                                        maxWidth: '100%'
-                                                    }}>
-                                                        {session.class_name || 'Class'}
-                                                    </div>
-                                                </button>
-                                            ))}
+                                            {daySessions.map(session => {
+                                                // Determine color schema
+                                                let badgeBg = '#eff6ff';
+                                                let badgeColor = '#1d4ed8';
+                                                let badgeBorder = 'transparent';
+
+                                                if (session.status === 'COMPLETED') {
+                                                    badgeBg = '#dcfce7';
+                                                    badgeColor = '#166534';
+                                                } else if (session.status === 'CANCELLED') {
+                                                    badgeBg = '#fee2e2';
+                                                    badgeColor = '#991b1b';
+                                                }
+
+                                                return (
+                                                    <button
+                                                        key={session.id}
+                                                        onClick={() => setSelectedSession(session)}
+                                                        style={{
+                                                            ...sessionBadgeStyle,
+                                                            background: badgeBg,
+                                                            color: badgeColor,
+                                                            border: `1px solid ${badgeBorder}`,
+                                                            borderLeft: `3px solid ${badgeColor}`
+                                                        }}
+                                                        title={`${session.class_name} (${session.status})`}
+                                                    >
+                                                        <div style={{ fontWeight: 700, fontSize: '0.7rem' }}>
+                                                            {format(new Date(session.date_time), 'HH:mm')}
+                                                        </div>
+                                                        <div style={{
+                                                            fontSize: '0.7rem',
+                                                            whiteSpace: 'nowrap',
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis',
+                                                            fontWeight: 500,
+                                                            lineHeight: 1.2
+                                                        }}>
+                                                            {session.class_name || 'Class'}
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 );
@@ -154,14 +183,12 @@ export default function CalendarModal({ sessions, children, triggerClassName, tr
                     <Dialog.Content style={{ ...detailModalStyle, zIndex: 1002 }}>
                         {selectedSession && (
                             <>
-                                <Dialog.Title asChild>
-                                    <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-                                        {selectedSession.class_name ?? 'Detail Sesi'}
-                                    </h3>
-                                </Dialog.Title>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1.5rem' }}>
                                     <div>
-                                        <p style={{ color: '#64748b' }}>
+                                        <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.25rem' }}>
+                                            {selectedSession.class_name ?? 'Detail Sesi'}
+                                        </h3>
+                                        <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
                                             {format(new Date(selectedSession.date_time), 'EEEE, d MMMM yyyy • HH:mm', { locale: localeId })}
                                         </p>
                                     </div>
@@ -172,47 +199,67 @@ export default function CalendarModal({ sessions, children, triggerClassName, tr
                                     </Dialog.Close>
                                 </div>
 
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                    <div style={detailItemStyle}>
-                                        <span style={detailLabelStyle}>Status</span>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+                                    {/* Status Badge */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        <span style={detailLabelStyle}>Status:</span>
                                         <span style={{
                                             ...statusBadgeStyle(selectedSession.status),
-                                            display: 'inline-block'
+                                            display: 'inline-flex', alignItems: 'center', gap: '0.4rem'
                                         }}>
+                                            <span style={{
+                                                width: '6px', height: '6px', borderRadius: '50%',
+                                                background: selectedSession.status === 'COMPLETED' ? '#16a34a' : selectedSession.status === 'CANCELLED' ? '#ef4444' : '#3b82f6'
+                                            }} />
                                             {selectedSession.status}
                                         </span>
                                     </div>
 
                                     {selectedSession.lesson ? (
-                                        <>
-                                            <div style={detailItemStyle}>
-                                                <span style={detailLabelStyle}>Materi (Lesson)</span>
-                                                <div style={{ fontWeight: 500 }}>{selectedSession.lesson.title}</div>
+                                        <div style={{ background: '#f8fafc', borderRadius: '0.75rem', padding: '1rem', border: '1px solid #e2e8f0' }}>
+                                            <div style={{ marginBottom: '0.75rem' }}>
+                                                <span style={detailLabelStyle}>Materi Pembelajaran</span>
+                                                <div style={{ fontSize: '1rem', fontWeight: 600, color: '#1e293b', marginTop: '0.25rem' }}>
+                                                    {selectedSession.lesson.title}
+                                                </div>
+                                                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                                                    Block: {selectedSession.lesson.block_name}
+                                                </div>
                                             </div>
-                                            <div style={detailItemStyle}>
-                                                <span style={detailLabelStyle}>Block</span>
-                                                <div>{selectedSession.lesson.block_name}</div>
-                                            </div>
-                                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                                                {selectedSession.lesson.slide_url && (
+
+                                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                {selectedSession.lesson?.slide_url && (
                                                     <a href={selectedSession.lesson.slide_url} target="_blank" rel="noopener noreferrer" style={actionButtonStyle}>
-                                                        📑 Slide Materi
+                                                        📑 Slide
                                                     </a>
                                                 )}
-                                                {selectedSession.lesson.example_url && (
+                                                {selectedSession.lesson?.example_url && (
                                                     <a href={selectedSession.lesson.example_url} target="_blank" rel="noopener noreferrer" style={actionButtonStyle}>
-                                                        🎮 Contoh Game
+                                                        🎮 Game
                                                     </a>
                                                 )}
                                             </div>
-                                        </>
+                                        </div>
                                     ) : (
-                                        <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.5rem', color: '#64748b', fontSize: '0.9rem' }}>
+                                        <div style={{ padding: '1.5rem', background: '#f8fafc', borderRadius: '0.75rem', border: '1px dashed #cbd5e1', color: '#64748b', fontSize: '0.9rem', textAlign: 'center' }}>
                                             {selectedSession.status === 'CANCELLED'
-                                                ? 'Sesi ini dibatalkan (Libur/Tidak ada kelas).'
-                                                : 'Belum ada materi yang dijadwalkan untuk sesi ini.'}
+                                                ? '⛔ Sesi ini dibatalkan (Libur/Tidak ada kelas).'
+                                                : 'Belum ada materi yang dijadwalkan.'}
                                         </div>
                                     )}
+
+                                    <div>
+                                        <span style={{ ...detailLabelStyle, display: 'block', marginBottom: '0.5rem' }}>Jalur Cepat</span>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                            <a href={`/coach/classes/${selectedSession.class_id}`} style={{ ...actionButtonStyle, background: 'white', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+                                                🏫 Admin Kelas
+                                            </a>
+                                            <a href={`/coach/sessions/${selectedSession.id}/attendance`} style={{ ...actionButtonStyle, background: '#1e3a5f', color: 'white', border: '1px solid #1e3a5f' }}>
+                                                📝 Isi Absensi
+                                            </a>
+                                        </div>
+                                    </div>
                                 </div>
                             </>
                         )}
@@ -225,78 +272,95 @@ export default function CalendarModal({ sessions, children, triggerClassName, tr
 
 // Styles
 const overlayStyle: CSSProperties = {
-    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 999, backdropFilter: 'blur(2px)'
+    position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', zIndex: 999, backdropFilter: 'blur(4px)'
 };
 
 const contentStyle: CSSProperties = {
     position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-    width: '85vw', height: '85vh', background: 'white', borderRadius: '1rem',
-    padding: '2rem', zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '1rem',
-    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+    width: '1000px', maxWidth: '95vw', height: '85vh', background: 'white', borderRadius: '1.5rem',
+    padding: '0', zIndex: 1000, display: 'flex', flexDirection: 'column',
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', overflow: 'hidden', border: '1px solid #e2e8f0'
 };
 
 const detailModalStyle: CSSProperties = {
     position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-    width: '400px', maxWidth: '90vw', background: 'white', borderRadius: '0.75rem',
-    padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+    width: '420px', maxWidth: '90vw', background: 'white', borderRadius: '1.25rem',
+    padding: '2rem', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
 };
 
 const headerStyle: CSSProperties = {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem'
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 2rem', borderBottom: '1px solid #f1f5f9', background: 'white'
 };
 
 const triggerButtonStyle: CSSProperties = {
-    padding: '0.6rem 1.2rem', borderRadius: '0.5rem', background: '#3b82f6',
-    color: 'white', fontWeight: 600, border: 'none', cursor: 'pointer',
-    fontSize: '0.9rem'
+    padding: '0.75rem 1.25rem', borderRadius: '0.75rem', background: 'white',
+    color: '#0f172a', fontWeight: 600, border: '1px solid #e2e8f0', cursor: 'pointer',
+    fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.5rem',
+    boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', transition: 'all 0.2s'
 };
 
 const navIconStyle: CSSProperties = {
-    background: 'none', border: '1px solid #e2e8f0', borderRadius: '0.5rem',
+    background: 'white', border: '1px solid #e2e8f0', borderRadius: '0.5rem',
     width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    color: '#334155', fontSize: '0.85rem'
+    color: '#334155', fontSize: '0.85rem', transition: 'all 0.2s', boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)'
 };
 
 const closeButtonStyle: CSSProperties = {
-    background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '0.25rem'
+    background: '#f1f5f9', border: 'none', cursor: 'pointer', color: '#64748b', padding: '0.5rem', borderRadius: '0.5rem', display: 'flex', transition: 'background 0.2s'
 };
 
 const gridStyle: CSSProperties = {
-    display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', flex: 1, gap: '1px', background: '#e2e8f0', border: '1px solid #e2e8f0'
+    display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', flex: 1,
+    background: '#e2e8f0',
+    gap: '1px', // Keep small gap for clean borders vs border collapse
+    borderTop: '1px solid #e2e8f0',
+    overflowY: 'auto'
 };
 
 const dayHeaderStyle: CSSProperties = {
-    background: '#f8fafc', padding: '1rem', textAlign: 'center', fontWeight: 600, color: '#64748b'
+    background: 'white', padding: '1rem', textAlign: 'center', fontWeight: 700,
+    color: '#64748b', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em',
+    position: 'sticky', top: 0, zIndex: 10
 };
 
 const cellStyle: CSSProperties = {
-    background: 'white', padding: '0.5rem', minHeight: '100px', display: 'flex', flexDirection: 'column'
+    background: 'white', padding: '0.5rem', minHeight: '130px', display: 'flex', flexDirection: 'column',
+    transition: 'background 0.2s'
+};
+
+const dateNumberStyle: CSSProperties = {
+    fontSize: '0.9rem', fontWeight: 500, color: '#64748b',
+    width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%'
+};
+
+const todayNumberStyle: CSSProperties = {
+    ...dateNumberStyle,
+    background: '#3b82f6', color: 'white', fontWeight: 700
 };
 
 const sessionBadgeStyle: CSSProperties = {
-    border: '1px solid', borderRadius: '0.25rem', padding: '0.3rem 0.4rem', fontSize: '0.75rem',
-    display: 'flex', flexDirection: 'column', gap: '0.1rem', width: '100%'
-};
-
-const detailItemStyle: CSSProperties = {
-    display: 'flex', flexDirection: 'column', gap: '0.2rem'
+    borderRadius: '0.35rem', padding: '0.35rem 0.5rem',
+    display: 'flex', flexDirection: 'column', gap: '0.1rem', width: '100%',
+    cursor: 'pointer', transition: 'transform 0.1s, opacity 0.2s', textAlign: 'left',
+    boxShadow: '0 1px 2px 0 rgba(0,0,0,0.03)'
 };
 
 const detailLabelStyle: CSSProperties = {
-    fontSize: '0.8rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em'
+    fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700
 };
 
 const actionButtonStyle: CSSProperties = {
-    flex: 1, textAlign: 'center', padding: '0.5rem', borderRadius: '0.375rem',
-    fontSize: '0.85rem', fontWeight: 500, textDecoration: 'none',
-    background: '#f1f5f9', color: '#0f172a', border: '1px solid #e2e8f0'
+    textAlign: 'center', padding: '0.6rem', borderRadius: '0.5rem',
+    fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none',
+    background: '#f8fafc', color: '#0f172a', border: '1px solid #e2e8f0', transition: 'all 0.2s',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem'
 };
 
 const statusBadgeStyle = (status: string): CSSProperties => ({
-    padding: '0.25rem 0.6rem',
+    padding: '0.25rem 0.75rem',
     borderRadius: '999px',
-    fontSize: '0.75rem',
-    fontWeight: 600,
-    color: status === 'COMPLETED' ? '#16a34a' : status === 'SCHEDULED' ? '#1e3a5f' : '#94a3b8',
-    background: status === 'COMPLETED' ? '#dcfce7' : status === 'SCHEDULED' ? '#eff6ff' : '#f1f5f9',
+    fontSize: '0.8rem',
+    fontWeight: 700,
+    color: status === 'COMPLETED' ? '#16a34a' : status === 'SCHEDULED' ? '#1e3a5f' : '#b91c1c',
+    background: status === 'COMPLETED' ? '#dcfce7' : status === 'SCHEDULED' ? '#e0f2fe' : '#fee2e2',
 });

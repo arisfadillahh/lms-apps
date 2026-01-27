@@ -20,6 +20,7 @@ import EkskulCompetencyEditor from './EkskulCompetencyEditor';
 import RemoveCoderButton from './RemoveCoderButton';
 import SetCoderStatusButton from './SetCoderStatusButton';
 import SessionRowActions from './SessionRowActions';
+import SessionsTable from './SessionsTable';
 
 type ClassBlockRow = Awaited<ReturnType<typeof classesDao.getClassBlocks>>[number];
 type BlockSummary = {
@@ -224,77 +225,7 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
         {/* Sessions Table */}
-        <section style={cardStyle}>
-          <div style={sectionHeaderStyle}>
-            <div>
-              <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Sesi Pertemuan</h2>
-              <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '0.25rem' }}>Jadwal 12 sesi ke depan.</p>
-            </div>
-          </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead style={{ background: '#f8fafc', textAlign: 'left' }}>
-                <tr>
-                  <th style={thStyle}>Tanggal & Waktu</th>
-                  <th style={thStyle}>Status</th>
-                  <th style={thStyle}>Coach Pengganti</th>
-                  <th style={thStyle}>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sessions.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
-                      Sesi belum digenerate.
-                    </td>
-                  </tr>
-                ) : (
-                  sessions.map((session) => (
-                    <tr key={session.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}>
-                      <td style={tdStyle}>
-                        <div style={{ fontWeight: 500, color: '#1e293b' }}>
-                          {new Date(session.date_time).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </div>
-                        <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                          {new Date(session.date_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                      </td>
-                      <td style={tdStyle}>
-                        <span style={{
-                          padding: '0.25rem 0.5rem',
-                          borderRadius: '6px',
-                          fontSize: '0.75rem',
-                          fontWeight: 600,
-                          background: session.status === 'COMPLETED' ? '#dcfce7' : session.status === 'CANCELLED' ? '#fee2e2' : '#f1f5f9',
-                          color: session.status === 'COMPLETED' ? '#16a34a' : session.status === 'CANCELLED' ? '#dc2626' : '#475569'
-                        }}>
-                          {session.status}
-                        </span>
-                      </td>
-                      <td style={tdStyle}>
-                        {session.substitute_coach_id ? (
-                          <span style={{ color: '#0369a1', fontWeight: 600, background: '#e0f2fe', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.85rem' }}>
-                            {coachMap.get(session.substitute_coach_id) ?? 'Coach'}
-                          </span>
-                        ) : (
-                          <span style={{ color: '#cbd5e1' }}>—</span>
-                        )}
-                      </td>
-                      <td style={tdStyle}>
-                        <SessionRowActions
-                          sessionId={session.id}
-                          substituteCoachName={session.substitute_coach_id ? coachMap.get(session.substitute_coach_id) ?? null : null}
-                          currentStatus={session.status as 'SCHEDULED' | 'COMPLETED' | 'CANCELLED'}
-                          currentDate={session.date_time}
-                        />
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <SessionsTable sessions={sessions} coachMap={coachMap} />
 
         {/* Enrollments Table */}
         <section style={cardStyle}>

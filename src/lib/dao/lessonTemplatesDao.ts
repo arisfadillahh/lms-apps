@@ -135,8 +135,18 @@ export async function updateLessonTemplate(id: string, updates: UpdateLessonTemp
     const newIndex = updates.orderIndex;
 
     if (newIndex !== oldIndex) {
-      // 1. Temp move to -1 to free up the slot
-      await supabase.from('lesson_templates').update({ order_index: -1 }).eq('id', id);
+      // 1. Temp move to a high number to free up the slot.
+      // Use 9000 + oldIndex to avoid collision with normal range (assuming lessons < 9000)
+      // and checking error to ensure it actually happened.
+      const tempIndex = 9000 + oldIndex;
+      const { error: tempError } = await supabase
+        .from('lesson_templates')
+        .update({ order_index: tempIndex })
+        .eq('id', id);
+
+      if (tempError) {
+        throw new Error(`Failed to move lesson to temp index: ${tempError.message}`);
+      }
 
       if (newIndex > oldIndex) {
         // Shift Down (e.g. 1 -> 3). Others (2,3) -> (1,2)
@@ -151,10 +161,15 @@ export async function updateLessonTemplate(id: string, updates: UpdateLessonTemp
 
         if (toShift) {
           for (const item of toShift) {
-            await supabase
+            const { error: shiftError } = await supabase
               .from('lesson_templates')
               .update({ order_index: item.order_index - 1 })
               .eq('id', item.id);
+
+            if (shiftError) {
+              // Try to rollback? Ideally yes, but for now throw to stop.
+              throw new Error(`Failed to shift lesson ${item.id}: ${shiftError.message}`);
+            }
           }
         }
       } else {
@@ -170,10 +185,14 @@ export async function updateLessonTemplate(id: string, updates: UpdateLessonTemp
 
         if (toShift) {
           for (const item of toShift) {
-            await supabase
+            const { error: shiftError } = await supabase
               .from('lesson_templates')
               .update({ order_index: item.order_index + 1 })
               .eq('id', item.id);
+
+            if (shiftError) {
+              throw new Error(`Failed to shift lesson ${item.id}: ${shiftError.message}`);
+            }
           }
         }
       }
@@ -236,6 +255,57 @@ export async function deleteLessonTemplate(id: string): Promise<void> {
         .from('lesson_templates')
         .update({ order_index: les.order_index - 1 })
         .eq('id', les.id);
+    }
+  }
+}
+
+export async function deleteLessonTemplatesBulk(ids: string[]): Promise<void> {
+  if (!ids.length) return;
+
+  const supabase = getSupabaseAdmin();
+
+  // 1. Get the block_id from the first lesson to know which block to reorder later.
+  // We assume all lessons belong to the same block for this UI context.
+  // Even if they don't (unlikely given the UI), we can just reorder the block of the first one.
+  const { data: firstLesson, error: fetchError } = await supabase
+    .from('lesson_templates')
+    .select('block_id')
+    .eq('id', ids[0])
+    .single();
+
+  if (fetchError || !firstLesson) {
+    throw new Error('Could not verify lesson block');
+  }
+
+  const blockId = firstLesson.block_id;
+
+  // 2. Delete the lessons
+  const { error: deleteError } = await supabase
+    .from('lesson_templates')
+    .delete()
+    .in('id', ids);
+
+  if (deleteError) {
+    throw new Error(`Failed to delete lessons: ${deleteError.message}`);
+  }
+
+  // 3. Re-normalize order index for the WHOLE block
+  // This is the safest way to ensure 1, 2, 3... sequence without gaps.
+  const { data: remainingLessons } = await supabase
+    .from('lesson_templates')
+    .select('id, order_index')
+    .eq('block_id', blockId)
+    .order('order_index', { ascending: true });
+
+  if (remainingLessons) {
+    for (let i = 0; i < remainingLessons.length; i++) {
+      const correctIndex = i + 1;
+      if (remainingLessons[i].order_index !== correctIndex) {
+        await supabase
+          .from('lesson_templates')
+          .update({ order_index: correctIndex })
+          .eq('id', remainingLessons[i].id);
+      }
     }
   }
 }

@@ -112,13 +112,75 @@ export async function updateLessonTemplate(id: string, updates: UpdateLessonTemp
   if (updates.slideUrl !== undefined) payload.slide_url = updates.slideUrl;
   if (updates.exampleUrl !== undefined) payload.example_url = updates.exampleUrl;
   if (updates.exampleStoragePath !== undefined) payload.example_storage_path = updates.exampleStoragePath;
-  if (updates.orderIndex !== undefined) payload.order_index = updates.orderIndex;
+  // Handle orderIndex separately below
+  // if (updates.orderIndex !== undefined) payload.order_index = updates.orderIndex; 
   if (updates.estimatedMeetingCount !== undefined) {
     payload.estimated_meeting_count = updates.estimatedMeetingCount;
-    // We might want to clear duration_minutes too?
-    // payload.duration_minutes = null; // Optional: Enforce migration
   }
   if (updates.makeUpInstructions !== undefined) payload.make_up_instructions = updates.makeUpInstructions;
+
+  // Handle Reordering with Safe Shift
+  if (updates.orderIndex !== undefined) {
+    const { data: currentLesson, error: fetchError } = await supabase
+      .from('lesson_templates')
+      .select('block_id, order_index')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !currentLesson) {
+      throw new Error(`Failed to fetch lesson for reordering: ${fetchError?.message}`);
+    }
+
+    const oldIndex = currentLesson.order_index;
+    const newIndex = updates.orderIndex;
+
+    if (newIndex !== oldIndex) {
+      // 1. Temp move to -1 to free up the slot
+      await supabase.from('lesson_templates').update({ order_index: -1 }).eq('id', id);
+
+      if (newIndex > oldIndex) {
+        // Shift Down (e.g. 1 -> 3). Others (2,3) -> (1,2)
+        // Shift range: (oldIndex, newIndex]
+        const { data: toShift } = await supabase
+          .from('lesson_templates')
+          .select('id, order_index')
+          .eq('block_id', currentLesson.block_id)
+          .gt('order_index', oldIndex)
+          .lte('order_index', newIndex)
+          .order('order_index', { ascending: true }); // Process 2 then 3
+
+        if (toShift) {
+          for (const item of toShift) {
+            await supabase
+              .from('lesson_templates')
+              .update({ order_index: item.order_index - 1 })
+              .eq('id', item.id);
+          }
+        }
+      } else {
+        // Shift Up (e.g. 3 -> 1). Others (1,2) -> (2,3)
+        // Shift range: [newIndex, oldIndex)
+        const { data: toShift } = await supabase
+          .from('lesson_templates')
+          .select('id, order_index')
+          .eq('block_id', currentLesson.block_id)
+          .gte('order_index', newIndex)
+          .lt('order_index', oldIndex)
+          .order('order_index', { ascending: false }); // Process 2 then 1
+
+        if (toShift) {
+          for (const item of toShift) {
+            await supabase
+              .from('lesson_templates')
+              .update({ order_index: item.order_index + 1 })
+              .eq('id', item.id);
+          }
+        }
+      }
+      // Finally set the new index in the payload
+      payload.order_index = newIndex;
+    }
+  }
 
   const { data, error } = await supabase
     .from('lesson_templates')

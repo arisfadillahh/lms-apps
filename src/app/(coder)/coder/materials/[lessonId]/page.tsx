@@ -199,11 +199,12 @@ const cardStyle = {
 const slideContainerStyle = {
     position: 'relative' as const,
     width: '100%',
-    paddingTop: '56.25%', // 16:9 Aspect Ratio
-    background: '#000',
-    borderRadius: '12px',
+    paddingTop: '62.5%', // Slightly taller aspect ratio for better visibility
+    minHeight: '400px', // Minimum height to prevent too small display
+    background: '#0f172a',
+    borderRadius: '16px',
     overflow: 'hidden',
-    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+    boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255,255,255,0.05)'
 };
 
 const slideFrameStyle = {

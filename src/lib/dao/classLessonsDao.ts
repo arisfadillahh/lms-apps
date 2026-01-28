@@ -76,11 +76,20 @@ export async function createClassLessons(
   return data ?? [];
 }
 
-export async function getClassLessonById(id: string): Promise<ClassLessonRecord | null> {
+export async function getClassLessonById(id: string): Promise<ClassLessonWithTemplate | null> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from('class_lessons')
-    .select('*')
+    .select(`
+      *,
+      lesson_templates(
+        title,
+        summary,
+        slide_url,
+        make_up_instructions,
+        estimated_meeting_count
+      )
+    `)
     .eq('id', id)
     .maybeSingle();
 
@@ -88,7 +97,24 @@ export async function getClassLessonById(id: string): Promise<ClassLessonRecord 
     throw new Error(`Failed to fetch class lesson: ${error.message}`);
   }
 
-  return data;
+  if (!data) return null;
+
+  // Map to flat structure with template_ prefix and override with template values
+  const row = data as any;
+  return {
+    ...row,
+    // Override with template values (live reference)
+    title: row.lesson_templates?.title ?? row.title,
+    summary: row.lesson_templates?.summary ?? row.summary,
+    slide_url: row.lesson_templates?.slide_url ?? row.slide_url,
+    make_up_instructions: row.lesson_templates?.make_up_instructions ?? row.make_up_instructions,
+    // Also expose template_ prefixed for explicit access
+    template_title: row.lesson_templates?.title ?? null,
+    template_summary: row.lesson_templates?.summary ?? null,
+    template_slide_url: row.lesson_templates?.slide_url ?? null,
+    template_make_up_instructions: row.lesson_templates?.make_up_instructions ?? null,
+    template_estimated_meeting_count: row.lesson_templates?.estimated_meeting_count ?? null,
+  };
 }
 
 export async function getClassLessonBySession(sessionId: string): Promise<ClassLessonRecord | null> {

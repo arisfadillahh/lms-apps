@@ -99,7 +99,7 @@ export const updateEnrollmentStatusSchema = z.object({
 export const createBlockTemplateSchema = z.object({
   levelId: z.string().uuid(),
   name: z.string().min(3),
-  summary: z.string().max(500).optional().or(z.literal('').transform(() => undefined)),
+  summary: z.string().max(2000).optional().or(z.literal('').transform(() => undefined)),
   orderIndex: z.number().int().min(1),
   estimatedSessions: z.number().int().min(0).optional(),
   isPublished: z.boolean().optional(),
@@ -110,7 +110,7 @@ export type CreateBlockTemplateInput = z.infer<typeof createBlockTemplateSchema>
 export const updateBlockTemplateSchema = z
   .object({
     name: z.string().min(3).optional(),
-    summary: z.string().max(500).optional().or(z.literal('').transform(() => undefined)),
+    summary: z.string().max(2000).optional().or(z.literal('').transform(() => undefined)),
     orderIndex: z.number().int().min(1).optional(),
     estimatedSessions: z.number().int().min(0).optional().nullable(),
     isPublished: z.boolean().optional(),
@@ -122,13 +122,13 @@ export type UpdateBlockTemplateInput = z.infer<typeof updateBlockTemplateSchema>
 export const createLessonTemplateSchema = z.object({
   blockId: z.string().uuid(),
   title: z.string().min(3),
-  summary: z.string().max(500).optional().or(z.literal('').transform(() => undefined)),
+  summary: z.string().max(5000).optional().or(z.literal('').transform(() => undefined)),
   slideUrl: z.string().url().optional().or(z.literal('').transform(() => undefined)),
   orderIndex: z.coerce.number().int().min(1),
   estimatedMeetingCount: z
     .preprocess((value) => (value === '' || value === null || value === undefined ? undefined : value), z.coerce.number().int().min(0))
     .optional(),
-  makeUpInstructions: z.string().max(500).optional().or(z.literal('').transform(() => undefined)),
+  makeUpInstructions: z.string().max(5000).optional().or(z.literal('').transform(() => undefined)),
 });
 
 export type CreateLessonTemplateInput = z.infer<typeof createLessonTemplateSchema>;
@@ -136,7 +136,7 @@ export type CreateLessonTemplateInput = z.infer<typeof createLessonTemplateSchem
 export const updateLessonTemplateSchema = z
   .object({
     title: z.string().min(3).optional(),
-    summary: z.string().max(500).optional().or(z.literal('').transform(() => undefined)),
+    summary: z.string().max(5000).optional().or(z.literal('').transform(() => undefined)),
     orderIndex: z
       .preprocess((value) => (value === undefined || value === null || value === '' ? undefined : value), z.coerce.number().int().min(1))
       .optional(),
@@ -151,7 +151,7 @@ export const updateLessonTemplateSchema = z
       .url()
       .optional()
       .or(z.literal('').transform(() => undefined)),
-    makeUpInstructions: z.string().max(500).optional().or(z.literal('').transform(() => undefined)),
+    makeUpInstructions: z.string().max(5000).optional().or(z.literal('').transform(() => undefined)),
   })
   .refine((value) => Object.keys(value).length > 0, { message: 'No fields to update' });
 

@@ -21,7 +21,7 @@ export default function EditLessonModal({ lesson, open, onOpenChange }: EditLess
     // Form states
     const [title, setTitle] = useState(lesson.title);
     const [summary, setSummary] = useState(lesson.summary ?? '');
-    const [orderIndex, setOrderIndex] = useState(String(lesson.order_index + 1)); // Display 1-based
+    const [orderIndex, setOrderIndex] = useState(String(lesson.order_index));
     const [estimatedMeetingCount, setEstimatedMeetingCount] = useState(
         lesson.estimated_meeting_count !== null ? String(lesson.estimated_meeting_count) : '',
     );
@@ -36,7 +36,7 @@ export default function EditLessonModal({ lesson, open, onOpenChange }: EditLess
         if (open) {
             setTitle(lesson.title);
             setSummary(lesson.summary ?? '');
-            setOrderIndex(String(lesson.order_index + 1)); // Display 1-based
+            setOrderIndex(String(lesson.order_index));
             setEstimatedMeetingCount(lesson.estimated_meeting_count !== null ? String(lesson.estimated_meeting_count) : '');
             setSlideUrl(lesson.slide_url ?? '');
             setMakeUpInstructions(lesson.make_up_instructions ?? '');
@@ -57,7 +57,7 @@ export default function EditLessonModal({ lesson, open, onOpenChange }: EditLess
 
         const orderValue = Number(orderIndex);
         // Convert 1-based visual back to 0-based for DB
-        const dbOrderIndex = orderValue - 1;
+        const dbOrderIndex = orderValue;
 
         if (!Number.isNaN(orderValue) && dbOrderIndex !== lesson.order_index) {
             payload.orderIndex = dbOrderIndex;

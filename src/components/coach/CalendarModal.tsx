@@ -97,6 +97,22 @@ export default function CalendarModal({ sessions, children, triggerClassName, tr
                             </Dialog.Close>
                         </div>
 
+                        {/* Legend */}
+                        <div style={{ display: 'flex', gap: '1.5rem', padding: '0.75rem 2rem', background: '#fff', borderBottom: '1px solid #f1f5f9', fontSize: '0.85rem', fontWeight: 500 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e3a5f' }}>
+                                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#3b82f6' }}></span>
+                                <span>Akan Datang (Biru)</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#166534' }}>
+                                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#16a34a' }}></span>
+                                <span>Selesai (Hijau)</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#991b1b' }}>
+                                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ef4444' }}></span>
+                                <span>Batal/Libur (Merah)</span>
+                            </div>
+                        </div>
+
                         {/* Grid */}
                         <div style={gridStyle}>
                             {['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'].map(d => (

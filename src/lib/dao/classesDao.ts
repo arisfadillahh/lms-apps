@@ -337,6 +337,43 @@ export async function listClassesForCoach(coachId: string): Promise<ClassRecord[
   return data ?? [];
 }
 
+export async function listClassesWhereCoachIsSubstitute(coachId: string): Promise<ClassRecord[]> {
+  const supabase = getSupabaseAdmin();
+  // Find sessions where this coach is a substitute
+  const { data: sessions, error: sessionError } = await supabase
+    .from('sessions')
+    .select('class_id')
+    .eq('substitute_coach_id', coachId)
+    .gt('date_time', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()); // Look back 7 days max to keep dashboard clean? Or just all future?
+  // Let's stick to future + recent (e.g. last 30 days) to allow grading late submissions?
+  // For now, let's just get ALL relevant classes to be safe, filtering can happen in UI or logical layer if needed.
+  // Actually, getting ALL might clutter if they subbed once 2 years ago.
+  // Let's filter for sessions > 30 days ago.
+  // .gt('date_time', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+
+  if (sessionError) {
+    throw new Error(`Failed to find substitute sessions: ${sessionError.message}`);
+  }
+
+  if (!sessions || sessions.length === 0) {
+    return [];
+  }
+
+  const classIds = Array.from(new Set(sessions.map(s => s.class_id)));
+
+  const { data: classes, error: classError } = await supabase
+    .from('classes')
+    .select('*')
+    .in('id', classIds)
+    .order('start_date', { ascending: true });
+
+  if (classError) {
+    throw new Error(`Failed to list substitute classes: ${classError.message}`);
+  }
+
+  return classes ?? [];
+}
+
 export async function listClassesForCoder(coderId: string): Promise<ClassRecord[]> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase

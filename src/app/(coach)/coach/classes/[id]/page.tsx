@@ -23,8 +23,12 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
         notFound();
     }
 
-    // Verify ownership
-    if (classRecord.coach_id !== session.user.id) {
+    // Verify ownership or substitute access
+    const substituteSessions = await sessionsDao.listSubstituteSessionsForCoach(classId, session.user.id);
+    const isMainCoach = classRecord.coach_id === session.user.id;
+    const isSubstitute = substituteSessions.length > 0;
+
+    if (!isMainCoach && !isSubstitute) {
         return (
             <div style={{ padding: '2rem' }}>
                 <h1 style={{ color: '#ef4444' }}>Akses Ditolak</h1>
@@ -34,14 +38,21 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
         );
     }
 
+    const allowedSessionIds = !isMainCoach && isSubstitute ? substituteSessions.map(s => s.id) : undefined;
+
     const sessions = await sessionsDao.listSessionsByClass(classId);
     const lessonSchedule = await computeLessonSchedule(classId, classRecord.level_id, (classRecord as any).ekskul_lesson_plan_id);
 
     // Get future sessions only, sorted by date
     const now = new Date();
-    const futureSessions = sessions
+    let futureSessions = sessions
         .filter(s => new Date(s.date_time) > now && s.status !== 'CANCELLED')
         .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
+
+    // Filter strictly for substitute coaches
+    if (allowedSessionIds) {
+        futureSessions = futureSessions.filter(s => allowedSessionIds.includes(s.id));
+    }
 
     // Limit to 12 upcoming sessions
     const upcomingSessionsLimit = 12;
@@ -122,12 +133,14 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
                                     📊 Lihat Slide
                                 </a>
                             )}
-                            <Link
-                                href={`/coach/sessions/${nextSession.id}/attendance`}
-                                style={primaryButtonStyle}
-                            >
-                                🎯 Absensi & Mulai Kelas
-                            </Link>
+                            {(!allowedSessionIds || allowedSessionIds.includes(nextSession.id)) && (
+                                <Link
+                                    href={`/coach/sessions/${nextSession.id}/attendance`}
+                                    style={primaryButtonStyle}
+                                >
+                                    🎯 Absensi & Mulai Kelas
+                                </Link>
+                            )}
                         </div>
                     </div>
                 </section>
@@ -145,7 +158,11 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
                 {sessionsForLessonList.length === 0 ? (
                     <p style={{ color: '#64748b', fontStyle: 'italic' }}>Tidak ada sesi yang akan datang.</p>
                 ) : (
-                    <LessonListClient sessions={sessionsForLessonList} coachId={session.user.id} />
+                    <LessonListClient
+                        sessions={sessionsForLessonList}
+                        coachId={session.user.id}
+                        allowedSessionIds={allowedSessionIds}
+                    />
                 )}
             </section>
 
@@ -155,6 +172,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
                     classId={classId}
                     sessions={sessionsForUpload}
                     defaultSessionId={nextSession?.id}
+                    allowedSessionIds={allowedSessionIds}
                 />
             </CollapsibleUpload>
         </div>

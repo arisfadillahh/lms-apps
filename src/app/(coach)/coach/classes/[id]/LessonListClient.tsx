@@ -46,9 +46,10 @@ interface SessionLesson {
 interface LessonListClientProps {
     sessions: SessionLesson[];
     coachId: string;
+    allowedSessionIds?: string[];
 }
 
-export default function LessonListClient({ sessions, coachId }: LessonListClientProps) {
+export default function LessonListClient({ sessions, coachId, allowedSessionIds }: LessonListClientProps) {
     return (
         <div style={lessonListStyle}>
             {sessions.map((sess, idx) => {
@@ -60,6 +61,9 @@ export default function LessonListClient({ sessions, coachId }: LessonListClient
                         : lessonSlot.lessonTemplate.title)
                     : 'Lesson tidak tersedia';
                 const dateStr = format(new Date(sess.dateTime), 'EEEE, d MMM yyyy • HH:mm', { locale: id });
+
+                // Check access: Allowed if no restriction (undefined) OR if session ID is in list
+                const canAccessAttendance = !allowedSessionIds || allowedSessionIds.includes(sess.sessionId);
 
                 return (
                     <div key={sess.sessionId} style={{
@@ -83,12 +87,14 @@ export default function LessonListClient({ sessions, coachId }: LessonListClient
                                 sessionDate={dateStr}
                                 coachId={coachId}
                             />
-                            <Link
-                                href={`/coach/sessions/${sess.sessionId}/attendance`}
-                                style={smallButtonStyle}
-                            >
-                                Absensi
-                            </Link>
+                            {canAccessAttendance && (
+                                <Link
+                                    href={`/coach/sessions/${sess.sessionId}/attendance`}
+                                    style={smallButtonStyle}
+                                >
+                                    Absensi
+                                </Link>
+                            )}
                         </div>
                     </div>
                 );

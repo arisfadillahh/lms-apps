@@ -148,6 +148,41 @@ export async function listUpcomingSessionsForCoach(coachId: string, daysAhead = 
   }));
 }
 
+export async function listSubstituteSessionsForCoach(classId: string, coachId: string): Promise<SessionRecord[]> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('sessions')
+    .select('*')
+    .eq('class_id', classId)
+    .eq('substitute_coach_id', coachId)
+    .order('date_time', { ascending: true });
+
+  if (error) {
+    throw new Error(`Failed to list substitute sessions: ${error.message}`);
+  }
+
+  return data ?? [];
+}
+
+export async function listAllSubstituteSessions(coachId: string): Promise<CoachSessionRow[]> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('sessions')
+    .select('*, classes:classes!inner(id, name, coach_id)')
+    .eq('substitute_coach_id', coachId)
+    .gt('date_time', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()) // Recent & Future
+    .order('date_time', { ascending: true });
+
+  if (error) {
+    throw new Error(`Failed to list all substitute sessions: ${error.message}`);
+  }
+
+  return (data ?? []).map((row: any) => ({
+    ...(row as SessionRecord),
+    class_name: row.classes?.name ?? undefined,
+  }));
+}
+
 export async function assignSubstituteCoach(sessionId: string, substituteCoachId: string | null): Promise<void> {
   const supabase = getSupabaseAdmin();
   const payload: TablesUpdate<'sessions'> = {

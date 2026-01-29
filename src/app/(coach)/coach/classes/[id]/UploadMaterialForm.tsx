@@ -10,6 +10,7 @@ interface UploadMaterialFormProps {
   classId: string;
   sessions: { id: string; date_time: string }[];
   defaultSessionId?: string;
+  allowedSessionIds?: string[]; // If provided, only these sessions are allowed
 }
 
 type FormValues = {
@@ -20,12 +21,16 @@ type FormValues = {
   visibleFromSessionId?: string;
 };
 
-export default function UploadMaterialForm({ classId, sessions, defaultSessionId }: UploadMaterialFormProps) {
+export default function UploadMaterialForm({ classId, sessions, defaultSessionId, allowedSessionIds }: UploadMaterialFormProps) {
   const router = useRouter();
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // Filter sessions if restriction is applied
+  const availableSessions = allowedSessionIds
+    ? sessions.filter(s => allowedSessionIds.includes(s.id))
+    : sessions;
   const { register, handleSubmit, reset } = useForm<FormValues>({
     defaultValues: {
       title: '',
@@ -35,6 +40,7 @@ export default function UploadMaterialForm({ classId, sessions, defaultSessionId
       visibleFromSessionId: defaultSessionId || '',
     },
   });
+
 
   const onSubmit = (values: FormValues) => {
     setStatusMessage(null);
@@ -97,7 +103,7 @@ export default function UploadMaterialForm({ classId, sessions, defaultSessionId
         <label style={labelStyle}>Tampilkan Mulai Sesi</label>
         <select style={selectStyle} {...register('visibleFromSessionId')}>
           <option value="">Langsung Tampilkan</option>
-          {sessions.map((sessionItem) => (
+          {availableSessions.map((sessionItem) => (
             <option key={sessionItem.id} value={sessionItem.id}>
               {new Date(sessionItem.date_time).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
             </option>

@@ -24,6 +24,42 @@ export default function WhatsAppSettings() {
         fetchLogs();
     }, []);
 
+    // Auto-connect and poll for QR when not connected
+    useEffect(() => {
+        if (loading) return;
+
+        // If not connected and no QR, trigger connect
+        if (!status?.isConnected && !status?.qrCode && !connecting) {
+            console.log('[WhatsAppSettings] Auto-triggering connect...');
+            handleConnectSilent();
+        }
+
+        // Poll for status every 3 seconds while waiting for QR or connection
+        let pollInterval: NodeJS.Timeout | null = null;
+        if (!status?.isConnected) {
+            pollInterval = setInterval(() => {
+                fetchStatus();
+            }, 3000);
+        }
+
+        return () => {
+            if (pollInterval) clearInterval(pollInterval);
+        };
+    }, [loading, status?.isConnected, status?.qrCode]);
+
+    // Silent connect (no UI feedback, used for auto-connect)
+    const handleConnectSilent = async () => {
+        setConnecting(true);
+        try {
+            await fetch('/api/whatsapp/connect', { method: 'POST' });
+            await fetchStatus();
+        } catch (err) {
+            console.error('Auto-connect error:', err);
+        } finally {
+            setConnecting(false);
+        }
+    };
+
     const fetchStatus = async () => {
         try {
             const res = await fetch('/api/whatsapp/status');

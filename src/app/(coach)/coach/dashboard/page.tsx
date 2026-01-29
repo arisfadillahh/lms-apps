@@ -165,6 +165,16 @@ export default async function CoachDashboardPage() {
                                         }}>
                                             {cls.type}
                                         </span>
+                                        {cls.isSubstitute && (
+                                            <span style={{
+                                                background: '#ffedd5',
+                                                color: '#c2410c',
+                                                padding: '4px 10px', borderRadius: '99px', fontSize: '11px', fontWeight: '700',
+                                                marginLeft: '8px'
+                                            }}>
+                                                PENGGANTI
+                                            </span>
+                                        )}
                                         {cls.currentBlock && (
                                             <span style={{ background: '#f1f5f9', color: '#475569', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '600' }}>
                                                 Block {cls.currentBlock.name}

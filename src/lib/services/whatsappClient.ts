@@ -28,9 +28,13 @@ const AUTH_FOLDER = 'baileys_auth_info';
 const CLIENT_ID = process.env.WHATSAPP_CLIENT_ID || 'clevio-wa-client';
 
 // Global state (Singleton for Next.js HMR)
-const globalForWA = global as unknown as { sock: WASocket | null };
+const globalForWA = global as unknown as {
+    sock: WASocket | null;
+    isConnecting: boolean;
+};
 
 let sock: WASocket | null = globalForWA.sock || null;
+let isConnecting = globalForWA.isConnecting || false;
 let isConnected = !!sock?.user;
 let connectedPhone: string | null = sock?.user?.id.split(':')[0] || null;
 let currentQRCode: string | null = null;
@@ -49,20 +53,40 @@ export async function initializeWhatsApp(): Promise<{
     error?: string
 }> {
     try {
-        // Singleton check: If socket exists and is open, reuse it
-        if (sock) {
-            console.log('[WhatsApp] Reusing existing connection');
-
-            // Ensure state vars are synced
-            isConnected = true;
-            const user = sock?.user;
-            if (user) connectedPhone = user.id.split(':')[0];
-
-            return {
-                success: true,
-                qrCode: undefined
-            };
+        // Prevent concurrent connection attempts
+        if (isConnecting) {
+            console.log('[WhatsApp] Connection already in progress');
+            return { success: true, qrCode: currentQRCode || undefined };
         }
+
+        // Singleton check: If socket exists AND is actually connected, reuse it
+        if (sock && sock.user) {
+            console.log('[WhatsApp] Reusing existing connected session');
+            isConnected = true;
+            connectedPhone = sock.user.id.split(':')[0];
+            return { success: true, qrCode: undefined };
+        }
+
+        // Set connection lock
+        isConnecting = true;
+        globalForWA.isConnecting = true;
+
+        // Clean up any existing socket that's not authenticated
+        if (sock) {
+            console.log('[WhatsApp] Cleaning up unauthenticated socket...');
+            try {
+                sock.end(undefined);
+            } catch (e) {
+                // Ignore
+            }
+            sock = null;
+            globalForWA.sock = null;
+        }
+
+        // Reset state
+        isConnected = false;
+        connectedPhone = null;
+        currentQRCode = null;
 
         const { state, saveCreds } = await useMultiFileAuthState(AUTH_FOLDER);
         const { version, isLatest } = await fetchLatestBaileysVersion();
@@ -96,38 +120,49 @@ export async function initializeWhatsApp(): Promise<{
                 currentQRCode = await QRCode.toDataURL(qr);
                 qrRetryCount++;
                 console.log(`[WhatsApp] QR Code generated (Attempt ${qrRetryCount})`);
+
+                // If we've had too many QR attempts (> 5), credentials might be corrupt
+                if (qrRetryCount > 5) {
+                    console.log('[WhatsApp] Too many QR attempts, clearing credentials...');
+                    clearCredentialsAndReset();
+                }
             }
 
             if (connection === 'close') {
-                const shouldReconnect = (lastDisconnect?.error as any)?.output?.statusCode !== DisconnectReason.loggedOut;
+                const statusCode = (lastDisconnect?.error as any)?.output?.statusCode;
+                const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
 
-                console.log('[WhatsApp] Connection closed due to ', lastDisconnect?.error, ', reconnecting ', shouldReconnect);
+                console.log(`[WhatsApp] Connection closed. Status: ${statusCode}, Reconnect: ${shouldReconnect}`);
 
                 isConnected = false;
                 connectedPhone = null;
                 currentQRCode = null;
 
-                if (shouldReconnect) {
-                    // Reconnect automatically
-                    sock = null;
-                    initializeWhatsApp();
-                } else {
-                    console.log('[WhatsApp] Logged out. Delete auth folder to restart.');
-                    // Optional: Delete credentials here if desired
-                    // await fs.promises.rm(AUTH_FOLDER, { recursive: true, force: true });
-                    sock = null;
+                // Release connection lock
+                isConnecting = false;
+                globalForWA.isConnecting = false;
+
+                // Clear on STRICT auth issues only
+                // 401: Unauthorized, 403: Forbidden, DisconnectReason.loggedOut
+                // Note: 515 is "Stream Errored" which is common and should NOT clear creds
+                const authIssues = [DisconnectReason.loggedOut, 401, 403];
+                if (authIssues.includes(statusCode)) {
+                    console.log('[WhatsApp] Fatal Auth issue detected, clearing credentials');
+                    clearCredentialsAndReset();
                 }
 
+                sock = null;
+                globalForWA.sock = null;
                 await updateSessionStatus(false, null);
             } else if (connection === 'open') {
                 console.log('[WhatsApp] Connection opened!');
                 isConnected = true;
+                isConnecting = false;
+                globalForWA.isConnecting = false;
                 currentQRCode = null;
                 qrRetryCount = 0;
 
-                const user = sock?.user;
-                connectedPhone = user ? user.id.split(':')[0] : 'Unknown';
-
+                connectedPhone = sock?.user ? sock.user.id.split(':')[0] : 'Unknown';
                 console.log(`[WhatsApp] Connected as ${connectedPhone}`);
                 await updateSessionStatus(true, connectedPhone);
             }
@@ -136,15 +171,49 @@ export async function initializeWhatsApp(): Promise<{
         // Credential updates
         sock.ev.on('creds.update', saveCreds);
 
+        // Wait a bit for QR to generate before returning
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        isConnecting = false;
+        globalForWA.isConnecting = false;
         return { success: true, qrCode: currentQRCode || undefined };
 
     } catch (error) {
         console.error('[WhatsApp] Initialization error:', error);
+        isConnecting = false;
+        globalForWA.isConnecting = false;
         return {
             success: false,
             error: `Failed to initialize: ${String(error)}`
         };
     }
+}
+
+/**
+ * Clear credentials and reset all state for fresh QR
+ */
+function clearCredentialsAndReset() {
+    try {
+        if (fs.existsSync(AUTH_FOLDER)) {
+            fs.rmSync(AUTH_FOLDER, { recursive: true, force: true });
+            console.log('[WhatsApp] Auth folder deleted');
+        }
+    } catch (e) {
+        console.error('[WhatsApp] Failed to delete auth folder:', e);
+    }
+
+    if (sock) {
+        try {
+            sock.end(undefined);
+        } catch (e) { }
+    }
+
+    sock = null;
+    globalForWA.sock = null;
+    isConnected = false;
+    connectedPhone = null;
+    currentQRCode = null;
+    qrRetryCount = 0;
 }
 
 /**

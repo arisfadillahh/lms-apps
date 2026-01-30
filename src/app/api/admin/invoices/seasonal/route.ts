@@ -156,7 +156,19 @@ export async function POST(request: Request) {
     }
 
     // Generate public URL
-    const publicUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3005'}/invoice/${invoice.invoice_number}`;
+    // Use environment variable, or fall back to request headers for dynamic base URL
+    let baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+
+    if (!baseUrl) {
+        const protocol = request.headers.get('x-forwarded-proto') || 'http';
+        const host = request.headers.get('host') || 'localhost:3000';
+        baseUrl = `${protocol}://${host}`;
+    }
+
+    // Remove trailing slash if present
+    baseUrl = baseUrl.replace(/\/$/, '');
+
+    const publicUrl = `${baseUrl}/invoice/${invoice.invoice_number}`;
 
     return NextResponse.json({
         invoice: {

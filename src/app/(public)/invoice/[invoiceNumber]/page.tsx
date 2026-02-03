@@ -33,7 +33,8 @@ export default async function PublicInvoicePage({ params }: Props) {
                 bank_name: settings.bank_name,
                 bank_account_number: settings.bank_account_number,
                 bank_account_holder: settings.bank_account_holder,
-                admin_whatsapp_number: settings.admin_whatsapp_number
+                admin_whatsapp_number: settings.admin_whatsapp_number,
+                weekly_invoice_message_template: settings.weekly_invoice_message_template
             } : null}
         />
     );

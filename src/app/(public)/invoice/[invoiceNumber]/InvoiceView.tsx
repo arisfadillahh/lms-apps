@@ -9,6 +9,7 @@ interface BankInfo {
     bank_account_number: string;
     bank_account_holder: string;
     admin_whatsapp_number: string;
+    weekly_invoice_message_template?: string; // Optional because legacy data might not have it yet
 }
 
 interface Props {
@@ -18,7 +19,7 @@ interface Props {
 
 // Clevio Brand Colors
 const COLORS = {
-    primaryBlue: '#22367b', // Biru Dongker Clevio
+    primaryBlue: '#22367b', // Biru Dongker Clevio (Navy)
     primaryGreen: '#9dc83b', // Hijau Clevio (Vibrant Lime)
     primaryCyan: '#00b0d7',  // Cyan Clevio
     white: '#ffffff',
@@ -79,9 +80,27 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
         if (bankInfo?.admin_whatsapp_number) {
             const phone = bankInfo.admin_whatsapp_number.replace(/\D/g, '');
             const normalizedPhone = phone.startsWith('0') ? '62' + phone.substring(1) : phone;
-            const message = encodeURIComponent(
-                `Halo Clevio Finance,\n\nSaya ingin konfirmasi pembayaran untuk Invoice: ${invoice.invoice_number}\n\nTerima kasih.`
-            );
+
+            let message = '';
+
+            // Special template for New Registration (REG code)
+            if (invoice.ccr && invoice.ccr.ccr_code === 'REG') {
+                const template = bankInfo.weekly_invoice_message_template || 'Halo Clevio Finance,\n\nSaya ingin konfirmasi pembayaran untuk Pendaftaran Baru (Weekly).\n\nNo Invoice: {invoice_number}\nSiswa: {student_name}\n\nMohon dicek dan diproses ya. Terima kasih.';
+
+                const studentName = invoice.items?.[0]?.coder_name || invoice.parent_name || '-';
+
+                const filledMessage = template
+                    .replace(/{invoice_number}/g, invoice.invoice_number)
+                    .replace(/{student_name}/g, studentName);
+
+                message = encodeURIComponent(filledMessage);
+            } else {
+                // Default Invoice Confirmation
+                message = encodeURIComponent(
+                    `Halo Clevio Finance,\n\nSaya ingin konfirmasi pembayaran untuk Invoice: ${invoice.invoice_number}\n\nTerima kasih.`
+                );
+            }
+
             window.open(`https://wa.me/${normalizedPhone}?text=${message}`, '_blank');
         }
     };
@@ -114,6 +133,9 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
                             )}
                         </div>
                     </div>
+                    {/* Decorative Circles (Restored) */}
+                    <div style={circleDecoration1}></div>
+                    <div style={circleDecoration2}></div>
                 </div>
 
                 {/* Overlapping Info Cards Area */}
@@ -356,6 +378,30 @@ const headerStyle: CSSProperties = {
     overflow: 'hidden'
 };
 
+// Decorative Circle Elements (if manual placement needed)
+const circleDecoration1: CSSProperties = {
+    position: 'absolute',
+    top: '-50px',
+    right: '-50px',
+    width: '300px',
+    height: '300px',
+    borderRadius: '50%',
+    background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 70%)',
+    zIndex: 0
+};
+
+const circleDecoration2: CSSProperties = {
+    position: 'absolute',
+    bottom: '-20px',
+    left: '10%',
+    width: '200px',
+    height: '200px',
+    borderRadius: '50%',
+    background: 'radial-gradient(circle, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 70%)',
+    zIndex: 0
+};
+
+
 const headerContentStyle: CSSProperties = {
     display: 'flex',
     justifyContent: 'space-between',
@@ -575,7 +621,7 @@ const thStyle: CSSProperties = {
 };
 
 const trStyle: CSSProperties = {
-    // 
+
 };
 
 const tdStyle: CSSProperties = {
@@ -606,7 +652,7 @@ const discountTagStyle: CSSProperties = {
     padding: '2px 8px',
     borderRadius: '4px',
     fontSize: '12px',
-    whiteSpace: 'nowrap' // Prevent text wrapping
+    whiteSpace: 'nowrap'
 };
 
 const totalSectionWrapperStyle: CSSProperties = {
@@ -630,9 +676,9 @@ const periodLabelStyle: CSSProperties = {
 };
 
 const periodValueStyle: CSSProperties = {
-    fontWeight: 800, // Thicker
+    fontWeight: 800,
     color: COLORS.primaryBlue,
-    fontSize: '20px', // Bigger
+    fontSize: '20px',
     marginTop: '2px'
 };
 
@@ -684,17 +730,6 @@ const termsHeaderStyle: CSSProperties = {
 const signatureStyle: CSSProperties = {
     textAlign: 'center',
     width: '200px'
-};
-
-const signaturePlaceholderStyle: CSSProperties = {
-    height: '60px',
-    marginBottom: '10px',
-    fontFamily: "'Dancing Script', cursive",
-    fontSize: '20px',
-    color: '#D1D5DB',
-    display: 'flex',
-    alignItems: 'end',
-    justifyContent: 'center'
 };
 
 const signatureNameStyle: CSSProperties = {

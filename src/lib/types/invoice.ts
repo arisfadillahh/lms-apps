@@ -19,7 +19,8 @@ export interface InvoiceSettings {
     registration_fee: number;
     registration_fee_discount_percent: number;
     payment_confirmation_template: string;
-    seasonal_invoice_message_template: string; // New field
+    seasonal_invoice_message_template: string;
+    weekly_invoice_message_template: string; // New field for Weekly Registration
     updated_at: string;
 }
 

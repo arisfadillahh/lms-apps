@@ -19,6 +19,7 @@ export default function InvoiceSettingsForm({ initialSettings }: Props) {
         invoice_message_template: initialSettings?.invoice_message_template || '',
         payment_confirmation_template: initialSettings?.payment_confirmation_template || '',
         seasonal_invoice_message_template: initialSettings?.seasonal_invoice_message_template || '',
+        weekly_invoice_message_template: initialSettings?.weekly_invoice_message_template || '',
         whatsapp_delay_min: initialSettings?.whatsapp_delay_min || 10,
         whatsapp_delay_max: initialSettings?.whatsapp_delay_max || 30
     });
@@ -221,6 +222,19 @@ export default function InvoiceSettingsForm({ initialSettings }: Props) {
                     />
                     <p style={helpTextStyle}>
                         Variables: {'{student_name}'}, {'{program_name}'}, {'{invoice_number}'}, {'{invoice_url}'}
+                    </p>
+                </div>
+
+                <div style={formGroupStyle}>
+                    <label style={labelStyle}>Template Message - Weekly Registration (REG)</label>
+                    <textarea
+                        value={settings.weekly_invoice_message_template}
+                        onChange={(e) => handleChange('weekly_invoice_message_template', e.target.value)}
+                        style={textareaStyle}
+                        rows={8}
+                    />
+                    <p style={helpTextStyle}>
+                        Variables: {'{invoice_number}'}, {'{student_name}'}
                     </p>
                 </div>
             </div>

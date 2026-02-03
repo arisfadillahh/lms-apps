@@ -523,9 +523,18 @@ function formatInvoiceMessage(
     invoice: Invoice,
     settings: {
         invoice_message_template: string;
+        weekly_invoice_message_template?: string;
         base_url: string;
     }
 ): string {
+    // Check for Weekly Registration (REG)
+    if (invoice.ccr && invoice.ccr.ccr_code === 'REG' && settings.weekly_invoice_message_template) {
+        const studentName = invoice.items?.[0]?.coder_name || invoice.parent_name || '-';
+        return settings.weekly_invoice_message_template
+            .replace(/{invoice_number}/g, invoice.invoice_number)
+            .replace(/{student_name}/g, studentName);
+    }
+
     const template = settings.invoice_message_template;
     const invoiceUrl = `${settings.base_url}/invoice/${invoice.invoice_number}`;
 

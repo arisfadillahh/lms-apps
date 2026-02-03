@@ -527,6 +527,10 @@ function formatInvoiceMessage(
         base_url: string;
     }
 ): string {
+    console.log('[DEBUG formatInvoiceMessage] Settings keys:', Object.keys(settings));
+    console.log('[DEBUG formatInvoiceMessage] Weekly Template:', settings.weekly_invoice_message_template?.substring(0, 20) + '...');
+    console.log('[DEBUG formatInvoiceMessage] Invoice CCR:', invoice.ccr);
+
     // Check for Weekly Registration (REG)
     if (invoice.ccr && invoice.ccr.ccr_code === 'REG' && settings.weekly_invoice_message_template) {
         const studentName = invoice.items?.[0]?.coder_name || invoice.parent_name || '-';

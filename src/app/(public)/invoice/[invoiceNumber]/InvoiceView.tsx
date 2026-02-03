@@ -172,18 +172,21 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
                                         <span style={dateLabelStyle}>Jatuh Tempo:</span>
                                         <span style={dateValueStyle}>{formatDate(invoice.due_date)}</span>
                                     </div>
-                                    <div style={{ marginTop: '8px' }}>
-                                        {getStatusBadge(invoice.status)}
-                                    </div>
+                                    {/* Only show status badge if NOT paid (to avoid duplicate LUNAS text) */}
+                                    {!isPaid && (
+                                        <div style={{ marginTop: '8px' }}>
+                                            {getStatusBadge(invoice.status)}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Right Card: Payment Info */}
+                        {/* Right Card: Payment Info / Status */}
                         <div style={floatingCardStyle}>
                             <div style={cardHeaderStyle}>
                                 <span style={{ ...cardTitleDotStyle, backgroundColor: COLORS.primaryGreen }}></span>
-                                METODE PEMBAYARAN
+                                {isPaid ? 'STATUS PEMBAYARAN' : 'METODE PEMBAYARAN'}
                             </div>
                             <div style={cardContentStyle}>
                                 {!isPaid && bankInfo ? (
@@ -389,13 +392,13 @@ const containerStyle: CSSProperties = {
     padding: '40px 20px',
     fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
     color: COLORS.textDark,
-    minWidth: '900px', // Force desktop width even on mobile (triggers scroll/zoom)
+    minWidth: '1024px', // Force desktop width even on mobile (triggers scroll/zoom)
     overflowX: 'auto'  // Allow scrolling
 };
 
 const invoiceCardStyle: CSSProperties = {
-    maxWidth: '850px', // Width fixed
-    width: '850px',    // Explicit width to prevent squishing
+    maxWidth: '980px', // Width increased to fill viewport
+    width: '980px',    // Explicit width to prevent squishing
     margin: '0 auto',
     backgroundColor: COLORS.white,
     borderRadius: '24px',

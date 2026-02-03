@@ -550,25 +550,23 @@ function formatInvoiceMessage(
         const start = new Date(invoice.period_start_date);
         const end = new Date(invoice.period_end_date);
 
-        const startDay = start.getDate();
         const startMonth = getMonthName(start.getMonth() + 1);
         const startYear = start.getFullYear();
 
-        const endDay = end.getDate();
         const endMonth = getMonthName(end.getMonth() + 1);
         const endYear = end.getFullYear();
 
-        // Same month and year: "1 - 30 Januari 2026"
+        // Same month: "Januari 2026"
         if (start.getMonth() === end.getMonth() && startYear === endYear) {
-            periodMonthYear = `${startDay} - ${endDay} ${startMonth} ${startYear}`;
+            periodMonthYear = `${startMonth} ${startYear}`;
         }
-        // Same year, different months: "1 Januari - 30 Maret 2026"
+        // Same year: "Januari - Maret 2026"
         else if (startYear === endYear) {
-            periodMonthYear = `${startDay} ${startMonth} - ${endDay} ${endMonth} ${startYear}`;
+            periodMonthYear = `${startMonth} - ${endMonth} ${startYear}`;
         }
-        // Different years: "1 Desember 2025 - 28 Februari 2026"
+        // Different years: "Desember 2025 - Februari 2026"
         else {
-            periodMonthYear = `${startDay} ${startMonth} ${startYear} - ${endDay} ${endMonth} ${endYear}`;
+            periodMonthYear = `${startMonth} ${startYear} - ${endMonth} ${endYear}`;
         }
     } else {
         // Fallback to old format if period dates not available

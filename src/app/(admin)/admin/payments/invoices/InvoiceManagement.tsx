@@ -80,26 +80,24 @@ export default function InvoiceManagement({
         const start = new Date(startDate);
         const end = new Date(endDate);
 
-        const startDay = start.getDate();
         const startMonth = getMonthName(start.getMonth() + 1);
         const startYear = start.getFullYear();
 
-        const endDay = end.getDate();
         const endMonth = getMonthName(end.getMonth() + 1);
         const endYear = end.getFullYear();
 
-        // Same month and year: "1-30 Jan 2026"
+        // Same month: "Jan 2026"
         if (start.getMonth() === end.getMonth() && startYear === endYear) {
-            return `${startDay}-${endDay} ${startMonth} ${startYear}`;
+            return `${startMonth} ${startYear}`;
         }
 
-        // Same year, different months: "1 Jan-30 Mar 2026"
+        // Same year: "Jan - Mar 2026"
         if (startYear === endYear) {
-            return `${startDay} ${startMonth}-${endDay} ${endMonth} ${startYear}`;
+            return `${startMonth} - ${endMonth} ${startYear}`;
         }
 
-        // Different years: "1 Des 2025-28 Feb 2026"
-        return `${startDay} ${startMonth} ${startYear}-${endDay} ${endMonth} ${endYear}`;
+        // Different years: "Des 2025 - Feb 2026"
+        return `${startMonth} ${startYear} - ${endMonth} ${endYear}`;
     };
 
     const fetchInvoices = useCallback(async () => {

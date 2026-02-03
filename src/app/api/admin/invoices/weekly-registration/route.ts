@@ -84,7 +84,7 @@ export async function POST(request: Request) {
                 .eq('id', student.pricingId)
                 .single();
 
-            const levelName = pricing?.levels?.name || 'Program';
+            const levelName = (pricing as any)?.levels?.name || 'Program';
             const modeName = pricing?.mode === 'ONLINE' ? 'Online' : 'Offline';
 
             // Item 1: Registration Fee

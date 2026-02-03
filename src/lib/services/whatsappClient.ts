@@ -10,7 +10,7 @@ import {
     getInvoiceSettings,
     getPendingInvoicesForMonth
 } from '@/lib/dao/invoicesDao';
-import type { Invoice, SendRemindersResponse, WhatsAppStatus } from '@/lib/types/invoice';
+import type { Invoice, InvoiceSettings, SendRemindersResponse, WhatsAppStatus } from '@/lib/types/invoice';
 import makeWASocket, {
     useMultiFileAuthState,
     DisconnectReason,
@@ -521,12 +521,17 @@ function normalizePhoneNumber(phone: string): string | null {
  */
 function formatInvoiceMessage(
     invoice: Invoice,
-    settings: {
-        invoice_message_template: string;
-        base_url: string;
-    }
+    settings: InvoiceSettings
 ): string {
-    const template = settings.invoice_message_template;
+    let template = settings.invoice_message_template;
+
+    // Check if this is a REG (Weekly) invoice
+    if (invoice.ccr && invoice.ccr.ccr_code === 'REG') {
+        if (settings.weekly_invoice_message_template) {
+            template = settings.weekly_invoice_message_template;
+        }
+    }
+
     const invoiceUrl = `${settings.base_url}/invoice/${invoice.invoice_number}`;
 
     const formattedAmount = new Intl.NumberFormat('id-ID').format(invoice.total_amount);
@@ -579,7 +584,10 @@ function formatInvoiceMessage(
 
     // Generate student list
     let studentList = '';
-    if (invoice.items && invoice.items.length > 0) {
+    // For REG/Seasonal invoices, use student name from invoice/items if available
+    if (invoice.invoice_type === 'SEASONAL' && invoice.seasonal_student_name) {
+        studentList = `- ${invoice.seasonal_student_name}`;
+    } else if (invoice.items && invoice.items.length > 0) {
         studentList = invoice.items.map(item =>
             `- ${item.coder_name} (${item.class_name})`
         ).join('\n');
@@ -587,6 +595,8 @@ function formatInvoiceMessage(
         studentList = '- (Detail tidak tersedia)';
     }
 
+    // If using weekly template, we might need to handle specific placeholders if they differ
+    // But assuming standard placeholders are used:
     return template
         .replace(/{parent_name}/g, invoice.parent_name)
         .replace(/{invoice_number}/g, invoice.invoice_number)
@@ -594,7 +604,9 @@ function formatInvoiceMessage(
         .replace(/{due_date}/g, formattedDueDate)
         .replace(/{invoice_url}/g, invoiceUrl)
         .replace(/{period_month_year}/g, periodMonthYear)
-        .replace(/{student_list}/g, studentList);
+        .replace(/{student_list}/g, studentList)
+        // Add specific replacements for Weekly template if needed:
+        .replace(/{student_name}/g, invoice.items?.[0]?.coder_name || invoice.parent_name || '-');
 }
 
 /**

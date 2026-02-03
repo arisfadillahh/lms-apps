@@ -6,6 +6,7 @@ import type { Invoice } from '@/lib/types/invoice';
 import { useReminder } from '@/contexts/ReminderContext';
 import AssignClassModal from './AssignClassModal';
 import SeasonalInvoiceModal from './SeasonalInvoiceModal';
+import WeeklyRegistrationModal from './WeeklyRegistrationModal';
 
 interface Stats {
     pending: number;
@@ -54,6 +55,8 @@ export default function InvoiceManagement({
 
     // Seasonal Invoice Modal
     const [showSeasonalModal, setShowSeasonalModal] = useState(false);
+    // Weekly Registration Modal
+    const [showWeeklyModal, setShowWeeklyModal] = useState(false);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('id-ID', {
@@ -325,6 +328,20 @@ export default function InvoiceManagement({
                     📅 Invoice Seasonal
                 </button>
                 <button
+                    onClick={() => setShowWeeklyModal(true)}
+                    style={{
+                        ...secondaryButtonStyle,
+                        width: 'auto',
+                        padding: '0.75rem 2rem',
+                        fontSize: '1rem',
+                        background: '#e0e7ff',
+                        borderColor: '#818cf8',
+                        color: '#3730a3',
+                    }}
+                >
+                    📝 Registrasi Weekly Baru
+                </button>
+                <button
                     onClick={handlePrepareReminders}
                     disabled={generating || isProcessingQueue}
                     style={{
@@ -590,6 +607,13 @@ export default function InvoiceManagement({
             <SeasonalInvoiceModal
                 isOpen={showSeasonalModal}
                 onClose={() => setShowSeasonalModal(false)}
+                onSuccess={() => fetchInvoices()}
+            />
+
+            {/* Weekly Registration Modal */}
+            <WeeklyRegistrationModal
+                isOpen={showWeeklyModal}
+                onClose={() => setShowWeeklyModal(false)}
                 onSuccess={() => fetchInvoices()}
             />
         </div>

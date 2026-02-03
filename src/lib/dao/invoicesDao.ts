@@ -89,11 +89,17 @@ export async function getOrCreateCCR(
         return (existing as unknown) as CCRNumber;
     }
 
-    // Get next sequence number
-    const { data: seqData } = await (supabase as any)
-        .rpc('get_next_ccr_sequence');
+    // Get next sequence number by finding MAX existing sequence
+    const { data: maxResult } = await supabase
+        .from('ccr_numbers' as any)
+        .select('ccr_sequence')
+        .order('ccr_sequence', { ascending: false })
+        .limit(1)
+        .single();
 
-    const nextSeq = seqData || 1;
+    const currentMax = maxResult ? (maxResult as any).ccr_sequence : 0;
+    const nextSeq = currentMax + 1;
+    const nextCode = formatCCRCode(nextSeq);
 
     // Create new CCR
     const { data: newCCR, error } = await supabase
@@ -101,6 +107,7 @@ export async function getOrCreateCCR(
         .insert({
             parent_phone: parentPhone,
             ccr_sequence: nextSeq,
+            ccr_code: nextCode,
             parent_name: parentName || null
         })
         .select()
@@ -410,10 +417,15 @@ export async function getInvoiceByNumber(invoiceNumber: string): Promise<Invoice
         .from('invoices' as any)
         .select(`
       *,
-      items:invoice_items(*)
+      items:invoice_items(*),
+      ccr_numbers(*)
     `)
         .eq('invoice_number', invoiceNumber)
         .single();
+
+    if (data) {
+        (data as any).ccr = (data as any).ccr_numbers;
+    }
 
     if (error) {
         console.error('[InvoicesDao] Error fetching invoice:', error);
@@ -430,10 +442,15 @@ export async function getInvoiceById(id: string): Promise<Invoice | null> {
         .from('invoices' as any)
         .select(`
       *,
-      items:invoice_items(*)
+      items:invoice_items(*),
+      ccr_numbers(*)
     `)
         .eq('id', id)
         .single();
+
+    if (data) {
+        (data as any).ccr = (data as any).ccr_numbers;
+    }
 
     if (error) {
         console.error('[InvoicesDao] Error fetching invoice by ID:', error);
@@ -449,7 +466,7 @@ export async function listInvoices(filters: InvoiceFilters): Promise<InvoiceList
 
     let query = supabase
         .from('invoices' as any)
-        .select('*, items:invoice_items(*)', { count: 'exact' });
+        .select('*, items:invoice_items(*), ccr_numbers(*)', { count: 'exact' });
 
     if (month) {
         query = query.eq('period_month', month);
@@ -480,8 +497,17 @@ export async function listInvoices(filters: InvoiceFilters): Promise<InvoiceList
         return { invoices: [], total: 0, page, limit };
     }
 
+    const invoices = (data as unknown) as Invoice[];
+
+    // Map ccr_numbers to ccr
+    invoices.forEach(inv => {
+        if ((inv as any).ccr_numbers) {
+            inv.ccr = (inv as any).ccr_numbers;
+        }
+    });
+
     return {
-        invoices: (data as unknown) as Invoice[],
+        invoices,
         total: count || 0,
         page,
         limit
@@ -496,7 +522,7 @@ export async function getPendingInvoicesForMonth(
 
     const { data, error } = await supabase
         .from('invoices' as any)
-        .select('*, items:invoice_items(*)')
+        .select('*, items:invoice_items(*), ccr_numbers(*)')
         .eq('period_month', month)
         .eq('period_year', year)
         .eq('status', 'PENDING');
@@ -506,7 +532,16 @@ export async function getPendingInvoicesForMonth(
         return [];
     }
 
-    return (data as unknown) as Invoice[];
+    const invoices = (data as unknown) as Invoice[];
+
+    // Map ccr_numbers to ccr
+    invoices.forEach(inv => {
+        if ((inv as any).ccr_numbers) {
+            inv.ccr = (inv as any).ccr_numbers;
+        }
+    });
+
+    return invoices;
 }
 
 export async function invoiceExistsForParent(
@@ -579,7 +614,7 @@ export async function getInvoiceHistoryByParent(parentPhone: string): Promise<In
 
     const { data, error } = await supabase
         .from('invoices' as any)
-        .select('*, items:invoice_items(*)')
+        .select('*, items:invoice_items(*), ccr_numbers(*)')
         .eq('parent_phone', parentPhone)
         .order('period_year', { ascending: false })
         .order('period_month', { ascending: false });
@@ -589,7 +624,16 @@ export async function getInvoiceHistoryByParent(parentPhone: string): Promise<In
         return [];
     }
 
-    return (data as unknown) as Invoice[];
+    const invoices = (data as unknown) as Invoice[];
+
+    // Map ccr_numbers to ccr
+    invoices.forEach(inv => {
+        if ((inv as any).ccr_numbers) {
+            inv.ccr = (inv as any).ccr_numbers;
+        }
+    });
+
+    return invoices;
 }
 
 // ============================================================================

@@ -85,15 +85,14 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
 
             // Special template for New Registration (REG code)
             if (invoice.ccr && invoice.ccr.ccr_code === 'REG') {
-                const template = bankInfo.weekly_invoice_message_template || 'Halo Clevio Finance,\n\nSaya ingin konfirmasi pembayaran untuk Pendaftaran Baru (Weekly).\n\nNo Invoice: {invoice_number}\nSiswa: {student_name}\n\nMohon dicek dan diproses ya. Terima kasih.';
+                // NOTE: For 'Contact Admin' button (Parent -> Admin), we use a standard confirmation message,
+                // NOT the 'weekly_invoice_message_template' which is for Admin -> Parent reminders.
 
                 const studentName = invoice.items?.[0]?.coder_name || invoice.parent_name || '-';
 
-                const filledMessage = template
-                    .replace(/{invoice_number}/g, invoice.invoice_number)
-                    .replace(/{student_name}/g, studentName);
+                const text = `Halo Admin Finance Clevio,\n\nSaya ingin konfirmasi pembayaran untuk Invoice: ${invoice.invoice_number}\nSiswa: ${studentName}\nProgram: Weekly Class\n\nMohon dibantu proses ya. Terima kasih.`;
 
-                message = encodeURIComponent(filledMessage);
+                message = encodeURIComponent(text);
             } else {
                 // Default Invoice Confirmation
                 message = encodeURIComponent(
@@ -109,10 +108,10 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
 
     return (
         <div style={containerStyle}>
-            <div style={invoiceCardStyle}>
+            <div style={invoiceCardStyle} className="invoice-card">
                 {/* Header - Textured Background */}
                 <div style={headerStyle}>
-                    <div style={headerContentStyle}>
+                    <div style={headerContentStyle} className="header-content">
                         <div style={companyInfoStyle}>
                             <Image
                                 src="/images/clevio-logo.png.png?v=2"
@@ -125,7 +124,7 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
                         </div>
 
                         {/* Right Side: Invoice Title Only */}
-                        <div style={invoiceTitleSectionStyle}>
+                        <div style={invoiceTitleSectionStyle} className="invoice-title-section">
                             <h1 style={invoiceTitleStyle}>INVOICE</h1>
                             <div style={invoiceNoStyle}>#{invoice.invoice_number}</div>
                             {invoice.ccr && (
@@ -139,8 +138,8 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
                 </div>
 
                 {/* Overlapping Info Cards Area */}
-                <div style={infoSectionContainerStyle}>
-                    <div style={infoGridStyle}>
+                <div style={infoSectionContainerStyle} className="info-section-container">
+                    <div style={infoGridStyle} className="info-grid">
                         {/* Left Card: Invoice To + Dates + Status */}
                         <div style={floatingCardStyle}>
                             <div style={cardHeaderStyle}>
@@ -213,9 +212,9 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
                 </div>
 
                 {/* Content Body */}
-                <div style={bodyContentStyle}>
+                <div style={bodyContentStyle} className="body-content">
                     {/* Items Table - Rounded Floating Rows */}
-                    <div style={tableContainerStyle}>
+                    <div style={tableContainerStyle} className="table-container">
                         <table style={tableStyle}>
                             <thead>
                                 <tr>
@@ -256,7 +255,7 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
                     </div>
 
                     {/* Total Section & Footer */}
-                    <div style={totalSectionWrapperStyle}>
+                    <div style={totalSectionWrapperStyle} className="total-section">
                         <div style={{ flex: 1 }}>
                             <div style={periodContainerStyle}>
                                 <div style={periodLabelStyle}>Periode:</div>
@@ -269,8 +268,8 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
                         </div>
                     </div>
 
-                    <div style={footerStyle}>
-                        <div style={termsStyle}>
+                    <div style={footerStyle} className="footer">
+                        <div style={termsStyle} className="terms">
                             <div style={termsHeaderStyle}>Syarat & Ketentuan:</div>
                             <ul>
                                 <li>Pembayaran dapat dilakukan melalui transfer bank ke rekening yang tertera di atas.</li>
@@ -279,7 +278,7 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
                                 <li>Untuk pertanyaan lebih lanjut, silakan hubungi admin kami.</li>
                             </ul>
                         </div>
-                        <div style={signatureStyle}>
+                        <div style={signatureStyle} className="signature">
                             <div style={signatureNameStyle}>Finance <br />Clevio Innovator Camp</div>
                         </div>
                     </div>
@@ -293,12 +292,49 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
                 </button>
             </div>
 
-            <style>{`
+            {/* Print Styles & Desktop-like Mobile */}
+            <style jsx global>{`
+                /* Print Settings - Force A4 Fit */
                 @media print {
-                    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    @page {
+                        size: A4;
+                        margin: 0; /* Remove default browser margins */
+                    }
+                    body {
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                        margin: 0;
+                        padding: 0;
+                        /* Force scale to fit if needed */
+                        transform-origin: top left;
+                    }
+                    
+                    /* Hide non-printable elements */
                     button { display: none !important; }
-                    div[style*="min-height: 100vh"] { padding: 0 !important; background: white !important; }
-                    div[style*="box-shadow"] { box-shadow: none !important; border: 1px solid #ddd !important; }
+                    
+                    /* Reset container styles for print */
+                    div[style*="min-height: 100vh"] { 
+                        padding: 0 !important; 
+                        background: white !important; 
+                        height: auto !important;
+                        min-height: 0 !important;
+                    }
+                    
+                    /* Reset Card styles */
+                    .invoice-card { 
+                        box-shadow: none !important; 
+                        margin: 0 !important; 
+                        max-width: 100% !important; 
+                        border-radius: 0 !important;
+                        width: 210mm !important; /* A4 Width */
+                        min-height: 297mm !important; /* A4 Height */
+                        padding: 20px !important;
+                    }
+
+                    /* Adjust header to save space if needed */
+                    .header-content {
+                        padding-bottom: 20px !important;
+                    }
                 }
             `}</style>
         </div>
@@ -352,17 +388,81 @@ const containerStyle: CSSProperties = {
     backgroundColor: '#F3F4F6',
     padding: '40px 20px',
     fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    color: COLORS.textDark
+    color: COLORS.textDark,
+    minWidth: '900px', // Force desktop width even on mobile (triggers scroll/zoom)
+    overflowX: 'auto'  // Allow scrolling
 };
 
 const invoiceCardStyle: CSSProperties = {
-    maxWidth: '850px',
+    maxWidth: '850px', // Width fixed
+    width: '850px',    // Explicit width to prevent squishing
     margin: '0 auto',
     backgroundColor: COLORS.white,
     borderRadius: '24px',
     overflow: 'hidden',
     boxShadow: '0 20px 50px rgba(0,0,0,0.1)'
 };
+
+// ... existing code ...
+
+{/* Print Styles & Desktop-like Mobile */ }
+<style jsx global>{`
+                /* Print Settings - Force A4 Fit */
+                @media print {
+                    @page {
+                        size: A4;
+                        margin: 0;
+                    }
+                    html, body {
+                        width: 210mm;
+                        height: 297mm;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        overflow: hidden;
+                    }
+                    
+                    /* Scale down to fit A4 */
+                    body {
+                        transform: scale(0.75); /* Zoom out to fit */
+                        transform-origin: top left;
+                        width: 133% !important; /* Compensate for scale (1 / 0.75) */
+                    }
+                    
+                    /* Hide non-printable elements */
+                    button { display: none !important; }
+                    
+                    /* Reset container styles for print */
+                    div[style*="min-height: 100vh"] { 
+                        padding: 0 !important; 
+                        background: white !important; 
+                        height: auto !important;
+                        min-height: 0 !important;
+                        min-width: 0 !important; /* Override the desktop force */
+                        overflow: visible !important;
+                    }
+                    
+                    /* Reset Card styles */
+                    .invoice-card { 
+                        box-shadow: none !important; 
+                        margin: 0 !important; 
+                        max-width: 100% !important; 
+                        border-radius: 0 !important;
+                        width: 100% !important;
+                        padding: 20px !important;
+                    }
+
+                    /* Adjust header to save space */
+                    .header-content {
+                        padding-bottom: 10px !important;
+                    }
+                    .info-section-container {
+                        margin-top: -40px !important;
+                    }
+                    .footer {
+                        margin-top: 30px !important;
+                    }
+                }
+            `}</style>
 
 const headerStyle: CSSProperties = {
     backgroundColor: COLORS.primaryBlue,

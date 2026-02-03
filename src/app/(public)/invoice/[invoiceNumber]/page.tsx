@@ -49,3 +49,10 @@ export async function generateMetadata({ params }: Props) {
     };
 }
 
+export const viewport = {
+    width: 1024,
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+};
+

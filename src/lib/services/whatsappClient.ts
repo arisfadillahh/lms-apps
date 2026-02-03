@@ -527,20 +527,44 @@ function formatInvoiceMessage(
         base_url: string;
     }
 ): string {
-    console.log('[DEBUG formatInvoiceMessage] Settings keys:', Object.keys(settings));
-    console.log('[DEBUG formatInvoiceMessage] Weekly Template:', settings.weekly_invoice_message_template?.substring(0, 20) + '...');
-    console.log('[DEBUG formatInvoiceMessage] Invoice CCR:', invoice.ccr);
+    // Check for Weekly Registration (REG) - Check by invoice number prefix OR ccr code
+    const isWeeklyReg = invoice.invoice_number.startsWith('REG-') || (invoice.ccr && invoice.ccr.ccr_code === 'REG');
+    const invoiceUrl = `${settings.base_url}/invoice/${invoice.invoice_number}`;
 
-    // Check for Weekly Registration (REG)
-    if (invoice.ccr && invoice.ccr.ccr_code === 'REG' && settings.weekly_invoice_message_template) {
-        const studentName = invoice.items?.[0]?.coder_name || invoice.parent_name || '-';
-        return settings.weekly_invoice_message_template
+    // Helper to get student names - Handle multiple students!
+    const studentNames = Array.from(new Set(
+        invoice.items?.map(item => item.coder_name).filter(Boolean) || []
+    ));
+    const studentName = studentNames.length > 0
+        ? studentNames.join(', ')
+        : (invoice.parent_name || '-');
+
+    if (isWeeklyReg) {
+
+        // Use setting or Default Fallback
+        const template = settings.weekly_invoice_message_template ||
+            `Halo Ayah/Bunda {parent_name},
+
+Terima kasih telah mendaftar di Program Weekly Clevio Innovator Camp.
+
+Berikut detail tagihan pendaftaran:
+- No. Invoice: {invoice_number}
+- Siswa: {student_name}
+
+Silakan cek detail dan lakukan pembayaran melalui link invoice berikut:
+{invoice_url}
+
+Mohon selesaikan pembayaran untuk mengamankan slot jadwal.
+Terima kasih!`;
+
+        return template
             .replace(/{invoice_number}/g, invoice.invoice_number)
-            .replace(/{student_name}/g, studentName);
+            .replace(/{student_name}/g, studentName)
+            .replace(/{parent_name}/g, invoice.parent_name)
+            .replace(/{invoice_url}/g, invoiceUrl);
     }
 
     const template = settings.invoice_message_template;
-    const invoiceUrl = `${settings.base_url}/invoice/${invoice.invoice_number}`;
 
     const formattedAmount = new Intl.NumberFormat('id-ID').format(invoice.total_amount);
     const formattedDueDate = new Date(invoice.due_date).toLocaleDateString('id-ID', {

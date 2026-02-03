@@ -143,53 +143,85 @@ export async function POST(request: Request) {
                 const month = now.getMonth() + 1;
                 const year = now.getFullYear();
 
-                // Generate invoice number
-                const { count } = await supabase
+                // 1. Check for EXISTING Pending Registration Invoice for this Parent (CCR)
+                const { data: existingInvoice } = await supabase
                     .from('invoices' as any)
-                    .select('*', { count: 'exact', head: true })
-                    .gte('created_at', `${year}-${month.toString().padStart(2, '0')}-01`);
-
-                const sequence = (count || 0) + 1;
-                const invoiceNumber = `REG-${year}${month.toString().padStart(2, '0')}-${sequence.toString().padStart(4, '0')}`;
-
-                // Due date = 10 days from now
-                const dueDate = new Date();
-                dueDate.setDate(dueDate.getDate() + 10);
-
-                // Total = registration fee + class fee (paket)
-                const grandTotal = parsed.data.registrationTotal + parsed.data.totalAmount;
-
-                // For registration, period is the payment period dates
-                const periodStartDate = new Date(parsed.data.startDate);
-                const periodEndDate = new Date(parsed.data.endDate);
-
-                // Create registration invoice with both fees
-                const { data: invoice } = await supabase
-                    .from('invoices' as any)
-                    .insert({
-                        invoice_number: invoiceNumber,
-                        ccr_id: ccr.id,
-                        parent_phone: coder.parent_contact_phone,
-                        parent_name: coder.parent_name || coder.full_name,
-                        period_month: month,
-                        period_year: year,
-                        period_start_date: periodStartDate.toISOString().split('T')[0],
-                        period_end_date: periodEndDate.toISOString().split('T')[0],
-                        total_amount: grandTotal,
-                        status: 'PENDING',
-                        invoice_type: 'REGISTRATION',
-                        due_date: dueDate.toISOString()
-                    })
-                    .select()
+                    .select('*')
+                    .eq('ccr_id', ccr.id)
+                    .eq('invoice_type', 'REGISTRATION')
+                    .eq('status', 'PENDING')
+                    .gte('created_at', `${year}-${month.toString().padStart(2, '0')}-01`) // Created this month
                     .single();
 
-                if (invoice) {
+                let invoiceId = '';
+                let invoiceNumber = '';
+
+                // Calculate totals
+                const newItemsTotal = parsed.data.registrationTotal + parsed.data.totalAmount;
+
+                if (existingInvoice) {
+                    // MERGE: Use existing invoice
+                    invoiceId = (existingInvoice as any).id;
+                    invoiceNumber = (existingInvoice as any).invoice_number;
+
+                    // Update existing invoice total amount
+                    const updatedTotal = (existingInvoice as any).total_amount + newItemsTotal;
+                    await supabase
+                        .from('invoices' as any)
+                        .update({ total_amount: updatedTotal })
+                        .eq('id', invoiceId);
+
+                    console.log(`[Create Registration Invoice] Merging with existing invoice: ${invoiceNumber}`);
+                } else {
+                    // CREATE NEW: Generate invoice number
+                    const { count } = await supabase
+                        .from('invoices' as any)
+                        .select('*', { count: 'exact', head: true })
+                        .gte('created_at', `${year}-${month.toString().padStart(2, '0')}-01`);
+
+                    const sequence = (count || 0) + 1;
+                    invoiceNumber = `REG-${year}${month.toString().padStart(2, '0')}-${sequence.toString().padStart(4, '0')}`;
+
+                    // Due date = 10 days from now
+                    const dueDate = new Date();
+                    dueDate.setDate(dueDate.getDate() + 10);
+
+                    // For registration, period is the payment period dates
+                    const periodStartDate = new Date(parsed.data.startDate);
+                    const periodEndDate = new Date(parsed.data.endDate);
+
+                    // Create registration invoice with both fees
+                    const { data: invoice } = await supabase
+                        .from('invoices' as any)
+                        .insert({
+                            invoice_number: invoiceNumber,
+                            ccr_id: ccr.id,
+                            parent_phone: coder.parent_contact_phone,
+                            parent_name: coder.parent_name || coder.full_name,
+                            period_month: month,
+                            period_year: year,
+                            period_start_date: periodStartDate.toISOString().split('T')[0],
+                            period_end_date: periodEndDate.toISOString().split('T')[0],
+                            total_amount: newItemsTotal, // Initial total
+                            status: 'PENDING',
+                            invoice_type: 'REGISTRATION',
+                            due_date: dueDate.toISOString()
+                        })
+                        .select()
+                        .single();
+
+                    if (invoice) {
+                        invoiceId = (invoice as any).id;
+                    }
+                }
+
+                if (invoiceId) {
                     const invoiceItems = [];
 
                     // Item 1: Registration fee (if any)
                     if (parsed.data.registrationTotal > 0) {
                         invoiceItems.push({
-                            invoice_id: (invoice as any).id,
+                            invoice_id: invoiceId,
                             coder_id: parsed.data.coderId,
                             coder_name: coder.full_name,
                             class_name: 'Biaya Pendaftaran',
@@ -203,7 +235,7 @@ export async function POST(request: Request) {
                     // Item 2: Class/package fee
                     const modeName = pricingInfo?.mode === 'ONLINE' ? 'Online' : 'Offline';
                     invoiceItems.push({
-                        invoice_id: (invoice as any).id,
+                        invoice_id: invoiceId,
                         coder_id: parsed.data.coderId,
                         coder_name: coder.full_name,
                         class_name: `Paket Belajar (${modeName})`,
@@ -220,7 +252,7 @@ export async function POST(request: Request) {
                         .insert(invoiceItems);
 
                     registrationInvoice = {
-                        id: (invoice as any).id,
+                        id: invoiceId,
                         invoiceNumber: invoiceNumber
                     };
                 }

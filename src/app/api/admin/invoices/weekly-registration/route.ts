@@ -79,17 +79,17 @@ export async function POST(request: Request) {
 
             // Get Pricing Info for Item Name
             const { data: pricing } = await supabase
-                .from('pricing')
+                .from('pricing' as any)
                 .select('*, levels(name)')
                 .eq('id', student.pricingId)
                 .single();
 
             const levelName = (pricing as any)?.levels?.name || 'Program';
-            const modeName = pricing?.mode === 'ONLINE' ? 'Online' : 'Offline';
+            const modeName = (pricing as any)?.mode === 'ONLINE' ? 'Online' : 'Offline';
 
             // Item 1: Registration Fee
             if (student.registrationTotal > 0) {
-                await supabase.from('invoice_items').insert({
+                await supabase.from('invoice_items' as any).insert({
                     invoice_id: invoiceId,
                     coder_name: student.name, // String name
                     class_name: 'Biaya Pendaftaran',
@@ -102,7 +102,7 @@ export async function POST(request: Request) {
             }
 
             // Item 2: Package Fee
-            await supabase.from('invoice_items').insert({
+            await supabase.from('invoice_items' as any).insert({
                 invoice_id: invoiceId,
                 coder_name: student.name, // String name
                 class_name: `Paket Belajar (${modeName})`,
@@ -120,13 +120,13 @@ export async function POST(request: Request) {
         // 4. Update Invoice Total
         const currentTotal = invoice.total_amount || 0;
         await supabase
-            .from('invoices')
+            .from('invoices' as any)
             .update({ total_amount: currentTotal + newItemsTotal })
             .eq('id', invoiceId);
 
         // Fetch final invoice
         const { data: finalInvoice } = await supabase
-            .from('invoices')
+            .from('invoices' as any)
             .select('*, ccr_numbers(*)')
             .eq('id', invoiceId)
             .single();
@@ -134,8 +134,8 @@ export async function POST(request: Request) {
         return NextResponse.json({
             success: true,
             invoice: {
-                invoice_number: finalInvoice.invoice_number,
-                public_url: `${process.env.NEXT_PUBLIC_BASE_URL}/invoice/${finalInvoice.invoice_number}`
+                invoice_number: (finalInvoice as any).invoice_number,
+                public_url: `${process.env.NEXT_PUBLIC_BASE_URL}/invoice/${(finalInvoice as any).invoice_number}`
             }
         });
 
@@ -148,7 +148,7 @@ export async function POST(request: Request) {
 // Helpers
 async function getPendingRegistrationInvoice(supabase: any, ccrId: string, year: number, month: number) {
     const { data } = await supabase
-        .from('invoices')
+        .from('invoices' as any)
         .select('*')
         .eq('ccr_id', ccrId)
         .eq('invoice_type', 'REGISTRATION')
@@ -161,7 +161,7 @@ async function getPendingRegistrationInvoice(supabase: any, ccrId: string, year:
 async function createRegistrationInvoice(supabase: any, ccr: any, phone: string, name: string, year: number, month: number) {
     // Generate Number
     const { count } = await supabase
-        .from('invoices')
+        .from('invoices' as any)
         .select('*', { count: 'exact', head: true })
         .gte('created_at', `${year}-${month.toString().padStart(2, '0')}-01`);
 
@@ -172,7 +172,7 @@ async function createRegistrationInvoice(supabase: any, ccr: any, phone: string,
     dueDate.setDate(dueDate.getDate() + 10);
 
     const { data } = await supabase
-        .from('invoices')
+        .from('invoices' as any)
         .insert({
             invoice_number: invoiceNumber,
             ccr_id: ccr.id,

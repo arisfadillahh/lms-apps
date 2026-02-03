@@ -51,7 +51,7 @@ export async function generateMetadata({ params }: Props) {
 
 export const viewport = {
     width: 1024,
-    initialScale: 1,
+    initialScale: 0.35, // Force zoom out to fit 1024px content on ~360-390px screens
     maximumScale: 5,
     userScalable: true,
 };

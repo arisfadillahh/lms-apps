@@ -38,8 +38,10 @@ export interface Invoice {
     ccr_id: string | null; // Nullable for seasonal
     parent_phone: string;
     parent_name: string;
-    period_month: number;
-    period_year: number;
+    period_month: number; // Kept for filtering/grouping
+    period_year: number; // Kept for filtering/grouping
+    period_start_date: string; // Actual learning period start
+    period_end_date: string; // Actual learning period end
     total_amount: number;
     status: InvoiceStatus;
     invoice_type: InvoiceType;

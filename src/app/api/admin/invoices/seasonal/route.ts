@@ -92,6 +92,13 @@ export async function POST(request: Request) {
 
     // Create invoice - using actual table columns
     const now = new Date();
+
+    // For seasonal, period is typically the program duration
+    // Default to 1 month if not specified
+    const periodStartDate = new Date();
+    const periodEndDate = new Date();
+    periodEndDate.setMonth(periodEndDate.getMonth() + 1); // Default 1 month period
+
     const { data: invoice, error: invoiceError } = await supabase
         .from('invoices')
         .insert({
@@ -101,6 +108,8 @@ export async function POST(request: Request) {
             parent_name: studentName,
             period_month: now.getMonth() + 1,
             period_year: now.getFullYear(),
+            period_start_date: periodStartDate.toISOString().split('T')[0],
+            period_end_date: periodEndDate.toISOString().split('T')[0],
             invoice_type: 'SEASONAL',
             status: 'PENDING',
             total_amount: totalAmount, // This is final amount (after discount)

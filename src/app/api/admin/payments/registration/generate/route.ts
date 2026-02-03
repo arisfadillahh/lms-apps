@@ -97,6 +97,10 @@ export async function POST(request: NextRequest) {
         dueDate.setDate(dueDate.getDate() + (settings.due_days || 10));
 
         // Create invoice
+        // For registration, period is just the current month (one-time fee)
+        const periodStartDate = new Date(year, month - 1, 1);
+        const periodEndDate = new Date(year, month, 0); // Last day of month
+
         const { data: invoice, error: insertError } = await supabase
             .from('invoices' as any)
             .insert({
@@ -106,6 +110,8 @@ export async function POST(request: NextRequest) {
                 parent_name: coder.parent_name || coder.full_name,
                 period_month: month,
                 period_year: year,
+                period_start_date: periodStartDate.toISOString().split('T')[0],
+                period_end_date: periodEndDate.toISOString().split('T')[0],
                 total_amount: finalAmount,
                 status: 'PENDING',
                 invoice_type: 'REGISTRATION',

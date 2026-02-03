@@ -536,12 +536,48 @@ function formatInvoiceMessage(
         year: 'numeric'
     });
 
-    // Format new variables
-    const periodDate = new Date(invoice.period_year, invoice.period_month - 1);
-    const periodMonthYear = periodDate.toLocaleDateString('id-ID', {
-        month: 'long',
-        year: 'numeric'
-    });
+    // Format period as date range
+    const getMonthName = (month: number) => {
+        const months = [
+            'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+        ];
+        return months[month - 1] || '';
+    };
+
+    let periodMonthYear = '';
+    if (invoice.period_start_date && invoice.period_end_date) {
+        const start = new Date(invoice.period_start_date);
+        const end = new Date(invoice.period_end_date);
+
+        const startDay = start.getDate();
+        const startMonth = getMonthName(start.getMonth() + 1);
+        const startYear = start.getFullYear();
+
+        const endDay = end.getDate();
+        const endMonth = getMonthName(end.getMonth() + 1);
+        const endYear = end.getFullYear();
+
+        // Same month and year: "1 - 30 Januari 2026"
+        if (start.getMonth() === end.getMonth() && startYear === endYear) {
+            periodMonthYear = `${startDay} - ${endDay} ${startMonth} ${startYear}`;
+        }
+        // Same year, different months: "1 Januari - 30 Maret 2026"
+        else if (startYear === endYear) {
+            periodMonthYear = `${startDay} ${startMonth} - ${endDay} ${endMonth} ${startYear}`;
+        }
+        // Different years: "1 Desember 2025 - 28 Februari 2026"
+        else {
+            periodMonthYear = `${startDay} ${startMonth} ${startYear} - ${endDay} ${endMonth} ${endYear}`;
+        }
+    } else {
+        // Fallback to old format if period dates not available
+        const periodDate = new Date(invoice.period_year, invoice.period_month - 1);
+        periodMonthYear = periodDate.toLocaleDateString('id-ID', {
+            month: 'long',
+            year: 'numeric'
+        });
+    }
 
     // Generate student list
     let studentList = '';

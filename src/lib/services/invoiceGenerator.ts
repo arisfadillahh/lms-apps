@@ -163,9 +163,14 @@ export async function generateInvoicesForMonth(
                     continue;
                 }
 
+
                 // Calculate total and prepare items
                 let totalAmount = 0;
                 const items: Omit<InvoiceItem, 'id' | 'created_at' | 'invoice_id'>[] = [];
+
+                // Track period dates across all coders
+                let invoiceStartDate: Date | null = null;
+                let invoiceEndDate: Date | null = null;
 
                 for (const coder of group.coders) {
                     // Skip 'EKSKUL' classes as they are paid via school (external)
@@ -185,6 +190,39 @@ export async function generateInvoicesForMonth(
                     const discountAmount = Math.floor(basePrice * (discountPercent / 100));
                     const finalPrice = basePrice - discountAmount;
 
+                    // Calculate period dates for this coder
+                    const currentEndDate = new Date(coder.end_date);
+                    const now = new Date();
+
+                    // Determine if this is a renewal (period already ended or ending this month)
+                    const isRenewal = currentEndDate <= now;
+
+                    let itemStartDate: Date;
+                    let itemEndDate: Date;
+
+                    if (isRenewal) {
+                        // Renewal: New period starts the day after current period ends
+                        itemStartDate = new Date(currentEndDate);
+                        itemStartDate.setDate(itemStartDate.getDate() + 1);
+
+                        // Calculate end date based on duration
+                        itemEndDate = new Date(itemStartDate);
+                        itemEndDate.setMonth(itemEndDate.getMonth() + duration);
+                        itemEndDate.setDate(itemEndDate.getDate() - 1); // Last day of period
+                    } else {
+                        // New student: Use existing period dates from payment_period
+                        itemStartDate = new Date(coder.start_date);
+                        itemEndDate = new Date(coder.end_date);
+                    }
+
+                    // Track earliest start and latest end for the invoice
+                    if (!invoiceStartDate || itemStartDate < invoiceStartDate) {
+                        invoiceStartDate = itemStartDate;
+                    }
+                    if (!invoiceEndDate || itemEndDate > invoiceEndDate) {
+                        invoiceEndDate = itemEndDate;
+                    }
+
                     items.push({
                         coder_id: coder.coder_id,
                         coder_name: coder.users?.full_name || 'Unknown',
@@ -199,6 +237,20 @@ export async function generateInvoicesForMonth(
                     totalAmount += finalPrice;
                 }
 
+                // If no valid items (all EKSKUL), skip this invoice
+                if (items.length === 0) {
+                    console.log(`[InvoiceGenerator] No valid items for ${group.parentName}, skipping`);
+                    result.skipped++;
+                    continue;
+                }
+
+                // Ensure we have period dates (fallback to month if somehow null)
+                if (!invoiceStartDate || !invoiceEndDate) {
+                    console.warn(`[InvoiceGenerator] Missing period dates for ${group.parentName}, using month defaults`);
+                    invoiceStartDate = new Date(year, month - 1, 1);
+                    invoiceEndDate = new Date(year, month, 0);
+                }
+
                 // Calculate due date
                 const dueDate = calculateDueDate(settings.generate_day, settings.due_days, month, year);
 
@@ -207,7 +259,7 @@ export async function generateInvoicesForMonth(
                 // 2. Fallback to generated group name ("Orang Tua dari...")
                 const finalParentName = ccr.parent_name || group.parentName;
 
-                // Create invoice
+                // Create invoice with period dates
                 const invoice = await createInvoice({
                     ccr_id: ccr.id,
                     ccr_code: ccr.ccr_code || `CCR${String(ccr.ccr_sequence).padStart(3, '0')}`,
@@ -215,9 +267,12 @@ export async function generateInvoicesForMonth(
                     parent_name: finalParentName,
                     period_month: month,
                     period_year: year,
+                    period_start_date: invoiceStartDate.toISOString().split('T')[0],
+                    period_end_date: invoiceEndDate.toISOString().split('T')[0],
                     total_amount: totalAmount,
                     due_date: dueDate
                 });
+
 
                 if (!invoice) {
                     result.errors.push(`Failed to create invoice for ${group.parentName}`);

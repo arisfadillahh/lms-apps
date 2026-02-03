@@ -159,6 +159,10 @@ export async function POST(request: Request) {
                 // Total = registration fee + class fee (paket)
                 const grandTotal = parsed.data.registrationTotal + parsed.data.totalAmount;
 
+                // For registration, period is the payment period dates
+                const periodStartDate = new Date(parsed.data.startDate);
+                const periodEndDate = new Date(parsed.data.endDate);
+
                 // Create registration invoice with both fees
                 const { data: invoice } = await supabase
                     .from('invoices' as any)
@@ -169,6 +173,8 @@ export async function POST(request: Request) {
                         parent_name: coder.parent_name || coder.full_name,
                         period_month: month,
                         period_year: year,
+                        period_start_date: periodStartDate.toISOString().split('T')[0],
+                        period_end_date: periodEndDate.toISOString().split('T')[0],
                         total_amount: grandTotal,
                         status: 'PENDING',
                         invoice_type: 'REGISTRATION',

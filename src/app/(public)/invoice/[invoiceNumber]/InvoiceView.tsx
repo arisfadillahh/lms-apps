@@ -47,6 +47,32 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
         return months[month - 1] || '';
     };
 
+    const formatPeriodRange = (startDate: string, endDate: string) => {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+
+        const startDay = start.getDate();
+        const startMonth = getMonthName(start.getMonth() + 1);
+        const startYear = start.getFullYear();
+
+        const endDay = end.getDate();
+        const endMonth = getMonthName(end.getMonth() + 1);
+        const endYear = end.getFullYear();
+
+        // If same month and year, show: "1 - 30 Januari 2026"
+        if (start.getMonth() === end.getMonth() && startYear === endYear) {
+            return `${startDay} - ${endDay} ${startMonth} ${startYear}`;
+        }
+
+        // If same year but different months: "1 Jan - 30 Mar 2026"
+        if (startYear === endYear) {
+            return `${startDay} ${startMonth} - ${endDay} ${endMonth} ${startYear}`;
+        }
+
+        // Different years: "1 Des 2025 - 28 Feb 2026"
+        return `${startDay} ${startMonth} ${startYear} - ${endDay} ${endMonth} ${endYear}`;
+    };
+
     const handleContactAdmin = () => {
         if (bankInfo?.admin_whatsapp_number) {
             const phone = bankInfo.admin_whatsapp_number.replace(/\D/g, '');
@@ -87,7 +113,7 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
                 {/* Info Row */}
                 <div style={infoRowStyle}>
                     <div style={infoLeftStyle}>
-                        <p style={infoTextStyle}>Periode: {getMonthName(invoice.period_month)} {invoice.period_year}</p>
+                        <p style={infoTextStyle}>Periode: {formatPeriodRange(invoice.period_start_date, invoice.period_end_date)}</p>
                         <p style={infoTextStyle}>Jatuh Tempo: {formatDate(invoice.due_date)}</p>
                     </div>
                     <div style={infoRightStyle}>

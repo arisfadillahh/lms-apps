@@ -346,6 +346,8 @@ export async function createInvoice(data: {
     parent_name: string;
     period_month: number;
     period_year: number;
+    period_start_date: string;
+    period_end_date: string;
     total_amount: number;
     due_date: string;
 }): Promise<Invoice | null> {
@@ -366,6 +368,8 @@ export async function createInvoice(data: {
             parent_name: data.parent_name,
             period_month: data.period_month,
             period_year: data.period_year,
+            period_start_date: data.period_start_date,
+            period_end_date: data.period_end_date,
             total_amount: data.total_amount,
             due_date: data.due_date,
             status: 'PENDING'

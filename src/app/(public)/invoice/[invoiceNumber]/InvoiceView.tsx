@@ -107,7 +107,7 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
     const isPaid = invoice.status === 'PAID';
 
     return (
-        <div style={containerStyle}>
+        <div style={containerStyle} className="invoice-container">
             <div style={invoiceCardStyle} className="invoice-card">
                 {/* Header - Textured Background */}
                 <div style={headerStyle}>
@@ -127,7 +127,8 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
                         <div style={invoiceTitleSectionStyle} className="invoice-title-section">
                             <h1 style={invoiceTitleStyle}>INVOICE</h1>
                             <div style={invoiceNoStyle}>#{invoice.invoice_number}</div>
-                            {invoice.ccr && (
+                            {/* Hide CCR for REG (Registration) invoices */}
+                            {invoice.ccr && invoice.invoice_type !== 'REGISTRATION' && (
                                 <div style={ccrStyle}>CCR: {invoice.ccr.ccr_code}</div>
                             )}
                         </div>
@@ -153,11 +154,11 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
                                         {invoice.invoice_type === 'SEASONAL' ? invoice.seasonal_student_name : invoice.parent_name}
                                     </div>
                                     <div style={recipientDetailStyle}>
-                                        <strong>Hp:</strong> {invoice.parent_phone}
+                                        <strong>No. Telp:</strong> {invoice.parent_phone}
                                     </div>
                                     {invoice.invoice_type === 'SEASONAL' && invoice.seasonal_student_phone && (
                                         <div style={recipientDetailStyle}>
-                                            <strong>Hp Siswa:</strong> {invoice.seasonal_student_phone}
+                                            <strong>No. Telp:</strong> {invoice.seasonal_student_phone}
                                         </div>
                                     )}
                                 </div>
@@ -216,73 +217,159 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
 
                 {/* Content Body */}
                 <div style={bodyContentStyle} className="body-content">
-                    {/* Items Table - Rounded Floating Rows */}
+                    {/* Items Table - Different display for REG invoices */}
                     <div style={tableContainerStyle} className="table-container">
-                        <table style={tableStyle}>
-                            <thead>
-                                <tr>
-                                    <th style={{ ...thStyle, borderTopLeftRadius: '10px', borderBottomLeftRadius: '10px', paddingLeft: '20px', width: '60px', textAlign: 'center' }}>No.</th>
-                                    <th style={{ ...thStyle, textAlign: 'left' }}>Deskripsi Produk</th>
-                                    <th style={{ ...thStyle, width: '150px', textAlign: 'center' }}>Harga</th>
-                                    <th style={{ ...thStyle, width: '120px', textAlign: 'center' }}>Diskon</th>
-                                    <th style={{ ...thStyle, borderTopRightRadius: '10px', borderBottomRightRadius: '10px', paddingRight: '20px', width: '150px', textAlign: 'right' }}>Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {invoice.items?.map((item, index) => (
-                                    <tr key={item.id} style={trStyle}>
-                                        <td style={{ ...tdStyle, borderTopLeftRadius: '10px', borderBottomLeftRadius: '10px', paddingLeft: '20px', textAlign: 'center', color: COLORS.textDark, fontWeight: 700 }}>
-                                            {String(index + 1).padStart(2, '0')}
-                                        </td>
-                                        <td style={tdStyle}>
-                                            <div style={itemNameStyle}>{item.class_name} - {item.level_name}</div>
-                                            <div style={itemSubStyle}>
-                                                Siswa: {invoice.invoice_type === 'SEASONAL'
-                                                    ? invoice.seasonal_student_name
-                                                    : (item.coder_name || invoice.parent_name)}
-                                            </div>
-                                        </td>
-                                        <td style={{ ...tdStyle, textAlign: 'center' }}>Rp {formatCurrency(item.base_price)}</td>
-                                        <td style={{ ...tdStyle, textAlign: 'center' }}>
-                                            {item.discount_amount > 0 ? (
-                                                <span style={discountTagStyle}>-Rp {formatCurrency(item.discount_amount)}</span>
-                                            ) : '-'}
-                                        </td>
-                                        <td style={{ ...tdStyle, borderTopRightRadius: '10px', borderBottomRightRadius: '10px', paddingRight: '20px', textAlign: 'right', fontWeight: 'bold', color: COLORS.primaryBlue }}>
-                                            Rp {formatCurrency(item.final_price)}
-                                        </td>
+                        {invoice.invoice_type === 'REGISTRATION' ? (
+                            /* REG Invoice: Group items by student with same header as standard */
+                            <table style={tableStyle}>
+                                <thead>
+                                    <tr>
+                                        <th style={{ ...thStyle, borderTopLeftRadius: '10px', borderBottomLeftRadius: '10px', paddingLeft: '20px', width: '60px', textAlign: 'center' }}>No.</th>
+                                        <th style={{ ...thStyle, textAlign: 'left' }}>Deskripsi Program</th>
+                                        <th style={{ ...thStyle, width: '150px', textAlign: 'center' }}>Harga</th>
+                                        <th style={{ ...thStyle, width: '120px', textAlign: 'center' }}>Diskon</th>
+                                        <th style={{ ...thStyle, borderTopRightRadius: '10px', borderBottomRightRadius: '10px', paddingRight: '20px', width: '150px', textAlign: 'right' }}>Total</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {(() => {
+                                        // Group items by coder_name
+                                        const studentGroups: Record<string, typeof invoice.items> = {};
+                                        invoice.items?.forEach(item => {
+                                            const key = item.coder_name || 'Unknown';
+                                            if (!studentGroups[key]) studentGroups[key] = [];
+                                            studentGroups[key]!.push(item);
+                                        });
+
+                                        return Object.entries(studentGroups).map(([studentName, items], idx) => {
+                                            const subtotal = items!.reduce((sum, item) => sum + item.final_price, 0);
+
+                                            return (
+                                                <tr key={studentName} style={trStyle}>
+                                                    <td style={{ ...tdStyle, borderTopLeftRadius: '10px', borderBottomLeftRadius: '10px', paddingLeft: '20px', textAlign: 'center', color: COLORS.textDark, fontWeight: 700, verticalAlign: 'top', paddingTop: '20px' }}>
+                                                        {String(idx + 1).padStart(2, '0')}
+                                                    </td>
+                                                    {/* Merged Cell for Student Name & Items Breakdown */}
+                                                    <td colSpan={4} style={{ padding: 0 }}>
+                                                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                                            <tbody>
+                                                                {/* Student Name Header Row */}
+                                                                <tr>
+                                                                    <td colSpan={4} style={{ ...tdStyle, border: 'none', padding: '20px 0 10px 0' }}>
+                                                                        <div style={{ ...itemNameStyle, fontSize: '16px' }}>{studentName}</div>
+                                                                    </td>
+                                                                </tr>
+                                                                {/* Detailed Items Rows */}
+                                                                {items!.map((item, i) => (
+                                                                    <tr key={item.id}>
+                                                                        <td style={{ ...tdStyle, border: 'none', padding: '5px 0', width: 'auto' }}>
+                                                                            <div style={{ fontSize: '13px', color: COLORS.textGray }}>
+                                                                                • {item.class_name} - {item.level_name}
+                                                                            </div>
+                                                                        </td>
+                                                                        <td style={{ ...tdStyle, border: 'none', padding: '5px 0', width: '150px', textAlign: 'center' }}>
+                                                                            Rp {formatCurrency(item.base_price)}
+                                                                        </td>
+                                                                        <td style={{ ...tdStyle, border: 'none', padding: '5px 0', width: '120px', textAlign: 'center' }}>
+                                                                            {item.discount_amount > 0 ? (
+                                                                                <span style={discountTagStyle}>-Rp {formatCurrency(item.discount_amount)}</span>
+                                                                            ) : '-'}
+                                                                        </td>
+                                                                        <td style={{ ...tdStyle, border: 'none', padding: '5px 20px 5px 0', width: '150px', textAlign: 'right' }}>
+                                                                            <span style={{ fontWeight: 'bold' }}>Rp {formatCurrency(item.final_price)}</span>
+                                                                        </td>
+                                                                    </tr>
+                                                                ))}
+                                                                {/* Start Date Only (Subtotal removed) */}
+                                                                <tr>
+                                                                    <td colSpan={4} style={{ ...tdStyle, border: 'none', paddingTop: '15px', paddingBottom: '20px' }}>
+                                                                        <div style={{ fontSize: '12px', color: COLORS.primaryCyan }}>
+                                                                            Mulai Kelas : {formatDate(invoice.period_start_date)}
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            </tbody>
+                                                        </table>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        });
+                                    })()}
+                                </tbody>
+                            </table>
+                        ) : (
+                            /* Standard Invoice: Show each item separately */
+                            <table style={tableStyle}>
+                                <thead>
+                                    <tr>
+                                        <th style={{ ...thStyle, borderTopLeftRadius: '10px', borderBottomLeftRadius: '10px', paddingLeft: '20px', width: '60px', textAlign: 'center' }}>No.</th>
+                                        <th style={{ ...thStyle, textAlign: 'left' }}>Deskripsi Produk</th>
+                                        <th style={{ ...thStyle, width: '150px', textAlign: 'center' }}>Harga</th>
+                                        <th style={{ ...thStyle, width: '120px', textAlign: 'center' }}>Diskon</th>
+                                        <th style={{ ...thStyle, borderTopRightRadius: '10px', borderBottomRightRadius: '10px', paddingRight: '20px', width: '150px', textAlign: 'right' }}>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {invoice.items?.map((item, index) => (
+                                        <tr key={item.id} style={trStyle}>
+                                            <td style={{ ...tdStyle, borderTopLeftRadius: '10px', borderBottomLeftRadius: '10px', paddingLeft: '20px', textAlign: 'center', color: COLORS.textDark, fontWeight: 700 }}>
+                                                {String(index + 1).padStart(2, '0')}
+                                            </td>
+                                            <td style={tdStyle}>
+                                                <div style={itemNameStyle}>{item.class_name} - {item.level_name}</div>
+                                                <div style={itemSubStyle}>
+                                                    Siswa: {invoice.invoice_type === 'SEASONAL'
+                                                        ? invoice.seasonal_student_name
+                                                        : (item.coder_name || invoice.parent_name)}
+                                                </div>
+                                            </td>
+                                            <td style={{ ...tdStyle, textAlign: 'center' }}>Rp {formatCurrency(item.base_price)}</td>
+                                            <td style={{ ...tdStyle, textAlign: 'center' }}>
+                                                {item.discount_amount > 0 ? (
+                                                    <span style={discountTagStyle}>-Rp {formatCurrency(item.discount_amount)}</span>
+                                                ) : '-'}
+                                            </td>
+                                            <td style={{ ...tdStyle, borderTopRightRadius: '10px', borderBottomRightRadius: '10px', paddingRight: '20px', textAlign: 'right', fontWeight: 'bold', color: COLORS.primaryBlue }}>
+                                                Rp {formatCurrency(item.final_price)}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
                     </div>
 
-                    {/* Total Section & Footer */}
-                    <div style={totalSectionWrapperStyle} className="total-section">
+
+                    {/* Total Section with Terms Side by Side */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '30px', marginTop: '30px' }} className="total-section">
+                        {/* Left: Terms & Conditions */}
                         <div style={{ flex: 1 }}>
-                            <div style={periodContainerStyle}>
-                                <div style={periodLabelStyle}>Periode:</div>
-                                <div style={periodValueStyle}>{formatPeriodRange(invoice.period_start_date, invoice.period_end_date)}</div>
-                            </div>
+                            <div style={termsHeaderStyle}>Syarat & Ketentuan:</div>
+                            <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px', fontSize: '11px', color: COLORS.textGray, lineHeight: 1.6 }}>
+                                <li>Pembayaran dapat dilakukan melalui transfer bank ke rekening yang tertera di atas.</li>
+                                <li>Mohon konfirmasi pembayaran melalui WhatsApp ke nomor admin setelah melakukan transfer.</li>
+                                <li>Invoice yang telah melewati tanggal jatuh tempo akan dikenakan status OVERDUE.</li>
+                                <li>Untuk pertanyaan lebih lanjut, silakan hubungi admin kami.</li>
+                            </ul>
+                            {/* Period only for non-REG invoices */}
+                            {invoice.invoice_type !== 'REGISTRATION' && (
+                                <div style={{ ...periodContainerStyle, marginTop: '15px' }}>
+                                    <div style={periodLabelStyle}>Periode:</div>
+                                    <div style={periodValueStyle}>{formatPeriodRange(invoice.period_start_date, invoice.period_end_date)}</div>
+                                </div>
+                            )}
                         </div>
+                        {/* Right: Total */}
                         <div style={totalPillStyle}>
                             <div style={totalLabelPillStyle}>Total Tagihan:</div>
                             <div style={totalAmountPillStyle}>Rp {formatCurrency(invoice.total_amount)}</div>
                         </div>
                     </div>
 
-                    <div style={footerStyle} className="footer">
-                        <div style={termsStyle} className="terms">
-                            <div style={termsHeaderStyle}>Syarat & Ketentuan:</div>
-                            <ul>
-                                <li>Pembayaran dapat dilakukan melalui transfer bank ke rekening yang tertera di atas.</li>
-                                <li>Mohon konfirmasi pembayaran melalui WhatsApp ke nomor admin setelah melakukan transfer.</li>
-                                <li>Invoice yang telah melewati tanggal jatuh tempo akan dikenakan status OVERDUE.</li>
-                                <li>Untuk pertanyaan lebih lanjut, silakan hubungi admin kami.</li>
-                            </ul>
-                        </div>
-                        <div style={signatureStyle} className="signature">
-                            <div style={signatureNameStyle}>Finance <br />Clevio Innovator Camp</div>
+                    {/* Thank You Message - Centered at Bottom */}
+                    <div style={{ textAlign: 'center', marginTop: '30px', paddingBottom: '20px' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 600, color: COLORS.primaryBlue }}>
+                            Clevio Innovator Camp - Let's Innovate!
                         </div>
                     </div>
                 </div>
@@ -297,46 +384,62 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
 
             {/* Print Styles & Desktop-like Mobile */}
             <style jsx global>{`
-                /* Print Settings - Force A4 Fit */
+                /* Print Settings - Full Bleed Invoice */
                 @media print {
                     @page {
                         size: A4;
-                        margin: 0; /* Remove default browser margins */
+                        margin: 0; /* No margin - edge to edge */
                     }
-                    body {
+                    
+                    html, body {
                         -webkit-print-color-adjust: exact;
                         print-color-adjust: exact;
-                        margin: 0;
-                        padding: 0;
-                        /* Force scale to fit if needed */
-                        transform-origin: top left;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        background: white !important;
+                        width: 100% !important;
+                        height: 100% !important;
                     }
                     
                     /* Hide non-printable elements */
                     button { display: none !important; }
                     
-                    /* Reset container styles for print */
-                    div[style*="min-height: 100vh"] { 
-                        padding: 0 !important; 
-                        background: white !important; 
-                        height: auto !important;
-                        min-height: 0 !important;
+                    /* Remove gray container completely */
+                    .invoice-container {
+                        background: transparent !important;
+                        padding: 0 !important;
+                        margin: 0 !important;
+                        min-width: 100% !important;
+                        width: 100% !important;
+                        min-height: unset !important;
+                        overflow: visible !important;
                     }
                     
-                    /* Reset Card styles */
+                    /* Invoice card fills entire page - edge to edge */
                     .invoice-card { 
                         box-shadow: none !important; 
                         margin: 0 !important; 
                         max-width: 100% !important; 
+                        width: 100% !important;
                         border-radius: 0 !important;
-                        width: 210mm !important; /* A4 Width */
-                        min-height: 297mm !important; /* A4 Height */
-                        padding: 20px !important;
+                        /* No transform - fill full width */
                     }
 
-                    /* Adjust header to save space if needed */
-                    .header-content {
-                        padding-bottom: 20px !important;
+                    /* Header fills full width */
+                    .invoice-card > div:first-child {
+                        border-radius: 0 !important;
+                    }
+
+                    /* Adjust inner spacing for print */
+                    .info-section-container {
+                        margin-top: -60px !important;
+                        padding: 0 40px !important;
+                    }
+                    .body-content {
+                        padding: 20px 40px !important;
+                    }
+                    .footer {
+                        padding: 20px 40px !important;
                     }
                 }
             `}</style>
@@ -406,66 +509,7 @@ const invoiceCardStyle: CSSProperties = {
     boxShadow: '0 20px 50px rgba(0,0,0,0.1)'
 };
 
-// ... existing code ...
 
-{/* Print Styles & Desktop-like Mobile */ }
-<style jsx global>{`
-                /* Print Settings - Force A4 Fit */
-                @media print {
-                    @page {
-                        size: A4;
-                        margin: 0;
-                    }
-                    html, body {
-                        width: 210mm;
-                        height: 297mm;
-                        margin: 0 !important;
-                        padding: 0 !important;
-                        overflow: hidden;
-                    }
-                    
-                    /* Scale down to fit A4 */
-                    body {
-                        transform: scale(0.75); /* Zoom out to fit */
-                        transform-origin: top left;
-                        width: 133% !important; /* Compensate for scale (1 / 0.75) */
-                    }
-                    
-                    /* Hide non-printable elements */
-                    button { display: none !important; }
-                    
-                    /* Reset container styles for print */
-                    div[style*="min-height: 100vh"] { 
-                        padding: 0 !important; 
-                        background: white !important; 
-                        height: auto !important;
-                        min-height: 0 !important;
-                        min-width: 0 !important; /* Override the desktop force */
-                        overflow: visible !important;
-                    }
-                    
-                    /* Reset Card styles */
-                    .invoice-card { 
-                        box-shadow: none !important; 
-                        margin: 0 !important; 
-                        max-width: 100% !important; 
-                        border-radius: 0 !important;
-                        width: 100% !important;
-                        padding: 20px !important;
-                    }
-
-                    /* Adjust header to save space */
-                    .header-content {
-                        padding-bottom: 10px !important;
-                    }
-                    .info-section-container {
-                        margin-top: -40px !important;
-                    }
-                    .footer {
-                        margin-top: 30px !important;
-                    }
-                }
-            `}</style>
 
 const headerStyle: CSSProperties = {
     backgroundColor: COLORS.primaryBlue,

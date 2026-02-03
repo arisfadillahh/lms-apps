@@ -430,8 +430,7 @@ export async function getInvoiceById(id: string): Promise<Invoice | null> {
         .from('invoices' as any)
         .select(`
       *,
-      items:invoice_items(*),
-      ccr:ccr_numbers(*)
+      items:invoice_items(*)
     `)
         .eq('id', id)
         .single();
@@ -497,7 +496,7 @@ export async function getPendingInvoicesForMonth(
 
     const { data, error } = await supabase
         .from('invoices' as any)
-        .select('*, items:invoice_items(*), ccr:ccr_numbers(*)')
+        .select('*, items:invoice_items(*)')
         .eq('period_month', month)
         .eq('period_year', year)
         .eq('status', 'PENDING');

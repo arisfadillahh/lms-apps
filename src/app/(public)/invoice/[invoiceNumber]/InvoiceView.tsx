@@ -18,12 +18,16 @@ interface Props {
 
 // Clevio Brand Colors
 const COLORS = {
-    primaryBlue: '#22367b',
-    primaryGreen: '#9dc83b',
-    secondaryTeal: '#00b0d7',
+    primaryBlue: '#22367b', // Biru Dongker Clevio
+    primaryGreen: '#9dc83b', // Hijau Clevio (Vibrant Lime)
+    primaryCyan: '#00b0d7',  // Cyan Clevio
     white: '#ffffff',
-    lightGray: '#f8f9fa',
-    darkGray: '#333333',
+    lightGray: '#F3F4F6',
+    mediumGray: '#9CA3AF',
+    darkGray: '#374151',
+    borderGray: '#E5E7EB',
+    textDark: '#1F2937',
+    textGray: '#6B7280',
 };
 
 export default function InvoiceView({ invoice, bankInfo }: Props) {
@@ -51,26 +55,19 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
         const start = new Date(startDate);
         const end = new Date(endDate);
 
-        const startDay = start.getDate();
         const startMonth = getMonthName(start.getMonth() + 1);
         const startYear = start.getFullYear();
 
-        const endDay = end.getDate();
         const endMonth = getMonthName(end.getMonth() + 1);
         const endYear = end.getFullYear();
 
-        // If same month and year, show: "1 - 30 Januari 2026"
         if (start.getMonth() === end.getMonth() && startYear === endYear) {
-            return `${startDay} - ${endDay} ${startMonth} ${startYear}`;
+            return `${startMonth} ${startYear}`;
         }
-
-        // If same year but different months: "1 Jan - 30 Mar 2026"
         if (startYear === endYear) {
-            return `${startDay} ${startMonth} - ${endDay} ${endMonth} ${startYear}`;
+            return `${startMonth} - ${endMonth} ${startYear}`;
         }
-
-        // Different years: "1 Des 2025 - 28 Feb 2026"
-        return `${startDay} ${startMonth} ${startYear} - ${endDay} ${endMonth} ${endYear}`;
+        return `${startMonth} ${startYear} - ${endMonth} ${endYear}`;
     };
 
     const handleContactAdmin = () => {
@@ -89,426 +86,633 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
     return (
         <div style={containerStyle}>
             <div style={invoiceCardStyle}>
-                {/* Header with Logo and Title */}
+                {/* Header - Textured Background */}
                 <div style={headerStyle}>
-                    {/* Logo Section */}
-                    <div style={logoSectionStyle}>
-                        <Image
-                            src="/images/clevio-logo.png.png?v=2"
-                            alt="Clevio Innovator Camp"
-                            width={150}
-                            height={50}
-                            style={{ objectFit: 'contain' }}
-                            unoptimized
-                        />
-                    </div>
-
-                    {/* Title Section */}
-                    <div style={titleSectionStyle}>
-                        <h1 style={invoiceTitleStyle}>Invoice</h1>
-                        <p style={invoiceNoStyle}>Invoice no: {invoice.invoice_number}</p>
-                    </div>
-                </div>
-
-                {/* Info Row */}
-                <div style={infoRowStyle}>
-                    <div style={infoLeftStyle}>
-                        <p style={infoTextStyle}>Periode: {formatPeriodRange(invoice.period_start_date, invoice.period_end_date)}</p>
-                        <p style={infoTextStyle}>Jatuh Tempo: {formatDate(invoice.due_date)}</p>
-                    </div>
-                    <div style={infoRightStyle}>
-                        <p style={infoTextStyle}>Dibuat: {formatDate(invoice.created_at)}</p>
-                    </div>
-                </div>
-
-                {/* Items Table */}
-                <div style={tableContainerStyle}>
-                    <table style={tableStyle}>
-                        <thead>
-                            <tr style={tableHeaderRowStyle}>
-                                <th style={thLeftStyle}>DESCRIPTION</th>
-                                <th style={thCenterStyle}>PRICE</th>
-                                <th style={thCenterStyle}>QTY</th>
-                                <th style={thRightStyle}>AMOUNT</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {invoice.items?.map((item) => (
-                                <tr key={item.id} style={tableRowStyle}>
-                                    <td style={tdLeftStyle}>
-                                        <strong>
-                                            {/* For seasonal, coder_name IS the student name, but check invoice type or fallback */}
-                                            {invoice.invoice_type === 'SEASONAL'
-                                                ? invoice.seasonal_student_name
-                                                : (item.coder_name || invoice.parent_name)
-                                            }
-                                        </strong>
-                                        <br />
-                                        <span style={itemDetailStyle}>
-                                            • {item.level_name || item.description || 'Program Details'}
-                                        </span>
-                                        {item.discount_amount > 0 && (
-                                            <>
-                                                <br />
-                                                <span style={discountStyle}>• Diskon: -Rp {formatCurrency(item.discount_amount)}</span>
-                                            </>
-                                        )}
-                                    </td>
-                                    <td style={tdCenterStyle}>Rp {formatCurrency(item.base_price)}</td>
-                                    <td style={tdCenterStyle}>1</td>
-                                    <td style={tdRightStyle}>Rp {formatCurrency(item.final_price)}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-
-                    {/* Grand Total */}
-                    <div style={grandTotalContainerStyle}>
-                        <div style={grandTotalBoxStyle}>
-                            <span style={grandTotalLabelStyle}>GRAND TOTAL</span>
-                            <span style={grandTotalValueStyle}>Rp {formatCurrency(invoice.total_amount)}</span>
+                    <div style={headerContentStyle}>
+                        <div style={companyInfoStyle}>
+                            <Image
+                                src="/images/clevio-logo.png.png?v=2"
+                                alt="Clevio Innovator Camp"
+                                width={180}
+                                height={60}
+                                style={{ objectFit: 'contain' }}
+                                unoptimized
+                            />
                         </div>
-                    </div>
-                </div>
 
-                {/* Terms & Payment Info */}
-                <div style={bottomSectionStyle}>
-                    <div style={termsColumnStyle}>
-                        {/* Status Badge */}
-                        <div style={statusBadgeContainerStyle}>
-                            <span style={getStatusBadgeStyle(invoice.status)}>
-                                {invoice.status === 'PAID' ? '✓ LUNAS' :
-                                    invoice.status === 'OVERDUE' ? '⚠ JATUH TEMPO' :
-                                        '⏳ MENUNGGU PEMBAYARAN'}
-                            </span>
-                            {isPaid && invoice.paid_at && (
-                                <p style={paidDateStyle}>Dibayar: {formatDate(invoice.paid_at)}</p>
+                        {/* Right Side: Invoice Title Only */}
+                        <div style={invoiceTitleSectionStyle}>
+                            <h1 style={invoiceTitleStyle}>INVOICE</h1>
+                            <div style={invoiceNoStyle}>#{invoice.invoice_number}</div>
+                            {invoice.ccr && (
+                                <div style={ccrStyle}>CCR: {invoice.ccr.ccr_code}</div>
                             )}
                         </div>
-
-                        {/* Bank Info (only if not paid) */}
-                        {!isPaid && bankInfo && (
-                            <div style={paymentInfoStyle}>
-                                <div style={{ marginBottom: '15px' }}>
-                                    <p style={paymentTitleStyle}>Transfer ke:</p>
-                                    <p style={bankDetailStyle}>
-                                        <strong>{bankInfo.bank_name}</strong> - {bankInfo.bank_account_number}
-                                    </p>
-                                    <p style={bankDetailStyle}>a.n. <strong>{bankInfo.bank_account_holder}</strong></p>
-                                </div>
-                                <button onClick={handleContactAdmin} style={waButtonStyle}>
-                                    Konfirmasi Pembayaran
-                                </button>
-                            </div>
-                        )}
-                    </div>
-
-                    <div style={issuedToColumnStyle}>
-                        <p style={issuedToLabelStyle}>Issued To:</p>
-                        <p style={issuedToNameStyle}>
-                            {invoice.invoice_type === 'SEASONAL' ? invoice.seasonal_student_name : invoice.parent_name}
-                        </p>
-                        {invoice.invoice_type === 'SEASONAL' && <p style={issuedToDetailStyle}>{invoice.parent_name} (Parent)</p>}
-                        <p style={issuedToDetailStyle}>INVOICE: {invoice.invoice_number}</p>
                     </div>
                 </div>
 
-                {/* Footer */}
-                <div style={footerStyle}>
-                    <p>Terima kasih atas kepercayaan Anda</p>
-                    <p style={footerBrandStyle}>Clevio Innovator Camp</p>
+                {/* Overlapping Info Cards Area */}
+                <div style={infoSectionContainerStyle}>
+                    <div style={infoGridStyle}>
+                        {/* Left Card: Invoice To + Dates + Status */}
+                        <div style={floatingCardStyle}>
+                            <div style={cardHeaderStyle}>
+                                <span style={cardTitleDotStyle}></span>
+                                INVOICE TO
+                            </div>
+                            <div style={cardContentStyle}>
+                                {/* Parent Info */}
+                                <div style={{ marginBottom: '20px' }}>
+                                    <div style={recipientNameStyle}>
+                                        {invoice.invoice_type === 'SEASONAL' ? invoice.seasonal_student_name : invoice.parent_name}
+                                    </div>
+                                    <div style={recipientDetailStyle}>
+                                        <strong>Hp:</strong> {invoice.parent_phone}
+                                    </div>
+                                    {invoice.invoice_type === 'SEASONAL' && invoice.seasonal_student_phone && (
+                                        <div style={recipientDetailStyle}>
+                                            <strong>Hp Siswa:</strong> {invoice.seasonal_student_phone}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Dates & Status Section */}
+                                <div style={datesContainerStyle}>
+                                    <div style={dateItemStyle}>
+                                        <span style={dateLabelStyle}>Tanggal:</span>
+                                        <span style={dateValueStyle}>{formatDate(invoice.created_at)}</span>
+                                    </div>
+                                    <div style={dateItemStyle}>
+                                        <span style={dateLabelStyle}>Jatuh Tempo:</span>
+                                        <span style={dateValueStyle}>{formatDate(invoice.due_date)}</span>
+                                    </div>
+                                    <div style={{ marginTop: '8px' }}>
+                                        {getStatusBadge(invoice.status)}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Right Card: Payment Info */}
+                        <div style={floatingCardStyle}>
+                            <div style={cardHeaderStyle}>
+                                <span style={{ ...cardTitleDotStyle, backgroundColor: COLORS.primaryGreen }}></span>
+                                METODE PEMBAYARAN
+                            </div>
+                            <div style={cardContentStyle}>
+                                {!isPaid && bankInfo ? (
+                                    <>
+                                        <div style={{ marginBottom: '12px' }}>
+                                            <div style={bankNameStyle}>{bankInfo.bank_name}</div>
+                                            <div style={bankAccountStyle}>{bankInfo.bank_account_number}</div>
+                                            <div style={bankHolderStyle}>a.n {bankInfo.bank_account_holder}</div>
+                                        </div>
+                                        <button onClick={handleContactAdmin} style={waButtonStyle}>
+                                            Konfirmasi Pembayaran
+                                        </button>
+                                    </>
+                                ) : isPaid ? (
+                                    <div style={paidStatusContainerStyle}>
+                                        <div style={paidCheckmarkStyle}>✓</div>
+                                        <div style={paidTextStyle}>LUNAS</div>
+                                        <div style={paidDateStyle}>{formatDate(invoice.paid_at || '')}</div>
+                                    </div>
+                                ) : (
+                                    <div style={emptyStateStyle}>Silakan hubungi admin</div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Content Body */}
+                <div style={bodyContentStyle}>
+                    {/* Items Table - Rounded Floating Rows */}
+                    <div style={tableContainerStyle}>
+                        <table style={tableStyle}>
+                            <thead>
+                                <tr>
+                                    <th style={{ ...thStyle, borderTopLeftRadius: '10px', borderBottomLeftRadius: '10px', paddingLeft: '20px', width: '60px', textAlign: 'center' }}>No.</th>
+                                    <th style={{ ...thStyle, textAlign: 'left' }}>Deskripsi Produk</th>
+                                    <th style={{ ...thStyle, width: '150px', textAlign: 'center' }}>Harga</th>
+                                    <th style={{ ...thStyle, width: '120px', textAlign: 'center' }}>Diskon</th>
+                                    <th style={{ ...thStyle, borderTopRightRadius: '10px', borderBottomRightRadius: '10px', paddingRight: '20px', width: '150px', textAlign: 'right' }}>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {invoice.items?.map((item, index) => (
+                                    <tr key={item.id} style={trStyle}>
+                                        <td style={{ ...tdStyle, borderTopLeftRadius: '10px', borderBottomLeftRadius: '10px', paddingLeft: '20px', textAlign: 'center', color: COLORS.textDark, fontWeight: 700 }}>
+                                            {String(index + 1).padStart(2, '0')}
+                                        </td>
+                                        <td style={tdStyle}>
+                                            <div style={itemNameStyle}>{item.class_name} - {item.level_name}</div>
+                                            <div style={itemSubStyle}>
+                                                Siswa: {invoice.invoice_type === 'SEASONAL'
+                                                    ? invoice.seasonal_student_name
+                                                    : (item.coder_name || invoice.parent_name)}
+                                            </div>
+                                        </td>
+                                        <td style={{ ...tdStyle, textAlign: 'center' }}>Rp {formatCurrency(item.base_price)}</td>
+                                        <td style={{ ...tdStyle, textAlign: 'center' }}>
+                                            {item.discount_amount > 0 ? (
+                                                <span style={discountTagStyle}>-Rp {formatCurrency(item.discount_amount)}</span>
+                                            ) : '-'}
+                                        </td>
+                                        <td style={{ ...tdStyle, borderTopRightRadius: '10px', borderBottomRightRadius: '10px', paddingRight: '20px', textAlign: 'right', fontWeight: 'bold', color: COLORS.primaryBlue }}>
+                                            Rp {formatCurrency(item.final_price)}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Total Section & Footer */}
+                    <div style={totalSectionWrapperStyle}>
+                        <div style={{ flex: 1 }}>
+                            <div style={periodContainerStyle}>
+                                <div style={periodLabelStyle}>Periode:</div>
+                                <div style={periodValueStyle}>{formatPeriodRange(invoice.period_start_date, invoice.period_end_date)}</div>
+                            </div>
+                        </div>
+                        <div style={totalPillStyle}>
+                            <div style={totalLabelPillStyle}>Total Tagihan:</div>
+                            <div style={totalAmountPillStyle}>Rp {formatCurrency(invoice.total_amount)}</div>
+                        </div>
+                    </div>
+
+                    <div style={footerStyle}>
+                        <div style={termsStyle}>
+                            <div style={termsHeaderStyle}>Syarat & Ketentuan:</div>
+                            <ul>
+                                <li>Pembayaran dapat dilakukan melalui transfer bank ke rekening yang tertera di atas.</li>
+                                <li>Mohon konfirmasi pembayaran melalui WhatsApp ke nomor admin setelah melakukan transfer.</li>
+                                <li>Invoice yang telah melewati tanggal jatuh tempo akan dikenakan status OVERDUE.</li>
+                                <li>Untuk pertanyaan lebih lanjut, silakan hubungi admin kami.</li>
+                            </ul>
+                        </div>
+                        <div style={signatureStyle}>
+                            <div style={signatureNameStyle}>Finance <br />Clevio Innovator Camp</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             {/* Print Button */}
             <div style={printContainerStyle}>
                 <button onClick={() => window.print()} style={printButtonStyle}>
-                    🖨️ Cetak Invoice
+                    🖨️ Cetak / Simpan PDF
                 </button>
             </div>
 
-            {/* Print Styles */}
             <style>{`
                 @media print {
                     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                     button { display: none !important; }
+                    div[style*="min-height: 100vh"] { padding: 0 !important; background: white !important; }
+                    div[style*="box-shadow"] { box-shadow: none !important; border: 1px solid #ddd !important; }
                 }
             `}</style>
         </div>
     );
+
+    function getStatusBadge(status: string) {
+        const styles: Record<string, CSSProperties> = {
+            PENDING: {
+                backgroundColor: '#FEF3C7',
+                color: '#92400E',
+                padding: '4px 12px',
+                borderRadius: '12px',
+                fontSize: '11px',
+                fontWeight: 700,
+                border: '1px solid #FCD34D',
+                display: 'inline-block'
+            },
+            PAID: {
+                backgroundColor: '#D1FAE5',
+                color: '#065F46',
+                padding: '4px 12px',
+                borderRadius: '12px',
+                fontSize: '11px',
+                fontWeight: 700,
+                border: '1px solid #6EE7B7',
+                display: 'inline-block'
+            },
+            OVERDUE: {
+                backgroundColor: '#FEE2E2',
+                color: '#991B1B',
+                padding: '4px 12px',
+                borderRadius: '12px',
+                fontSize: '11px',
+                fontWeight: 700,
+                border: '1px solid #FCA5A5',
+                display: 'inline-block'
+            }
+        };
+        const labels: Record<string, string> = {
+            PENDING: 'Menunggu Pembayaran',
+            PAID: 'Lunas',
+            OVERDUE: 'Jatuh Tempo'
+        };
+        return <span style={styles[status] || styles.PENDING}>{labels[status] || status}</span>;
+    }
 }
 
-// Styles
+// STYLES
 const containerStyle: CSSProperties = {
     minHeight: '100vh',
-    backgroundColor: '#f5f5f5',
-    padding: '20px',
-    fontFamily: 'Arial, sans-serif'
+    backgroundColor: '#F3F4F6',
+    padding: '40px 20px',
+    fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    color: COLORS.textDark
 };
 
 const invoiceCardStyle: CSSProperties = {
-    maxWidth: '700px',
+    maxWidth: '850px',
     margin: '0 auto',
-    backgroundColor: '#fff',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-    borderRadius: '12px',
+    backgroundColor: COLORS.white,
+    borderRadius: '24px',
     overflow: 'hidden',
-    position: 'relative'
+    boxShadow: '0 20px 50px rgba(0,0,0,0.1)'
 };
 
 const headerStyle: CSSProperties = {
+    backgroundColor: COLORS.primaryBlue,
+    // Modern Mesh Gradient for premium feel
+    background: `
+        radial-gradient(circle at 90% 10%, rgba(0, 176, 215, 0.25) 0%, transparent 45%), 
+        radial-gradient(circle at 10% 90%, rgba(0, 176, 215, 0.15) 0%, transparent 45%),
+        linear-gradient(135deg, #172554 0%, #22367b 50%, #1e40af 100%)
+    `,
+    padding: '50px 50px 100px 50px',
+    color: COLORS.white,
+    position: 'relative',
+    overflow: 'hidden'
+};
+
+const headerContentStyle: CSSProperties = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '30px',
-    borderBottom: `3px solid ${COLORS.primaryGreen}`,
-    backgroundColor: COLORS.primaryBlue
+    position: 'relative',
+    zIndex: 1
 };
 
-const logoSectionStyle: CSSProperties = {
-    flex: 1
+const companyInfoStyle: CSSProperties = {
+    // Logo styling
 };
 
-const titleSectionStyle: CSSProperties = {
+const invoiceTitleSectionStyle: CSSProperties = {
     textAlign: 'right'
 };
 
 const invoiceTitleStyle: CSSProperties = {
-    fontSize: '36px',
-    fontWeight: 'bold',
+    fontSize: '56px',
+    fontWeight: 800,
+    margin: 0,
+    letterSpacing: '-1px',
+    lineHeight: 1,
     color: COLORS.white,
-    margin: 0
+    textShadow: '0 2px 4px rgba(0,0,0,0.1)'
 };
 
 const invoiceNoStyle: CSSProperties = {
-    fontSize: '14px',
-    color: 'rgba(255,255,255,0.8)',
-    margin: '5px 0 0'
+    fontSize: '18px',
+    marginTop: '6px',
+    opacity: 0.9,
+    fontWeight: 600,
+    color: 'rgba(255, 255, 255, 0.9)'
 };
 
-const infoRowStyle: CSSProperties = {
+const ccrStyle: CSSProperties = {
+    fontSize: '14px',
+    opacity: 0.8,
+    marginTop: '2px',
+    color: 'rgba(255, 255, 255, 0.8)'
+};
+
+const infoSectionContainerStyle: CSSProperties = {
+    marginTop: '-70px',
+    padding: '0 50px',
+    position: 'relative',
+    zIndex: 10
+};
+
+const infoGridStyle: CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 0.8fr)',
+    gap: '30px'
+};
+
+const floatingCardStyle: CSSProperties = {
+    backgroundColor: COLORS.white,
+    borderRadius: '20px',
+    padding: '30px',
+    boxShadow: '0 10px 30px rgba(0,0,0,0.06)',
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column'
+};
+
+const cardHeaderStyle: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontSize: '13px',
+    fontWeight: 700,
+    color: COLORS.primaryCyan,
+    textTransform: 'uppercase',
+    marginBottom: '20px',
+    letterSpacing: '0.5px'
+};
+
+const cardTitleDotStyle: CSSProperties = {
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
+    backgroundColor: COLORS.primaryBlue
+};
+
+const cardContentStyle: CSSProperties = {
+    flex: 1
+};
+
+const recipientNameStyle: CSSProperties = {
+    fontSize: '20px',
+    fontWeight: 700,
+    marginBottom: '8px',
+    color: COLORS.primaryBlue,
+    lineHeight: 1.3
+};
+
+const recipientDetailStyle: CSSProperties = {
+    fontSize: '14px',
+    color: COLORS.textDark,
+    marginBottom: '4px',
+    display: 'flex',
+    gap: '8px'
+};
+
+const datesContainerStyle: CSSProperties = {
+    borderTop: `1px solid ${COLORS.lightGray}`,
+    marginTop: '20px',
+    paddingTop: '20px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px'
+};
+
+const dateItemStyle: CSSProperties = {
     display: 'flex',
     justifyContent: 'space-between',
-    padding: '0 30px 20px',
-    fontSize: '13px',
-    color: '#666'
+    fontSize: '14px'
 };
 
-const infoLeftStyle: CSSProperties = {};
-const infoRightStyle: CSSProperties = { textAlign: 'right' };
-const infoTextStyle: CSSProperties = { margin: '4px 0' };
+const dateLabelStyle: CSSProperties = {
+    color: COLORS.textGray,
+    fontWeight: 500
+};
+
+const dateValueStyle: CSSProperties = {
+    fontWeight: 600,
+    color: COLORS.textDark
+};
+
+const bankNameStyle: CSSProperties = {
+    fontSize: '16px',
+    fontWeight: 700,
+    marginBottom: '4px'
+};
+
+const bankAccountStyle: CSSProperties = {
+    fontSize: '22px',
+    fontWeight: 700,
+    color: COLORS.primaryBlue,
+    marginBottom: '4px',
+    letterSpacing: '0.5px'
+};
+
+const bankHolderStyle: CSSProperties = {
+    fontSize: '13px',
+    color: COLORS.mediumGray,
+    textTransform: 'uppercase'
+};
+
+const waButtonStyle: CSSProperties = {
+    width: '100%',
+    padding: '12px',
+    backgroundColor: COLORS.primaryGreen,
+    color: COLORS.white,
+    border: 'none',
+    borderRadius: '12px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    fontSize: '13px',
+    marginTop: 'auto'
+};
+
+const paidStatusContainerStyle: CSSProperties = {
+    textAlign: 'center',
+    padding: '10px',
+    backgroundColor: '#ECFDF5',
+    borderRadius: '8px',
+    border: '1px solid #6EE7B7'
+};
+
+const paidCheckmarkStyle: CSSProperties = {
+    fontSize: '24px',
+    color: '#059669',
+    marginBottom: '4px'
+};
+
+const paidTextStyle: CSSProperties = {
+    fontSize: '18px',
+    fontWeight: 800,
+    color: '#059669'
+};
+
+const paidDateStyle: CSSProperties = {
+    fontSize: '12px',
+    color: '#047857'
+};
+
+const emptyStateStyle: CSSProperties = {
+    fontStyle: 'italic',
+    color: COLORS.mediumGray,
+    opacity: 0.7
+};
+
+const bodyContentStyle: CSSProperties = {
+    padding: '40px 50px'
+};
 
 const tableContainerStyle: CSSProperties = {
-    padding: '0 30px'
+    marginBottom: '30px'
 };
 
 const tableStyle: CSSProperties = {
     width: '100%',
-    borderCollapse: 'collapse',
-    fontSize: '13px'
+    borderCollapse: 'separate',
+    borderSpacing: '0 10px',
+    fontSize: '14px'
 };
 
-const tableHeaderRowStyle: CSSProperties = {
-    backgroundColor: COLORS.primaryGreen,
-    color: COLORS.white
-};
-
-const thLeftStyle: CSSProperties = {
-    padding: '12px 15px',
-    textAlign: 'left',
+const thStyle: CSSProperties = {
+    backgroundColor: COLORS.primaryBlue,
+    color: COLORS.white,
+    padding: '16px',
     fontWeight: 600,
-    borderRadius: '4px 0 0 4px'
-};
-
-const thCenterStyle: CSSProperties = {
-    padding: '12px 15px',
-    textAlign: 'center',
-    fontWeight: 600
-};
-
-const thRightStyle: CSSProperties = {
-    padding: '12px 15px',
-    textAlign: 'right',
-    fontWeight: 600,
-    borderRadius: '0 4px 4px 0'
-};
-
-const tableRowStyle: CSSProperties = {
-    borderBottom: `1px solid #eee`
-};
-
-const tdLeftStyle: CSSProperties = {
-    padding: '15px',
-    verticalAlign: 'top'
-};
-
-const tdCenterStyle: CSSProperties = {
-    padding: '15px',
-    textAlign: 'center',
-    verticalAlign: 'top'
-};
-
-const tdRightStyle: CSSProperties = {
-    padding: '15px',
-    textAlign: 'right',
-    verticalAlign: 'top',
-    fontWeight: 500
-};
-
-const itemDetailStyle: CSSProperties = {
-    color: COLORS.secondaryTeal,
-    fontSize: '12px'
-};
-
-const discountStyle: CSSProperties = {
-    color: '#e74c3c',
-    fontSize: '12px'
-};
-
-const grandTotalContainerStyle: CSSProperties = {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    marginTop: '20px',
-    marginBottom: '30px'
-};
-
-const grandTotalBoxStyle: CSSProperties = {
-    backgroundColor: COLORS.lightGray,
-    padding: '15px 30px',
-    borderRadius: '8px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-    borderTop: `3px solid ${COLORS.primaryGreen}`
-};
-
-const grandTotalLabelStyle: CSSProperties = {
+    textTransform: 'uppercase',
     fontSize: '12px',
-    color: '#666',
+    letterSpacing: '0.5px',
+    border: 'none'
+};
+
+const trStyle: CSSProperties = {
+    // 
+};
+
+const tdStyle: CSSProperties = {
+    backgroundColor: '#F9FAFB',
+    padding: '20px 16px',
+    verticalAlign: 'middle',
+    border: 'none',
+    borderTop: '1px solid #F3F4F6',
+    borderBottom: '1px solid #F3F4F6'
+};
+
+const itemNameStyle: CSSProperties = {
+    fontWeight: 700,
+    marginBottom: '4px',
+    color: COLORS.textDark,
+    fontSize: '15px'
+};
+
+const itemSubStyle: CSSProperties = {
+    fontSize: '13px',
+    color: COLORS.mediumGray
+};
+
+const discountTagStyle: CSSProperties = {
+    color: '#DC2626',
     fontWeight: 600,
-    marginBottom: '5px'
+    backgroundColor: '#FEE2E2',
+    padding: '2px 8px',
+    borderRadius: '4px',
+    fontSize: '12px',
+    whiteSpace: 'nowrap' // Prevent text wrapping
 };
 
-const grandTotalValueStyle: CSSProperties = {
-    fontSize: '24px',
-    fontWeight: 'bold',
-    color: COLORS.primaryBlue
-};
-
-const bottomSectionStyle: CSSProperties = {
+const totalSectionWrapperStyle: CSSProperties = {
     display: 'flex',
     justifyContent: 'space-between',
-    padding: '20px 30px',
-    backgroundColor: COLORS.lightGray,
-    borderTop: `1px solid #eee`
+    alignItems: 'center',
+    marginTop: '20px'
 };
 
-const termsColumnStyle: CSSProperties = {
-    flex: 1
-};
-
-const statusBadgeContainerStyle: CSSProperties = {
-    marginBottom: '15px'
-};
-
-const getStatusBadgeStyle = (status: string): CSSProperties => {
-    const baseStyle: CSSProperties = {
-        display: 'inline-block',
-        padding: '10px 20px',
-        borderRadius: '6px',
-        fontWeight: 'bold',
-        fontSize: '14px'
-    };
-
-    if (status === 'PAID') {
-        return { ...baseStyle, backgroundColor: '#e8f5e9', color: '#2e7d32' };
-    } else if (status === 'OVERDUE') {
-        return { ...baseStyle, backgroundColor: '#ffebee', color: '#c62828' };
-    }
-    return { ...baseStyle, backgroundColor: '#fff3e0', color: '#ef6c00' };
-};
-
-const paidDateStyle: CSSProperties = {
-    marginTop: '8px',
-    color: '#2e7d32',
-    fontSize: '13px'
-};
-
-const paymentInfoStyle: CSSProperties = {
-    marginTop: '10px'
-};
-
-const paymentTitleStyle: CSSProperties = {
+const periodContainerStyle: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
     fontSize: '13px',
-    color: '#666',
-    marginBottom: '5px'
+    color: COLORS.mediumGray
 };
 
-const bankDetailStyle: CSSProperties = {
-    fontSize: '13px',
-    margin: '3px 0'
+const periodLabelStyle: CSSProperties = {
+    fontWeight: 600,
+    textTransform: 'uppercase'
 };
 
-const waButtonStyle: CSSProperties = {
-    backgroundColor: '#25d366',
-    color: '#fff',
-    border: 'none',
-    padding: '10px 20px',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontWeight: 'bold',
-    fontSize: '13px',
-    marginTop: '10px'
-};
-
-const issuedToColumnStyle: CSSProperties = {
-    textAlign: 'right'
-};
-
-const issuedToLabelStyle: CSSProperties = {
-    fontSize: '12px',
-    color: '#666',
-    marginBottom: '5px'
-};
-
-const issuedToNameStyle: CSSProperties = {
-    fontSize: '18px',
-    fontWeight: 'bold',
+const periodValueStyle: CSSProperties = {
+    fontWeight: 800, // Thicker
     color: COLORS.primaryBlue,
-    marginBottom: '5px'
+    fontSize: '20px', // Bigger
+    marginTop: '2px'
 };
 
-const issuedToDetailStyle: CSSProperties = {
-    fontSize: '12px',
-    color: '#999'
+const totalPillStyle: CSSProperties = {
+    backgroundColor: COLORS.primaryGreen,
+    borderRadius: '50px',
+    padding: '12px 30px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '20px',
+    color: COLORS.white,
+    boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)'
+};
+
+const totalLabelPillStyle: CSSProperties = {
+    fontSize: '14px',
+    fontWeight: 600,
+    opacity: 0.9,
+    textTransform: 'uppercase'
+};
+
+const totalAmountPillStyle: CSSProperties = {
+    fontSize: '24px',
+    fontWeight: 800
 };
 
 const footerStyle: CSSProperties = {
-    padding: '20px 30px',
-    textAlign: 'center',
-    fontSize: '13px',
-    color: '#666',
-    borderTop: `1px solid #eee`
+    marginTop: '60px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    borderTop: `1px solid ${COLORS.lightGray}`,
+    paddingTop: '30px'
 };
 
-const footerBrandStyle: CSSProperties = {
-    fontWeight: 'bold',
+const termsStyle: CSSProperties = {
+    flex: 1,
+    paddingRight: '40px',
+    fontSize: '13px',
+    color: COLORS.mediumGray
+};
+
+const termsHeaderStyle: CSSProperties = {
+    fontWeight: 700,
+    marginBottom: '10px',
     color: COLORS.primaryBlue
 };
 
+const signatureStyle: CSSProperties = {
+    textAlign: 'center',
+    width: '200px'
+};
+
+const signaturePlaceholderStyle: CSSProperties = {
+    height: '60px',
+    marginBottom: '10px',
+    fontFamily: "'Dancing Script', cursive",
+    fontSize: '20px',
+    color: '#D1D5DB',
+    display: 'flex',
+    alignItems: 'end',
+    justifyContent: 'center'
+};
+
+const signatureNameStyle: CSSProperties = {
+    fontWeight: 700,
+    borderTop: `1px solid ${COLORS.borderGray}`,
+    paddingTop: '8px',
+    fontSize: '14px',
+    color: COLORS.textDark
+};
+
 const printContainerStyle: CSSProperties = {
-    maxWidth: '700px',
-    margin: '20px auto',
-    textAlign: 'center'
+    textAlign: 'center',
+    marginTop: '30px'
 };
 
 const printButtonStyle: CSSProperties = {
     backgroundColor: COLORS.primaryBlue,
-    color: '#fff',
+    color: COLORS.white,
     border: 'none',
-    padding: '12px 30px',
-    borderRadius: '8px',
+    padding: '14px 28px',
+    borderRadius: '12px',
     cursor: 'pointer',
-    fontWeight: 'bold',
-    fontSize: '14px'
+    fontWeight: 600,
+    fontSize: '15px',
+    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
 };

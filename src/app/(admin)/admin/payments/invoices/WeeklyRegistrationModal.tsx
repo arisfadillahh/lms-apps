@@ -45,7 +45,13 @@ export default function WeeklyRegistrationModal({ isOpen, onClose, onSuccess }: 
     const [paymentPlans, setPaymentPlans] = useState<PaymentPlan[]>([]);
     const [settings, setSettings] = useState<any>(null);
     const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState<{ invoiceNumber: string; publicUrl: string } | null>(null);
+    interface SuccessData {
+        invoiceNumber: string;
+        publicUrl: string;
+        dueDate: string;
+    }
+
+    const [success, setSuccess] = useState<SuccessData | null>(null);
 
     // Form State
     const [parentName, setParentName] = useState('');
@@ -216,7 +222,8 @@ export default function WeeklyRegistrationModal({ isOpen, onClose, onSuccess }: 
 
             setSuccess({
                 invoiceNumber: data.invoice.invoice_number,
-                publicUrl: data.invoice.public_url
+                publicUrl: data.invoice.public_url,
+                dueDate: data.invoice.due_date // Capture due date
             });
             onSuccess(); // Refresh parent list
         } catch (err: any) {
@@ -242,7 +249,25 @@ export default function WeeklyRegistrationModal({ isOpen, onClose, onSuccess }: 
 
     const sendWhatsApp = () => {
         if (!success) return;
-        const msg = `Halo Bapak/Ibu ${parentName},\n\nTerima kasih telah mendaftar di Clevio Innovator Camp.\n\nBerikut link tagihan pendaftaran untuk:\n${students.map(s => `- ${s.name}`).join('\n')}\n\nInvoice: ${success.invoiceNumber}\nLink: ${success.publicUrl}\n\nMohon selesaikan pembayaran. Terima kasih!`;
+
+        let template = settings?.weekly_invoice_message_template ||
+            "Halo {{parent_name}},\n\nInvoice: {{invoice_number}}\nLink: {{invoice_link}}\nJatuh Tempo: {{due_date}}";
+
+        // Format Date to Indonesian format (e.g., 10 Februari 2026)
+        const formattedDueDate = new Date(success.dueDate).toLocaleDateString('id-ID', {
+            day: 'numeric', month: 'long', year: 'numeric'
+        });
+
+        // Replace variables
+        const studentList = students.map(s => `- ${s.name}`).join('\n');
+
+        const msg = template
+            .replace('{{parent_name}}', parentName)
+            .replace('{{invoice_number}}', success.invoiceNumber)
+            .replace('{{invoice_link}}', success.publicUrl)
+            .replace('{{due_date}}', formattedDueDate)
+            .replace('{{students}}', studentList);
+
         const url = `https://wa.me/${parentPhone.replace(/^0/, '62')}?text=${encodeURIComponent(msg)}`;
         window.open(url, '_blank');
     };

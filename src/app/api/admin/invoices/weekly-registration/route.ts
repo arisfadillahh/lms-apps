@@ -138,7 +138,8 @@ export async function POST(request: Request) {
             success: true,
             invoice: {
                 invoice_number: (finalInvoice as any).invoice_number,
-                public_url: `${process.env.NEXT_PUBLIC_BASE_URL}/invoice/${(finalInvoice as any).invoice_number}`
+                public_url: `${process.env.NEXT_PUBLIC_BASE_URL}/invoice/${(finalInvoice as any).invoice_number}`,
+                due_date: (finalInvoice as any).due_date
             }
         });
 

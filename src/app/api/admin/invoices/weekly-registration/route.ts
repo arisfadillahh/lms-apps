@@ -54,16 +54,11 @@ export async function POST(request: Request) {
         const month = now.getMonth() + 1;
         const year = now.getFullYear();
 
-        // 2. Check for EXISTING Pending Registration Invoice for this CCR
-        let invoice = await getPendingRegistrationInvoice(supabase, ccr.id, year, month);
-        let invoiceId = invoice?.id;
-
-        // If no invoice, create one
-        if (!invoice) {
-            invoice = await createRegistrationInvoice(supabase, ccr, parentPhone, parentName, year, month);
-            if (!invoice) throw new Error('Failed to create Invoice');
-            invoiceId = invoice.id;
-        }
+        // 2. ALWAYS Create a New Invoice (Since DB constraint is lifted for REGISTRATION)
+        // User wants separate invoices for each registration event.
+        const invoice = await createRegistrationInvoice(supabase, ccr, parentPhone, parentName, year, month);
+        if (!invoice) throw new Error('Failed to create Invoice');
+        const invoiceId = invoice.id;
 
         let newItemsTotal = 0;
 
@@ -156,11 +151,9 @@ export async function POST(request: Request) {
 // Helpers
 async function getPendingRegistrationInvoice(supabase: any, ccrId: string, year: number, month: number) {
     const { data } = await supabase
-        .from('invoices' as any)
-        .select('*')
         .eq('ccr_id', ccrId)
         .eq('invoice_type', 'REGISTRATION')
-        .eq('status', 'PENDING')
+        // .eq('status', 'PENDING') // Don't filter by status, because unique constraint is (ccr_id, month, year)
         .gte('created_at', `${year}-${month.toString().padStart(2, '0')}-01`)
         .single();
     return data;
@@ -179,7 +172,7 @@ async function createRegistrationInvoice(supabase: any, ccr: any, phone: string,
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + 10);
 
-    const { data } = await supabase
+    const { data, error } = await supabase
         .from('invoices' as any)
         .insert({
             invoice_number: invoiceNumber,
@@ -197,6 +190,10 @@ async function createRegistrationInvoice(supabase: any, ccr: any, phone: string,
         })
         .select()
         .single();
+
+    if (error) {
+        console.error('[Unified Registration] Create Invoice Error:', error);
+    }
 
     return data;
 }

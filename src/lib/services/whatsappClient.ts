@@ -539,6 +539,11 @@ function formatInvoiceMessage(
         ? studentNames.join(', ')
         : (invoice.parent_name || '-');
 
+    // Format Due Date
+    const formattedDueDate = invoice.due_date
+        ? new Date(invoice.due_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+        : '-';
+
     if (isWeeklyReg) {
 
         // Use setting or Default Fallback
@@ -550,6 +555,7 @@ Terima kasih telah mendaftar di Program Weekly Clevio Innovator Camp.
 Berikut detail tagihan pendaftaran:
 - No. Invoice: {invoice_number}
 - Siswa: {student_name}
+- Jatuh Tempo: {due_date}
 
 Silakan cek detail dan lakukan pembayaran melalui link invoice berikut:
 {invoice_url}
@@ -558,20 +564,18 @@ Mohon selesaikan pembayaran untuk mengamankan slot jadwal.
 Terima kasih!`;
 
         return template
-            .replace(/{invoice_number}/g, invoice.invoice_number)
-            .replace(/{student_name}/g, studentName)
-            .replace(/{parent_name}/g, invoice.parent_name)
-            .replace(/{invoice_url}/g, invoiceUrl);
+            // Regex to support both {{var}} and {var}
+            .replace(/\{\{invoice_number\}\}|\{invoice_number\}/g, invoice.invoice_number)
+            .replace(/\{\{student_name\}\}|\{student_name\}/g, studentName)
+            .replace(/\{\{parent_name\}\}|\{parent_name\}/g, invoice.parent_name)
+            .replace(/\{\{invoice_url\}\}|\{invoice_url\}/g, invoiceUrl)
+            .replace(/\{\{due_date\}\}|\{due_date\}/g, formattedDueDate);
     }
 
     const template = settings.invoice_message_template;
 
     const formattedAmount = new Intl.NumberFormat('id-ID').format(invoice.total_amount);
-    const formattedDueDate = new Date(invoice.due_date).toLocaleDateString('id-ID', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-    });
+    // formattedDueDate is already calculated above
 
     // Format period as date range
     const getMonthName = (month: number) => {

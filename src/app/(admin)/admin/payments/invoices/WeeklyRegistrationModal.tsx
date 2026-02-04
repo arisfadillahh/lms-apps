@@ -250,23 +250,39 @@ export default function WeeklyRegistrationModal({ isOpen, onClose, onSuccess }: 
     const sendWhatsApp = () => {
         if (!success) return;
 
+        console.log('[Debug] Settings:', settings);
+        console.log('[Debug] Success Data:', success);
+
         let template = settings?.weekly_invoice_message_template ||
             "Halo {{parent_name}},\n\nInvoice: {{invoice_number}}\nLink: {{invoice_link}}\nJatuh Tempo: {{due_date}}";
 
+        console.log('[Debug] Template used:', template);
+
         // Format Date to Indonesian format (e.g., 10 Februari 2026)
-        const formattedDueDate = new Date(success.dueDate).toLocaleDateString('id-ID', {
-            day: 'numeric', month: 'long', year: 'numeric'
-        });
+        let formattedDueDate = 'N/A';
+        try {
+            if (success.dueDate) {
+                formattedDueDate = new Date(success.dueDate).toLocaleDateString('id-ID', {
+                    day: 'numeric', month: 'long', year: 'numeric'
+                });
+            }
+        } catch (e) {
+            console.error('[Debug] Date Error:', e);
+        }
+
+        console.log('[Debug] Formatted Due Date:', formattedDueDate);
 
         // Replace variables
         const studentList = students.map(s => `- ${s.name}`).join('\n');
 
         const msg = template
-            .replace('{{parent_name}}', parentName)
-            .replace('{{invoice_number}}', success.invoiceNumber)
-            .replace('{{invoice_link}}', success.publicUrl)
-            .replace('{{due_date}}', formattedDueDate)
-            .replace('{{students}}', studentList);
+            .replace(/\{\{parent_name\}\}|\{parent_name\}/g, parentName)
+            .replace(/\{\{invoice_number\}\}|\{invoice_number\}/g, success.invoiceNumber)
+            .replace(/\{\{invoice_link\}\}|\{invoice_link\}/g, success.publicUrl)
+            .replace(/\{\{due_date\}\}|\{due_date\}/g, formattedDueDate)
+            .replace(/\{\{students\}\}|\{students\}/g, studentList);
+
+        console.log('[Debug] Final Message:', msg);
 
         const url = `https://wa.me/${parentPhone.replace(/^0/, '62')}?text=${encodeURIComponent(msg)}`;
         window.open(url, '_blank');

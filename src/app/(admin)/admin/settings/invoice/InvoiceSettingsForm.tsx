@@ -235,7 +235,7 @@ export default function InvoiceSettingsForm({ initialSettings }: Props) {
                     />
                     <p className="text-xs text-gray-500 mt-1">
                         Template pesan WhatsApp untuk tagihan pendaftaran mingguan (REG).
-                        Gunakan <code>{'{invoice_number}'}</code>, <code>{'{student_name}'}</code>, <code>{'{parent_name}'}</code>, dan <code>{'{invoice_url}'}</code> sebagai variabel.
+                        Gunakan <code>{'{invoice_number}'}</code>, <code>{'{student_name}'}</code>, <code>{'{parent_name}'}</code>, <code>{'{invoice_url}'}</code>, dan <code>{'{due_date}'}</code> sebagai variabel.
                     </p>
                 </div>
             </div>

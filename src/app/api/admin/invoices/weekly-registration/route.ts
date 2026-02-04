@@ -117,11 +117,19 @@ export async function POST(request: Request) {
             newItemsTotal += student.totalAmount;
         }
 
-        // 4. Update Invoice Total
+        // 4. Update Invoice Total & Start Date
         const currentTotal = invoice.total_amount || 0;
+
+        // Use the start date from the first student as the invoice period start date
+        // This ensures the invoice reflects the actual start date entered in the form
+        const invoiceStartDate = students.length > 0 ? students[0].startDate : new Date().toISOString().split('T')[0];
+
         await supabase
             .from('invoices' as any)
-            .update({ total_amount: currentTotal + newItemsTotal })
+            .update({
+                total_amount: currentTotal + newItemsTotal,
+                period_start_date: invoiceStartDate
+            })
             .eq('id', invoiceId);
 
         // Fetch final invoice

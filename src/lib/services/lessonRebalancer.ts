@@ -181,6 +181,28 @@ export async function syncClassLessonsStructure(classId: string): Promise<void> 
                         .eq('id', first.id);
                 }
             }
+
+            // D. Sync Metadata (Order, Title, Summary, Slides) for ALL existing lessons
+            for (let i = 0; i < currentLessons.length; i++) {
+                const lesson = currentLessons[i];
+                const partNum = i + 1;
+                const expectedOrder = (template.order_index * 1000) + partNum;
+
+                const updates: any = {};
+                // Check and update fields
+                if (lesson.order_index !== expectedOrder) updates.order_index = expectedOrder;
+                if (lesson.summary !== template.summary) updates.summary = template.summary;
+                if (lesson.slide_url !== template.slide_url) updates.slide_url = template.slide_url;
+
+                let expectedTitle = template.title;
+                if (targetCount > 1) expectedTitle = `${template.title} (Part ${partNum})`;
+
+                if (lesson.title !== expectedTitle) updates.title = expectedTitle;
+
+                if (Object.keys(updates).length > 0) {
+                    await supabase.from('class_lessons').update(updates).eq('id', lesson.id);
+                }
+            }
         }
     }
 }

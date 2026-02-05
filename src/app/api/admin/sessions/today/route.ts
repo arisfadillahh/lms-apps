@@ -35,50 +35,45 @@ export async function GET() {
 
         console.log('[API] Fetching sessions params (Explicit WIB):', { startFilter, endFilter });
 
-        // Fetch scheduled sessions for today
-        const { data: sessions, error } = await supabase
+        // Fetch sessions with classes
+        const { data: rawSessions, error } = await supabase
             .from('sessions')
-            .select(`
-            id,
-            date_time,
-            status,
-            coder:users!coder_id (
-                full_name,
-                parent_name
-            ),
-            class:classes (
-                id,
-                zoom_link
-            )
-        `)
-            // .eq('status', 'SCHEDULED')
+            .select('id, date_time, class_id, classes(id, name, zoom_link)')
             .gte('date_time', startFilter)
             .lte('date_time', endFilter);
 
-        console.log('[API] Sessions query result:', {
-            count: sessions?.length,
-            error: error?.message,
-            firstSessionTime: sessions?.[0]?.date_time
-        });
-
         if (error) throw error;
 
-        // Transform for UI
-        const students = sessions.map((s: any) => {
+        if (!rawSessions || rawSessions.length === 0) {
+            return NextResponse.json({ students: [] });
+        }
+
+        // Fetch enrollments for these classes
+        const classIds = [...new Set(rawSessions.map(s => s.class_id))];
+
+        const { data: enrollments } = await supabase
+            .from('enrollments')
+            .select('coder_id, class_id, users(id, full_name, parent_name)')
+            .in('class_id', classIds)
+            .eq('status', 'ACTIVE');
+
+        // Transform for UI: Create one entry per (session, student) pair
+        const students = rawSessions.flatMap((s: any) => {
+            const classEnrollments = enrollments?.filter(e => e.class_id === s.class_id) || [];
             const date = new Date(s.date_time);
             const timeStr = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false });
+            const classData = Array.isArray(s.classes) ? s.classes[0] : s.classes;
 
-            // Coder might be returned as array or single object depending on query
-            const coderData = Array.isArray(s.coder) ? s.coder[0] : s.coder;
-            const classData = Array.isArray(s.class) ? s.class[0] : s.class;
-
-            return {
-                id: s.id,
-                student_name: coderData?.full_name || 'Unknown',
-                parent_name: coderData?.parent_name || 'Ayah/Bunda',
-                time: timeStr,
-                zoom_link: classData?.zoom_link || '-'
-            };
+            return classEnrollments.map((enrollment: any) => {
+                const userData = Array.isArray(enrollment.users) ? enrollment.users[0] : enrollment.users;
+                return {
+                    id: s.id,
+                    student_name: userData?.full_name || 'Unknown',
+                    parent_name: userData?.parent_name || 'Ayah/Bunda',
+                    time: timeStr,
+                    zoom_link: classData?.zoom_link || '-'
+                };
+            });
         });
 
         return NextResponse.json({ students });

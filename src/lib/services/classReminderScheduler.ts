@@ -57,16 +57,21 @@ export async function checkAndSendClassReminders(): Promise<{
     }
 
     // 3. Check Duplicate Execution (Has ran today?)
-    // We check logs for 'CLASS_REMINDER' category created today (WIB).
+    // We check logs for 'REMINDER' category with type CLASS_REMINDER created today (WIB).
     const startOfDayWib = `${todayStr}T00:00:00+07:00`;
 
-    const { count } = await supabase
+    const { data: logs } = await supabase
         .from('whatsapp_message_logs')
-        .select('*', { count: 'exact', head: true })
-        .eq('category', 'CLASS_REMINDER' as any)
-        .gte('created_at', startOfDayWib); // Use created_at as processed_at might not be standard
+        .select('payload')
+        .eq('category', 'REMINDER' as any)
+        .gte('created_at', startOfDayWib);
 
-    if (count && count > 0) {
+    // Check if any of these logs are CLASS_REMINDER type
+    const hasClassReminderToday = logs?.some((log: any) =>
+        log.payload?.type === 'CLASS_REMINDER'
+    );
+
+    if (hasClassReminderToday) {
         return { success: true, sent: 0, message: 'Already sent today', skippedReason: 'ALREADY_SENT' };
     }
 

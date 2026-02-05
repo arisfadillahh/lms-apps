@@ -562,11 +562,20 @@ Mohon hadir tepat waktu ya. Terima kasih! 🙏`;
                             </thead>
                             <tbody>
                                 {logs.map((log) => {
-                                    const isReminder = log.category === 'CLASS_REMINDER';
-                                    const invoiceNum = log.payload?.invoice_number || '-';
+                                    const payloadType = (log.payload as any)?.type;
+                                    const isClassReminder = payloadType === 'CLASS_REMINDER';
+                                    const isInvoiceReminder = log.category === 'REMINDER' && !isClassReminder;
+
+                                    const invoiceNum = (log.payload as any)?.invoice_number || '-';
                                     const studentName = (log.payload as any)?.student_name || '-';
-                                    const refText = isReminder ? `Reminder: ${studentName}` : invoiceNum;
-                                    const recipient = log.payload?.parent_name || '-';
+                                    const refText = isClassReminder ? `Class: ${studentName}` :
+                                        isInvoiceReminder ? `Invoice: ${invoiceNum}` :
+                                            invoiceNum;
+                                    const recipient = (log.payload as any)?.parent_name || '-';
+
+                                    // Display category name
+                                    const categoryDisplay = isClassReminder ? 'CLASS REMINDER' :
+                                        log.category.replace(/_/g, ' ');
 
                                     return (
                                         <tr key={log.id}>
@@ -575,7 +584,7 @@ Mohon hadir tepat waktu ya. Terima kasih! 🙏`;
                                                     {formatDate(log.created_at)}
                                                 </div>
                                                 <div style={{ fontSize: '10px', fontWeight: 600, color: '#0f172a' }}>
-                                                    {log.category.replace(/_/g, ' ')}
+                                                    {categoryDisplay}
                                                 </div>
                                             </td>
                                             <td style={tdStyle}>{refText}</td>

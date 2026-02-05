@@ -435,10 +435,11 @@ export async function sendClassReminder(
         // Log result
         const supabase = getSupabaseAdmin();
         await supabase.from('whatsapp_message_logs').insert({
-            category: 'CLASS_REMINDER' as any,
+            category: 'REMINDER' as any, // Use existing REMINDER category
             payload: {
                 parent_phone: parentPhone,
-                student_name: studentName
+                student_name: studentName,
+                type: 'CLASS_REMINDER' // Add type to differentiate
             },
             status: result.success ? 'SENT' : 'FAILED',
             response: result.error ? { error: result.error } : { success: true },

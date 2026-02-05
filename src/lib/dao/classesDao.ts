@@ -405,3 +405,19 @@ export async function isCoderEnrolled(classId: string, coderId: string): Promise
 
   return !!data;
 }
+
+export async function getEnrollment(classId: string, coderId: string): Promise<EnrollmentRecord | null> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('enrollments')
+    .select('*')
+    .eq('class_id', classId)
+    .eq('coder_id', coderId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to fetch enrollment: ${error.message}`);
+  }
+
+  return data;
+}

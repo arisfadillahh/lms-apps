@@ -495,14 +495,24 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
       }
 
       // --- WEEKLY HANDLING ---
-      const [blocks, sessions] = await Promise.all([
+      const [blocks, sessions, enrollment] = await Promise.all([
         classesDao.getClassBlocks(klass.id),
         sessionsDao.listSessionsByClass(klass.id),
+        classesDao.getEnrollment(klass.id, coderId),
       ]);
       const sessionMap = new Map(sessions.map((session) => [session.id, session]));
 
+      const enrollmentDate = enrollment ? new Date(enrollment.enrolled_at) : new Date(0); // Default to epoch if no date (shouldn't happen)
+
       const blockEntries = await Promise.all(
         blocks.map(async (block) => {
+          // RESTRICTION: Hide block if it strictly ended BEFORE the user enrolled.
+          // Example: Block ends Jan 31. User joins Feb 1. Block is hidden.
+          // If Block ends Feb 28. User joins Feb 1. Block is visible.
+          if (new Date(block.end_date) < enrollmentDate) {
+            return null;
+          }
+
           const lessons = await classLessonsDao.listLessonsByClassBlock(block.id);
           const accessibleLessons = lessons
             .filter((lesson) => {
@@ -546,7 +556,7 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
       return {
         classId: klass.id,
         name: klass.name,
-        blocks: blockEntries,
+        blocks: blockEntries.filter((b): b is NonNullable<typeof b> => b !== null),
       };
     }),
   );
@@ -653,8 +663,14 @@ export async function getLessonDetailForCoder(coderId: string, lessonId: string)
   if (!block) return null;
 
   // Check enrollment
-  const isEnrolled = await classesDao.isCoderEnrolled(block.class_id, coderId);
-  if (!isEnrolled) return null;
+  const enrollment = await classesDao.getEnrollment(block.class_id, coderId);
+  if (!enrollment || enrollment.status !== 'ACTIVE') return null;
+
+  // RESTRICTION: Block Ended Before Enrollment?
+  const enrollmentDate = new Date(enrollment.enrolled_at);
+  if (new Date(block.end_date) < enrollmentDate) {
+    return null;
+  }
 
   // Check access (Time or Status)
   const session = lesson.session_id ? await sessionsDao.getSessionById(lesson.session_id) : null;

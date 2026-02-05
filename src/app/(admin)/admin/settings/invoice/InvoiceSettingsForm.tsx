@@ -27,7 +27,7 @@ export default function InvoiceSettingsForm({ initialSettings }: Props) {
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-    const handleChange = (field: string, value: string | number) => {
+    const handleChange = (field: string, value: string | number | boolean) => {
         setSettings(prev => ({ ...prev, [field]: value }));
     };
 
@@ -62,6 +62,8 @@ export default function InvoiceSettingsForm({ initialSettings }: Props) {
                     {message.text}
                 </div>
             )}
+
+
 
             <div style={cardStyle}>
                 <h2 style={sectionTitleStyle}>📅 Jadwal Invoice</h2>

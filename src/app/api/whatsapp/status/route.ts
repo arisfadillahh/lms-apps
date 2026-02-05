@@ -20,7 +20,17 @@ export async function GET() {
 
         const status = await getWhatsAppStatus(true);
 
-        return NextResponse.json(status);
+        // Add server time (WIB)
+        const now = new Date();
+        const serverTime = now.toLocaleTimeString('id-ID', {
+            timeZone: 'Asia/Jakarta',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
+
+        return NextResponse.json({ ...status, serverTime });
 
     } catch (error) {
         console.error('[API] WhatsApp status error:', error);

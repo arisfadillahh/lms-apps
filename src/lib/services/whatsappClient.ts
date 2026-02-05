@@ -410,6 +410,50 @@ export async function sendSingleInvoiceReminder(invoiceId: string): Promise<{ su
 }
 
 /**
+ * Send Class Reminder (Generic)
+ */
+export async function sendClassReminder(
+    parentPhone: string,
+    message: string,
+    studentName: string
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        // Check connection
+        if (!isConnected || !sock) {
+            // Try one last attempt to reconnect
+            await initializeWhatsApp();
+            if (!isConnected || !sock) {
+                return { success: false, error: 'WhatsApp not connected' };
+            }
+        }
+
+        console.log(`[WhatsApp] Sending class reminder to ${parentPhone} for ${studentName}`);
+
+        // Send
+        const result = await sendWhatsAppMessage(parentPhone, message);
+
+        // Log result
+        const supabase = getSupabaseAdmin();
+        await supabase.from('whatsapp_message_logs').insert({
+            category: 'CLASS_REMINDER' as any,
+            payload: {
+                parent_phone: parentPhone,
+                student_name: studentName
+            },
+            status: result.success ? 'SENT' : 'FAILED',
+            response: result.error ? { error: result.error } : { success: true },
+            processed_at: new Date().toISOString()
+        });
+
+        return result;
+
+    } catch (error) {
+        console.error('[WhatsApp] Class reminder error:', error);
+        return { success: false, error: String(error) };
+    }
+}
+
+/**
  * Send invoice reminders to all pending invoices for a month
  */
 export async function sendInvoiceReminders(

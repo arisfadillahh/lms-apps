@@ -21,6 +21,14 @@ export interface InvoiceSettings {
     payment_confirmation_template: string;
     seasonal_invoice_message_template: string;
     weekly_invoice_message_template: string; // New field for Weekly Registration
+
+    // Class Reminder Settings
+    enable_class_reminder?: boolean;
+    class_reminder_time?: string;
+    class_reminder_message_template?: string;
+    class_reminder_delay_min?: number;
+    class_reminder_delay_max?: number;
+
     updated_at: string;
 }
 

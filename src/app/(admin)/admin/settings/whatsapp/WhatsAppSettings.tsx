@@ -1,10 +1,14 @@
 'use client';
 
 import { useState, useEffect, type CSSProperties } from 'react';
-import type { WhatsAppStatus } from '@/lib/types/invoice';
+import type { InvoiceSettings, WhatsAppStatus } from '@/lib/types/invoice';
+
+interface ExtendedStatus extends WhatsAppStatus {
+    serverTime?: string;
+}
 
 export default function WhatsAppSettings() {
-    const [status, setStatus] = useState<WhatsAppStatus | null>(null);
+    const [status, setStatus] = useState<ExtendedStatus | null>(null);
     const [loading, setLoading] = useState(true);
     const [connecting, setConnecting] = useState(false);
     const [disconnecting, setDisconnecting] = useState(false);
@@ -19,10 +23,153 @@ export default function WhatsAppSettings() {
         created_at: string;
     }>>([]);
 
+
+
+    // Invoice Settings State (for Class Reminder)
+    const [invoiceSettings, setInvoiceSettings] = useState<Partial<InvoiceSettings>>({});
+    const [savingSettings, setSavingSettings] = useState(false);
+    const [settingsMsg, setSettingsMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+    // Test Modal State
+    const [showTestModal, setShowTestModal] = useState(false);
+    const [testPhone, setTestPhone] = useState('');
+    const [testStudent, setTestStudent] = useState<any>(null); // { name, time, zoom_link, parent_name }
+    const [availableStudents, setAvailableStudents] = useState<any[]>([]); // List of students with sessions today
+    const [loadingStudents, setLoadingStudents] = useState(false);
+    const [sendingTest, setSendingTest] = useState(false);
+    const [testMsg, setTestMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
     useEffect(() => {
         fetchStatus();
         fetchLogs();
+        fetchInvoiceSettings();
     }, []);
+
+    const fetchInvoiceSettings = async () => {
+        try {
+            const res = await fetch('/api/invoices/settings');
+            if (res.ok) {
+                const data = await res.json();
+
+                // Set default template if empty
+                if (!data.class_reminder_message_template) {
+                    data.class_reminder_message_template = `Halo Ayah/Bunda {parent_name} 👋
+
+Reminder kelas coding untuk:
+💻 {student_name}
+🕒 Pukul: {time}
+🔗 Zoom: {zoom_link}
+
+Mohon hadir tepat waktu ya. Terima kasih! 🙏`;
+                }
+
+                setInvoiceSettings(data);
+            }
+        } catch (err) {
+            console.error('Error fetching invoice settings:', err);
+        }
+    };
+
+    const handleSettingChange = (field: string, value: any) => {
+        setInvoiceSettings(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleSaveSettings = async () => {
+        setSavingSettings(true);
+        setSettingsMsg(null);
+        try {
+            const res = await fetch('/api/invoices/settings', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(invoiceSettings)
+            });
+
+            if (res.ok) {
+                setSettingsMsg({ type: 'success', text: 'Settings saved successfully!' });
+            } else {
+                const data = await res.json();
+                setSettingsMsg({ type: 'error', text: data.error || 'Failed to save settings' });
+            }
+        } catch (error) {
+            setSettingsMsg({ type: 'error', text: 'Error: ' + String(error) });
+        } finally {
+            setSavingSettings(false);
+        }
+    };
+
+    const fetchTodayStudents = async () => {
+        setLoadingStudents(true);
+        try {
+            // We reuse the existing sessions API or create a focused one. 
+            // For now, let's assume we create a quick helper or reuse an existing route. 
+            // Actually, best to just create a quick server action or route. 
+            // Let's use a new route /api/sessions/today-simple for this specific UI need if possible, 
+            // OR reuse the cron logic but that's internal.
+            // Let's TRY to fetch the cron job logic results WITHOUT sending? No.
+            // Let's fetch from the generic sessions endpoint if available?
+            // To be safe and quick, I'll add a specific logic here to fetch via a new dedicated small endpoint or just list sessions.
+            // Wait, we don't have a simple endpoint. Let's add a `fetchStudents` logic in the component that calls a new endpoint.
+            // I'll create `api/sessions/today-options` effectively.
+
+            // Re-using the logic from `classReminderScheduler` but exposed as API? 
+            // Let's make a new endpoint: /api/admin/sessions/today
+            const res = await fetch('/api/admin/sessions/today'); // I will create this next
+            if (res.ok) {
+                const data = await res.json();
+                setAvailableStudents(data.students || []);
+            }
+        } catch (err) {
+            console.error('Error fetching students:', err);
+        } finally {
+            setLoadingStudents(false);
+        }
+    };
+
+    const handleOpenTestModal = () => {
+        setShowTestModal(true);
+        fetchTodayStudents();
+    };
+
+    const handleSendTest = async () => {
+        if (!testPhone || !testStudent) {
+            setTestMsg({ type: 'error', text: 'Pilih siswa dan isi nomor WA.' });
+            return;
+        }
+
+        setSendingTest(true);
+        setTestMsg(null);
+
+        try {
+            // Construct message
+            const template = invoiceSettings.class_reminder_message_template || '';
+            const msg = template
+                .replace('{parent_name}', testStudent.parent_name || 'Ayah/Bunda')
+                .replace('{student_name}', testStudent.student_name)
+                .replace('{time}', testStudent.time)
+                .replace('{zoom_link}', testStudent.zoom_link);
+
+            const res = await fetch('/api/whatsapp/test-reminder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    phone: testPhone,
+                    message: msg,
+                    studentName: testStudent.student_name
+                })
+            });
+
+            const data = await res.json();
+            if (res.ok && data.success) {
+                setTestMsg({ type: 'success', text: 'Pesan tes terkirim!' });
+            } else {
+                setTestMsg({ type: 'error', text: data.error || 'Gagal mengirim pesan.' });
+            }
+        } catch (error) {
+            setTestMsg({ type: 'error', text: 'Error: ' + String(error) });
+        } finally {
+            setSendingTest(false);
+        }
+    };
 
     // Auto-connect and poll for QR when not connected
     useEffect(() => {
@@ -242,6 +389,157 @@ export default function WhatsAppSettings() {
                 </div>
             </div>
 
+            {/* Class Reminder Settings Card */}
+            <div style={cardStyle}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <h2 style={{ ...sectionTitleStyle, marginBottom: 0 }}>⏰ Reminder Kelas Hari Ini</h2>
+                        {status?.serverTime && (
+                            <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500, marginTop: '4px' }}>
+                                🕒 Server Time: {status.serverTime} (WIB)
+                            </span>
+                        )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <label style={{ fontSize: '14px', fontWeight: 600, color: invoiceSettings.enable_class_reminder ? '#2e7d32' : '#64748b' }}>
+                            {invoiceSettings.enable_class_reminder ? 'AKTIF' : 'NON-AKTIF'}
+                        </label>
+                        <input
+                            type="checkbox"
+                            checked={invoiceSettings.enable_class_reminder || false}
+                            onChange={(e) => handleSettingChange('enable_class_reminder', e.target.checked)}
+                            style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                        />
+                    </div>
+                </div>
+
+                {settingsMsg && (
+                    <div style={settingsMsg.type === 'success' ? successStyle : errorStyle}>
+                        {settingsMsg.text}
+                    </div>
+                )}
+
+                <div style={{ /* opacity: invoiceSettings.enable_class_reminder ? 1 : 0.6, pointerEvents: invoiceSettings.enable_class_reminder ? 'auto' : 'none', transition: 'opacity 0.2s' */ }}>
+                    <div style={formGroupStyle}>
+                        <label style={labelStyle}>Waktu Pengiriman</label>
+                        <input
+                            type="time"
+                            value={invoiceSettings.class_reminder_time || '09:00'}
+                            onChange={(e) => handleSettingChange('class_reminder_time', e.target.value)}
+                            style={inputStyle}
+                        />
+                        <p style={helpTextStyle}>Jam berapa sistem akan mulai mengecek dan mengirim reminder (WIB/Server Time).</p>
+                    </div>
+
+                    <div style={formRowStyle}>
+                        <div style={formGroupStyle}>
+                            <label style={labelStyle}>Min Delay (detik)</label>
+                            <input
+                                type="number"
+                                min={1}
+                                value={invoiceSettings.class_reminder_delay_min || 5}
+                                onChange={(e) => handleSettingChange('class_reminder_delay_min', parseInt(e.target.value))}
+                                style={inputStyle}
+                            />
+                        </div>
+                        <div style={formGroupStyle}>
+                            <label style={labelStyle}>Max Delay (detik)</label>
+                            <input
+                                type="number"
+                                min={1}
+                                value={invoiceSettings.class_reminder_delay_max || 15}
+                                onChange={(e) => handleSettingChange('class_reminder_delay_max', parseInt(e.target.value))}
+                                style={inputStyle}
+                            />
+                        </div>
+                    </div>
+
+                    <div style={formGroupStyle}>
+                        <label style={labelStyle}>Template Pesan Reminder</label>
+                        <textarea
+                            value={invoiceSettings.class_reminder_message_template || ''}
+                            onChange={(e) => handleSettingChange('class_reminder_message_template', e.target.value)}
+                            style={textareaStyle}
+                            rows={8}
+                        />
+                        <p style={helpTextStyle}>
+                            Variables: {'{parent_name}'}, {'{student_name}'}, {'{time}'}, {'{zoom_link}'}
+                        </p>
+                    </div>
+
+                    <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between' }}>
+                        <button onClick={handleOpenTestModal} style={testButtonStyle}>
+                            🧪 Tes Kirim Pesan
+                        </button>
+                        <button onClick={handleSaveSettings} disabled={savingSettings} style={saveButtonStyle}>
+                            {savingSettings ? 'Saving...' : '💾 Simpan Konfigurasi'}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Test Modal (Simple implementation) */}
+                {showTestModal && (
+                    <div style={modalOverlayStyle}>
+                        <div style={modalContentStyle}>
+                            <h3 style={{ marginTop: 0 }}>🧪 Tes Kirim Reminder</h3>
+
+                            {testMsg && (
+                                <div style={testMsg.type === 'success' ? successStyle : errorStyle}>
+                                    {testMsg.text}
+                                </div>
+                            )}
+
+                            <div style={formGroupStyle}>
+                                <label style={labelStyle}>Nomor WhatsApp Tujuan</label>
+                                <input
+                                    type="text"
+                                    value={testPhone}
+                                    onChange={(e) => setTestPhone(e.target.value)}
+                                    placeholder="0812xxx"
+                                    style={inputStyle}
+                                />
+                            </div>
+
+                            <div style={formGroupStyle}>
+                                <label style={labelStyle}>Sampel Siswa (dari sesi hari ini)</label>
+                                {loadingStudents ? (
+                                    <p>Loading students...</p>
+                                ) : availableStudents.length === 0 ? (
+                                    <p style={{ color: '#c62828' }}>Tidak ada sesi kelas hari ini untuk ditest.</p>
+                                ) : (
+                                    <select
+                                        style={inputStyle}
+                                        onChange={(e) => {
+                                            const selected = availableStudents.find(s => s.id === e.target.value);
+                                            setTestStudent(selected);
+                                        }}
+                                        value={testStudent?.id || ''}
+                                    >
+                                        <option value="">-- Pilih Siswa --</option>
+                                        {availableStudents.map(s => (
+                                            <option key={s.id} value={s.id}>
+                                                {s.student_name} ({s.time})
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+                                <button onClick={() => setShowTestModal(false)} style={cancelButtonStyle}>Tutup</button>
+                                <button
+                                    onClick={handleSendTest}
+                                    disabled={sendingTest || !testStudent}
+                                    style={connectButtonStyle}
+                                >
+                                    {sendingTest ? 'Mengirim...' : 'Kirim Pesan'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
             {/* Message Logs Card */}
             <div style={cardStyle}>
                 <div style={logsHeaderStyle}>
@@ -263,18 +561,33 @@ export default function WhatsAppSettings() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {logs.map((log) => (
-                                    <tr key={log.id}>
-                                        <td style={tdStyle}>{formatDate(log.created_at)}</td>
-                                        <td style={tdStyle}>{log.payload?.invoice_number || '-'}</td>
-                                        <td style={tdStyle}>{log.payload?.parent_name || '-'}</td>
-                                        <td style={tdStyle}>
-                                            <span style={getLogStatusStyle(log.status)}>
-                                                {log.status}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {logs.map((log) => {
+                                    const isReminder = log.category === 'CLASS_REMINDER';
+                                    const invoiceNum = log.payload?.invoice_number || '-';
+                                    const studentName = (log.payload as any)?.student_name || '-';
+                                    const refText = isReminder ? `Reminder: ${studentName}` : invoiceNum;
+                                    const recipient = log.payload?.parent_name || '-';
+
+                                    return (
+                                        <tr key={log.id}>
+                                            <td style={tdStyle}>
+                                                <div style={{ fontSize: '12px', color: '#64748b' }}>
+                                                    {formatDate(log.created_at)}
+                                                </div>
+                                                <div style={{ fontSize: '10px', fontWeight: 600, color: '#0f172a' }}>
+                                                    {log.category.replace(/_/g, ' ')}
+                                                </div>
+                                            </td>
+                                            <td style={tdStyle}>{refText}</td>
+                                            <td style={tdStyle}>{recipient}</td>
+                                            <td style={tdStyle}>
+                                                <span style={getLogStatusStyle(log.status)}>
+                                                    {log.status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
@@ -302,6 +615,23 @@ const statusIndicatorStyle = (connected: boolean): CSSProperties => ({
 });
 const phoneInfoStyle: CSSProperties = { marginTop: '12px', color: '#64748b' };
 const errorTextStyle: CSSProperties = { color: '#c62828', marginTop: '12px' };
+
+// Added missing styles for form
+const formRowStyle: CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' };
+const formGroupStyle: CSSProperties = { marginBottom: '16px' };
+const labelStyle: CSSProperties = { display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 500, color: '#374151' };
+const inputStyle: CSSProperties = { width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', boxSizing: 'border-box' };
+const textareaStyle: CSSProperties = { ...inputStyle, fontFamily: 'monospace', resize: 'vertical' };
+const helpTextStyle: CSSProperties = { fontSize: '12px', color: '#94a3b8', marginTop: '4px' };
+const saveButtonStyle: CSSProperties = { backgroundColor: '#00a8e8', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' };
+const testButtonStyle: CSSProperties = { backgroundColor: '#6366f1', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' };
+const successStyle: CSSProperties = { backgroundColor: '#e8f5e9', color: '#2e7d32', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px' };
+const errorStyle: CSSProperties = { backgroundColor: '#ffebee', color: '#c62828', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px' };
+
+const modalOverlayStyle: CSSProperties = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 };
+const modalContentStyle: CSSProperties = { backgroundColor: '#fff', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '500px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' };
+const cancelButtonStyle: CSSProperties = { backgroundColor: '#f1f5f9', color: '#475569', border: 'none', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 };
+
 
 const qrContainerStyle: CSSProperties = { textAlign: 'center', padding: '20px', backgroundColor: '#f8fafc', borderRadius: '12px', marginBottom: '20px' };
 const qrInstructionStyle: CSSProperties = { marginBottom: '16px', fontWeight: 500 };

@@ -67,7 +67,9 @@ export async function GET() {
             return classEnrollments.map((enrollment: any) => {
                 const userData = Array.isArray(enrollment.users) ? enrollment.users[0] : enrollment.users;
                 return {
-                    id: s.id,
+                    id: `${s.id}_${enrollment.coder_id}`, // Unique ID combining session + coder
+                    session_id: s.id,
+                    coder_id: enrollment.coder_id,
                     student_name: userData?.full_name || 'Unknown',
                     parent_name: userData?.parent_name || 'Ayah/Bunda',
                     time: timeStr,

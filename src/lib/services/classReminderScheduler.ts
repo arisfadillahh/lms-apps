@@ -47,7 +47,14 @@ export async function checkAndSendClassReminders(): Promise<{
     const currentMinutes = parseInt(find('minute') || '0');
     const todayStr = `${find('year')}-${find('month')}-${find('day')}`;
 
-    console.log(`[Scheduler] Checking reminders for ${todayStr} at ${currentHours}:${currentMinutes} WIB`);
+    // Calculate Tomorrow's Date for H-1 Reminder
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowParts = formatter.formatToParts(tomorrow);
+    const findTomorrow = (type: string) => tomorrowParts.find(p => p.type === type)?.value;
+    const tomorrowStr = `${findTomorrow('year')}-${findTomorrow('month')}-${findTomorrow('day')}`;
+
+    console.log(`[Scheduler] Checking H-1 reminders for ${tomorrowStr} at ${currentHours}:${currentMinutes} WIB`);
 
     const [targetHours, targetMinutes] = targetTime.split(':').map(Number);
 
@@ -56,8 +63,9 @@ export async function checkAndSendClassReminders(): Promise<{
         return { success: true, sent: 0, message: `Too early (Target: ${targetTime}, Now: ${currentHours}:${currentMinutes} WIB)`, skippedReason: 'TOO_EARLY' };
     }
 
-    // 3. Check Duplicate Execution (Has ran today?)
+    // 3. Check Duplicate Execution (Has ran today for H-1 target?)
     // We check logs for 'REMINDER' category with type CLASS_REMINDER created today (WIB).
+    // The key is that we only want to run this ONCE per day (today) to send reminders for TOMORROW.
     const startOfDayWib = `${todayStr}T00:00:00+07:00`;
 
     const { data: logs } = await supabase
@@ -72,14 +80,14 @@ export async function checkAndSendClassReminders(): Promise<{
     );
 
     if (hasClassReminderToday) {
-        return { success: true, sent: 0, message: 'Already sent today', skippedReason: 'ALREADY_SENT' };
+        return { success: true, sent: 0, message: 'Already sent today (H-1 reminders)', skippedReason: 'ALREADY_SENT' };
     }
 
-    // 4. Fetch Sessions for Today (WIB) - Correct Query Path
-    const startFilter = `${todayStr}T00:00:00+07:00`;
-    const endFilter = `${todayStr}T23:59:59+07:00`;
+    // 4. Fetch Sessions for TOMORROW (WIB) - Correct Query Path
+    const startFilter = `${tomorrowStr}T00:00:00+07:00`;
+    const endFilter = `${tomorrowStr}T23:59:59+07:00`;
 
-    console.log(`[Scheduler] Querying sessions with:`, {
+    console.log(`[Scheduler] Querying sessions for tomorrow with:`, {
         status: 'SCHEDULED',
         dateRange: { start: startFilter, end: endFilter }
     });
@@ -98,8 +106,8 @@ export async function checkAndSendClassReminders(): Promise<{
     });
 
     if (sessionError || !rawSessions || rawSessions.length === 0) {
-        console.log('[Scheduler] No sessions found or error occurred');
-        return { success: true, sent: 0, message: 'No sessions today', skippedReason: 'NO_SESSIONS' };
+        console.log('[Scheduler] No sessions found for tomorrow or error occurred');
+        return { success: true, sent: 0, message: 'No sessions tomorrow', skippedReason: 'NO_SESSIONS' };
     }
 
     // Fetch enrollments for classes
@@ -111,7 +119,7 @@ export async function checkAndSendClassReminders(): Promise<{
         .in('class_id', classIds)
         .eq('status', 'ACTIVE');
 
-    console.log(`[Scheduler] Enrollments found:`, {
+    console.log(`[Scheduler] Enrollments found for tomorrow:`, {
         total: enrollments?.length || 0
     });
 
@@ -129,7 +137,7 @@ export async function checkAndSendClassReminders(): Promise<{
         }));
     });
 
-    console.log(`[Scheduler] Enriched sessions:`, {
+    console.log(`[Scheduler] Enriched sessions (H-1):`, {
         total: sessions.length,
         firstSession: sessions[0] ? {
             id: sessions[0].id,

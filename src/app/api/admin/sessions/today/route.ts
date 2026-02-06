@@ -12,7 +12,7 @@ export async function GET() {
         // effectively bypassing row level security for this admin-only endpoint.
         // If needed we can add middleware check later.
 
-        // Use Indonesia time (WIB) for "today"
+        // Use Indonesia time (WIB) for "tomorrow" calculation (H-1)
         const nowK = new Date();
         const formatter = new Intl.DateTimeFormat('id-ID', {
             timeZone: 'Asia/Jakarta',
@@ -21,17 +21,21 @@ export async function GET() {
             day: '2-digit'
         });
 
-        // formatter.format(nowK) output depends on locale, but typically DD/MM/YYYY or YYYY-MM-DD
-        // easier to just add 7 hours to UTC if environment is UTC, or just use parts
-        // Let's use parts to be safe
         const parts = formatter.formatToParts(nowK);
         const find = (type: string) => parts.find(p => p.type === type)?.value;
         const todayStr = `${find('year')}-${find('month')}-${find('day')}`;
 
-        console.log('[API] Fetching sessions for date (WIB):', todayStr);
+        // Calculate Tomorrow
+        const tomorrow = new Date(nowK);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowParts = formatter.formatToParts(tomorrow);
+        const findTomorrow = (type: string) => tomorrowParts.find(p => p.type === type)?.value;
+        const tomorrowStr = `${findTomorrow('year')}-${findTomorrow('month')}-${findTomorrow('day')}`;
 
-        const startFilter = `${todayStr}T00:00:00+07:00`;
-        const endFilter = `${todayStr}T23:59:59+07:00`;
+        console.log('[API] Fetching sessions for date (WIB, H-1):', tomorrowStr);
+
+        const startFilter = `${tomorrowStr}T00:00:00+07:00`;
+        const endFilter = `${tomorrowStr}T23:59:59+07:00`;
 
         console.log('[API] Fetching sessions params (Explicit WIB):', { startFilter, endFilter });
 

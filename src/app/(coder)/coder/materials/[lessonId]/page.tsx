@@ -176,11 +176,28 @@ export default async function CoderLessonDetailPage(props: PageProps) {
 function getSlideEmbedUrl(url: string): string {
     try {
         const parsed = new URL(url);
-        if (parsed.hostname.includes('docs.google.com')) {
-            return url
-                .replace(/\/edit.*$/, '/embed')
-                .replace(/\/view.*$/, '/embed')
-                .replace(/\/present.*$/, '/embed');
+        if (parsed.hostname.includes('docs.google.com') && parsed.pathname.includes('/presentation/d/')) {
+            // Check for /d/e/ pattern (published to web)
+            if (parsed.pathname.includes('/d/e/')) {
+                const segments = parsed.pathname.split('/');
+                const eIndex = segments.indexOf('e');
+                if (eIndex !== -1 && segments[eIndex + 1]) {
+                    const presentationId = segments[eIndex + 1];
+                    return `https://docs.google.com/presentation/d/e/${presentationId}/embed${parsed.search}`;
+                }
+            }
+
+            // Standard /d/[ID] pattern
+            const segments = parsed.pathname.split('/');
+            const dIndex = segments.indexOf('d');
+
+            if (dIndex !== -1 && segments[dIndex + 1]) {
+                const presentationId = segments[dIndex + 1];
+                // Check if the next segment is NOT 'e' (to avoid conflict with logic above, though order matters)
+                if (presentationId !== 'e') {
+                    return `https://docs.google.com/presentation/d/${presentationId}/embed${parsed.search}`;
+                }
+            }
         }
     } catch {
         // ignore

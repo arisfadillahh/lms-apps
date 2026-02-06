@@ -151,8 +151,8 @@ export default async function CoderDashboardPage() {
             <section>
               <h2 style={sectionTitleStyle}>📦 Software</h2>
               <div className="coder-software-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
-                {upcomingBlocks.flatMap(b => b.block.software || []).slice(0, 4).map(sw => (
-                  <div key={sw.id} style={softwareCardStyle}>
+                {upcomingBlocks.flatMap(b => b.block.software || []).slice(0, 4).map((sw, idx) => (
+                  <div key={`${sw.id}-${idx}`} style={softwareCardStyle}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
                         <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#1e293b', margin: 0 }}>{sw.name}</h4>

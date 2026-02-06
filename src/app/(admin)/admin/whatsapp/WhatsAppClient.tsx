@@ -625,7 +625,7 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: b
 // Styles
 // =====================
 
-const containerStyle: CSSProperties = { maxWidth: 900, margin: '0 auto', padding: '20px' };
+const containerStyle: CSSProperties = { width: '100%', padding: '20px' };
 const pageTitle: CSSProperties = { fontSize: 24, fontWeight: 700, marginBottom: 8, color: '#0f172a' };
 const pageDesc: CSSProperties = { color: '#64748b', marginBottom: 24 };
 const loadingStyle: CSSProperties = { padding: 40, textAlign: 'center', color: '#64748b' };

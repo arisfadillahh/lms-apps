@@ -29,6 +29,12 @@ export interface InvoiceSettings {
     class_reminder_delay_min?: number;
     class_reminder_delay_max?: number;
 
+    // Makeup Reminder Settings
+    enable_makeup_reminder?: boolean;
+    makeup_reminder_h3?: boolean;
+    makeup_reminder_h1?: boolean;
+    makeup_reminder_message_template?: string;
+
     updated_at: string;
 }
 

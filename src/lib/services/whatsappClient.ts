@@ -415,7 +415,8 @@ export async function sendSingleInvoiceReminder(invoiceId: string): Promise<{ su
 export async function sendClassReminder(
     parentPhone: string,
     message: string,
-    studentName: string
+    studentName: string,
+    logType: 'CLASS_REMINDER' | 'TEST_CLASS_REMINDER' = 'CLASS_REMINDER'
 ): Promise<{ success: boolean; error?: string }> {
     try {
         // Check connection
@@ -427,7 +428,7 @@ export async function sendClassReminder(
             }
         }
 
-        console.log(`[WhatsApp] Sending class reminder to ${parentPhone} for ${studentName}`);
+        console.log(`[WhatsApp] Sending class reminder to ${parentPhone} for ${studentName} (${logType})`);
 
         // Send
         const result = await sendWhatsAppMessage(parentPhone, message);
@@ -439,7 +440,7 @@ export async function sendClassReminder(
             payload: {
                 parent_phone: parentPhone,
                 student_name: studentName,
-                type: 'CLASS_REMINDER' // Add type to differentiate
+                type: logType // Add type to differentiate
             },
             status: result.success ? 'SENT' : 'FAILED',
             response: result.error ? { error: result.error } : { success: true },

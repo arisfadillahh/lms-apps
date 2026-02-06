@@ -8,7 +8,7 @@ import type { Role } from '@/types/supabase';
 const PUBLIC_PATHS = new Set<string>(['/']);
 
 // Additional public path prefixes (no auth required)
-const PUBLIC_PREFIXES = ['/invoice'];
+const PUBLIC_PREFIXES = ['/invoice', '/api/cron'];
 
 type Guard = {
   test: (pathname: string) => boolean;

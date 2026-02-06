@@ -14,7 +14,7 @@ export async function POST(request: Request) {
         }
 
         // Send immediately
-        const result = await sendClassReminder(phone, message, studentName);
+        const result = await sendClassReminder(phone, message, studentName, 'TEST_CLASS_REMINDER');
 
         return NextResponse.json(result);
     } catch (error) {

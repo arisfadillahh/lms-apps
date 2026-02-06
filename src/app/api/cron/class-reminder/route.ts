@@ -5,11 +5,11 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
     try {
-        // Optional: Check for Authorization header if you want to secure it
-        // const authHeader = request.headers.get('authorization');
-        // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        //     return new NextResponse('Unauthorized', { status: 401 });
-        // }
+        // Check for Authorization header to secure the cron job
+        const authHeader = request.headers.get('authorization');
+        if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+            return new NextResponse('Unauthorized', { status: 401 });
+        }
 
         const result = await checkAndSendClassReminders();
 

@@ -65,7 +65,8 @@ export async function checkAndSendClassReminders(): Promise<{
 
     // 3. Check Duplicate Execution (Has ran today for H-1 target?)
     // We check logs for 'REMINDER' category with type CLASS_REMINDER created today (WIB).
-    // The key is that we only want to run this ONCE per day (today) to send reminders for TOMORROW.
+    // CHANGE: Instead of returning early if ANY log exists, we fetch the list of parents
+    // who already received the reminder, and filter them out later.
     const startOfDayWib = `${todayStr}T00:00:00+07:00`;
 
     const { data: logs } = await supabase
@@ -74,14 +75,18 @@ export async function checkAndSendClassReminders(): Promise<{
         .eq('category', 'REMINDER' as any)
         .gte('created_at', startOfDayWib);
 
-    // Check if any of these logs are CLASS_REMINDER type
-    const hasClassReminderToday = logs?.some((log: any) =>
-        log.payload?.type === 'CLASS_REMINDER'
-    );
+    // Get list of parent phones that already received CLASS_REMINDER today
+    const sentParentPhones = new Set<string>();
 
-    if (hasClassReminderToday) {
-        return { success: true, sent: 0, message: 'Already sent today (H-1 reminders)', skippedReason: 'ALREADY_SENT' };
+    if (logs && logs.length > 0) {
+        logs.forEach((log: any) => {
+            if (log.payload?.type === 'CLASS_REMINDER' && log.payload?.parent_phone) {
+                sentParentPhones.add(log.payload.parent_phone);
+            }
+        });
     }
+
+    console.log(`[Scheduler] Found ${sentParentPhones.size} parents who already received reminders today.`);
 
     // 4. Fetch Sessions for TOMORROW (WIB) - Correct Query Path
     const startFilter = `${tomorrowStr}T00:00:00+07:00`;
@@ -160,6 +165,11 @@ export async function checkAndSendClassReminders(): Promise<{
         const phone = coder?.parent_contact_phone;
 
         if (!phone) continue;
+
+        // SKIP if this parent already received a reminder today
+        if (sentParentPhones.has(phone)) {
+            continue;
+        }
 
         if (!reminders.has(phone)) {
             const time = new Date(session.date_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });

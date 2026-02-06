@@ -178,9 +178,9 @@ function getSlideEmbedUrl(url: string): string {
         const parsed = new URL(url);
         if (parsed.hostname.includes('docs.google.com')) {
             return url
-                .replace(/\/edit.*$/, '/preview')
-                .replace(/\/view.*$/, '/preview')
-                .replace(/\/present.*$/, '/preview');
+                .replace(/\/edit.*$/, '/embed')
+                .replace(/\/view.*$/, '/embed')
+                .replace(/\/present.*$/, '/embed');
         }
     } catch {
         // ignore

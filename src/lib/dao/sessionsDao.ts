@@ -218,11 +218,71 @@ export async function updateSession(sessionId: string, payload: TablesUpdate<'se
 
 /**
  * Automatically update past sessions that are still SCHEDULED to COMPLETED.
- * DEPRECATED: We no longer auto-complete sessions. This function now does nothing.
+ * This should be called by a cron job to mark sessions as completed after their time has passed.
+ * Uses WIB timezone for consistency.
  */
-export async function autoCompletePastSessions(classId?: string): Promise<number> {
-  // Logic removed intentionally to keep past sessions active.
-  return 0;
+export async function autoCompletePastSessions(classId?: string): Promise<{ updated: number; sessionIds: string[] }> {
+  const supabase = getSupabaseAdmin();
+
+  // Get current time in WIB
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+
+  const parts = formatter.formatToParts(now);
+  const find = (type: string) => parts.find(p => p.type === type)?.value;
+  const nowWibStr = `${find('year')}-${find('month')}-${find('day')}T${find('hour')}:${find('minute')}:00+07:00`;
+
+  console.log(`[AutoComplete] Checking for expired sessions before ${nowWibStr}`);
+
+  // Build query for SCHEDULED sessions that have passed
+  let query = supabase
+    .from('sessions')
+    .select('id, date_time, class_id')
+    .eq('status', 'SCHEDULED')
+    .lt('date_time', nowWibStr);
+
+  // Optionally filter by class
+  if (classId) {
+    query = query.eq('class_id', classId);
+  }
+
+  const { data: expiredSessions, error: fetchError } = await query;
+
+  if (fetchError) {
+    console.error('[AutoComplete] Error fetching sessions:', fetchError);
+    return { updated: 0, sessionIds: [] };
+  }
+
+  if (!expiredSessions || expiredSessions.length === 0) {
+    console.log('[AutoComplete] No expired sessions found');
+    return { updated: 0, sessionIds: [] };
+  }
+
+  console.log(`[AutoComplete] Found ${expiredSessions.length} expired sessions to complete`);
+
+  // Update all expired sessions to COMPLETED
+  const sessionIds = expiredSessions.map(s => s.id);
+
+  const { error: updateError } = await supabase
+    .from('sessions')
+    .update({ status: 'COMPLETED', updated_at: new Date().toISOString() })
+    .in('id', sessionIds);
+
+  if (updateError) {
+    console.error('[AutoComplete] Error updating sessions:', updateError);
+    return { updated: 0, sessionIds: [] };
+  }
+
+  console.log(`[AutoComplete] Successfully completed ${sessionIds.length} sessions`);
+  return { updated: sessionIds.length, sessionIds };
 }
 
 function normalizeScheduleDay(scheduleDay: string) {

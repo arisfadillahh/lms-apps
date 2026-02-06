@@ -455,6 +455,81 @@ export async function sendClassReminder(
 }
 
 /**
+ * Send Absent Notification to Parent (via Baileys)
+ */
+export async function sendAbsentNotification(params: {
+    parentPhone: string;
+    coderFullName: string;
+    className: string;
+    sessionDateTime: string;
+    makeUpUrl: string;
+    status: 'ABSENT' | 'EXCUSED';
+    reason?: string | null;
+    instructions?: string | null;
+    dueDate?: string | null;
+}): Promise<{ success: boolean; error?: string }> {
+    try {
+        // Check connection
+        if (!isConnected || !sock) {
+            await initializeWhatsApp();
+            if (!isConnected || !sock) {
+                return { success: false, error: 'WhatsApp not connected' };
+            }
+        }
+
+        // Format session date
+        const sessionDate = new Date(params.sessionDateTime);
+        const formattedDate = sessionDate.toLocaleDateString('id-ID', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+        const formattedTime = sessionDate.toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        // Format due date
+        let formattedDueDate = '-';
+        if (params.dueDate) {
+            formattedDueDate = new Date(params.dueDate).toLocaleDateString('id-ID', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+        }
+
+        // Build message
+        const statusText = params.status === 'ABSENT' ? 'tidak hadir' : 'izin';
+        const message = `Halo Ayah/Bunda,
+
+Kami informasikan bahwa *${params.coderFullName}* ${statusText} pada sesi kelas *${params.className}* tanggal ${formattedDate} pukul ${formattedTime} WIB.
+
+${params.reason ? `Alasan: ${params.reason}\n` : ''}
+*Tugas Susulan:*
+${params.instructions || 'Silakan lihat detail di LMS.'}
+
+Batas pengumpulan: ${formattedDueDate}
+Link tugas: ${params.makeUpUrl}
+
+Mohon pastikan tugas susulan dikerjakan tepat waktu.
+Terima kasih 🙏`;
+
+        console.log(`[WhatsApp] Sending absent notification to ${params.parentPhone} for ${params.coderFullName}`);
+
+        // Send message
+        const result = await sendWhatsAppMessage(params.parentPhone, message);
+
+        return result;
+
+    } catch (error) {
+        console.error('[WhatsApp] Absent notification error:', error);
+        return { success: false, error: String(error) };
+    }
+}
+
+/**
  * Send invoice reminders to all pending invoices for a month
  */
 export async function sendInvoiceReminders(

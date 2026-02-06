@@ -13,7 +13,7 @@ import {
 } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
 import { getAppBaseUrl } from '@/lib/env';
-import { sendParentAbsent } from '@/lib/whatsapp/client';
+import { sendAbsentNotification } from '@/lib/services/whatsappClient';
 
 const markAttendanceSchema = z.object({
   sessionId: z.string().uuid(),
@@ -139,7 +139,7 @@ export async function POST(request: Request) {
       });
 
       try {
-        const response = await sendParentAbsent({
+        const response = await sendAbsentNotification({
           coderFullName: coder.full_name,
           className: classRecord.name,
           sessionDateTime: sessionRecord.date_time,
@@ -149,9 +149,8 @@ export async function POST(request: Request) {
           reason,
           instructions: makeUpInstructions ?? undefined,
           dueDate: result.makeUpTask.due_date,
-          reminderType: 'INITIAL',
         });
-        await reportsDao.updateWhatsappLogStatus(logEntry.id, 'SENT', response as any);
+        await reportsDao.updateWhatsappLogStatus(logEntry.id, response.success ? 'SENT' : 'FAILED', response as any);
       } catch (error: any) {
         await reportsDao.updateWhatsappLogStatus(logEntry.id, 'FAILED', { message: error.message ?? 'Failed' });
       }

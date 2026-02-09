@@ -9,9 +9,10 @@ import { Trash2, AlertTriangle, X } from 'lucide-react';
 type DeleteLessonButtonProps = {
     lessonId: string;
     lessonTitle: string;
+    iconOnly?: boolean;
 };
 
-export default function DeleteLessonButton({ lessonId, lessonTitle }: DeleteLessonButtonProps) {
+export default function DeleteLessonButton({ lessonId, lessonTitle, iconOnly }: DeleteLessonButtonProps) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState<string | null>(null);
@@ -39,9 +40,17 @@ export default function DeleteLessonButton({ lessonId, lessonTitle }: DeleteLess
         <div style={{ display: 'flex', alignItems: 'center' }}>
             <Dialog.Root open={open} onOpenChange={setOpen}>
                 <Dialog.Trigger asChild>
-                    <button type="button" style={deleteTriggerStyle} title="Hapus Lesson">
-                        <Trash2 size={15} />
-                    </button>
+                    <Dialog.Trigger asChild>
+                        {iconOnly ? (
+                            <button type="button" style={iconOnlyButtonStyle} title="Hapus Lesson">
+                                <Trash2 size={16} />
+                            </button>
+                        ) : (
+                            <button type="button" style={deleteTriggerStyle} title="Hapus Lesson">
+                                <Trash2 size={15} />
+                            </button>
+                        )}
+                    </Dialog.Trigger>
                 </Dialog.Trigger>
                 <Dialog.Portal>
                     <Dialog.Overlay style={overlayStyle} />
@@ -198,3 +207,17 @@ const confirmDeleteButtonStyle: CSSProperties = {
     cursor: 'pointer',
     fontSize: '0.9rem',
 };
+
+const iconOnlyButtonStyle: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '0.4rem',
+    borderRadius: '0.375rem',
+    border: 'none',
+    background: 'transparent',
+    color: '#94a3b8',
+    cursor: 'pointer',
+    transition: 'color 0.2s',
+};
+

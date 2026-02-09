@@ -7,8 +7,8 @@ import { blocksDao, lessonTemplatesDao, levelsDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
 
 import UpdateBlockForm from '../../../UpdateBlockForm';
-import LessonTable from '../../../LessonTable';
-import CreateLessonButton from '../../../CreateLessonButton';
+import BlockLessonList from '../../../BlockLessonList';
+// import CreateLessonButton from '../../../CreateLessonButton';
 import ImportLessonsButton from '../../../ImportLessonsButton';
 import ExportLessonsButton from '../../../ExportLessonsButton';
 
@@ -66,12 +66,14 @@ export default async function BlockDetailPage({ params }: { params: Promise<{ le
                     <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#334155' }}>Daftar Lesson</h2>
                     <div style={{ display: 'flex', gap: '0.75rem' }}>
                         <ExportLessonsButton blockId={blockId} />
+                        {/* TODO: Move Import Button inside BlockLessonList or keep here? 
+                             BlockLessonList handles creation now. 
+                         */}
                         <ImportLessonsButton blockId={blockId} currentLessonCount={lessons.length} />
-                        <CreateLessonButton blockId={blockId} suggestedOrderIndex={lessons.length} />
                     </div>
                 </div>
 
-                <LessonTable lessons={lessons} />
+                <BlockLessonList blockId={blockId} lessons={lessons} />
             </main>
         </div>
     );

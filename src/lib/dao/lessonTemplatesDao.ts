@@ -309,3 +309,70 @@ export async function deleteLessonTemplatesBulk(ids: string[]): Promise<void> {
     }
   }
 }
+
+
+export type BulkUpdateLessonInput = {
+  id: string;
+  title: string;
+  summary?: string | null;
+  slideUrl?: string | null;
+  makeUpInstructions?: string | null;
+  estimatedMeetingCount?: number | null;
+  orderIndex: number;
+};
+
+export async function updateLessonTemplatesBulk(updates: BulkUpdateLessonInput[]): Promise<void> {
+  if (updates.length === 0) return;
+
+  const supabase = getSupabaseAdmin();
+
+  // We use a transaction-like approach by updating each record.
+  // Ideally this would be a single RPC or transaction, but via REST we iterate.
+  // Since we are setting exact order_indexes, we don't need complex shifting logic here
+  // assuming the client sends a complete, conflict-free set of indexes for the block.
+
+  /* 
+    Transaction-less update strategy to avoid unique constraint violations on reordering.
+    We assume client sends a full reorder set for the block. 
+    1. Temporarily shift all affected items to a "safe zone" (e.g., target + 9000).
+    2. Update to final targets.
+  */
+
+  // 1. Shift to temporary indices to clear the target slots
+  for (const update of updates) {
+    const tempIndex = update.orderIndex + 9000;
+    const { error } = await supabase
+      .from('lesson_templates')
+      .update({ order_index: tempIndex })
+      .eq('id', update.id);
+
+    if (error) {
+      // If this fails (e.g. collision at 9000), we abort.
+      // Ideally we'd rollback but we can't easily without RPC.
+      console.error(`Failed to park lesson ${update.id} at temp index:`, error);
+      throw new Error(`Failed to reorder lesson (step 1): ${error.message}`);
+    }
+  }
+
+  // 2. Main update loop (final state)
+  for (const update of updates) {
+    const payload: TablesUpdate<'lesson_templates'> = {
+      title: update.title,
+      summary: update.summary ?? null,
+      slide_url: update.slideUrl ?? null,
+      make_up_instructions: update.makeUpInstructions ?? null,
+      estimated_meeting_count: update.estimatedMeetingCount ?? null, // Can accept 0 now as valid thanks to calling code fix
+      order_index: update.orderIndex,
+    };
+
+    const { error } = await supabase
+      .from('lesson_templates')
+      .update(payload)
+      .eq('id', update.id);
+
+    if (error) {
+      console.error(`Failed to update lesson ${update.id} in bulk (step 2):`, error);
+      throw new Error(`Failed to update lesson ${update.title}: ${error.message}`);
+    }
+  }
+}

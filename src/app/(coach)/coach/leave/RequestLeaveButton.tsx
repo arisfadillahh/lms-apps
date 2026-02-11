@@ -1,24 +1,38 @@
 'use client';
 
-import type { CSSProperties } from 'react';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 type RequestLeaveButtonProps = {
   sessionId: string;
+  className?: string; // Add className prop for flexibility
   disabled?: boolean;
 };
 
 export default function RequestLeaveButton({ sessionId, disabled }: RequestLeaveButtonProps) {
+  const [open, setOpen] = useState(false);
   const [note, setNote] = useState('');
   const [isPending, startTransition] = useTransition();
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  const submit = () => {
-    setStatusMessage(null);
-    setErrorMessage(null);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
 
     startTransition(async () => {
       try {
@@ -30,61 +44,64 @@ export default function RequestLeaveButton({ sessionId, disabled }: RequestLeave
 
         if (!response.ok) {
           const payload = await response.json().catch(() => ({}));
-          setErrorMessage(payload.error ?? 'Gagal mengirim pengajuan');
+          setError(payload.error ?? 'Gagal mengirim pengajuan');
           return;
         }
 
-        setStatusMessage('Pengajuan terkirim');
+        setOpen(false);
         setNote('');
         router.refresh();
-      } catch (error) {
-        console.error('Leave request failed', error);
-        setErrorMessage('Terjadi kesalahan saat mengirim pengajuan');
+      } catch (err) {
+        console.error('Leave request failed', err);
+        setError('Terjadi kesalahan sistem');
       }
     });
   };
 
+  if (disabled) {
+    return (
+      <Button variant="secondary" size="sm" disabled className="w-full sm:w-auto opacity-50 cursor-not-allowed">
+        Sudah Diajukan
+      </Button>
+    );
+  }
+
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-      <input
-        type="text"
-        placeholder="Catatan singkat (opsional)"
-        value={note}
-        onChange={(event) => setNote(event.target.value)}
-        disabled={disabled || isPending}
-        style={inputStyle}
-      />
-      <button
-        type="button"
-        onClick={submit}
-        disabled={disabled || isPending}
-        style={buttonStyle(disabled || isPending)}
-      >
-        {isPending ? 'Mengirim…' : disabled ? 'Sudah diajukan' : 'Ajukan Izin'}
-      </button>
-      {statusMessage ? <span style={{ fontSize: '0.8rem', color: 'var(--color-success)' }}>{statusMessage}</span> : null}
-      {errorMessage ? <span style={{ fontSize: '0.8rem', color: 'var(--color-danger)' }}>{errorMessage}</span> : null}
-    </div>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="w-full sm:w-auto border-orange-200 text-orange-700 hover:bg-orange-50 hover:text-orange-800 focus:ring-orange-500">
+          Ajukan Izin
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Ajukan Izin Berhalangan</DialogTitle>
+          <DialogDescription>
+            Admin akan mencarikan coach pengganti untuk sesi ini. Mohon berikan alasan yang jelas.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="note">Alasan / Catatan</Label>
+            <Textarea
+              id="note"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Contoh: Sakit, Urusan Keluarga Mendadak, dll."
+              className="resize-none"
+              rows={3}
+              required
+            />
+          </div>
+          {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
+          <DialogFooter>
+            <Button type="submit" disabled={isPending}>
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isPending ? 'Mengirim...' : 'Kirim Pengajuan'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
-
-const inputStyle: CSSProperties = {
-  padding: '0.45rem 0.6rem',
-  borderRadius: '0.5rem',
-  border: `1px solid var(--color-border)`,
-  fontSize: '0.85rem',
-  minWidth: '220px',
-  background: 'var(--color-bg-surface)',
-  color: 'var(--color-text-primary)',
-};
-
-const buttonStyle = (disabled: boolean): CSSProperties => ({
-  padding: '0.5rem 1rem',
-  borderRadius: '0.5rem',
-  border: 'none',
-  background: disabled ? 'rgba(15, 23, 42, 0.12)' : 'var(--color-accent)',
-  color: '#fff',
-  fontWeight: 600,
-  cursor: disabled ? 'not-allowed' : 'pointer',
-  opacity: disabled ? 0.7 : 1,
-});

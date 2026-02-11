@@ -21,41 +21,17 @@ export default async function CoachLayout({ children }: { children: ReactNode })
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', background: '#F5F7FA' }}>
-      <CoachSidebar session={session} />
-      <main
-        className="coach-main-content"
-        style={{
-          flex: 1,
-          marginLeft: '240px',
-          padding: '2rem 2.5rem',
-          background: 'transparent',
-          color: 'var(--color-text-primary)',
-          display: 'flex',
-          flexDirection: 'column'
-        }}
-      >
-        <DashboardHeader user={userForHeader} />
-        <PageTransition>{children}</PageTransition>
-      </main>
+    <div className="min-h-screen flex bg-slate-50/50">
+      <div className="hidden md:block fixed inset-y-0 z-30">
+        <CoachSidebar session={session} />
+      </div>
 
-      {/* Responsive CSS for mobile */}
-      <style>{`
-        @media (max-width: 768px) {
-          .coach-main-content {
-            margin-left: 0 !important;
-            padding: 1rem !important;
-            max-width: 100vw !important;
-            overflow-x: hidden !important;
-            overflow-y: visible !important;
-            min-height: auto !important;
-            height: auto !important;
-          }
-          .coach-sidebar {
-            display: none !important;
-          }
-        }
-      `}</style>
+      <main className="flex-1 flex flex-col min-h-screen transition-all duration-300 md:ml-64">
+        <DashboardHeader user={userForHeader} />
+        <div className="flex-1 p-4 md:p-8">
+          <PageTransition>{children}</PageTransition>
+        </div>
+      </main>
     </div>
   );
 }

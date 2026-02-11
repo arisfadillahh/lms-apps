@@ -1,87 +1,119 @@
-import type { CSSProperties } from 'react';
-
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import type { CoachLeaveRequestWithRelations } from '@/lib/dao/coachLeaveDao';
+import { cn } from '@/lib/utils';
+import { Clock, User, MessageSquare, CalendarCheck } from 'lucide-react';
 
 type LeaveRequestTableProps = {
   requests: CoachLeaveRequestWithRelations[];
 };
 
 export default function LeaveRequestTable({ requests }: LeaveRequestTableProps) {
+  if (requests.length === 0) {
+    return (
+      <div className="bg-white rounded-xl border border-slate-200 border-dashed p-10 text-center">
+        <div className="mx-auto h-12 w-12 bg-slate-50 rounded-full flex items-center justify-center mb-3">
+          <CalendarCheck className="h-6 w-6 text-slate-300" />
+        </div>
+        <h3 className="text-sm font-medium text-slate-900">Belum ada riwayat</h3>
+        <p className="text-slate-500 text-xs mt-1">Riwayat pengajuan izin akan muncul di sini.</p>
+      </div>
+    );
+  }
+
   return (
-    <section style={cardStyle}>
-      <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '0.75rem', color: 'var(--color-text-primary)' }}>Riwayat Pengajuan</h2>
-      {requests.length === 0 ? (
-        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.95rem' }}>Belum ada pengajuan izin.</p>
-      ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead style={{ background: 'rgba(15, 23, 42, 0.04)', textAlign: 'left' }}>
-            <tr>
-              <th style={thStyle}>Sesi</th>
-              <th style={thStyle}>Status</th>
-              <th style={thStyle}>Substitute</th>
-              <th style={thStyle}>Catatan</th>
-            </tr>
-          </thead>
-          <tbody>
+    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader className="bg-slate-50 border-b border-slate-200">
+            <TableRow>
+              <TableHead className="w-[180px] pl-6 font-semibold text-slate-700">Tanggal</TableHead>
+              <TableHead className="font-semibold text-slate-700">Kelas</TableHead>
+              <TableHead className="w-[140px] font-semibold text-slate-700">Status</TableHead>
+              <TableHead className="hidden md:table-cell font-semibold text-slate-700">Pengganti</TableHead>
+              <TableHead className="hidden lg:table-cell font-semibold text-slate-700">Catatan</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {requests.map((request) => (
-              <tr key={request.id} style={{ borderBottom: `1px solid var(--color-border)` }}>
-                <td style={tdStyle}>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontWeight: 600 }}>{request.class?.name ?? 'Class'}</span>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
-                      {request.session ? new Date(request.session.date_time).toLocaleString() : '—'}
+              <TableRow key={request.id} className="hover:bg-slate-50/50 transition-colors border-b border-slate-100 last:border-0">
+                <TableCell className="pl-6 py-4 align-top">
+                  <div className="flex flex-col">
+                    <span className="font-bold text-slate-900 text-sm">
+                      {request.session ? new Date(request.session.date_time).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                     </span>
+                    <div className="flex items-center gap-1 text-slate-500 text-xs mt-0.5">
+                      <Clock className="w-3 h-3" />
+                      {request.session ? new Date(request.session.date_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '—'}
+                    </div>
                   </div>
-                </td>
-                <td style={tdStyle}>
-                  <span style={{ color: statusColor(request.status), fontWeight: 600 }}>{request.status}</span>
-                  {request.approved_at ? (
-                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                      {new Date(request.approved_at).toLocaleString()}
+                </TableCell>
+                <TableCell className="py-4 align-top">
+                  <div className="font-medium text-slate-800 text-sm">{request.class?.name ?? '—'}</div>
+                </TableCell>
+                <TableCell className="py-4 align-top">
+                  <StatusBadge status={request.status} />
+                </TableCell>
+                <TableCell className="hidden md:table-cell py-4 align-top">
+                  {request.substitute ? (
+                    <div className="flex items-center gap-2 text-xs text-slate-700 bg-slate-100 px-2 py-1 rounded-md w-fit">
+                      <User className="w-3 h-3 text-slate-400" />
+                      <span className="truncate max-w-[100px]">{request.substitute.full_name}</span>
+                    </div>
+                  ) : (
+                    <span className="text-slate-400 text-xs italic">—</span>
+                  )}
+                </TableCell>
+                <TableCell className="hidden lg:table-cell py-4 align-top">
+                  {request.note ? (
+                    <div className="flex gap-2 items-start max-w-[200px]">
+                      <MessageSquare className="w-3 h-3 text-slate-300 mt-0.5 shrink-0" />
+                      <p className="text-xs text-slate-500 line-clamp-2" title={request.note}>{request.note}</p>
                     </div>
                   ) : null}
-                </td>
-                <td style={tdStyle}>{request.substitute?.full_name ?? '—'}</td>
-                <td style={tdStyle}>{request.note ?? '—'}</td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
-      )}
-    </section>
+          </TableBody>
+        </Table>
+      </div>
+    </div>
   );
 }
 
-function statusColor(status: CoachLeaveRequestWithRelations['status']): string {
+function StatusBadge({ status }: { status: string }) {
+  let className = "";
+  let label = status;
+
   switch (status) {
     case 'APPROVED':
-      return 'var(--color-success)';
+      className = "bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100";
+      label = "Disetujui";
+      break;
     case 'REJECTED':
-      return 'var(--color-danger)';
+      className = "bg-rose-50 text-rose-700 border-rose-100 hover:bg-rose-100";
+      label = "Ditolak";
+      break;
+    case 'PENDING':
+      className = "bg-amber-50 text-amber-700 border-amber-100 hover:bg-amber-100";
+      label = "Menunggu";
+      break;
     default:
-      return 'var(--color-accent)';
+      className = "bg-slate-100 text-slate-600 border-slate-200";
+      break;
   }
+
+  return (
+    <Badge variant="outline" className={cn("font-medium border shadow-sm", className)}>
+      {label}
+    </Badge>
+  );
 }
-
-const cardStyle: CSSProperties = {
-  background: 'var(--color-bg-surface)',
-  borderRadius: 'var(--radius-lg)',
-  border: `1px solid var(--color-border)`,
-  padding: '1.25rem 1.5rem',
-  overflowX: 'auto',
-  boxShadow: 'var(--shadow-medium)',
-};
-
-const thStyle: CSSProperties = {
-  padding: '0.75rem 1rem',
-  fontSize: '0.85rem',
-  color: 'var(--color-text-secondary)',
-  borderBottom: `1px solid var(--color-border)`,
-};
-
-const tdStyle: CSSProperties = {
-  padding: '0.85rem 1rem',
-  fontSize: '0.9rem',
-  color: 'var(--color-text-primary)',
-  verticalAlign: 'top',
-};

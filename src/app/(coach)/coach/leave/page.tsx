@@ -1,18 +1,18 @@
-import type { CSSProperties } from 'react';
+import { UserCheck, Clock, CalendarIcon } from 'lucide-react';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { coachLeaveDao, sessionsDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
 
 import LeaveRequestTable from './LeaveRequestTable';
-import RequestLeaveButton from './RequestLeaveButton';
+import CreateLeaveRequestDialog from './CreateLeaveRequestDialog';
 
 export default async function CoachLeavePage() {
   const session = await getSessionOrThrow();
   await assertRole(session, 'COACH');
 
   const [upcomingSessions, leaveRequests] = await Promise.all([
-    sessionsDao.listUpcomingSessionsForCoach(session.user.id, 60),
+    sessionsDao.listUpcomingSessionsForCoach(session.user.id, 60), // Fetch next 60 days
     coachLeaveDao.listLeaveRequestsForCoach(session.user.id),
   ]);
 
@@ -22,58 +22,52 @@ export default async function CoachLeavePage() {
       .map((request) => request.session_id),
   );
 
+  // Sessions suitable for new leave requests
+  const availableSessions = upcomingSessions.filter(s => !pendingSessionIds.has(s.id));
+
+  // Stats
+  const approvedCount = leaveRequests.filter(r => r.status === 'APPROVED').length;
+  const pendingCount = leaveRequests.filter(r => r.status === 'PENDING').length;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <header>
-        <h1 style={{ fontSize: '1.6rem', fontWeight: 600, marginBottom: '0.5rem' }}>Leave Requests</h1>
-        <p style={{ color: '#64748b', maxWidth: '48rem' }}>
-          Ajukan izin minimum H-7 sebelum sesi dimulai. Admin akan menugaskan coach pengganti sesuai kebutuhan.
-        </p>
-      </header>
+    <div className="container max-w-5xl mx-auto py-10 px-4 sm:px-6 lg:px-8 space-y-10">
 
-      <section style={cardStyle}>
-        <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '0.75rem' }}>Upcoming Sessions</h2>
-        {upcomingSessions.length === 0 ? (
-          <p style={{ color: '#64748b', fontSize: '0.95rem' }}>Tidak ada sesi dalam 60 hari ke depan.</p>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {upcomingSessions.map((item) => {
-              const alreadyRequested = pendingSessionIds.has(item.id);
-              return (
-                <div key={item.id} style={sessionRowStyle}>
-                  <div>
-                    <p style={{ fontSize: '0.9rem', fontWeight: 600, color: '#0f172a' }}>
-                      {item.class_name ?? 'Class'}
-                    </p>
-                    <p style={{ fontSize: '0.85rem', color: '#475569' }}>{new Date(item.date_time).toLocaleString()}</p>
-                  </div>
-                  <RequestLeaveButton sessionId={item.id} disabled={alreadyRequested} />
-                </div>
-              );
-            })}
+      {/* Header & Stats Section */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="lg:col-span-2 space-y-2">
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Perizinan</h1>
+          <p className="text-slate-500 text-lg max-w-xl">
+            Ajukan izin ketidakhadiran dengan memilih sesi yang tersedia. Riwayat pengajuan Anda akan muncul di bawah.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-3 justify-center">
+          <CreateLeaveRequestDialog availableSessions={availableSessions} />
+          <div className="flex gap-4 justify-center text-sm text-slate-500">
+            <div className="flex flex-col items-center bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 min-w-[80px]">
+              <span className="font-bold text-emerald-600 text-lg">{approvedCount}</span>
+              <span className="text-xs font-medium uppercase tracking-wider">Disetujui</span>
+            </div>
+            <div className="flex flex-col items-center bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 min-w-[80px]">
+              <span className="font-bold text-amber-600 text-lg">{pendingCount}</span>
+              <span className="text-xs font-medium uppercase tracking-wider">Pending</span>
+            </div>
           </div>
-        )}
-      </section>
+        </div>
+      </div>
 
-      <LeaveRequestTable requests={leaveRequests} />
+      {/* Main Content: History List */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+            <Clock className="w-5 h-5" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-900">Riwayat Pengajuan</h2>
+        </div>
+
+        <LeaveRequestTable requests={leaveRequests} />
+      </div>
+
     </div>
   );
 }
-
-const cardStyle: CSSProperties = {
-  background: '#ffffff',
-  borderRadius: '0.75rem',
-  border: '1px solid #e2e8f0',
-  padding: '1.25rem 1.5rem',
-};
-
-const sessionRowStyle: CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  gap: '1rem',
-  padding: '0.85rem 1rem',
-  borderRadius: '0.65rem',
-  border: '1px solid #e2e8f0',
-  background: '#f8fafc',
-};

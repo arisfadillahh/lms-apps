@@ -14,6 +14,7 @@ import {
 import { assertRole } from '@/lib/roles';
 import { getAppBaseUrl } from '@/lib/env';
 import { sendAbsentNotification } from '@/lib/services/whatsappClient';
+import { getInvoiceSettings } from '@/lib/dao/invoicesDao';
 
 const markAttendanceSchema = z.object({
   sessionId: z.string().uuid(),
@@ -124,35 +125,44 @@ export async function POST(request: Request) {
     const coder = await usersDao.getUserById(coderId);
     const parentPhone = coder?.parent_contact_phone;
     if (parentPhone) {
-      const logEntry = await reportsDao.logWhatsappEvent({
-        category: 'PARENT_ABSENT',
-        payload: {
-          coderId,
-          sessionId,
-          makeUpTaskId: result.makeUpTask.id,
-          status,
-          reason,
-          parentPhone,
-          instructions: makeUpInstructions,
-          dueDate: result.makeUpTask.due_date,
-        },
-      });
+      // Check if absent notification is enabled
+      const appSettings = await getInvoiceSettings();
+      const isAbsentNotifEnabled = appSettings?.enable_absent_notification ?? true;
 
-      try {
-        const response = await sendAbsentNotification({
-          coderFullName: coder.full_name,
-          className: classRecord.name,
-          sessionDateTime: sessionRecord.date_time,
-          makeUpUrl: buildMakeUpUrl(result.makeUpTask.id),
-          parentPhone,
-          status,
-          reason,
-          instructions: makeUpInstructions ?? undefined,
-          dueDate: result.makeUpTask.due_date,
+      if (!isAbsentNotifEnabled) {
+        console.log('[Attendance] Absent notification disabled in settings, skipping WA notification');
+      } else {
+        const logEntry = await reportsDao.logWhatsappEvent({
+          category: 'PARENT_ABSENT',
+          payload: {
+            coderId,
+            sessionId,
+            makeUpTaskId: result.makeUpTask.id,
+            status,
+            reason,
+            parentPhone,
+            instructions: makeUpInstructions,
+            dueDate: result.makeUpTask.due_date,
+          },
         });
-        await reportsDao.updateWhatsappLogStatus(logEntry.id, response.success ? 'SENT' : 'FAILED', response as any);
-      } catch (error: any) {
-        await reportsDao.updateWhatsappLogStatus(logEntry.id, 'FAILED', { message: error.message ?? 'Failed' });
+
+        try {
+          const response = await sendAbsentNotification({
+            coderFullName: coder.full_name,
+            parentName: coder.parent_name || null,
+            className: classRecord.name,
+            sessionDateTime: sessionRecord.date_time,
+            makeUpUrl: buildMakeUpUrl(result.makeUpTask.id),
+            parentPhone,
+            status,
+            reason,
+            instructions: makeUpInstructions ?? undefined,
+            dueDate: result.makeUpTask.due_date,
+          });
+          await reportsDao.updateWhatsappLogStatus(logEntry.id, response.success ? 'SENT' : 'FAILED', response as any);
+        } catch (error: any) {
+          await reportsDao.updateWhatsappLogStatus(logEntry.id, 'FAILED', { message: error.message ?? 'Failed' });
+        }
       }
     }
   }

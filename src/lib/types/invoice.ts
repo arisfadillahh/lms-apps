@@ -35,6 +35,9 @@ export interface InvoiceSettings {
     makeup_reminder_h1?: boolean;
     makeup_reminder_message_template?: string;
 
+    // Absent Notification Settings
+    enable_absent_notification?: boolean;
+
     updated_at: string;
 }
 

@@ -457,10 +457,13 @@ export async function sendClassReminder(
 
 /**
  * Send Absent Notification to Parent (via Baileys)
+ * Uses template from whatsapp_templates DB table (category: PARENT_ABSENT).
+ * Falls back to hardcoded message if no template found.
  */
 export async function sendAbsentNotification(params: {
     parentPhone: string;
     coderFullName: string;
+    parentName?: string | null;
     className: string;
     sessionDateTime: string;
     makeUpUrl: string;
@@ -501,21 +504,45 @@ export async function sendAbsentNotification(params: {
             });
         }
 
-        // Build message
         const statusText = params.status === 'ABSENT' ? 'tidak hadir' : 'izin';
-        const message = `Halo Ayah/Bunda,
+        const reasonText = params.reason ? `Alasan: ${params.reason}\n` : '';
+        const parentDisplayName = params.parentName || 'Ayah/Bunda';
 
-Kami informasikan bahwa *${params.coderFullName}* ${statusText} pada sesi kelas *${params.className}* tanggal ${formattedDate} pukul ${formattedTime} WIB.
+        // Try to fetch template from database
+        let message: string;
+        try {
+            const supabase = getSupabaseAdmin();
+            const { data: templateData } = await (supabase as any)
+                .from('whatsapp_templates')
+                .select('template_content')
+                .eq('category', 'PARENT_ABSENT')
+                .single();
 
-${params.reason ? `Alasan: ${params.reason}\n` : ''}
-*Tugas Susulan:*
-${params.instructions || 'Silakan lihat detail di LMS.'}
+            if (templateData?.template_content) {
+                // Use DB template — replace variables
+                message = templateData.template_content
+                    .replace(/\{nama_orangtua\}/g, parentDisplayName)
+                    .replace(/\{nama_siswa\}/g, params.coderFullName)
+                    .replace(/\{nama_kelas\}/g, params.className)
+                    .replace(/\{tanggal\}/g, formattedDate)
+                    .replace(/\{waktu\}/g, formattedTime)
+                    .replace(/\{status\}/g, statusText)
+                    .replace(/\{alasan\}/g, reasonText)
+                    .replace(/\{instruksi\}/g, params.instructions || 'Silakan lihat detail di LMS.')
+                    .replace(/\{batas_pengumpulan\}/g, formattedDueDate)
+                    .replace(/\{link_tugas\}/g, params.makeUpUrl);
 
-Batas pengumpulan: ${formattedDueDate}
-Link tugas: ${params.makeUpUrl}
-
-Mohon pastikan tugas susulan dikerjakan tepat waktu.
-Terima kasih 🙏`;
+                console.log('[WhatsApp] Using PARENT_ABSENT template from database');
+            } else {
+                // Fallback to hardcoded message
+                message = buildDefaultAbsentMessage(params, parentDisplayName, statusText, formattedDate, formattedTime, formattedDueDate, reasonText);
+                console.log('[WhatsApp] No DB template found, using default message');
+            }
+        } catch (templateError) {
+            // Fallback to hardcoded message on any DB error
+            console.warn('[WhatsApp] Failed to fetch template, using default:', templateError);
+            message = buildDefaultAbsentMessage(params, parentDisplayName, statusText, formattedDate, formattedTime, formattedDueDate, reasonText);
+        }
 
         console.log(`[WhatsApp] Sending absent notification to ${params.parentPhone} for ${params.coderFullName}`);
 
@@ -528,6 +555,32 @@ Terima kasih 🙏`;
         console.error('[WhatsApp] Absent notification error:', error);
         return { success: false, error: String(error) };
     }
+}
+
+/**
+ * Build default absent notification message (hardcoded fallback)
+ */
+function buildDefaultAbsentMessage(
+    params: { coderFullName: string; className: string; makeUpUrl: string; reason?: string | null; instructions?: string | null },
+    parentDisplayName: string,
+    statusText: string,
+    formattedDate: string,
+    formattedTime: string,
+    formattedDueDate: string,
+    reasonText: string,
+): string {
+    return `Halo ${parentDisplayName},
+
+Kami informasikan bahwa *${params.coderFullName}* ${statusText} pada sesi kelas *${params.className}* tanggal ${formattedDate} pukul ${formattedTime} WIB.
+
+${reasonText}*Tugas Susulan:*
+${params.instructions || 'Silakan lihat detail di LMS.'}
+
+Batas pengumpulan: ${formattedDueDate}
+Link tugas: ${params.makeUpUrl}
+
+Mohon pastikan tugas susulan dikerjakan tepat waktu.
+Terima kasih 🙏`;
 }
 
 /**

@@ -305,8 +305,30 @@ Berikut invoice untuk pembayaran program *{program_name}*:
 🔗 Link: {invoice_url}
 
 Mohon dilakukan pembayaran sebelum jatuh tempo. Terima kasih!'::text,
+  enable_absent_notification BOOLEAN DEFAULT true,
   CONSTRAINT invoice_settings_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.whatsapp_templates (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  category character varying NOT NULL UNIQUE CHECK (category::text = ANY (ARRAY['PARENT_ABSENT'::character varying, 'REPORT_SEND'::character varying, 'REMINDER'::character varying]::text[])),
+  template_content text NOT NULL,
+  variables jsonb DEFAULT '[]'::jsonb,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_by uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT whatsapp_templates_pkey PRIMARY KEY (id),
+  CONSTRAINT whatsapp_templates_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id)
+);
+
+-- RLS Policies for whatsapp_templates
+ALTER TABLE public.whatsapp_templates ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins can do everything with templates" 
+ON public.whatsapp_templates FOR ALL TO authenticated
+USING (EXISTS (SELECT 1 FROM public.users WHERE users.id = auth.uid() AND users.role = 'ADMIN'))
+WITH CHECK (EXISTS (SELECT 1 FROM public.users WHERE users.id = auth.uid() AND users.role = 'ADMIN'));
+
+CREATE POLICY "Service role bypass templates" ON public.whatsapp_templates FOR ALL TO service_role USING (true) WITH CHECK (true);
 CREATE TABLE public.invoices (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   invoice_number text NOT NULL UNIQUE,

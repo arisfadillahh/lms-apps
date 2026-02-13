@@ -53,12 +53,13 @@ export async function POST(request: Request) {
     // Cast to any since the table may not exist in types yet
     const { data, error } = await (supabase as any)
         .from('whatsapp_templates')
-        .insert({
+        .upsert({
             category: parsed.data.category,
             template_content: parsed.data.templateContent,
             variables: parsed.data.variables || [],
             updated_by: session.user.id,
-        })
+            updated_at: new Date().toISOString(),
+        }, { onConflict: 'category' })
         .select('*')
         .single();
 

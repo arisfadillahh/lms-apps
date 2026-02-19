@@ -191,29 +191,13 @@ export async function generateInvoicesForMonth(
                     const finalPrice = basePrice - discountAmount;
 
                     // Calculate period dates for this coder
-                    const currentEndDate = new Date(coder.end_date);
-                    const now = new Date();
+                    // FIXED: Always start from the 26th of the billing month (month, year)
+                    const itemStartDate = new Date(year, month - 1, 26);
 
-                    // Determine if this is a renewal (period already ended or ending this month)
-                    const isRenewal = currentEndDate <= now;
-
-                    let itemStartDate: Date;
-                    let itemEndDate: Date;
-
-                    if (isRenewal) {
-                        // Renewal: New period starts the day after current period ends
-                        itemStartDate = new Date(currentEndDate);
-                        itemStartDate.setDate(itemStartDate.getDate() + 1);
-
-                        // Calculate end date based on duration
-                        itemEndDate = new Date(itemStartDate);
-                        itemEndDate.setMonth(itemEndDate.getMonth() + duration);
-                        itemEndDate.setDate(itemEndDate.getDate() - 1); // Last day of period
-                    } else {
-                        // New student: Use existing period dates from payment_period
-                        itemStartDate = new Date(coder.start_date);
-                        itemEndDate = new Date(coder.end_date);
-                    }
+                    // Calculate end date based on duration (e.g., 25th of next month)
+                    const itemEndDate = new Date(itemStartDate);
+                    itemEndDate.setMonth(itemEndDate.getMonth() + duration);
+                    itemEndDate.setDate(itemEndDate.getDate() - 1);
 
                     // Track earliest start and latest end for the invoice
                     if (!invoiceStartDate || itemStartDate < invoiceStartDate) {

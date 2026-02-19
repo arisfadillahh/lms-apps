@@ -1,5 +1,7 @@
 "use server";
 
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/authOptions';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import type {
   TablesInsert,
@@ -58,6 +60,11 @@ export async function createClass(input: CreateClassInput): Promise<ClassRecord>
 }
 
 export async function updateClass(id: string, updates: Partial<Omit<CreateClassInput, 'coachId' | 'type'>> & { coachId?: string; type?: ClassRecord['type'] }): Promise<void> {
+  const session = await getServerSession(authOptions);
+  if (session?.user?.role !== 'ADMIN') {
+    throw new Error('Unauthorized: Only admins can update classes');
+  }
+
   const supabase = getSupabaseAdmin();
   const payload: TablesUpdate<'classes'> = {};
 
@@ -240,7 +247,7 @@ export async function updateClassBlock(
     return;
   }
 
-  const { error } = await supabase.from('class_blocks').update(payload).eq('id', id);
+  const { error = null } = await supabase.from('class_blocks').update(payload).eq('id', id);
   if (error) {
     throw new Error(`Failed to update class block: ${error.message}`);
   }
@@ -345,11 +352,6 @@ export async function listClassesWhereCoachIsSubstitute(coachId: string): Promis
     .select('class_id')
     .eq('substitute_coach_id', coachId)
     .gt('date_time', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()); // Look back 7 days max to keep dashboard clean? Or just all future?
-  // Let's stick to future + recent (e.g. last 30 days) to allow grading late submissions?
-  // For now, let's just get ALL relevant classes to be safe, filtering can happen in UI or logical layer if needed.
-  // Actually, getting ALL might clutter if they subbed once 2 years ago.
-  // Let's filter for sessions > 30 days ago.
-  // .gt('date_time', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
 
   if (sessionError) {
     throw new Error(`Failed to find substitute sessions: ${sessionError.message}`);

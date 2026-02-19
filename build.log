@@ -1,0 +1,23 @@
+
+> lms-app@0.1.0 build
+> next build
+
+▲ Next.js 16.1.1 (Turbopack)
+- Environments: .env
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 26.3s
+  Running TypeScript ...
+Failed to compile.
+
+./src/lib/dao/classesDao.ts:94:17
+Type error: Object literal may only specify known properties, and 'coach_id' does not exist in type 'Partial<{ id?: string | undefined; class_id: string; date_time: string; zoom_link_snapshot: string; status?: "COMPLETED" | "SCHEDULED" | "CANCELLED" | undefined; substitute_coach_id?: string | null | undefined; created_at?: string | undefined; updated_at?: string | undefined; }>'.
+
+[0m [90m 92 |[39m     [36mconst[39m { error[33m:[39m sessionError } [33m=[39m [36mawait[39m supabase
+ [90m 93 |[39m       [33m.[39m[36mfrom[39m([32m'sessions'[39m)
+[31m[1m>[22m[39m[90m 94 |[39m       [33m.[39mupdate({ coach_id[33m:[39m updates[33m.[39mcoachId })
+ [90m    |[39m                 [31m[1m^[22m[39m
+ [90m 95 |[39m       [33m.[39meq([32m'class_id'[39m[33m,[39m id)
+ [90m 96 |[39m       [33m.[39meq([32m'status'[39m[33m,[39m [32m'SCHEDULED'[39m)[33m;[39m
+ [90m 97 |[39m       [0m
+Next.js build worker exited with code: 1 and signal: null

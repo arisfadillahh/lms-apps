@@ -105,6 +105,7 @@ export async function PATCH(
         }
 
         // Send Payment Confirmation WhatsApp
+        let waStatus: { sent: boolean; error?: string } = { sent: false };
         try {
             const settings = await getInvoiceSettings();
             if (settings?.payment_confirmation_template) {
@@ -124,19 +125,23 @@ export async function PATCH(
                     .replace(/{paid_date}/g, paidDate)
                     .replace(/{invoice_url}/g, invoiceUrl);
 
-                // Send message asynchronously (fire and forget from API perspective, but log error if any)
-                await sendWhatsAppMessage(invoice.parent_phone, message)
-                    .then(res => {
-                        if (!res.success) console.error('[API] Failed to send payment confirmation:', res.error);
-                        else console.log('[API] Payment confirmation sent to', invoice.parent_phone);
-                    });
+                const waResult = await sendWhatsAppMessage(invoice.parent_phone, message);
+                if (waResult.success) {
+                    console.log('[API] Payment confirmation sent to', invoice.parent_phone);
+                    waStatus = { sent: true };
+                } else {
+                    console.error('[API] Failed to send payment confirmation:', waResult.error);
+                    waStatus = { sent: false, error: waResult.error };
+                }
+            } else {
+                waStatus = { sent: false, error: 'Template konfirmasi pembayaran belum diatur di Settings' };
             }
         } catch (waError) {
             console.error('[API] Error sending payment confirmation:', waError);
-            // Don't block the response, just log
+            waStatus = { sent: false, error: String(waError) };
         }
 
-        return NextResponse.json(invoice);
+        return NextResponse.json({ ...invoice, waStatus });
 
     } catch (error) {
         console.error('[API] Update invoice error:', error);

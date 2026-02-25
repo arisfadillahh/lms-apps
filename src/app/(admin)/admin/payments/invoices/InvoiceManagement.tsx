@@ -206,7 +206,16 @@ export default function InvoiceManagement({
             });
 
             if (res.ok) {
-                setMessage({ type: 'success', text: 'Invoice marked as paid!' });
+                const data = await res.json();
+
+                // Show WA confirmation status to admin
+                const waStatus = data.waStatus;
+                if (waStatus?.sent) {
+                    setMessage({ type: 'success', text: `✅ Invoice marked as paid! WhatsApp konfirmasi berhasil dikirim ke ${showPaidModal.parent_name}.` });
+                } else {
+                    const reason = waStatus?.error || 'Unknown error';
+                    setMessage({ type: 'error', text: `⚠️ Invoice marked as paid, tapi WhatsApp konfirmasi GAGAL dikirim: ${reason}` });
+                }
 
                 // Check if this is a REGISTRATION invoice - show assign class modal
                 const invoice = showPaidModal as any;

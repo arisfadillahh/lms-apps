@@ -158,11 +158,11 @@ export default function InvoiceManagement({
 
     // Action: Prepare Reminder Queue
     const handlePrepareReminders = async () => {
-        // Filter pending invoices
-        const pendingInvoices = invoices.filter(inv => inv.status === 'PENDING');
+        // Filter all unpaid invoices (PENDING + OVERDUE)
+        const unpaidInvoices = invoices.filter(inv => inv.status === 'PENDING' || inv.status === 'OVERDUE');
 
-        if (pendingInvoices.length === 0) {
-            setMessage({ type: 'error', text: 'Tidak ada invoice pending untuk dikirim reminder.' });
+        if (unpaidInvoices.length === 0) {
+            setMessage({ type: 'error', text: 'Tidak ada invoice yang belum dibayar untuk dikirim reminder.' });
             return;
         }
 
@@ -173,8 +173,8 @@ export default function InvoiceManagement({
             const settings = await res.json();
             if (res.ok && settings) {
                 delay = {
-                    min: settings.whatsapp_delay_min || 10,
-                    max: settings.whatsapp_delay_max || 30
+                    min: settings.class_reminder_delay_min || 5,
+                    max: settings.class_reminder_delay_max || 15
                 };
             }
         } catch (error) {
@@ -182,7 +182,7 @@ export default function InvoiceManagement({
         }
 
         // Transform to reminder items and start via context
-        const items = pendingInvoices.map(inv => ({
+        const items = unpaidInvoices.map(inv => ({
             id: inv.id,
             invoice_number: inv.invoice_number,
             parent_name: inv.parent_name

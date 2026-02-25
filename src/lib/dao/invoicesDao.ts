@@ -514,7 +514,7 @@ export async function listInvoices(filters: InvoiceFilters): Promise<InvoiceList
     };
 }
 
-export async function getPendingInvoicesForMonth(
+export async function getUnpaidInvoicesForMonth(
     month: number,
     year: number
 ): Promise<Invoice[]> {
@@ -525,7 +525,7 @@ export async function getPendingInvoicesForMonth(
         .select('*, items:invoice_items(*), ccr_numbers(*)')
         .eq('period_month', month)
         .eq('period_year', year)
-        .eq('status', 'PENDING');
+        .in('status', ['PENDING', 'OVERDUE']);
 
     if (error) {
         console.error('[InvoicesDao] Error fetching pending invoices:', error);

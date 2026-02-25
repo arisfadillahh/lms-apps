@@ -8,7 +8,7 @@
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import {
     getInvoiceSettings,
-    getPendingInvoicesForMonth
+    getUnpaidInvoicesForMonth
 } from '@/lib/dao/invoicesDao';
 import type { Invoice, SendRemindersResponse, WhatsAppStatus } from '@/lib/types/invoice';
 import makeWASocket, {
@@ -613,10 +613,10 @@ export async function sendInvoiceReminders(
             return result;
         }
 
-        // Get pending invoices
-        const invoices = await getPendingInvoicesForMonth(month, year);
+        // Get unpaid invoices (PENDING + OVERDUE)
+        const invoices = await getUnpaidInvoicesForMonth(month, year);
         if (invoices.length === 0) {
-            result.errors.push('No pending invoices found for this month.');
+            result.errors.push('No unpaid invoices found for this month.');
             return result;
         }
 
@@ -640,9 +640,11 @@ export async function sendInvoiceReminders(
                     await logWhatsAppMessage(invoice, 'FAILED', sendResult.error);
                 }
 
-                // Random delay between 5 seconds and 1 minute
+                // Random delay using class_reminder_delay settings
                 if (i < invoices.length - 1) {
-                    const delay = getRandomDelay(5000, 60000);
+                    const minDelay = (settings.class_reminder_delay_min || 5) * 1000;
+                    const maxDelay = (settings.class_reminder_delay_max || 15) * 1000;
+                    const delay = getRandomDelay(minDelay, maxDelay);
                     console.log(`[WhatsApp] Waiting ${delay / 1000}s before next message...`);
                     await sleep(delay);
                 }

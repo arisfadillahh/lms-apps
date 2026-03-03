@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
-import { getInvoiceById, markInvoiceAsPaid, getInvoiceSettings } from '@/lib/dao/invoicesDao';
+import { getInvoiceById, markInvoiceAsPaid, getInvoiceSettings, extendPaymentPeriodsForInvoice } from '@/lib/dao/invoicesDao';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { sendWhatsAppMessage } from '@/lib/services/whatsappClient';
 
@@ -103,6 +103,9 @@ export async function PATCH(
                 { status: 500 }
             );
         }
+
+        // Extend payment periods for this invoice
+        await extendPaymentPeriodsForInvoice(id);
 
         // Send Payment Confirmation WhatsApp
         let waStatus: { sent: boolean; error?: string } = { sent: false };

@@ -609,6 +609,117 @@ export async function updateInvoiceStatus(
     return (data as unknown) as Invoice;
 }
 
+export async function extendPaymentPeriodsForInvoice(invoiceId: string): Promise<boolean> {
+    const supabase = getSupabaseAdmin();
+
+    try {
+        // 1. Get the invoice items connected to payment periods
+        const { data: items, error: itemsError } = await supabase
+            .from('invoice_items' as any)
+            .select('coder_id, payment_period_id')
+            .eq('invoice_id', invoiceId)
+            .not('payment_period_id', 'is', null);
+
+        if (itemsError) {
+            console.error('[InvoicesDao] Error fetching invoice items for extension:', itemsError);
+            return false;
+        }
+
+        if (!items || items.length === 0) {
+            // No payment periods associated with this invoice (e.g. pure registration or seasonal)
+            return true;
+        }
+
+        // 2. Process each payment period independently
+        for (const item of (items as any[])) {
+            const oldPeriodId = item.payment_period_id;
+            const coderId = item.coder_id;
+
+            // Fetch the old period details
+            const { data: oldPeriod, error: oldPeriodError } = await supabase
+                .from('coder_payment_periods' as any)
+                .select(`
+                    id, 
+                    class_id, 
+                    payment_plan_id, 
+                    pricing_id, 
+                    start_date, 
+                    end_date, 
+                    total_amount,
+                    status,
+                    payment_plans(duration_months)
+                `)
+                .eq('id', oldPeriodId)
+                .single();
+
+            if (oldPeriodError || !oldPeriod) {
+                console.error(`[InvoicesDao] Error fetching old period ${oldPeriodId}:`, oldPeriodError);
+                continue;
+            }
+
+            // If it's not active anymore or duration is unknown, skip
+            if ((oldPeriod as any).status !== 'ACTIVE' && (oldPeriod as any).status !== 'EXPIRED') {
+                console.log(`[InvoicesDao] Skipping period ${oldPeriodId} because status is ${(oldPeriod as any).status}`);
+                continue;
+            }
+
+            const durationMonths = (oldPeriod as any).payment_plans?.duration_months || 1;
+
+            // Calculate new dates
+            const oldEndDateObj = new Date((oldPeriod as any).end_date);
+
+            // New Start Date = Old End Date + 1 Day
+            const newStartDateObj = new Date(oldEndDateObj);
+            newStartDateObj.setDate(newStartDateObj.getDate() + 1);
+
+            // New End Date = New Start Date + durationMonths - 1 day
+            const newEndDateObj = new Date(newStartDateObj);
+            newEndDateObj.setMonth(newEndDateObj.getMonth() + durationMonths);
+            newEndDateObj.setDate(newEndDateObj.getDate() - 1);
+
+            const newStartDate = newStartDateObj.toISOString().split('T')[0];
+            const newEndDate = newEndDateObj.toISOString().split('T')[0];
+
+            console.log(`[InvoicesDao] Extending period. Old end: ${(oldPeriod as any).end_date}, New start: ${newStartDate}, New end: ${newEndDate}`);
+
+            // Expire any existing active periods for this coder and class
+            await supabase
+                .from('coder_payment_periods' as any)
+                .update({ status: 'EXPIRED' })
+                .eq('coder_id', coderId)
+                // Just to be safe, we only expire for the same class or if class_id is null
+                .match({ class_id: (oldPeriod as any).class_id })
+                .eq('status', 'ACTIVE');
+
+            // Insert new active period
+            const { error: insertError } = await supabase
+                .from('coder_payment_periods' as any)
+                .insert({
+                    coder_id: coderId,
+                    class_id: (oldPeriod as any).class_id,
+                    payment_plan_id: (oldPeriod as any).payment_plan_id,
+                    pricing_id: (oldPeriod as any).pricing_id,
+                    start_date: newStartDate,
+                    end_date: newEndDate,
+                    total_amount: (oldPeriod as any).total_amount,
+                    status: 'ACTIVE'
+                });
+
+            if (insertError) {
+                console.error(`[InvoicesDao] Error inserting new extended period for coder ${coderId}:`, insertError);
+                // We don't return false here to allow other items to process, but we log the error
+            } else {
+                console.log(`[InvoicesDao] Successfully extended period for coder ${coderId}`);
+            }
+        }
+
+        return true;
+    } catch (err) {
+        console.error('[InvoicesDao] Exception while extending periods:', err);
+        return false;
+    }
+}
+
 export async function getInvoiceHistoryByParent(parentPhone: string): Promise<Invoice[]> {
     const supabase = getSupabaseAdmin();
 

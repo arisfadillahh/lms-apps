@@ -77,7 +77,7 @@ export async function POST(request: Request) {
             user_id: admin.id,
             type: 'LESSON_REPORT',
             title: '📋 Laporan Masalah Lesson',
-            message: `${coachName} melaporkan masalah "${reportTypeLabel}" pada lesson "${lessonTitle}"`,
+            message: `${coachName} melaporkan masalah "${reportTypeLabel}" pada lesson "${lessonTitle}"\n📝 Catatan: ${parsed.data.description}`,
             is_read: false,
         }));
 

@@ -134,7 +134,7 @@ export default async function SessionAttendancePage({ params }: PageProps) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem', alignItems: 'start' }}>
         {/* 3. Attendance */}
         <section style={cardStyle}>
-          <h2 style={sectionTitleStyle}>Absensi Coder</h2>
+          <h2 style={sectionTitleStyle}>Presensi Coder</h2>
           <p style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '0.25rem', marginBottom: '1.25rem' }}>
             Catat kehadiran siswa untuk sesi ini.
           </p>

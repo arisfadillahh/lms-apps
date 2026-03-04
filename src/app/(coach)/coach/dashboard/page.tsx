@@ -128,7 +128,7 @@ export default async function CoachDashboardPage() {
                                                 background: '#1e3a5f', color: 'white', padding: '10px 20px', borderRadius: '8px',
                                                 fontSize: '14px', fontWeight: '600', display: 'inline-block'
                                             }}>
-                                                Absensi
+                                                Presensi
                                             </Link>
                                         </div>
                                     </div>

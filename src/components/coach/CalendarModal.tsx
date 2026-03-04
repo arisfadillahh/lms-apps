@@ -272,7 +272,7 @@ export default function CalendarModal({ sessions, children, triggerClassName, tr
                                                 🏫 Admin Kelas
                                             </a>
                                             <a href={`/coach/sessions/${selectedSession.id}/attendance`} style={{ ...actionButtonStyle, background: '#1e3a5f', color: 'white', border: '1px solid #1e3a5f' }}>
-                                                📝 Isi Absensi
+                                                📝 Isi Presensi
                                             </a>
                                         </div>
                                     </div>

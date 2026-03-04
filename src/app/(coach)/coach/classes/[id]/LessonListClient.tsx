@@ -92,7 +92,7 @@ export default function LessonListClient({ sessions, coachId, allowedSessionIds 
                                     href={`/coach/sessions/${sess.sessionId}/attendance`}
                                     style={smallButtonStyle}
                                 >
-                                    Absensi
+                                    Presensi
                                 </Link>
                             )}
                         </div>

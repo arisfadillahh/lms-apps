@@ -138,7 +138,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
                                     href={`/coach/sessions/${nextSession.id}/attendance`}
                                     style={primaryButtonStyle}
                                 >
-                                    🎯 Absensi & Mulai Kelas
+                                    🎯 Presensi & Mulai Kelas
                                 </Link>
                             )}
                         </div>

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { getServerAuthSession } from '@/lib/auth';
 import { usersDao } from '@/lib/dao';
 import CoachSidebar from './CoachSidebar';
+import CoachMobileNav from './CoachMobileNav';
 import DashboardHeader from '@/components/layout/DashboardHeader';
 import PageTransition from '@/components/PageTransition';
 
@@ -28,10 +29,12 @@ export default async function CoachLayout({ children }: { children: ReactNode })
 
       <main className="flex-1 flex flex-col min-h-screen transition-all duration-300 md:ml-64">
         <DashboardHeader user={userForHeader} />
-        <div className="flex-1 p-4 md:p-8">
+        <div className="flex-1 p-4 pb-24 md:p-8 md:pb-8">
           <PageTransition>{children}</PageTransition>
         </div>
       </main>
+
+      <CoachMobileNav />
     </div>
   );
 }

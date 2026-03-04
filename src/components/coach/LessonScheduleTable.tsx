@@ -108,7 +108,7 @@ export default function LessonScheduleTable({ sessions, lessons, classType = 'WE
                                     <td style={tdStyle}>
                                         {!isCancelled && (
                                             <Link href={`/coach/sessions/${session.id}/attendance`} style={actionButtonStyle}>
-                                                Absensi
+                                                Presensi
                                             </Link>
                                         )}
                                     </td>

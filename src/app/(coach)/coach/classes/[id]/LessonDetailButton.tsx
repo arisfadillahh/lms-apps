@@ -122,7 +122,7 @@ export default function LessonDetailButton({ lessonSlot, sessionId, sessionDate,
                                 href={`/coach/sessions/${sessionId}/attendance`}
                                 style={primaryButtonStyle}
                             >
-                                🎯 Ke Halaman Absensi
+                                🎯 Ke Halaman Presensi
                             </a>
                         </div>
                     </div>

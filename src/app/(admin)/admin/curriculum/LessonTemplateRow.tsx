@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { Pencil, Save, X, ExternalLink } from 'lucide-react';
 
 import type { LessonTemplateRecord } from '@/lib/dao/lessonTemplatesDao';
-import LessonExampleUploader from '@/components/admin/LessonExampleUploader';
 import DeleteLessonButton from './DeleteLessonButton';
 
 type LessonTemplateRowProps = {
@@ -23,6 +22,7 @@ export default function LessonTemplateRow({ lesson }: LessonTemplateRowProps) {
     lesson.estimated_meeting_count !== null ? String(lesson.estimated_meeting_count) : '',
   );
   const [slideUrl, setSlideUrl] = useState(lesson.slide_url ?? '');
+  const [exampleUrl, setExampleUrl] = useState(lesson.example_url ?? '');
   const [makeUpInstructions, setMakeUpInstructions] = useState(lesson.make_up_instructions ?? '');
   const [message, setMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -34,6 +34,7 @@ export default function LessonTemplateRow({ lesson }: LessonTemplateRowProps) {
     setOrderIndex(String(lesson.order_index));
     setEstimatedMeetingCount(lesson.estimated_meeting_count !== null ? String(lesson.estimated_meeting_count) : '');
     setSlideUrl(lesson.slide_url ?? '');
+    setExampleUrl(lesson.example_url ?? '');
     setMakeUpInstructions(lesson.make_up_instructions ?? '');
   };
 
@@ -46,6 +47,7 @@ export default function LessonTemplateRow({ lesson }: LessonTemplateRowProps) {
     if (title !== lesson.title) payload.title = title;
     if (summary.trim() !== (lesson.summary ?? '')) payload.summary = summary.trim() || undefined;
     if (slideUrl.trim() !== (lesson.slide_url ?? '')) payload.slideUrl = slideUrl.trim() || undefined;
+    if (exampleUrl.trim() !== (lesson.example_url ?? '')) payload.exampleUrl = exampleUrl.trim() || null;
 
     const orderValue = Number(orderIndex);
     if (!Number.isNaN(orderValue) && orderValue !== lesson.order_index) {
@@ -151,6 +153,16 @@ export default function LessonTemplateRow({ lesson }: LessonTemplateRowProps) {
                 style={inputStyle}
               />
             </div>
+            <div style={fieldGroupStyle}>
+              <label style={labelStyle}>URL Contoh Game (Opsional)</label>
+              <input
+                type="url"
+                value={exampleUrl}
+                onChange={(event) => setExampleUrl(event.target.value)}
+                placeholder="https://scratch.mit.edu/projects/..."
+                style={inputStyle}
+              />
+            </div>
           </div>
         ) : (
           <>
@@ -167,7 +179,7 @@ export default function LessonTemplateRow({ lesson }: LessonTemplateRowProps) {
               <span>Contoh Game (template)</span>
               {lesson.example_url ? (
                 <a href={lesson.example_url} target="_blank" rel="noreferrer" style={linkStyle}>
-                  Lihat
+                  Buka
                 </a>
               ) : (
                 <span style={{ fontSize: '0.8rem', color: '#cbd5f5' }}>Belum ada</span>
@@ -218,14 +230,6 @@ export default function LessonTemplateRow({ lesson }: LessonTemplateRowProps) {
         ) : null}
         {message ? <span style={{ fontSize: '0.75rem', color: 'var(--color-success)' }}>{message}</span> : null}
         {errorMessage ? <span style={{ fontSize: '0.75rem', color: 'var(--color-danger)' }}>{errorMessage}</span> : null}
-        <LessonExampleUploader
-          endpoint={`/api/admin/curriculum/lessons/${lesson.id}/example`}
-          currentUrl={lesson.example_url}
-          label="Contoh Game (template)"
-          emptyHint="Belum ada contoh game untuk template ini."
-          uploadSuccessMessage="Contoh game template diperbarui"
-          deleteSuccessMessage="Contoh game template dihapus"
-        />
       </div>
     </div>
   );

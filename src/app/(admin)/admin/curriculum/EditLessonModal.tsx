@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X, Save } from 'lucide-react';
 import type { LessonTemplateRecord } from '@/lib/dao/lessonTemplatesDao';
-import LessonExampleUploader from '@/components/admin/LessonExampleUploader';
 
 type EditLessonModalProps = {
     lesson: LessonTemplateRecord;
@@ -26,6 +25,7 @@ export default function EditLessonModal({ lesson, open, onOpenChange }: EditLess
         lesson.estimated_meeting_count !== null ? String(lesson.estimated_meeting_count) : '',
     );
     const [slideUrl, setSlideUrl] = useState(lesson.slide_url ?? '');
+    const [exampleUrl, setExampleUrl] = useState(lesson.example_url ?? '');
     const [makeUpInstructions, setMakeUpInstructions] = useState(lesson.make_up_instructions ?? '');
 
     const [message, setMessage] = useState<string | null>(null);
@@ -39,6 +39,7 @@ export default function EditLessonModal({ lesson, open, onOpenChange }: EditLess
             setOrderIndex(String(lesson.order_index));
             setEstimatedMeetingCount(lesson.estimated_meeting_count !== null ? String(lesson.estimated_meeting_count) : '');
             setSlideUrl(lesson.slide_url ?? '');
+            setExampleUrl(lesson.example_url ?? '');
             setMakeUpInstructions(lesson.make_up_instructions ?? '');
             setMessage(null);
             setErrorMessage(null);
@@ -54,6 +55,7 @@ export default function EditLessonModal({ lesson, open, onOpenChange }: EditLess
         if (title !== lesson.title) payload.title = title;
         if (summary.trim() !== (lesson.summary ?? '')) payload.summary = summary.trim() || undefined;
         if (slideUrl.trim() !== (lesson.slide_url ?? '')) payload.slideUrl = slideUrl.trim() || undefined;
+        if (exampleUrl.trim() !== (lesson.example_url ?? '')) payload.exampleUrl = exampleUrl.trim() || null;
 
         const orderValue = Number(orderIndex);
         // Convert 1-based visual back to 0-based for DB
@@ -187,14 +189,14 @@ export default function EditLessonModal({ lesson, open, onOpenChange }: EditLess
                             />
                         </div>
 
-                        <div style={{ marginTop: '0.5rem' }}>
-                            <LessonExampleUploader
-                                endpoint={`/api/admin/curriculum/lessons/${lesson.id}/example`}
-                                currentUrl={lesson.example_url}
-                                label="Contoh Game (Template)"
-                                emptyHint="Belum ada contoh game."
-                                uploadSuccessMessage="Contoh game berhasil diupload"
-                                deleteSuccessMessage="Contoh game dihapus"
+                        <div style={fieldGroupStyle}>
+                            <label style={labelStyle}>URL Contoh Game (Opsional)</label>
+                            <input
+                                type="url"
+                                value={exampleUrl}
+                                onChange={(e) => setExampleUrl(e.target.value)}
+                                style={inputStyle}
+                                placeholder="https://scratch.mit.edu/projects/..."
                             />
                         </div>
                     </div>

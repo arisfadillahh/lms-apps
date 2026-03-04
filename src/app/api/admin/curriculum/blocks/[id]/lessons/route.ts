@@ -81,8 +81,8 @@ export async function POST(request: Request, context: RouteContext) {
       title: parsed.data.title,
       summary: parsed.data.summary ?? null,
       slideUrl: parsed.data.slideUrl || null,
-      exampleUrl: null, // Initialize as null
-      exampleStoragePath: null, // Initialize as null
+      exampleUrl: (parsed.data as any).exampleUrl || null,
+      exampleStoragePath: null,
       orderIndex: parsed.data.orderIndex,
       estimatedMeetingCount: parsed.data.estimatedMeetingCount ?? null,
       makeUpInstructions: parsed.data.makeUpInstructions || null,

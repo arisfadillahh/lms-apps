@@ -28,7 +28,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', background: '#f8fafc' }}>
-      <AdminSidebar session={session} />
+      <AdminSidebar session={{ ...session, user: { ...session.user, adminPermissions: user.admin_permissions } }} />
       <main
         className="admin-main-content"
         style={{

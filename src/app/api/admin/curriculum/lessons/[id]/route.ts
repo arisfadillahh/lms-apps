@@ -68,11 +68,20 @@ export async function PATCH(request: Request, context: RouteContext) {
     updates.slideUrl = parsed.data.slideUrl ?? null;
   }
 
+  if (Object.prototype.hasOwnProperty.call(parsed.data, 'exampleUrl')) {
+    updates.exampleUrl = (parsed.data as any).exampleUrl ?? null;
+    updates.exampleStoragePath = null;
+  }
+
   try {
     const lesson = await lessonTemplatesDao.updateLessonTemplate(lessonId, updates);
 
     if (Object.prototype.hasOwnProperty.call(updates, 'slideUrl')) {
       await classLessonsDao.syncTemplateLessonSlide(lessonId, lesson.slide_url);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(updates, 'exampleUrl')) {
+      await classLessonsDao.syncTemplateLessonExample(lessonId, lesson.example_url ?? null, null);
     }
 
     if (lesson.block_id) {

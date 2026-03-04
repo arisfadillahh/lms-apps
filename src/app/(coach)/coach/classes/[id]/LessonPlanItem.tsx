@@ -101,10 +101,10 @@ export default function LessonPlanItem({ lesson, template, highlight }: LessonPl
                 <h4 style={detailHeadingStyle}>Contoh Game</h4>
                 {lesson.coach_example_url ? (
                   <a href={lesson.coach_example_url} target="_blank" rel="noreferrer" style={linkStyle}>
-                    Buka contoh game yang disiapkan admin
+                    🎮 Buka contoh game yang disiapkan admin
                   </a>
                 ) : (
-                  <span style={mutedStyle}>Belum ada file contoh game. Hubungi admin untuk menambahkannya.</span>
+                  <span style={mutedStyle}>Belum ada link contoh game. Hubungi admin untuk menambahkannya.</span>
                 )}
               </section>
             </div>

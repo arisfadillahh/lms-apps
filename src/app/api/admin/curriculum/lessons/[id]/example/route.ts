@@ -1,15 +1,19 @@
 "use server";
 
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { classLessonsDao, lessonTemplatesDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
-import { deleteLessonExample, uploadLessonExample } from '@/lib/storage';
 
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
+
+const urlSchema = z.object({
+  url: z.string().url('URL tidak valid').or(z.literal('')).nullable(),
+});
 
 export async function POST(request: Request, context: RouteContext) {
   const session = await getSessionOrThrow();
@@ -26,34 +30,27 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: 'Lesson template not found' }, { status: 404 });
   }
 
-  const formData = await request.formData();
-  const file = formData.get('file');
-  if (!(file instanceof File)) {
-    return NextResponse.json({ error: 'File is required' }, { status: 400 });
-  }
-
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-  const contentType = file.type || 'application/octet-stream';
-  const sanitizedFilename = sanitizeFilename(file.name || 'example');
-  const storagePath = `lesson-templates/${decodedLessonId}/${Date.now()}-${sanitizedFilename}`;
-
+  let body: unknown;
   try {
-    if (template.example_storage_path) {
-      await deleteLessonExample(template.example_storage_path);
-    }
-  } catch (error) {
-    console.error('Failed to delete previous template lesson example', error);
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const publicUrl = await uploadLessonExample(storagePath, buffer, contentType);
-  await lessonTemplatesDao.updateLessonTemplate(decodedLessonId, {
-    exampleUrl: publicUrl,
-    exampleStoragePath: storagePath,
-  });
-  await classLessonsDao.syncTemplateLessonExample(decodedLessonId, publicUrl, storagePath);
+  const parsed = urlSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'URL tidak valid' }, { status: 400 });
+  }
 
-  return NextResponse.json({ url: publicUrl });
+  const exampleUrl = parsed.data.url || null;
+
+  await lessonTemplatesDao.updateLessonTemplate(decodedLessonId, {
+    exampleUrl,
+    exampleStoragePath: null,
+  });
+  await classLessonsDao.syncTemplateLessonExample(decodedLessonId, exampleUrl, null);
+
+  return NextResponse.json({ url: exampleUrl });
 }
 
 export async function DELETE(request: Request, context: RouteContext) {
@@ -71,14 +68,6 @@ export async function DELETE(request: Request, context: RouteContext) {
     return NextResponse.json({ error: 'Lesson template not found' }, { status: 404 });
   }
 
-  if (template.example_storage_path) {
-    try {
-      await deleteLessonExample(template.example_storage_path);
-    } catch (error) {
-      console.error('Failed to delete template lesson example from storage', error);
-    }
-  }
-
   await lessonTemplatesDao.updateLessonTemplate(decodedLessonId, {
     exampleUrl: null,
     exampleStoragePath: null,
@@ -86,10 +75,6 @@ export async function DELETE(request: Request, context: RouteContext) {
   await classLessonsDao.syncTemplateLessonExample(decodedLessonId, null, null);
 
   return NextResponse.json({ success: true });
-}
-
-function sanitizeFilename(filename: string): string {
-  return filename.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/-+/g, '-');
 }
 
 function isValidUuid(value: string): boolean {

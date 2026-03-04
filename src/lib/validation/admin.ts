@@ -124,6 +124,7 @@ export const createLessonTemplateSchema = z.object({
   title: z.string().min(3),
   summary: z.string().max(5000).optional().or(z.literal('').transform(() => undefined)),
   slideUrl: z.string().url().optional().or(z.literal('').transform(() => undefined)),
+  exampleUrl: z.string().url().optional().or(z.literal('').transform(() => undefined)).nullable().optional(),
   orderIndex: z.coerce.number().int().min(1),
   estimatedMeetingCount: z
     .preprocess((value) => (value === '' || value === null || value === undefined ? undefined : value), z.coerce.number().int().min(0))
@@ -151,6 +152,7 @@ export const updateLessonTemplateSchema = z
       .url()
       .optional()
       .or(z.literal('').transform(() => undefined)),
+    exampleUrl: z.string().url().optional().or(z.literal('').transform(() => null)).nullable().optional(),
     makeUpInstructions: z.string().max(5000).optional().or(z.literal('').transform(() => undefined)),
   })
   .refine((value) => Object.keys(value).length > 0, { message: 'No fields to update' });

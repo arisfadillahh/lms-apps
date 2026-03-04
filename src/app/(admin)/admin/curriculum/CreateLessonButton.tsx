@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import * as Dialog from '@radix-ui/react-dialog';
-import { X, Plus, Upload } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
 import type { CSSProperties } from 'react';
 
 // Schema generator to accept dynamic max value
@@ -16,8 +16,8 @@ const createSchema = (maxOrder: number) => z.object({
     orderIndex: z.number().int().min(1, 'Urutan minimal 1').max(maxOrder, `Urutan maksimal ${maxOrder}`),
     estimatedMeetingCount: z.number().int().min(0).optional().or(z.nan().transform(() => undefined)),
     slideUrl: z.string().url('URL tidak valid').optional().or(z.literal('')),
+    exampleUrl: z.string().url('URL tidak valid').optional().or(z.literal('')),
     makeUpInstructions: z.string().optional(),
-    // File validation manually handled or via distinct field if using react-hook-form for files
 });
 
 type FormValues = {
@@ -26,6 +26,7 @@ type FormValues = {
     orderIndex: number;
     estimatedMeetingCount?: number;
     slideUrl?: string;
+    exampleUrl?: string;
     makeUpInstructions?: string;
 };
 
@@ -38,8 +39,6 @@ export default function CreateLessonButton({ blockId, suggestedOrderIndex }: Cre
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [errorV, setErrorV] = useState<string | null>(null);
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Suggested (default) is count + 1 (1-based), which is technically index=count in 0-based.
     // Validation Max is count + 1. 
@@ -57,9 +56,10 @@ export default function CreateLessonButton({ blockId, suggestedOrderIndex }: Cre
         defaultValues: {
             title: '',
             summary: '',
-            orderIndex: suggestedOrderIndex + 1, // Display 1-based default (next available)
+            orderIndex: suggestedOrderIndex + 1,
             estimatedMeetingCount: 1,
             slideUrl: '',
+            exampleUrl: '',
             makeUpInstructions: '',
         },
     });
@@ -67,13 +67,13 @@ export default function CreateLessonButton({ blockId, suggestedOrderIndex }: Cre
     const onSubmit = async (values: FormValues) => {
         setErrorV(null);
 
-        // Use 1-based order index directly
         const payload = {
             title: values.title,
             summary: values.summary,
             orderIndex: values.orderIndex,
             estimatedMeetingCount: values.estimatedMeetingCount,
             slideUrl: values.slideUrl || undefined,
+            exampleUrl: values.exampleUrl || undefined,
             makeUpInstructions: values.makeUpInstructions || undefined,
         };
 
@@ -87,27 +87,6 @@ export default function CreateLessonButton({ blockId, suggestedOrderIndex }: Cre
             if (!response.ok) {
                 const data = await response.json().catch(() => ({}));
                 throw new Error(data.error ?? 'Gagal membuat lesson');
-            }
-
-            const { lesson } = await response.json();
-
-            // 2. Upload Example Game (if selected)
-            if (selectedFile && lesson?.id) {
-                const formData = new FormData();
-                formData.append('file', selectedFile);
-
-                const uploadRes = await fetch(`/api/admin/curriculum/lessons/${lesson.id}/example`, {
-                    method: 'POST',
-                    body: formData,
-                });
-
-                if (!uploadRes.ok) {
-                    // Non-blocking error, just warn? Or show error?
-                    // User expects it to work. If upload fails, maybe alert?
-                    console.error("Upload failed");
-                    // We don't stop the whole success flow, but maybe show a toast?
-                    // For now, let's treat it as partial success.
-                }
             }
 
             handleClose();
@@ -127,9 +106,9 @@ export default function CreateLessonButton({ blockId, suggestedOrderIndex }: Cre
                 orderIndex: suggestedOrderIndex + 1,
                 estimatedMeetingCount: 1,
                 slideUrl: '',
+                exampleUrl: '',
                 makeUpInstructions: '',
             });
-            setSelectedFile(null);
             setErrorV(null);
         }, 300);
     };
@@ -186,31 +165,15 @@ export default function CreateLessonButton({ blockId, suggestedOrderIndex }: Cre
                             {errors.slideUrl ? <span style={errorStyle}>{errors.slideUrl.message}</span> : null}
                         </div>
 
-                        {/* Upload Section Inline */}
                         <div style={fieldGroupStyle}>
-                            <label style={labelStyle}>Upload Contoh Game (Opsional)</label>
-                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    style={{ display: 'none' }}
-                                    accept=".zip,.rar,.7z"
-                                    onChange={(e) => {
-                                        if (e.target.files?.[0]) setSelectedFile(e.target.files[0]);
-                                    }}
-                                />
-                                <button
-                                    type="button"
-                                    style={secondaryButtonStyle}
-                                    onClick={() => fileInputRef.current?.click()}
-                                >
-                                    <Upload size={16} />
-                                    {selectedFile ? 'Ganti File' : 'Pilih File'}
-                                </button>
-                                <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                                    {selectedFile ? selectedFile.name : 'Belum ada file'}
-                                </span>
-                            </div>
+                            <label style={labelStyle}>URL Contoh Game (Opsional)</label>
+                            <input
+                                type="url"
+                                style={inputStyle}
+                                {...register('exampleUrl')}
+                                placeholder="https://scratch.mit.edu/projects/..."
+                            />
+                            {errors.exampleUrl ? <span style={errorStyle}>{errors.exampleUrl.message}</span> : null}
                         </div>
 
                         <div style={fieldGroupStyle}>

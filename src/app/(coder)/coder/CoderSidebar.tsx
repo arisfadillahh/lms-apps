@@ -1,135 +1,59 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import type { CSSProperties } from 'react';
-import { Home, BookOpen, FileUp, FileText, Settings, LogOut } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { LayoutDashboard, BookOpen, RefreshCw, BarChart3 } from 'lucide-react';
 
 const NAV_LINKS = [
-    { href: '/coder/dashboard', label: 'Dashboard', icon: Home },
-    { href: '/coder/materials', label: 'Materi', icon: BookOpen },
-    { href: '/coder/makeup', label: 'Tugas Susulan', icon: FileUp },
-    { href: '/coder/reports', label: 'Rapor', icon: FileText },
+    { href: '/coder/dashboard', label: 'Dashboard', icon: LayoutDashboard, activeBg: 'bg-pastel-pink', activeText: 'text-coral', hoverBg: 'hover:bg-pastel-pink', hoverText: 'hover:text-coral' },
+    { href: '/coder/materials', label: 'Materi', icon: BookOpen, activeBg: 'bg-pastel-blue', activeText: 'text-sky', hoverBg: 'hover:bg-pastel-blue', hoverText: 'hover:text-sky' },
+    { href: '/coder/makeup', label: 'Tugas Susulan', icon: RefreshCw, activeBg: 'bg-pastel-yellow', activeText: 'text-amber-600', hoverBg: 'hover:bg-pastel-yellow', hoverText: 'hover:text-amber-600' },
+    { href: '/coder/reports', label: 'Rapor', icon: BarChart3, activeBg: 'bg-pastel-green', activeText: 'text-clevio-green', hoverBg: 'hover:bg-pastel-green', hoverText: 'hover:text-clevio-green' },
 ];
 
 type CoderSidebarProps = {
     session: { user: { fullName: string } } | null;
 };
 
-const container = {
-    hidden: { opacity: 0 },
-    show: {
-        opacity: 1,
-        transition: {
-            staggerChildren: 0.08
-        }
-    }
-};
-
-const item = {
-    hidden: { opacity: 0, x: -20 },
-    show: { opacity: 1, x: 0 }
-};
-
 export default function CoderSidebar({ session }: CoderSidebarProps) {
     const pathname = usePathname();
 
     return (
-        <aside className="coder-sidebar" style={sidebarStyle}>
-            {/* Logo */}
-            <div style={{ padding: '0.5rem 0.75rem', marginBottom: '0.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <div style={{
-                        width: '32px',
-                        height: '32px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    }}>
-                        <Image src="/favicon.ico" alt="Clevio LMS" width={32} height={32} />
+        <aside className="coder-sidebar w-72 flex-shrink-0 border-r-4 border-dashed border-pastel-pink/50 bg-white flex-col justify-between hidden md:flex sticky top-0 h-screen">
+            <div className="p-8">
+                {/* Logo */}
+                <div className="flex items-center gap-4 mb-12">
+                    <div className="bg-clevio-navy aspect-square rounded-2xl size-12 flex items-center justify-center text-clevio-green font-black text-2xl shadow-lg rotate-3">
+                        C
                     </div>
-                    <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1e293b', letterSpacing: '-0.02em' }}>
-                        Clevio LMS
-                    </span>
+                    <div className="flex flex-col">
+                        <h1 className="text-clevio-navy text-xl font-black leading-none tracking-tight">Clevio</h1>
+                        <p className="text-clevio-green text-xs font-bold mt-1 uppercase tracking-widest">Coder Journey</p>
+                    </div>
                 </div>
-            </div>
 
-            {/* Navigation */}
-            <motion.nav
-                variants={container}
-                initial="hidden"
-                animate="show"
-                style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: 1 }}
-            >
-                {NAV_LINKS.map((link) => {
-                    const isActive = pathname.startsWith(link.href);
-                    const Icon = link.icon;
-                    return (
-                        <motion.div key={link.href} variants={item}>
+                {/* Navigation */}
+                <nav className="flex flex-col gap-3">
+                    {NAV_LINKS.map((link) => {
+                        const isActive = pathname.startsWith(link.href);
+                        const Icon = link.icon;
+
+                        return (
                             <Link
+                                key={link.href}
                                 href={link.href}
-                                style={isActive ? activeNavLinkStyle : navLinkStyle}
+                                className={`flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all hover:scale-105 ${isActive
+                                    ? `${link.activeBg} ${link.activeText}`
+                                    : `text-slate-500 ${link.hoverBg} ${link.hoverText}`
+                                    }`}
                             >
-                                <div style={{
-                                    width: '32px',
-                                    height: '32px',
-                                    borderRadius: '8px',
-                                    background: isActive ? '#3b82f6' : 'transparent',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    color: isActive ? '#fff' : '#64748b',
-                                    transition: 'all 0.2s ease',
-                                }}>
-                                    <Icon size={18} />
-                                </div>
-                                <span>{link.label}</span>
+                                <Icon size={22} strokeWidth={2.5} />
+                                <span className="text-base font-bold">{link.label}</span>
                             </Link>
-                        </motion.div>
-                    );
-                })}
-            </motion.nav>
+                        );
+                    })}
+                </nav>
+            </div>
         </aside>
     );
 }
-
-// Styles - Modern Blue Theme
-const sidebarStyle: CSSProperties = {
-    width: '240px',
-    height: '100vh',
-    background: '#ffffff',
-    color: '#1e293b',
-    padding: '1.25rem 0.75rem',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1rem',
-    position: 'fixed',
-    left: 0,
-    top: 0,
-    overflowY: 'auto',
-    zIndex: 50,
-    borderRight: 'none',
-    boxShadow: '4px 0 20px rgba(0, 0, 0, 0.03)',
-};
-
-const navLinkStyle: CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.75rem',
-    padding: '0.5rem 0.75rem',
-    borderRadius: '12px',
-    color: '#64748b',
-    textDecoration: 'none',
-    fontSize: '0.9rem',
-    fontWeight: 500,
-    transition: 'all 0.2s ease',
-};
-
-const activeNavLinkStyle: CSSProperties = {
-    ...navLinkStyle,
-    background: '#eff6ff',
-    color: '#1e293b',
-    fontWeight: 600,
-};

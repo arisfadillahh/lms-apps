@@ -10,6 +10,7 @@ type Banner = {
     title: string;
     order: number;
     isActive: boolean;
+    clicks?: number;
 };
 
 export default function AdminBannersPage() {
@@ -166,96 +167,155 @@ export default function AdminBannersPage() {
     }
 
     return (
-        <div style={containerStyle}>
+        <div className="flex flex-col gap-6 pb-8 max-w-7xl mx-auto">
             {/* Header */}
-            <div style={headerStyle}>
+            <div className="flex justify-between items-start gap-4 mb-2">
                 <div>
-                    <h1 style={titleStyle}>
-                        <span style={{ background: 'linear-gradient(135deg, #1e3a5f, #2d5a8a)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                            🖼️ Kelola Banner
-                        </span>
+                    <h1 className="text-2xl font-bold text-slate-900 m-0">
+                        Manajemen Banner
                     </h1>
-                    <p style={subtitleStyle}>
-                        Atur banner yang tampil di dashboard Coder. Drag untuk mengubah urutan.
+                    <p className="text-sm text-slate-500 mt-1">
+                        Kelola banner carousel di dashboard Coder untuk pengumuman dan promo.
                     </p>
                 </div>
-                <button onClick={() => setShowUploadForm(!showUploadForm)} style={addButtonStyle}>
-                    {showUploadForm ? <X size={18} /> : <Upload size={18} />}
+                <button
+                    onClick={() => setShowUploadForm(!showUploadForm)}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white border-none rounded-xl text-sm font-semibold cursor-pointer shadow-sm shadow-blue-500/20 transition-all hover:-translate-y-0.5"
+                >
+                    {showUploadForm ? <X size={16} /> : <span className="text-lg leading-none">+</span>}
                     {showUploadForm ? 'Tutup' : 'Tambah Banner'}
                 </button>
             </div>
 
+            {/* Metrics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
+                {/* Card 1: Total Banner */}
+                <div className="bg-white rounded-2xl border border-slate-200 p-5 flex items-center gap-4 shadow-sm">
+                    <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500 flex-shrink-0">
+                        <Image size={24} strokeWidth={2.5} />
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-bold text-slate-500 tracking-wider mb-0.5 uppercase">Total Banner</p>
+                        <p className="text-xl font-bold text-slate-800 leading-none">{banners.length}</p>
+                    </div>
+                </div>
+
+                {/* Card 2: Banner Aktif */}
+                <div className="bg-white rounded-2xl border border-slate-200 p-5 flex items-center gap-4 shadow-sm">
+                    <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center text-green-500 flex-shrink-0">
+                        <Check size={24} strokeWidth={2.5} />
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-bold text-slate-500 tracking-wider mb-0.5 uppercase">Banner Aktif</p>
+                        <p className="text-xl font-bold text-slate-800 leading-none">{banners.filter(b => b.isActive).length}</p>
+                    </div>
+                </div>
+
+                {/* Card 3: Total Tayangan (Converted to Total Klik) */}
+                <div className="bg-white rounded-2xl border border-slate-200 p-5 flex items-center gap-4 shadow-sm">
+                    <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 flex-shrink-0">
+                        <Eye size={24} strokeWidth={2.5} />
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-bold text-slate-500 tracking-wider mb-0.5 uppercase">Total Klik</p>
+                        <p className="text-xl font-bold text-slate-800 leading-none">
+                            {banners.reduce((sum, b) => sum + (b.clicks || 0), 0)}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
             {/* Upload Form */}
             {showUploadForm && (
-                <div style={uploadCardStyle}>
-                    <div style={uploadHeaderStyle}>
-                        <Image size={24} style={{ color: '#1e3a5f' }} />
+                <div className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl p-6 mb-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
+                            <Upload size={20} />
+                        </div>
                         <div>
-                            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#1e293b' }}>Upload Banner Baru</h3>
-                            <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: '#64748b' }}>Rekomendasi: 1280 x 320 pixels (4:1)</p>
+                            <h3 className="m-0 text-base font-bold text-slate-800">Upload Banner Baru</h3>
+                            <p className="m-0 text-xs text-slate-500 mt-0.5">Rekomendasi ukuran: 1200 x 400 pixels (3:1)</p>
                         </div>
                     </div>
 
-                    <form onSubmit={handleUpload} style={{ marginTop: '1.5rem' }}>
-                        <div style={formGridStyle}>
-                            <div style={fieldStyle}>
-                                <label style={labelStyle}>
-                                    <span style={{ marginRight: '0.5rem' }}>📝</span> Judul Banner
+                    <form onSubmit={handleUpload}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+                            <div>
+                                <label className="flex items-center text-sm font-semibold text-slate-700 mb-2">
+                                    Judul Banner
                                 </label>
                                 <input
                                     type="text"
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
-                                    placeholder="Contoh: Promo Tahun Baru"
-                                    style={inputStyle}
+                                    placeholder="Contoh: Promo Libur Sekolah 2024"
+                                    className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
                                     required
                                 />
                             </div>
 
-                            <div style={fieldStyle}>
-                                <label style={labelStyle}>
-                                    <Link size={14} style={{ marginRight: '0.5rem' }} /> Link Tujuan
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
+                                    <Link size={14} /> Link Tujuan
                                 </label>
                                 <input
                                     type="url"
                                     value={linkUrl}
                                     onChange={(e) => setLinkUrl(e.target.value)}
-                                    placeholder="https://example.com"
-                                    style={inputStyle}
+                                    placeholder="https://clevio.co/..."
+                                    className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
                                     required
                                 />
                             </div>
                         </div>
 
-                        <div style={{ ...fieldStyle, marginTop: '1rem' }}>
-                            <label style={labelStyle}>
-                                <Image size={14} style={{ marginRight: '0.5rem' }} /> Gambar Banner
+                        <div className="mb-6">
+                            <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
+                                <Image size={14} /> Gambar Banner
                             </label>
-                            <div style={dropzoneStyle}>
+                            <div className="relative border-2 border-dashed border-slate-300 rounded-xl p-8 flex items-center justify-center bg-white min-h-[160px] hover:bg-slate-50 transition-colors w-full">
                                 <input
                                     type="file"
                                     accept="image/*"
                                     onChange={handleFileChange}
-                                    style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }}
+                                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                                     required
                                 />
                                 {previewUrl ? (
-                                    <img src={previewUrl} alt="Preview" style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: '0.5rem' }} />
+                                    <img src={previewUrl} alt="Preview" className="max-w-full max-h-[140px] rounded-lg object-contain" />
                                 ) : (
-                                    <div style={{ textAlign: 'center', color: '#94a3b8' }}>
-                                        <Upload size={32} style={{ marginBottom: '0.5rem' }} />
-                                        <p style={{ margin: 0, fontSize: '0.9rem' }}>Klik atau drop gambar di sini</p>
+                                    <div className="text-center text-slate-400">
+                                        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
+                                            <Upload size={20} className="text-slate-500" />
+                                        </div>
+                                        <p className="m-0 text-sm font-medium text-slate-600">Klik atau drop gambar di sini</p>
+                                        <p className="m-0 text-xs text-slate-400 mt-1">PNG, JPG, WEBP hingga 5MB</p>
                                     </div>
                                 )}
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
-                            <button type="button" onClick={() => setShowUploadForm(false)} style={cancelButtonStyle}>
+                        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+                            <button
+                                type="button"
+                                onClick={() => setShowUploadForm(false)}
+                                className="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors"
+                            >
                                 Batal
                             </button>
-                            <button type="submit" disabled={uploading || !selectedFile} style={submitButtonStyle}>
-                                {uploading ? 'Mengupload...' : '✨ Upload Banner'}
+                            <button
+                                type="submit"
+                                disabled={uploading || !selectedFile}
+                                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white border-none rounded-xl text-sm font-semibold cursor-pointer shadow-sm transition-colors flex items-center gap-2"
+                            >
+                                {uploading ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Mengupload...
+                                    </>
+                                ) : (
+                                    'Simpan Banner'
+                                )}
                             </button>
                         </div>
                     </form>
@@ -264,33 +324,43 @@ export default function AdminBannersPage() {
 
             {/* Saving indicator */}
             {saving && (
-                <div style={savingIndicatorStyle}>
-                    <div style={spinnerStyle} />
-                    Menyimpan urutan...
+                <div className="flex items-center justify-center gap-2 px-4 py-3 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl text-sm font-medium shadow-sm animate-pulse">
+                    <div className="w-4 h-4 border-2 border-amber-800/20 border-t-amber-800 rounded-full animate-spin" />
+                    Menyimpan urutan banner...
                 </div>
             )}
 
-            {/* Banner List */}
-            <div style={listContainerStyle}>
-                <div style={listHeaderStyle}>
-                    <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>
-                        Daftar Banner ({banners.length})
-                    </h2>
-                    <span style={hintStyle}>💡 Drag & drop untuk mengubah urutan</span>
+            {/* Banner List Table */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                {/* Table Header Row */}
+                <div className="grid grid-cols-[80px_140px_1fr_100px_100px] gap-4 px-6 py-4 bg-slate-50 border-b border-slate-200 items-center">
+                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Urutan</div>
+                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Preview</div>
+                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Detail Banner</div>
+                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Status</div>
+                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right pr-2">Aksi</div>
                 </div>
 
                 {loading ? (
-                    <div style={emptyStyle}>
-                        <div style={spinnerStyle} />
-                        Memuat banner...
+                    <div className="py-16 text-center text-slate-500 flex flex-col items-center justify-center">
+                        <div className="w-8 h-8 border-3 border-slate-200 border-t-blue-500 rounded-full animate-spin mb-4" />
+                        <p className="text-sm font-medium">Memuat data banner...</p>
                     </div>
                 ) : banners.length === 0 ? (
-                    <div style={emptyStyle}>
-                        <Image size={48} style={{ color: '#cbd5e1', marginBottom: '1rem' }} />
-                        <p style={{ margin: 0, color: '#64748b' }}>Belum ada banner. Klik tombol "Tambah Banner" untuk mulai.</p>
+                    <div className="py-16 text-center flex flex-col items-center justify-center">
+                        <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 mb-4">
+                            <Image size={28} />
+                        </div>
+                        <p className="text-slate-500 font-medium text-sm">Belum ada banner.</p>
+                        <button
+                            onClick={() => setShowUploadForm(true)}
+                            className="text-blue-500 font-semibold text-sm hover:underline mt-2 bg-transparent border-none cursor-pointer"
+                        >
+                            Tambah Banner Pertama
+                        </button>
                     </div>
                 ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div className="flex flex-col">
                         {banners.map((banner, index) => (
                             <div
                                 key={banner.id}
@@ -299,361 +369,135 @@ export default function AdminBannersPage() {
                                 onDragOver={(e) => handleDragOver(e, index)}
                                 onDragEnd={handleDragEnd}
                                 onDragLeave={() => setDragOverIndex(null)}
-                                style={{
-                                    ...bannerCardStyle,
-                                    opacity: draggedIndex === index ? 0.5 : 1,
-                                    borderColor: dragOverIndex === index ? '#1e3a5f' : '#e2e8f0',
-                                    transform: dragOverIndex === index ? 'scale(1.02)' : 'scale(1)',
-                                }}
+                                className={`grid grid-cols-[80px_140px_1fr_100px_100px] gap-4 px-6 py-5 items-center bg-white border-b border-slate-100 last:border-b-0 transition-all hover:bg-slate-50/50 cursor-grab active:cursor-grabbing ${draggedIndex === index ? 'opacity-50 bg-slate-100' : ''
+                                    } ${dragOverIndex === index ? 'relative z-10 scale-[1.01] shadow-md border-y border-blue-200 bg-blue-50/30' : ''
+                                    }`}
                             >
-                                {/* Drag Handle */}
-                                <div style={dragHandleStyle}>
-                                    <GripVertical size={20} style={{ color: '#94a3b8' }} />
-                                </div>
+                                {/* Column 1: Order with arrows */}
+                                <div className="flex flex-col items-center justify-center gap-1 group">
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); moveUp(index); }}
+                                        disabled={index === 0}
+                                        className={`w-5 h-5 flex items-center justify-center rounded text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors border-none bg-transparent cursor-pointer ${index === 0 ? 'opacity-30 cursor-not-allowed hidden' : 'opacity-0 group-hover:opacity-100'}`}
+                                    >
+                                        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M1 5L5 1L9 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    </button>
 
-                                {/* Order number */}
-                                <div style={orderBadgeStyle}>{index + 1}</div>
-
-                                {/* Image Preview */}
-                                <div style={imageContainerStyle}>
-                                    <img
-                                        src={banner.imagePath}
-                                        alt={banner.title}
-                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                    />
-                                    {!banner.isActive && <div style={inactiveOverlayStyle}>NONAKTIF</div>}
-                                </div>
-
-                                {/* Info */}
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#1e293b' }}>
-                                        {banner.title}
-                                    </h3>
-                                    <a href={banner.linkUrl} target="_blank" rel="noopener noreferrer" style={linkStyle}>
-                                        <ExternalLink size={12} />
-                                        {banner.linkUrl.length > 40 ? banner.linkUrl.slice(0, 40) + '...' : banner.linkUrl}
-                                    </a>
-                                </div>
-
-                                {/* Actions */}
-                                <div style={actionsContainerStyle}>
-                                    {/* Move buttons for mobile/keyboard */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                        <button
-                                            onClick={() => moveUp(index)}
-                                            disabled={index === 0}
-                                            style={{ ...arrowButtonStyle, opacity: index === 0 ? 0.3 : 1 }}
-                                            title="Pindah ke atas"
-                                        >
-                                            ▲
-                                        </button>
-                                        <button
-                                            onClick={() => moveDown(index)}
-                                            disabled={index === banners.length - 1}
-                                            style={{ ...arrowButtonStyle, opacity: index === banners.length - 1 ? 0.3 : 1 }}
-                                            title="Pindah ke bawah"
-                                        >
-                                            ▼
-                                        </button>
+                                    <div className="text-sm font-bold text-slate-700 w-6 text-center">
+                                        {index + 1}
                                     </div>
 
                                     <button
-                                        onClick={() => toggleActive(banner)}
-                                        style={{
-                                            ...actionButtonStyle,
-                                            background: banner.isActive ? '#dcfce7' : '#f1f5f9',
-                                            color: banner.isActive ? '#16a34a' : '#64748b',
-                                        }}
-                                        title={banner.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                                        onClick={(e) => { e.stopPropagation(); moveDown(index); }}
+                                        disabled={index === banners.length - 1}
+                                        className={`w-5 h-5 flex items-center justify-center rounded text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors border-none bg-transparent cursor-pointer ${index === banners.length - 1 ? 'opacity-30 cursor-not-allowed hidden' : 'opacity-0 group-hover:opacity-100'}`}
                                     >
-                                        {banner.isActive ? <Eye size={16} /> : <EyeOff size={16} />}
+                                        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                {/* Column 2: Image Preview */}
+                                <div className="relative w-full aspect-[3/1] rounded-lg overflow-hidden border border-slate-200 shadow-sm bg-slate-100">
+                                    <img
+                                        src={banner.imagePath}
+                                        alt={banner.title}
+                                        className={`w-full h-full object-cover transition-opacity ${!banner.isActive ? 'opacity-40 grayscale' : ''}`}
+                                    />
+                                    {!banner.isActive && (
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <span className="bg-white/90 backdrop-blur-sm text-slate-600 text-[9px] font-bold px-2 py-0.5 rounded shadow-sm">NONAKTIF</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Column 3: Banner Detail */}
+                                <div className="flex flex-col min-w-0 pr-4">
+                                    <h3 className={`m-0 text-sm font-bold truncate mb-1 ${banner.isActive ? 'text-slate-800' : 'text-slate-500'}`}>
+                                        {banner.title}
+                                    </h3>
+                                    <a
+                                        href={banner.linkUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-blue-600 transition-colors truncate"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        <Link size={12} className="flex-shrink-0" />
+                                        <span className="truncate">{banner.linkUrl.replace(/^https?:\/\//, '')}</span>
+                                    </a>
+                                </div>
+
+                                {/* Column 4: Status (Toggle Switch) */}
+                                <div className="flex items-center justify-center">
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); toggleActive(banner); }}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none border-none cursor-pointer ${banner.isActive ? 'bg-blue-500' : 'bg-slate-200'
+                                            }`}
+                                        role="switch"
+                                        aria-checked={banner.isActive}
+                                    >
+                                        <span
+                                            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${banner.isActive ? 'translate-x-6' : 'translate-x-1'
+                                                }`}
+                                        />
+                                    </button>
+                                </div>
+
+                                {/* Column 5: Actions */}
+                                <div className="flex items-center justify-end gap-2 pr-2">
+                                    <button
+                                        className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors border-none bg-transparent cursor-pointer"
+                                        onClick={(e) => { e.stopPropagation(); /* Optional edit functionality if needed */ }}
+                                        title="Edit (Fitur Segera)"
+                                    >
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M12 20h9"></path>
+                                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                                        </svg>
                                     </button>
 
                                     <button
-                                        onClick={() => deleteBanner(banner.id)}
-                                        style={{ ...actionButtonStyle, background: '#fee2e2', color: '#dc2626' }}
+                                        onClick={(e) => { e.stopPropagation(); deleteBanner(banner.id); }}
+                                        className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors border-none bg-transparent cursor-pointer"
                                         title="Hapus"
                                     >
-                                        <Trash2 size={16} />
+                                        <Trash2 size={16} strokeWidth={2.5} />
                                     </button>
                                 </div>
                             </div>
                         ))}
                     </div>
                 )}
+
+                {/* Table Footer */}
+                {!loading && banners.length > 0 && (
+                    <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs text-slate-500 font-medium">
+                        <span>Menampilkan {banners.length} dari {banners.length} banner</span>
+                        <div className="flex items-center gap-2">
+                            <button className="px-3 py-1.5 border border-slate-200 rounded bg-white text-slate-400 cursor-not-allowed">Sebelumnya</button>
+                            <button className="px-3 py-1.5 border border-slate-200 rounded bg-white text-slate-400 cursor-not-allowed">Berikutnya</button>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Info Footer Box */}
+            <div className="mt-4 p-5 bg-blue-50 border border-blue-100 rounded-2xl flex gap-3 shadow-sm">
+                <div className="w-5 h-5 rounded-full border-2 border-blue-500 text-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-xs font-bold leading-none">i</span>
+                </div>
+                <div>
+                    <h4 className="m-0 text-sm font-bold text-blue-900 mb-1">Panduan Manajemen Banner</h4>
+                    <p className="m-0 text-xs text-blue-800/80 leading-relaxed">
+                        Gunakan tombol panah di kolom <strong>Urutan</strong> atau drag & drop (geser) untuk memindahkan posisi banner di carousel dashboard siswa.
+                        Perubahan urutan akan langsung disimpan secara otomatis. Pastikan ukuran banner berada pada rasio lanskap tebal (rekomendasi 1200×400 px) untuk hasil terbaik.
+                    </p>
+                </div>
             </div>
         </div>
     );
 }
-
-// Styles
-const containerStyle: React.CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1.5rem',
-    paddingBottom: '2rem',
-};
-
-const headerStyle: React.CSSProperties = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    flexWrap: 'wrap',
-    gap: '1rem',
-    marginBottom: '2rem',
-};
-
-const titleStyle: React.CSSProperties = {
-    fontSize: '1.75rem',
-    fontWeight: 700,
-    margin: 0,
-};
-
-const subtitleStyle: React.CSSProperties = {
-    fontSize: '0.95rem',
-    color: '#64748b',
-    marginTop: '0.5rem',
-};
-
-const addButtonStyle: React.CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    padding: '0.75rem 1.25rem',
-    background: '#1e3a5f',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '0.75rem',
-    fontSize: '0.95rem',
-    fontWeight: 600,
-    cursor: 'pointer',
-    boxShadow: '0 4px 12px rgba(30, 58, 95, 0.3)',
-};
-
-const uploadCardStyle: React.CSSProperties = {
-    background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)',
-    border: '2px dashed #94a3b8',
-    borderRadius: '1rem',
-    padding: '1.5rem',
-    marginBottom: '2rem',
-};
-
-const uploadHeaderStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '1rem',
-};
-
-const formGridStyle: React.CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-    gap: '1rem',
-};
-
-const fieldStyle: React.CSSProperties = {
-    marginBottom: '0',
-};
-
-const labelStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    fontSize: '0.875rem',
-    fontWeight: 600,
-    color: '#4b5563',
-    marginBottom: '0.5rem',
-};
-
-const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '0.75rem 1rem',
-    border: '2px solid #e2e8f0',
-    borderRadius: '0.5rem',
-    fontSize: '0.95rem',
-    transition: 'border-color 0.2s',
-};
-
-const dropzoneStyle: React.CSSProperties = {
-    position: 'relative',
-    border: '2px dashed #94a3b8',
-    borderRadius: '0.75rem',
-    padding: '2rem',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: '#f8fafc',
-    minHeight: '120px',
-};
-
-const cancelButtonStyle: React.CSSProperties = {
-    padding: '0.75rem 1.5rem',
-    background: '#f1f5f9',
-    color: '#475569',
-    border: 'none',
-    borderRadius: '0.5rem',
-    fontSize: '0.95rem',
-    fontWeight: 600,
-    cursor: 'pointer',
-};
-
-const submitButtonStyle: React.CSSProperties = {
-    flex: 1,
-    padding: '0.75rem 1.5rem',
-    background: '#1e3a5f',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '0.5rem',
-    fontSize: '0.95rem',
-    fontWeight: 600,
-    cursor: 'pointer',
-    boxShadow: '0 4px 12px rgba(30, 58, 95, 0.25)',
-};
-
-const listContainerStyle: React.CSSProperties = {
-    background: '#ffffff',
-    borderRadius: '1rem',
-    border: '1px solid #e2e8f0',
-    overflow: 'hidden',
-};
-
-const listHeaderStyle: React.CSSProperties = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '1rem 1.5rem',
-    background: '#f8fafc',
-    borderBottom: '1px solid #e2e8f0',
-};
-
-const hintStyle: React.CSSProperties = {
-    fontSize: '0.8rem',
-    color: '#94a3b8',
-};
-
-const emptyStyle: React.CSSProperties = {
-    padding: '4rem 2rem',
-    textAlign: 'center',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-};
-
-const bannerCardStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '1rem',
-    padding: '1rem',
-    margin: '0 1rem',
-    background: '#ffffff',
-    border: '2px solid #e2e8f0',
-    borderRadius: '0.75rem',
-    transition: 'all 0.2s',
-    cursor: 'grab',
-};
-
-const dragHandleStyle: React.CSSProperties = {
-    cursor: 'grab',
-    padding: '0.5rem',
-    borderRadius: '0.375rem',
-    display: 'flex',
-    alignItems: 'center',
-};
-
-const orderBadgeStyle: React.CSSProperties = {
-    width: '28px',
-    height: '28px',
-    borderRadius: '50%',
-    background: '#1e3a5f',
-    color: '#fff',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '0.8rem',
-    fontWeight: 700,
-    flexShrink: 0,
-};
-
-const imageContainerStyle: React.CSSProperties = {
-    width: '180px',
-    height: '60px',
-    borderRadius: '0.5rem',
-    overflow: 'hidden',
-    flexShrink: 0,
-    position: 'relative',
-};
-
-const inactiveOverlayStyle: React.CSSProperties = {
-    position: 'absolute',
-    inset: 0,
-    background: 'rgba(0, 0, 0, 0.6)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: '#fff',
-    fontSize: '0.65rem',
-    fontWeight: 700,
-    letterSpacing: '0.05em',
-};
-
-const linkStyle: React.CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '0.35rem',
-    fontSize: '0.8rem',
-    color: '#1e3a5f',
-    marginTop: '0.25rem',
-    textDecoration: 'none',
-};
-
-const actionsContainerStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    flexShrink: 0,
-};
-
-const arrowButtonStyle: React.CSSProperties = {
-    width: '24px',
-    height: '20px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    border: '1px solid #e2e8f0',
-    borderRadius: '4px',
-    background: '#f8fafc',
-    color: '#64748b',
-    fontSize: '0.65rem',
-    cursor: 'pointer',
-};
-
-const actionButtonStyle: React.CSSProperties = {
-    width: '36px',
-    height: '36px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    border: 'none',
-    borderRadius: '0.5rem',
-    cursor: 'pointer',
-};
-
-const savingIndicatorStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    padding: '0.75rem 1rem',
-    background: '#fef3c7',
-    color: '#92400e',
-    borderRadius: '0.5rem',
-    fontSize: '0.9rem',
-    marginBottom: '1rem',
-};
-
-const spinnerStyle: React.CSSProperties = {
-    width: '16px',
-    height: '16px',
-    border: '2px solid currentColor',
-    borderTopColor: 'transparent',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
-};

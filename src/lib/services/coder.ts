@@ -25,16 +25,23 @@ export type CoderClassProgress = {
       minimum_specs: Record<string, string> | null;
       access_info: string | null;
     }>;
-    completedLessons?: Array<{
-      title: string;
-      summary: string | null;
-      completedAt: string;
-    }>;
-    nextLesson?: {
+    lessons?: Array<{
       title: string;
       summary: string | null;
       slideUrl: string | null;
-    } | null;
+      status: 'COMPLETED' | 'NEXT' | 'UPCOMING';
+      completedAt?: string[];
+      scheduledAt?: string[];
+    }>;
+  } | null;
+  coach?: {
+    name: string;
+    avatarUrl: string | null;
+    whatsappNumber: string | null;
+  } | null;
+  schedule?: {
+    days: string[];
+    timeInfo: string | null;
   } | null;
   completedBlocks: number;
   totalBlocks: number | null;
@@ -58,8 +65,11 @@ export type CoderClassProgress = {
 };
 
 export async function getCoderProgress(coderId: string): Promise<CoderClassProgress[]> {
-  const classes = await classesDao.listClassesForCoder(coderId);
-  const attendance = await attendanceDao.listAttendanceByCoder(coderId);
+  const [classes, attendance, supabase] = await Promise.all([
+    classesDao.listClassesForCoder(coderId),
+    attendanceDao.listAttendanceByCoder(coderId),
+    import('@/lib/supabaseServer').then(m => m.getSupabaseAdmin())
+  ]);
 
   return Promise.all(
     classes.map(async (klass) => {
@@ -75,6 +85,30 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
         )
         .sort((a, b) => new Date(b.recorded_at).getTime() - new Date(a.recorded_at).getTime())[0];
       const semesterTag = submissions.find((submission) => submission.semester_tag)?.semester_tag ?? null;
+
+      // Extract schedule
+      const scheduleDays = Array.from(new Set(sessions.filter(s => s.status !== 'CANCELLED').map(s => new Date(s.date_time).toLocaleDateString('id-ID', { weekday: 'long' }))));
+      const firstSessionTemplate = sessions.find(s => s.status !== 'CANCELLED');
+      const timeInfo = firstSessionTemplate ? new Date(firstSessionTemplate.date_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null;
+
+      // Fetch Coach Info
+      let coachInfo = null;
+      let coachAvatarUrl = null;
+      if (klass.coach_id) {
+        const { data: coachData } = await supabase.from('users').select('*').eq('id', klass.coach_id).single();
+        if (coachData) {
+          const cData = coachData as any;
+          if (cData.avatar_url) {
+            const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(cData.avatar_url);
+            coachAvatarUrl = publicUrlData.publicUrl;
+          }
+          coachInfo = {
+            name: cData.full_name,
+            avatarUrl: coachAvatarUrl,
+            whatsappNumber: cData.parent_contact_phone || cData.phone || null
+          };
+        }
+      }
 
       // --- EKSKUL HANDLING ---
       if (klass.type === 'EKSKUL') {
@@ -155,12 +189,12 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
               endDate: klass.end_date,
               estimatedSessions: plan.ekskul_lessons.reduce((acc, l) => acc + (l.estimated_meetings || 1), 0),
               software: software,
-              completedLessons: [], // Tracking individual lesson completion is harder for Ekskul currently
-              nextLesson: nextSession ? {
+              lessons: nextSession ? [{
                 title: `Sesi: ${new Date(nextSession.date_time).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' })}`,
                 summary: `Jam ${new Date(nextSession.date_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`,
-                slideUrl: null
-              } : null
+                slideUrl: null,
+                status: 'NEXT' as const
+              }] : []
             };
           }
         }
@@ -172,6 +206,11 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
           currentBlockName: upNext?.name ?? null,
           upcomingBlockName: null,
           upNext,
+          coach: coachInfo,
+          schedule: {
+            days: scheduleDays,
+            timeInfo: timeInfo
+          },
           completedBlocks,
           totalBlocks,
           lastAttendanceAt: lastAttendance?.recorded_at ?? null,
@@ -261,41 +300,45 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
         const software = await getSoftwareByBlockId(currentOrUpcoming.block_id);
 
 
-        // Find next upcoming session and its lesson
-        const now = new Date();
-        const nextSession = sessions
-          .filter(s => (new Date(s.date_time) >= now && s.status !== 'COMPLETED' && s.status !== 'CANCELLED'))
-          .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime())[0];
+        const blockLessons = await lessonTemplatesDao.listLessonsByBlock(currentOrUpcoming.block_id);
+        const sessionDateMap = new Map(sessions.map(s => [s.id, { date: s.date_time, status: s.status }]));
 
-        let nextLesson = null;
-        if (nextSession) {
-          const slot = lessonMap.get(nextSession.id);
-          if (slot) {
-            nextLesson = {
-              title: formatLessonTitle(slot),
-              summary: slot.lessonTemplate.summary,
-              slideUrl: slot.lessonTemplate.slide_url,
-            };
-          }
-        }
+        let hasMarkedNext = false;
+        const allLessonsList = blockLessons.map(lesson => {
+          // Determine if completed based on session mapping OR journey
+          const sessionIdsForLesson = [...lessonMap.entries()].filter(([_, mapping]) => mapping.lessonTemplate.id === lesson.id).map(([sId, _]) => sId);
+          let isCompleted = false;
+          let completedAtDates: string[] = [];
+          let scheduledAtDates: string[] = [];
 
-        // Fetch completed lessons for this block
-        const completedLessons = sessions
-          .filter(s => s.status === 'COMPLETED')
-          .map(s => {
-            const slot = lessonMap.get(s.id);
-            if (!slot) return null;
-            if (slot.lessonTemplate.block_id === currentOrUpcoming.block_id) {
-              return {
-                title: formatLessonTitle(slot),
-                summary: slot.lessonTemplate.summary,
-                completedAt: s.date_time,
-              };
+          for (const sId of sessionIdsForLesson) {
+            if (sessionDateMap.has(sId)) {
+              const sessionInfo = sessionDateMap.get(sId)!;
+              scheduledAtDates.push(sessionInfo.date); // Store the date regardless of status
+              if (sessionInfo.status === 'COMPLETED') {
+                isCompleted = true;
+                completedAtDates.push(sessionInfo.date);
+              }
             }
-            return null;
-          })
-          .filter((l): l is { title: string; summary: string | null; completedAt: string } => l !== null)
-          .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()); // Newest first
+          }
+
+          let lessonStatus: 'COMPLETED' | 'NEXT' | 'UPCOMING' = 'UPCOMING';
+          if (isCompleted) {
+            lessonStatus = 'COMPLETED';
+          } else if (!hasMarkedNext) {
+            lessonStatus = 'NEXT';
+            hasMarkedNext = true;
+          }
+
+          return {
+            title: lesson.title,
+            summary: lesson.summary,
+            slideUrl: lesson.slide_url,
+            status: lessonStatus,
+            completedAt: completedAtDates.length > 0 ? completedAtDates : undefined,
+            scheduledAt: scheduledAtDates.length > 0 ? scheduledAtDates : undefined
+          };
+        });
 
         upNext = {
           blockId: currentOrUpcoming.block_id,
@@ -315,8 +358,7 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
             minimum_specs: s.minimum_specs as Record<string, string> | null,
             access_info: s.access_info,
           })),
-          nextLesson,
-          completedLessons,
+          lessons: allLessonsList,
         };
       } else if (sortedBlocks.length > 0) {
         const wrapAround = sortedBlocks[0];
@@ -339,7 +381,7 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
             minimum_specs: s.minimum_specs as Record<string, string> | null,
             access_info: s.access_info,
           })),
-          completedLessons: [],
+          lessons: [],
         };
       }
 
@@ -350,6 +392,11 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
         currentBlockName: currentBlock?.block_name ?? null,
         upcomingBlockName: upcomingBlock?.block_name ?? null,
         upNext,
+        coach: coachInfo,
+        schedule: {
+          days: scheduleDays,
+          timeInfo: timeInfo
+        },
         completedBlocks,
         totalBlocks,
         lastAttendanceAt: lastAttendance?.recorded_at ?? null,

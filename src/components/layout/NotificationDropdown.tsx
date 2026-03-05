@@ -92,34 +92,34 @@ export default function NotificationDropdown() {
                     onClick={() => setIsOpen(!isOpen)}
                     style={{
                         position: 'relative',
-                        padding: '0.6rem',
-                        borderRadius: '10px',
+                        padding: '0.7rem',
+                        borderRadius: '14px',
                         cursor: 'pointer',
                         border: 'none',
-                        background: '#fff',
-                        color: '#1e293b',
+                        background: '#FFFDE6',
+                        color: '#d97706',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                        boxShadow: 'none',
                         transition: 'all 0.2s'
                     }}
                 >
-                    <Bell size={20} color="#1e293b" />
+                    <Bell size={20} color="#d97706" />
                     {unreadCount > 0 && (
                         <span
                             style={{
                                 position: 'absolute',
                                 top: '6px',
                                 right: '6px',
-                                height: '8px',
-                                width: '8px',
+                                height: '9px',
+                                width: '9px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 borderRadius: '50%',
-                                background: '#ef4444',
-                                border: '1px solid #fff'
+                                background: '#22367b',
+                                border: '2px solid #FFFDE6'
                             }}
                         />
                     )}

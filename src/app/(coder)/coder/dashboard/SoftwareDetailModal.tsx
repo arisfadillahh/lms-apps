@@ -14,39 +14,47 @@ type Software = {
     access_info: string | null;
 };
 
-export default function SoftwareDetailModal({ software }: { software: Software }) {
+import type { ReactNode } from 'react';
+
+export default function SoftwareDetailModal({ software, customTrigger }: { software: Software, customTrigger?: ReactNode }) {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
         <>
-            <button
-                onClick={() => setIsOpen(true)}
-                style={{
-                    background: '#fff',
-                    border: '1px solid #e2e8f0',
-                    padding: '8px 16px',
-                    borderRadius: '8px',
-                    fontSize: '0.85rem',
-                    fontWeight: 600,
-                    color: '#0f172a',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                    transition: 'all 0.2s',
-                }}
-                onMouseOver={(e) => {
-                    e.currentTarget.style.borderColor = '#cbd5e1';
-                    e.currentTarget.style.background = '#f8fafc';
-                }}
-                onMouseOut={(e) => {
-                    e.currentTarget.style.borderColor = '#e2e8f0';
-                    e.currentTarget.style.background = '#fff';
-                }}
-            >
-                Cara Install
-            </button>
+            {customTrigger ? (
+                <div onClick={() => setIsOpen(true)} className="cursor-pointer">
+                    {customTrigger}
+                </div>
+            ) : (
+                <button
+                    onClick={() => setIsOpen(true)}
+                    style={{
+                        background: '#fff',
+                        border: '1px solid #e2e8f0',
+                        padding: '8px 16px',
+                        borderRadius: '8px',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        color: '#0f172a',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                        transition: 'all 0.2s',
+                    }}
+                    onMouseOver={(e) => {
+                        e.currentTarget.style.borderColor = '#cbd5e1';
+                        e.currentTarget.style.background = '#f8fafc';
+                    }}
+                    onMouseOut={(e) => {
+                        e.currentTarget.style.borderColor = '#e2e8f0';
+                        e.currentTarget.style.background = '#fff';
+                    }}
+                >
+                    Cara Install
+                </button>
+            )}
 
             <AnimatePresence>
                 {isOpen && (

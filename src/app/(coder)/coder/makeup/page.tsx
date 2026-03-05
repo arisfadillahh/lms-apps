@@ -1,5 +1,4 @@
-import type { CSSProperties } from 'react';
-import { Clock, Calendar, CheckCircle2, AlertCircle, Upload } from 'lucide-react';
+import { Clock, Calendar, CheckCircle2, AlertCircle, Upload, ClipboardList, MessageSquare, PartyPopper } from 'lucide-react';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { makeUpTasksDao, sessionsDao, classesDao } from '@/lib/dao';
@@ -26,13 +25,13 @@ export default async function CoderMakeUpPage() {
   const getStatusInfo = (status: string) => {
     switch (status) {
       case 'PENDING_UPLOAD':
-        return { label: 'Belum Dikumpulkan', color: '#f59e0b', bg: '#fef3c7', icon: <Upload size={14} /> };
+        return { label: 'Belum Dikumpulkan', colorClass: 'bg-pastel-yellow text-amber-600 border-amber-300', icon: <Upload size={14} /> };
       case 'SUBMITTED':
-        return { label: 'Menunggu Review', color: '#3b82f6', bg: '#dbeafe', icon: <AlertCircle size={14} /> };
+        return { label: 'Menunggu Review', colorClass: 'bg-pastel-blue text-sky border-sky/20', icon: <AlertCircle size={14} /> };
       case 'REVIEWED':
-        return { label: 'Selesai Direview', color: '#10b981', bg: '#d1fae5', icon: <CheckCircle2 size={14} /> };
+        return { label: 'Selesai Direview', colorClass: 'bg-pastel-green text-clevio-green border-clevio-green/20', icon: <CheckCircle2 size={14} /> };
       default:
-        return { label: status, color: '#6b7280', bg: '#f3f4f6', icon: null };
+        return { label: status, colorClass: 'bg-slate-100 text-slate-500 border-slate-200', icon: null };
     }
   };
 
@@ -45,67 +44,81 @@ export default async function CoderMakeUpPage() {
   };
 
   return (
-    <div style={containerStyle}>
-      <header style={headerStyle}>
+    <div className="flex-1 p-8 overflow-y-auto space-y-8">
+      {/* Header */}
+      <header className="flex justify-between items-center">
         <div>
-          <h1 style={titleStyle}>Tugas Susulan</h1>
-          <p style={descStyle}>Kumpulkan karya susulan untuk sesi yang terlewat sebelum batas waktu yang ditentukan.</p>
+          <h1 className="text-3xl font-black text-clevio-navy tracking-tight mb-1 flex items-center gap-3">
+            <ClipboardList className="text-amber-600" size={28} /> Tugas Susulan
+          </h1>
+          <p className="text-sm font-bold text-slate-400">
+            Kumpulkan karya susulan untuk sesi yang terlewat sebelum batas waktu yang ditentukan.
+          </p>
         </div>
         <UploadTutorialModal />
       </header>
 
-      <div style={tasksContainerStyle}>
+      {/* Tasks */}
+      <div className="space-y-4">
         {enriched.length === 0 ? (
-          <div style={emptyStateStyle}>
-            <CheckCircle2 size={48} color="#94a3b8" />
-            <p>Tidak ada tugas susulan saat ini</p>
+          <div className="flex flex-col items-center justify-center py-16 bg-white rounded-[3rem] border-4 border-dashed border-pastel-green/30 text-center">
+            <CheckCircle2 size={48} className="text-clevio-green mb-4" />
+            <p className="font-black text-slate-600 text-lg">Tidak ada tugas susulan saat ini</p>
+            <p className="text-sm font-bold text-slate-400 mt-1">Semua tugas sudah selesai!</p>
           </div>
         ) : (
           enriched
             .sort((a, b) => new Date(a.task.due_date).getTime() - new Date(b.task.due_date).getTime())
-            .map(({ task, className, session }) => {
+            .map(({ task, className, session }, idx) => {
               const statusInfo = getStatusInfo(task.status);
+              const themes = [
+                { accent: 'border-l-sky', bg: 'bg-white' },
+                { accent: 'border-l-sunshine', bg: 'bg-white' },
+                { accent: 'border-l-coral', bg: 'bg-white' },
+                { accent: 'border-l-clevio-green', bg: 'bg-white' },
+              ];
+              const theme = themes[idx % 4];
+
               return (
-                <div key={task.id} style={cardStyle}>
-                  {/* Main Info Row */}
-                  <div style={mainRowStyle}>
-                    {/* Left: Task Info */}
-                    <div style={infoColumnStyle}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                        <h2 style={classNameStyle}>{className}</h2>
-                        <div style={{ ...statusBadgeStyle, background: statusInfo.bg, color: statusInfo.color }}>
+                <div key={task.id} className={`${theme.bg} rounded-3xl border-2 border-slate-50 shadow-sm overflow-hidden border-l-4 ${theme.accent}`}>
+                  <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 p-6">
+                    {/* Left: Info */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <h2 className="text-xl font-black text-clevio-navy">{className}</h2>
+                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black border ${statusInfo.colorClass}`}>
                           {statusInfo.icon}
                           {statusInfo.label}
                         </div>
                       </div>
 
-                      <div style={metaRowStyle}>
-                        <div style={metaItemStyle}>
-                          <Calendar size={14} />
-                          <span>Sesi: {session ? formatDate(session.date_time) : '—'}</span>
-                        </div>
-                        <span style={separatorStyle}>•</span>
-                        <div style={{ ...metaItemStyle, color: '#dc2626', fontWeight: 600 }}>
+                      <div className="flex items-center gap-4 text-sm font-bold text-slate-400 flex-wrap">
+                        <span className="flex items-center gap-1.5">
+                          <Calendar size={14} className="text-sky" />
+                          Sesi: {session ? formatDate(session.date_time) : '—'}
+                        </span>
+                        <span className="text-pastel-blue">•</span>
+                        <span className="flex items-center gap-1.5 text-coral font-black">
                           <Clock size={14} />
-                          <span>Deadline: {formatDate(task.due_date)}</span>
-                        </div>
+                          Deadline: {formatDate(task.due_date)}
+                        </span>
                       </div>
 
                       {task.instructions && (
-                        <div style={instructionsBoxStyle}>
-                          📝 <strong>Instruksi:</strong> {task.instructions}
+                        <div className="p-4 bg-pastel-yellow rounded-2xl border border-sunshine/20 text-sm font-bold text-amber-700 leading-relaxed flex gap-2">
+                          <ClipboardList size={16} className="flex-shrink-0 mt-0.5" /> <span><strong>Instruksi:</strong> {task.instructions}</span>
                         </div>
                       )}
 
                       {task.feedback && (
-                        <div style={feedbackBoxStyle}>
-                          💬 <strong>Feedback Coach:</strong> {task.feedback}
+                        <div className="p-4 bg-pastel-green rounded-2xl border border-clevio-green/20 text-sm font-bold text-green-700 leading-relaxed flex gap-2">
+                          <MessageSquare size={16} className="flex-shrink-0 mt-0.5" /> <span><strong>Feedback Coach:</strong> {task.feedback}</span>
                         </div>
                       )}
                     </div>
 
-                    {/* Right: Upload Form */}
-                    <div style={uploadColumnStyle}>
+                    {/* Right: Upload */}
+                    <div className="w-full lg:w-[300px]">
                       <MakeUpUploadForm
                         taskId={task.id}
                         submittedFiles={task.submission_files ? JSON.parse(JSON.stringify(task.submission_files)) : null}
@@ -121,132 +134,3 @@ export default async function CoderMakeUpPage() {
     </div>
   );
 }
-
-// Styles
-const containerStyle: CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '2rem',
-  paddingBottom: '2rem',
-};
-
-const headerStyle: CSSProperties = {
-  marginBottom: '1.5rem',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  gap: '2rem',
-};
-
-const titleStyle: CSSProperties = {
-  fontSize: '1.75rem',
-  fontWeight: 700,
-  color: '#1e293b',
-  marginBottom: '0.5rem',
-};
-
-const descStyle: CSSProperties = {
-  color: '#64748b',
-  fontSize: '0.95rem',
-};
-
-const tasksContainerStyle: CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '1rem',
-};
-
-const cardStyle: CSSProperties = {
-  background: '#ffffff',
-  borderRadius: '12px',
-  border: '1px solid #e2e8f0',
-  padding: '1.5rem',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-};
-
-const mainRowStyle: CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: '1fr 300px',
-  gap: '2.5rem',
-  alignItems: 'start',
-};
-
-const infoColumnStyle: CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '1rem',
-};
-
-const classNameStyle: CSSProperties = {
-  fontSize: '1.1rem',
-  fontWeight: 700,
-  color: '#1e293b',
-  margin: 0,
-};
-
-const statusBadgeStyle: CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '0.35rem',
-  padding: '0.35rem 0.75rem',
-  borderRadius: '999px',
-  fontSize: '0.75rem',
-  fontWeight: 600,
-};
-
-const metaRowStyle: CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.75rem',
-  fontSize: '0.85rem',
-  color: '#64748b',
-};
-
-const metaItemStyle: CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.35rem',
-};
-
-const separatorStyle: CSSProperties = {
-  color: '#cbd5e1',
-};
-
-const instructionsBoxStyle: CSSProperties = {
-  padding: '0.75rem 1rem',
-  background: '#fffbeb',
-  border: '1px solid #fef3c7',
-  borderLeft: '3px solid #f59e0b',
-  borderRadius: '6px',
-  fontSize: '0.85rem',
-  color: '#92400e',
-  lineHeight: 1.5,
-};
-
-const feedbackBoxStyle: CSSProperties = {
-  padding: '0.75rem 1rem',
-  background: '#f0fdf4',
-  border: '1px solid #bbf7d0',
-  borderLeft: '3px solid #10b981',
-  borderRadius: '6px',
-  fontSize: '0.85rem',
-  color: '#15803d',
-  lineHeight: 1.5,
-};
-
-const uploadColumnStyle: CSSProperties = {
-  width: '300px',
-};
-
-const emptyStateStyle: CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '3rem',
-  background: '#f8fafc',
-  borderRadius: '12px',
-  border: '2px dashed #cbd5e1',
-  color: '#94a3b8',
-  gap: '1rem',
-};

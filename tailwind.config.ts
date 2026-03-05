@@ -20,6 +20,34 @@ const config: Config = {
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
+        primary: {
+          DEFAULT: '#22367b', // Clevio Navy Blue (brand)
+          foreground: '#FFFFFF',
+        },
+        secondary: {
+          DEFAULT: '#9dc83b', // Clevio Lime Green (brand)
+          foreground: '#22367b',
+        },
+        accent: {
+          DEFAULT: '#00b0d7', // Clevio Cyan (brand secondary)
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        sky: '#00b0d7',
+        coral: '#ff9400',
+        sunshine: '#ffe60d',
+        'clevio-navy': '#22367b',
+        'clevio-green': '#9dc83b',
+        'clevio-cyan': '#00b0d7',
+        'clevio-orange': '#ff9400',
+        'clevio-yellow': '#ffe60d',
+        'clevio-purple': '#632a7b',
+        'pastel-pink': '#FFF3E0',
+        'pastel-yellow': '#FFFDE6',
+        'pastel-blue': '#E0EEF8',
+        'pastel-green': '#EEF6E2',
+        'pastel-cyan': '#E0F5FA',
+        'background-light': '#F7F9FE',
+        'background-dark': '#1A1A2E',
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
@@ -28,21 +56,9 @@ const config: Config = {
           DEFAULT: 'hsl(var(--popover))',
           foreground: 'hsl(var(--popover-foreground))',
         },
-        primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
-        },
-        secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
-          foreground: 'hsl(var(--secondary-foreground))',
-        },
         muted: {
           DEFAULT: 'hsl(var(--muted))',
           foreground: 'hsl(var(--muted-foreground))',
-        },
-        accent: {
-          DEFAULT: 'hsl(var(--accent))',
-          foreground: 'hsl(var(--accent-foreground))',
         },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
@@ -73,9 +89,13 @@ const config: Config = {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+        'pj-default': '1.5rem',
+        'pj-lg': '2rem',
+        'pj-xl': '2.5rem',
       },
       fontFamily: {
         sans: ['var(--font-geist-sans)', 'system-ui', 'sans-serif'],
+        display: ['Nunito', 'var(--font-geist-sans)', 'system-ui', 'sans-serif'],
       },
     },
   },

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import JourneyMap, { JourneyCourse } from './JourneyMap';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Map, X } from 'lucide-react';
 
 export default function JourneyModal({ courses }: { courses: JourneyCourse[] }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -13,25 +14,9 @@ export default function JourneyModal({ courses }: { courses: JourneyCourse[] }) 
         <>
             <button
                 onClick={() => setIsOpen(true)}
-                style={{
-                    background: 'linear-gradient(to right, #1e3a5f, #3b82f6)',
-                    border: 'none',
-                    padding: '10px 24px',
-                    borderRadius: '8px',
-                    fontSize: '0.95rem',
-                    fontWeight: 600,
-                    color: 'white',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2), 0 2px 4px -1px rgba(37, 99, 235, 0.1)',
-                    transition: 'all 0.2s',
-                    letterSpacing: '0.01em'
-                }}
-                onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
-                onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-pastel-blue text-sky font-black rounded-2xl shadow-sm hover:scale-105 transition-all tracking-wide text-sm border-2 border-sky/20"
             >
+                <Map size={18} />
                 Learning Journey
             </button>
 
@@ -41,20 +26,7 @@ export default function JourneyModal({ courses }: { courses: JourneyCourse[] }) 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        style={{
-                            position: 'fixed',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            background: 'rgba(0,0,0,0.5)',
-                            zIndex: 9999,
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            padding: '1rem',
-                            backdropFilter: 'blur(4px)'
-                        }}
+                        className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
                         onClick={() => setIsOpen(false)}
                     >
                         <motion.div
@@ -62,41 +34,38 @@ export default function JourneyModal({ courses }: { courses: JourneyCourse[] }) 
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
                             transition={{ duration: 0.2, type: 'spring', damping: 25, stiffness: 300 }}
-                            style={{
-                                background: 'white',
-                                borderRadius: '16px',
-                                width: '100%',
-                                maxWidth: '1000px',
-                                maxHeight: '90vh',
-                                overflowY: 'auto',
-                                position: 'relative',
-                                boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
-                            }}
+                            className="bg-white w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-[2rem] shadow-2xl flex flex-col relative"
                             onClick={e => e.stopPropagation()}
                         >
-                            <div style={{ padding: '2rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a' }}>Learning Journey</h2>
-                                    <button
-                                        onClick={() => setIsOpen(false)}
-                                        style={{
-                                            background: '#f1f5f9',
-                                            border: 'none',
-                                            width: '32px',
-                                            height: '32px',
-                                            borderRadius: '50%',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            cursor: 'pointer',
-                                            fontSize: '1.2rem',
-                                            color: '#64748b'
-                                        }}
-                                    >
-                                        &times;
-                                    </button>
+                            {/* Modal Header */}
+                            <div className="px-5 py-4 sm:px-8 sm:py-6 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-20 rounded-t-[2rem]">
+                                <div className="flex items-center gap-3 sm:gap-4">
+                                    <div className="p-1.5 sm:p-2 bg-blue-500/10 rounded-full text-blue-500">
+                                        <Map className="w-5 h-5 sm:w-8 sm:h-8" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 leading-tight">Peta Perjalanan Belajar</h2>
+                                        <p className="text-slate-500 text-xs sm:text-sm font-medium">Program Coding Clevio</p>
+                                    </div>
                                 </div>
+                                <button
+                                    onClick={() => setIsOpen(false)}
+                                    className="text-slate-400 hover:text-slate-600 transition-colors"
+                                >
+                                    <X className="w-6 h-6 sm:w-8 sm:h-8" />
+                                </button>
+                            </div>
+
+                            {/* Modal Body (Scrollable Journey) */}
+                            <div className="flex-1 overflow-y-auto w-full">
                                 <JourneyMap courses={courses} />
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div className="px-5 py-4 sm:px-8 sm:py-6 border-t border-slate-100 bg-slate-50 flex justify-center mt-auto">
+                                <p className="text-slate-500 text-[10px] sm:text-xs font-medium flex items-center gap-2 text-center">
+                                    Selesaikan tahapan untuk menjadi Master Coder!
+                                </p>
                             </div>
                         </motion.div>
                     </motion.div>

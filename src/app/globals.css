@@ -1,6 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @theme {
+  /* === Existing shadcn/ui tokens === */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -21,6 +23,40 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --radius: 0.5rem;
+
+  /* === Clevio Brand Colors (from Brand Guideline Sheet) === */
+  --color-clevio-navy: #22367b;
+  --color-clevio-green: #9dc83b;
+  --color-clevio-cyan: #00b0d7;
+  --color-clevio-orange: #ff9400;
+  --color-clevio-yellow: #ffe60d;
+  --color-clevio-purple: #632a7b;
+
+  /* === Accent Colors (mapped from brand) === */
+  --color-coral: #ff9400;
+  /* Brand Orange — used as warm accent */
+  --color-sunshine: #ffe60d;
+  /* Brand Yellow */
+  --color-sky: #00b0d7;
+  /* Brand Secondary Cyan */
+
+  /* === Pastel Backgrounds (soft tints of brand colors) === */
+  --color-pastel-pink: #FFF3E0;
+  /* Pastel Orange (NO pink) */
+  --color-pastel-yellow: #FFFDE6;
+  /* Pastel Yellow */
+  --color-pastel-blue: #E0EEF8;
+  /* Pastel Navy */
+  --color-pastel-green: #EEF6E2;
+  /* Pastel Green */
+  --color-pastel-cyan: #E0F5FA;
+  /* Pastel Cyan */
+  --color-background-light: #F7F9FE;
+  /* Soft navy-white */
+  --color-background-dark: #1A1A2E;
+
+  /* === Font === */
+  --font-display: 'Nunito', system-ui, sans-serif;
 }
 
 @layer base {

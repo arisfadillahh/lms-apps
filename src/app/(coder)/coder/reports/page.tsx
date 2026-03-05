@@ -1,5 +1,4 @@
-import type { CSSProperties } from 'react';
-import { FileText, Download, Calendar, CheckCircle, Clock } from 'lucide-react';
+import { FileText, Download, Calendar, CheckCircle, Clock, BarChart3 } from 'lucide-react';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { reportsDao } from '@/lib/dao';
@@ -9,55 +8,57 @@ export default async function CoderReportsPage() {
   const reports = await reportsDao.listReportsByCoder(session.user.id);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '1000px' }}>
+    <div className="flex-1 p-8 overflow-y-auto space-y-8 max-w-4xl">
+      {/* Header */}
       <header>
-        <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '0.5rem', color: '#1e293b', letterSpacing: '-0.02em' }}>
-          Laporan Belajar
+        <h1 className="text-3xl font-black text-clevio-navy tracking-tight mb-1 flex items-center gap-3">
+          <BarChart3 className="text-clevio-green" size={28} /> Laporan Belajar
         </h1>
-        <p style={{ color: '#64748b', fontSize: '1.05rem', lineHeight: 1.6 }}>
+        <p className="text-sm font-bold text-slate-400">
           Unduh laporan Rapor (Progress Report) kamu setiap akhir term.
         </p>
       </header>
 
-      <section style={sectionStyle}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
-          <span style={{ width: '4px', height: '24px', background: '#8b5cf6', borderRadius: '2px' }}></span>
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Arsip Laporan</h2>
+      {/* Reports Section */}
+      <section className="bg-white rounded-[3rem] border-2 border-slate-50 shadow-sm p-8">
+        <div className="flex items-center gap-3 mb-8 pb-4 border-b-2 border-dashed border-pastel-blue/30">
+          <span className="w-1.5 h-8 bg-sky rounded-full"></span>
+          <h2 className="text-xl font-black text-clevio-navy">Arsip Laporan</h2>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div className="space-y-4">
           {reports.length === 0 ? (
-            <div style={emptyStateStyle}>
-              <FileText size={32} color="#cbd5e1" />
-              <p>Belum ada laporan yang tersedia.</p>
+            <div className="flex flex-col items-center justify-center py-16 bg-pastel-blue/10 rounded-[2rem] border-4 border-dashed border-pastel-blue/30 text-center">
+              <FileText size={40} className="text-sky/40 mb-4" />
+              <p className="font-black text-slate-600">Belum ada laporan yang tersedia.</p>
+              <p className="text-sm font-bold text-slate-400 mt-1">Rapor akan muncul di sini setelah term berakhir.</p>
             </div>
           ) : (
-            reports.map((report) => {
+            reports.map((report, idx) => {
               const isSent = report.sent_via_whatsapp;
+              const themes = [
+                { icon: 'bg-pastel-blue text-sky', btn: 'bg-sky hover:bg-clevio-navy' },
+                { icon: 'bg-pastel-green text-clevio-green', btn: 'bg-clevio-green hover:bg-clevio-navy' },
+                { icon: 'bg-pastel-pink text-coral', btn: 'bg-coral hover:bg-clevio-navy' },
+                { icon: 'bg-pastel-yellow text-amber-600', btn: 'bg-amber-500 hover:bg-clevio-navy' },
+              ];
+              const theme = themes[idx % 4];
+
               return (
-                <div key={report.id} className="report-card" style={cardStyle}>
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#f5f3ff', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div key={report.id} className="flex items-center justify-between bg-white rounded-2xl border-2 border-slate-50 p-5 hover:shadow-md transition-shadow">
+                  <div className="flex gap-4 items-center">
+                    <div className={`size-12 rounded-2xl ${theme.icon} flex items-center justify-center`}>
                       <FileText size={24} />
                     </div>
                     <div>
-                      <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#1e293b', margin: 0 }}>Progress Report</h3>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.3rem' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem', color: '#64748b' }}>
+                      <h3 className="text-lg font-black text-clevio-navy">Progress Report</h3>
+                      <div className="flex items-center gap-3 mt-1 flex-wrap">
+                        <span className="flex items-center gap-1.5 text-sm font-bold text-slate-400">
                           <Calendar size={14} />
                           {new Date(report.generated_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}
                         </span>
-                        <span style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.3rem',
-                          fontSize: '0.8rem',
-                          fontWeight: 600,
-                          padding: '0.2rem 0.5rem',
-                          borderRadius: '6px',
-                          background: isSent ? '#dcfce7' : '#f1f5f9',
-                          color: isSent ? '#166534' : '#64748b'
-                        }}>
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-lg ${isSent ? 'bg-pastel-green text-clevio-green' : 'bg-slate-100 text-slate-400'
+                          }`}>
                           {isSent ? <CheckCircle size={12} /> : <Clock size={12} />}
                           {isSent ? 'Terkirim' : 'Diproses'}
                         </span>
@@ -68,7 +69,7 @@ export default async function CoderReportsPage() {
                     href={report.pdf_url}
                     target="_blank"
                     rel="noreferrer"
-                    style={downloadButtonStyle}
+                    className={`inline-flex items-center gap-2 px-5 py-3 rounded-2xl ${theme.btn} text-white font-black text-sm shadow-md hover:scale-105 transition-all no-underline`}
                   >
                     <Download size={18} /> Unduh PDF
                   </a>
@@ -78,69 +79,6 @@ export default async function CoderReportsPage() {
           )}
         </div>
       </section>
-
-      {/* Responsive Styles */}
-      <style>{`
-        @media (max-width: 768px) {
-          .report-card {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 1rem !important;
-          }
-          .report-card a {
-            width: 100% !important;
-            justify-content: center !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }
-
-const sectionStyle: CSSProperties = {
-  background: '#ffffff',
-  borderRadius: '16px',
-  border: '1px solid #e2e8f0',
-  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
-  padding: '1.5rem',
-};
-
-const cardStyle: CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  borderRadius: '12px',
-  border: '1px solid #e2e8f0',
-  background: '#ffffff',
-  padding: '1.25rem',
-  boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
-  transition: 'transform 0.2s',
-};
-
-const emptyStateStyle: CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: '0.75rem',
-  padding: '3rem',
-  background: '#f8fafc',
-  borderRadius: '12px',
-  border: '1px dashed #cbd5e1',
-  color: '#94a3b8'
-};
-
-const downloadButtonStyle: CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '0.5rem',
-  padding: '0.6rem 1.2rem',
-  borderRadius: '10px',
-  background: '#7c3aed',
-  color: '#fff',
-  fontWeight: 600,
-  fontSize: '0.9rem',
-  textDecoration: 'none',
-  boxShadow: '0 4px 6px -1px rgba(124, 58, 237, 0.3)',
-  transition: 'transform 0.1s'
-};

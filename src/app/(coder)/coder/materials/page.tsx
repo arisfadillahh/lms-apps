@@ -1,5 +1,4 @@
-import type { CSSProperties } from 'react';
-import { BookOpen, Calendar, FileText, Download, Play, Video, ChevronRight, Lock } from 'lucide-react';
+import { BookOpen, Video, ChevronRight, FileText, Download, Lightbulb } from 'lucide-react';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { getAccessibleLessonsForCoder, getVisibleMaterialsForCoder } from '@/lib/services/coder';
@@ -12,133 +11,107 @@ export default async function CoderMaterialsPage() {
   ]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem', paddingBottom: '4rem', maxWidth: '1000px', margin: '0 auto' }}>
-      <header className="materials-header" style={{ textAlign: 'center', marginBottom: '1rem' }}>
-        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.75rem', color: '#1e293b', letterSpacing: '-0.03em', background: 'linear-gradient(to right, #1e293b, #334155)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-          Materi Pembelajaran
+    <div className="flex-1 p-8 overflow-y-auto space-y-10">
+      {/* Header */}
+      <header className="text-center mb-4">
+        <h1 className="text-3xl font-black text-clevio-navy tracking-tight mb-2 flex items-center gap-3 justify-center">
+          <BookOpen className="text-sky" size={28} /> Materi Pembelajaran
         </h1>
-        <p style={{ color: '#64748b', fontSize: '1.1rem', maxWidth: '600px', margin: '0 auto', lineHeight: 1.6 }}>
+        <p className="text-slate-400 font-bold text-sm max-w-md mx-auto">
           Akses kembali materi, modul, dan video dari sesi yang telah kamu pelajari.
         </p>
       </header>
 
-      {/* 1. Lesson Plans Section */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '4rem' }}>
+      {/* Lesson Plans */}
+      <div className="space-y-12">
         {lessonPlans.map((entry) => {
           const blocksWithLessons = entry.blocks.filter((block) => block.lessons.length > 0);
           if (blocksWithLessons.length === 0) return null;
 
           return (
             <div key={entry.classId}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2.5rem' }}>
-                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.3)' }}>
+              {/* Class Header */}
+              <div className="flex items-center gap-4 mb-8">
+                <div className="size-12 rounded-2xl bg-clevio-navy flex items-center justify-center text-white shadow-lg">
                   <BookOpen size={24} />
                 </div>
                 <div>
-                  <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b', margin: 0, letterSpacing: '-0.01em' }}>{entry.name}</h2>
-                  <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '0.25rem' }}>Kelas Reguler</p>
+                  <h2 className="text-2xl font-black text-clevio-navy">{entry.name}</h2>
+                  <p className="text-sm font-bold text-slate-400">Kelas Reguler</p>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
+              {/* Blocks */}
+              <div className="space-y-8">
                 {blocksWithLessons.map((block) => (
-                  <div key={block.id} style={{ position: 'relative' }}>
+                  <div key={block.id}>
                     {/* Block Header */}
-                    <div style={blockHeaderStyle}>
-                      <div style={{ fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.85rem' }}>Module Block</div>
-                      <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e293b', marginTop: '0.25rem' }}>{block.name}</h3>
+                    <div className="inline-block px-5 py-3 bg-pastel-blue rounded-2xl border-2 border-sky/10 mb-6">
+                      <p className="text-[10px] font-black text-sky uppercase tracking-widest">Module Block</p>
+                      <h3 className="text-lg font-black text-clevio-navy">{block.name}</h3>
                     </div>
 
-                    {/* Timeline Container */}
-                    <div className="timeline-container" style={{ position: 'relative', paddingLeft: '2rem' }}>
-                      {/* Vertical Line */}
-                      <div style={{ position: 'absolute', left: '15px', top: '10px', bottom: '20px', width: '2px', background: '#e2e8f0', zIndex: 0 }} />
+                    {/* Timeline */}
+                    <div className="relative pl-10 border-l-4 border-dashed border-pastel-blue/50 ml-4 space-y-6">
+                      {block.lessons.map((lesson, index) => {
+                        const isScheduled = !!lesson.sessionDate;
+                        const dateObj = lesson.sessionDate ? new Date(lesson.sessionDate) : null;
+                        const isPast = dateObj ? dateObj < new Date() : false;
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                        {block.lessons.map((lesson, index) => {
-                          const isScheduled = !!lesson.sessionDate;
-                          const dateObj = lesson.sessionDate ? new Date(lesson.sessionDate) : null;
-                          const isPast = dateObj ? dateObj < new Date() : false;
+                        const colors = [
+                          { border: 'border-sky', bg: 'bg-pastel-blue', text: 'text-sky' },
+                          { border: 'border-amber-400', bg: 'bg-pastel-yellow', text: 'text-amber-600' },
+                          { border: 'border-coral', bg: 'bg-pastel-pink', text: 'text-coral' },
+                          { border: 'border-clevio-green', bg: 'bg-pastel-green', text: 'text-clevio-green' },
+                        ];
+                        const scheme = colors[index % 4];
 
-                          return (
-                            <div key={lesson.id} style={{ position: 'relative', zIndex: 1 }}>
-                              {/* Dot */}
-                              <div style={{
-                                position: 'absolute',
-                                left: '-2.05rem',
-                                top: '1.5rem',
-                                width: '32px',
-                                height: '32px',
-                                borderRadius: '50%',
-                                background: isScheduled ? (isPast ? '#fff' : '#3b82f6') : '#f1f5f9',
-                                border: `4px solid ${isScheduled ? (isPast ? '#22c55e' : '#bfdbfe') : '#e2e8f0'}`,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: isScheduled ? (isPast ? '#22c55e' : '#fff') : '#94a3b8',
-                                fontSize: '0.75rem',
-                                fontWeight: 700,
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-                              }}>
-                                {isPast ? '✓' : (index + 1)}
-                              </div>
+                        return (
+                          <div key={lesson.id} className="relative">
+                            {/* Dot */}
+                            <div className={`absolute -left-[54px] top-4 size-10 bg-white border-4 ${isPast ? 'border-clevio-green' : scheme.border} rounded-2xl z-10 flex items-center justify-center shadow-md font-black text-sm ${isPast ? 'text-clevio-green' : scheme.text}`}>
+                              {isPast ? '✓' : (index + 1)}
+                            </div>
 
-                              {/* Card */}
-                              <div style={lessonCardStyle}>
-                                <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start' }}>
-                                  {/* Date Badge */}
-                                  <div style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    minWidth: '60px',
-                                    padding: '0.6rem 0.5rem',
-                                    background: isScheduled ? '#eff6ff' : '#f8fafc',
-                                    borderRadius: '10px',
-                                    border: isScheduled ? '1px solid #dbeafe' : '1px solid #e2e8f0',
-                                    color: isScheduled ? '#1d4ed8' : '#94a3b8'
-                                  }}>
-                                    {dateObj ? (
-                                      <>
-                                        <span style={{ fontSize: '1.1rem', fontWeight: 700, lineHeight: 1 }}>{dateObj.getDate()}</span>
-                                        <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>{dateObj.toLocaleDateString('id-ID', { month: 'short' })}</span>
-                                      </>
-                                    ) : (
-                                      <span style={{ fontSize: '1.5rem', lineHeight: 1 }}>?</span>
-                                    )}
-                                  </div>
-
-                                  {/* Content */}
-                                  <div style={{ flex: 1 }}>
-                                    <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.35rem' }}>{lesson.title}</h4>
-                                    {lesson.summary && (
-                                      <p style={{ fontSize: '0.9rem', color: '#64748b', lineHeight: 1.5, marginBottom: '0.75rem' }}>{lesson.summary}</p>
-                                    )}
-                                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                                      {isScheduled ? (
-                                        <span style={badgeStyle}>
-                                          <Video size={12} /> {new Date(lesson.sessionDate!).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                                        </span>
-                                      ) : (
-                                        <span style={{ ...badgeStyle, background: '#f1f5f9', color: '#94a3b8' }}>Belum dijadwalkan</span>
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  {/* Action */}
-                                  <div style={{ alignSelf: 'center' }}>
-                                    <a href={`/coder/materials/${lesson.id}`} style={actionButtonStyle}>
-                                      <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.4)' }}>
-                                        <ChevronRight size={20} />
-                                      </div>
-                                    </a>
-                                  </div>
+                            {/* Card */}
+                            <div className="bg-white rounded-3xl border-2 border-slate-50 shadow-sm p-5 hover:shadow-md transition-shadow">
+                              <div className="flex gap-5 items-start">
+                                {/* Date Badge */}
+                                <div className={`flex flex-col items-center min-w-[60px] px-3 py-2 ${scheme.bg} rounded-xl border ${scheme.border}/20`}>
+                                  {dateObj ? (
+                                    <>
+                                      <span className={`text-xl font-black ${scheme.text}`}>{dateObj.getDate()}</span>
+                                      <span className={`text-[10px] uppercase font-black ${scheme.text}`}>{dateObj.toLocaleDateString('id-ID', { month: 'short' })}</span>
+                                    </>
+                                  ) : (
+                                    <span className="text-2xl text-slate-300">?</span>
+                                  )}
                                 </div>
+
+                                {/* Content */}
+                                <div className="flex-1">
+                                  <h4 className="text-lg font-black text-clevio-navy mb-1">{lesson.title}</h4>
+                                  {lesson.summary && (
+                                    <p className="text-sm font-bold text-slate-400 leading-relaxed mb-2">{lesson.summary}</p>
+                                  )}
+                                  {isScheduled ? (
+                                    <span className={`inline-flex items-center gap-1 text-[10px] font-black ${scheme.text} ${scheme.bg} px-2 py-1 rounded-lg uppercase`}>
+                                      <Video size={12} /> {new Date(lesson.sessionDate!).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-black text-slate-400 bg-slate-50 px-2 py-1 rounded-lg">Belum dijadwalkan</span>
+                                  )}
+                                </div>
+
+                                {/* Arrow */}
+                                <a href={`/coder/materials/${lesson.id}`} className="size-10 rounded-xl bg-sky text-white flex items-center justify-center shadow-md hover:scale-110 transition-transform self-center">
+                                  <ChevronRight size={20} strokeWidth={3} />
+                                </a>
                               </div>
                             </div>
-                          );
-                        })}
-                      </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
@@ -148,165 +121,56 @@ export default async function CoderMaterialsPage() {
         })}
       </div>
 
-      <div style={{ height: '2px', background: '#f1f5f9', margin: '2rem 0' }} />
+      {/* Divider */}
+      <div className="h-1 bg-pastel-blue/30 rounded-full" />
 
-      {/* 2. Additional Materials Section */}
+      {/* Additional Materials */}
       <section>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem' }}>
-          <div style={{ padding: '0.75rem', background: '#fdf2f8', borderRadius: '12px', color: '#db2777' }}>
-            <FileText size={20} />
+        <div className="flex items-center gap-4 mb-8">
+          <div className="p-3 bg-pastel-pink rounded-2xl text-coral">
+            <FileText size={22} />
           </div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>Materi Tambahan</h2>
+          <h2 className="text-2xl font-black text-clevio-navy">Materi Tambahan</h2>
         </div>
 
         {materialsByClass.length === 0 ? (
-          <div style={emptyStateStyle}>
-            <div style={{ width: '64px', height: '64px', background: '#f8fafc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
-              <FileText size={32} color="#cbd5e1" />
+          <div className="flex flex-col items-center justify-center py-16 bg-white rounded-[3rem] border-4 border-dashed border-pastel-blue/30 text-center">
+            <div className="size-16 bg-pastel-blue rounded-full flex items-center justify-center mb-4">
+              <FileText size={32} className="text-sky" />
             </div>
-            <p style={{ fontWeight: 600, color: '#64748b' }}>Belum ada materi tambahan</p>
-            <p style={{ fontSize: '0.9rem', color: '#94a3b8' }}>Materi ekstra dari coach akan muncul di sini.</p>
+            <p className="font-black text-slate-600">Belum ada materi tambahan</p>
+            <p className="text-sm font-bold text-slate-400">Materi ekstra dari coach akan muncul di sini.</p>
           </div>
         ) : (
-          <div className="materials-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-            {materialsByClass.map((entry) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {materialsByClass.map((entry) =>
               entry.materials.map((material) => (
-                <div key={material.id} style={materialCardStyle}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{entry.name}</span>
-                      {material.file_url && <Download size={16} color="#94a3b8" />}
+                <div key={material.id} className="bg-white rounded-3xl border-2 border-slate-50 shadow-sm p-6 flex flex-col justify-between gap-4 hover:shadow-md transition-shadow">
+                  <div>
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="text-[10px] font-black text-sky uppercase tracking-widest">{entry.name}</span>
+                      {material.file_url && <Download size={16} className="text-slate-300" />}
                     </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.5rem', lineHeight: 1.3 }}>{material.title}</h3>
-                    {material.description && <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: 1.5 }}>{material.description}</p>}
-
+                    <h3 className="text-lg font-black text-clevio-navy mb-1">{material.title}</h3>
+                    {material.description && <p className="text-sm font-bold text-slate-400">{material.description}</p>}
                     {material.coach_note && (
-                      <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: '#fffbeb', borderRadius: '8px', border: '1px solid #fef3c7', fontSize: '0.85rem', color: '#b45309', display: 'flex', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '1rem' }}>💡</span>
+                      <div className="mt-3 p-3 bg-pastel-yellow rounded-xl border border-sunshine/20 text-sm font-bold text-amber-700 flex gap-2">
+                        <Lightbulb size={16} className="flex-shrink-0 mt-0.5" />
                         <div>{material.coach_note}</div>
                       </div>
                     )}
                   </div>
                   {material.file_url && (
-                    <a href={material.file_url} target="_blank" rel="noreferrer" style={downloadButtonStyle}>
+                    <a href={material.file_url} target="_blank" rel="noreferrer" className="flex items-center justify-center w-full py-3 bg-pastel-blue text-sky font-black text-sm rounded-2xl hover:bg-sky hover:text-white transition-colors no-underline">
                       Buka File
                     </a>
                   )}
                 </div>
               ))
-            ))}
+            )}
           </div>
         )}
       </section>
-
-      {/* Responsive Styles */}
-      <style>{`
-        @media (max-width: 768px) {
-          .materials-header h1 {
-            font-size: 1.75rem !important;
-          }
-          .materials-header p {
-            font-size: 0.95rem !important;
-          }
-          .materials-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .lesson-card-content {
-            flex-direction: column !important;
-            gap: 1rem !important;
-          }
-          .lesson-date-badge {
-            flex-direction: row !important;
-            min-width: auto !important;
-            padding: 0.5rem 0.75rem !important;
-          }
-          .timeline-container {
-            padding-left: 1rem !important;
-          }
-          .timeline-dot {
-            left: -1.15rem !important;
-            width: 24px !important;
-            height: 24px !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }
-
-const blockHeaderStyle: CSSProperties = {
-  marginBottom: '1.5rem',
-  padding: '1rem 1.5rem',
-  background: '#f8fafc',
-  borderRadius: '12px',
-  border: '1px solid #e2e8f0',
-  display: 'inline-block'
-};
-
-const lessonCardStyle: CSSProperties = {
-  background: '#ffffff',
-  borderRadius: '16px',
-  border: '1px solid #e2e8f0',
-  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.03)',
-  padding: '1.25rem',
-  transition: 'transform 0.2s',
-};
-
-const badgeStyle: CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '0.3rem',
-  padding: '0.3rem 0.6rem',
-  borderRadius: '6px',
-  background: '#eff6ff',
-  color: '#3b82f6',
-  fontSize: '0.75rem',
-  fontWeight: 600,
-};
-
-const emptyStateStyle: CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '4rem 2rem',
-  background: '#fff',
-  borderRadius: '24px',
-  border: '2px dashed #e2e8f0',
-  textAlign: 'center'
-};
-
-const actionButtonStyle: CSSProperties = {
-  textDecoration: 'none',
-  display: 'block',
-  transition: 'transform 0.2s'
-};
-
-const materialCardStyle: CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  padding: '1.5rem',
-  borderRadius: '16px',
-  border: '1px solid #e2e8f0',
-  background: '#ffffff',
-  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
-  transition: 'transform 0.2s',
-  height: '100%',
-  justifyContent: 'space-between',
-  gap: '1rem'
-};
-
-const downloadButtonStyle: CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '100%',
-  padding: '0.75rem',
-  borderRadius: '10px',
-  background: '#f1f5f9',
-  color: '#1e293b',
-  fontWeight: 600,
-  fontSize: '0.9rem',
-  textDecoration: 'none',
-  transition: 'background 0.2s'
-};

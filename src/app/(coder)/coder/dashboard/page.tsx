@@ -1,18 +1,20 @@
-import type { CSSProperties } from 'react';
 import React from 'react';
 import { promises as fs } from 'fs';
 import path from 'path';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { ChevronRight, BookOpen, FileText, Calendar } from 'lucide-react';
+import { BookOpen, Flame, Pencil, ChevronRight, ListChecks, Zap, Play, Dumbbell, Lock, Rocket, Palette, Star, Download, Map, Hand, Monitor, Brush, Gamepad2, Cat, Package, Palmtree } from 'lucide-react';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { getCoderProgress } from '@/lib/services/coder';
 
 import JourneyModal from './JourneyModal';
+import UpcomingLessonsModal from './UpcomingLessonsModal';
 import SoftwareDetailModal from './SoftwareDetailModal';
 import BannerCarousel from '@/components/coder/BannerCarousel';
+import ClassDetailTrigger from './ClassDetailTrigger';
+import CoderHeader from './CoderHeader';
 
 type Banner = {
   id: string;
@@ -48,336 +50,356 @@ export default async function CoderDashboardPage() {
       className: item.name,
       classType: item.type,
       block: item.upNext!,
+      coach: item.coach,
+      schedule: item.schedule,
       journeyBlocks: item.journeyBlocks
     }));
 
   const journeyProgress = progress.filter((item) => item.journeyBlocks.length > 0);
   const activeBanners = banners.filter(b => b.isActive);
   const userName = session.user.fullName?.split(' ')[0] || 'Coder';
-  const todayDate = format(new Date(), 'EEEE, d MMMM', { locale: id });
+  const todayDate = format(new Date(), 'EEEE, d MMMM yyyy', { locale: id });
 
   // Calculate overall progress
   const totalCompleted = progress.reduce((acc, p) => acc + p.completedBlocks, 0);
   const totalBlocks = progress.reduce((acc, p) => acc + (p.totalBlocks || p.journeyBlocks.length), 0);
   const progressPercent = totalBlocks > 0 ? Math.round((totalCompleted / totalBlocks) * 100) : 0;
 
+  // Get the first active block
+  const activeBlock = upcomingBlocks[0] || null;
+  const nextLesson = activeBlock?.block.lessons?.find((l: any) => l.status === 'NEXT');
+  const completedLessons = activeBlock?.block.lessons?.filter((l: any) => l.status === 'COMPLETED').length || 0;
+  const totalLessons = activeBlock?.block.lessons?.length || 1;
+  const activeProgressPct = Math.round((completedLessons / totalLessons) * 100);
+
+  // Upcoming lessons for the timeline — flat list of all next sessions across all classes
+  const allUpcomingLessons = upcomingBlocks
+    .flatMap(b =>
+      (b.block.lessons || [])
+        .filter((l: any) => l.status === 'NEXT' || l.status === 'UPCOMING' || l.status === 'LOCKED')
+        .map((l: any) => ({ ...l, className: b.className }))
+    )
+    .sort((a: any, b: any) => {
+      const dateA = a.scheduledAt?.[0] ? new Date(a.scheduledAt[0]).getTime() : Infinity;
+      const dateB = b.scheduledAt?.[0] ? new Date(b.scheduledAt[0]).getTime() : Infinity;
+      return dateA - dateB;
+    });
+
+  const upcomingLessons = allUpcomingLessons;
+
+  // Software list
+  const softwareList = upcomingBlocks.flatMap(b => b.block.software || []).slice(0, 4);
+
+  // Journey courses for the modal
+  const journeyCourses = journeyProgress.map((item) => ({
+    classId: item.classId,
+    name: item.name,
+    classType: item.type,
+    journeyBlocks: item.journeyBlocks,
+    completedBlocks: item.completedBlocks,
+    totalBlocks: item.totalBlocks || item.journeyBlocks.length,
+  }));
+
   return (
-    <div style={containerStyle}>
-      {/* Main Content - 2 Column Layout */}
-      <div className="coder-main-grid" style={mainGridStyle}>
-        {/* Left Column - Main Content */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <>
+      {/* ===== HEADER (Client Component) ===== */}
+      <CoderHeader
+        userName={userName}
+        fullName={session.user.fullName || 'Coder'}
+        todayDate={todayDate}
+        avatarPath={(session.user as any).avatarPath}
+        role={session.user.role}
+        username={(session.user as any).username}
+        adminPermissions={(session.user as any).adminPermissions}
+      />
 
-          {/* Welcome Banner */}
-          <div className="coder-welcome-banner" style={welcomeBannerStyle}>
-            <div style={{ position: 'relative', zIndex: 1 }}>
-              <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)', marginBottom: '0.25rem' }}>
-                {todayDate}
-              </p>
-              <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#fff', margin: '0 0 0.5rem 0' }}>
-                Selamat datang, {userName}! 👋
-              </h1>
-              <p style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.85)', margin: 0 }}>
-                Kamu sudah menyelesaikan <strong>{progressPercent}%</strong> dari target mingguan!
-              </p>
-            </div>
-            <div style={{ position: 'absolute', right: '2rem', bottom: 0, fontSize: '5rem', opacity: 0.2 }}>
-              🎓
-            </div>
-          </div>
+      {/* ===== CONTENT ===== */}
+      <div className="flex-1 p-8 space-y-10 overflow-y-auto">
 
-          {/* Banner Carousel */}
-          {activeBanners.length > 0 && (
-            <BannerCarousel banners={activeBanners} />
+        {/* ===== BANNER SECTION ===== */}
+        <section>
+          {activeBanners.length > 0 ? (
+            <div className="w-full rounded-[2.5rem] overflow-hidden shadow-2xl shadow-sky/20 relative">
+              <BannerCarousel banners={activeBanners} />
+            </div>
+          ) : (
+            <div className="w-full bg-gradient-to-br from-clevio-navy via-[#2A5082] to-[#1A2F4F] rounded-[2.5rem] overflow-hidden shadow-2xl shadow-clevio-navy/20 relative flex items-center min-h-[280px]">
+              <div className="p-10 md:p-16 z-10 w-full md:w-3/5">
+                <span className="inline-block px-4 py-1.5 bg-clevio-green/30 text-white rounded-full text-xs font-black uppercase tracking-widest mb-6 backdrop-blur-md">Pengumuman Seru!</span>
+                <h3 className="text-4xl md:text-5xl font-black text-white leading-[1.1] mb-4">Beasiswa Clevio 2026!</h3>
+                <p className="text-blue-100 text-lg mb-8 max-w-md font-semibold opacity-90">Ayo daftar sekarang dan raih mimpimu jadi jagoan IT masa depan!</p>
+                <button className="bg-clevio-green text-white px-10 py-4 rounded-2xl font-black text-base shadow-[0_6px_0_0_#5A9832] hover:translate-y-1 hover:shadow-[0_2px_0_0_#5A9832] transition-all active:translate-y-1.5 active:shadow-none">
+                  Daftar Sekarang
+                </button>
+              </div>
+            </div>
           )}
+        </section>
 
-          {/* My Courses Section */}
-          <section>
-            <div style={sectionHeaderStyle}>
-              <h2 style={sectionTitleStyle}>Kelas Saya</h2>
-              {journeyProgress.length > 0 && (
-                <JourneyModal courses={upcomingBlocks.map(b => ({
-                  classId: b.classId,
-                  name: b.className,
-                  classType: b.classType,
-                  completedBlocks: journeyProgress.find(p => p.classId === b.classId)?.completedBlocks || 0,
-                  totalBlocks: journeyProgress.find(p => p.classId === b.classId)?.totalBlocks || null,
-                  journeyBlocks: b.journeyBlocks
-                }))} />
-              )}
-            </div>
+        {/* ===== MAIN GRID ===== */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
 
-            {upcomingBlocks.length > 0 ? (
-              <div className="coder-courses-grid" style={coursesGridStyle}>
-                {upcomingBlocks.map(({ classId, className, classType, block }) => {
-                  const progressPct = Math.round(Math.random() * 60 + 20); // Placeholder
-                  const bgColors = ['#fef9c3', '#dbeafe', '#fce7f3', '#dcfce7'];
-                  const bgColor = bgColors[upcomingBlocks.indexOf({ classId, className, classType, block, journeyBlocks: [] }) % bgColors.length] || '#dbeafe';
+          {/* ===== LEFT COLUMN ===== */}
+          <div className="lg:col-span-8 space-y-10">
 
-                  return (
-                    <div key={`${classId}-${block.blockId}`} style={{ ...courseCardStyle, background: bgColor }}>
-                      <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>
-                        {classType === 'EKSKUL' ? '🎨' : '💻'}
-                      </div>
-                      <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b', margin: '0 0 0.25rem 0' }}>
-                        {classType === 'EKSKUL' ? block.name : className}
-                      </h3>
-                      <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 1rem 0' }}>
-                        {block.nextLesson?.title || 'Menunggu jadwal'}
-                      </p>
-
-                      {/* Progress bar */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Lessons: {block.estimatedSessions || 0}</span>
-                        <span style={{ flex: 1 }} />
-                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#3b82f6' }}>{progressPct}%</span>
-                      </div>
-                      <div style={{ height: '6px', background: 'rgba(0,0,0,0.1)', borderRadius: '999px', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${progressPct}%`, background: '#3b82f6', borderRadius: '999px' }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div style={emptyCardStyle}>
-                <p>Belum ada kelas aktif</p>
-              </div>
-            )}
-          </section>
-
-          {/* Software Section */}
-          {upcomingBlocks.some(b => b.block.software && b.block.software.length > 0) && (
+            {/* ===== LANJUTKAN BELAJARMU ===== */}
             <section>
-              <h2 style={sectionTitleStyle}>📦 Software</h2>
-              <div className="coder-software-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
-                {upcomingBlocks.flatMap(b => b.block.software || []).slice(0, 4).map((sw, idx) => (
-                  <div key={`${sw.id}-${idx}`} style={softwareCardStyle}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#1e293b', margin: 0 }}>{sw.name}</h4>
-                        {sw.version && <span style={{ fontSize: '0.75rem', color: '#64748b' }}>v{sw.version}</span>}
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="text-2xl font-black text-clevio-navy flex items-center gap-3">
+                    <span className="bg-orange-100 text-orange-600 p-2 rounded-xl"><Flame size={24} strokeWidth={3} /></span>
+                    Lanjutkan Belajarmu
+                  </h3>
+                  <p className="text-slate-400 font-bold text-sm">Petualanganmu sedang berlangsung!</p>
+                </div>
+                {/* Journey Button */}
+                {journeyCourses.length > 0 && (
+                  <JourneyModal courses={journeyCourses} />
+                )}
+              </div>
+
+              {activeBlock ? (
+                <div className="group bg-white rounded-[3rem] p-1 shadow-[0_20px_50px_rgba(0,0,0,0.04)] border-2 border-white/50 overflow-hidden">
+                  <div className="bg-pastel-blue/30 p-8 md:p-12 rounded-[2.8rem] relative overflow-hidden">
+                    <div className="flex flex-col gap-10 relative z-10">
+
+                      {/* Top: Image + Info */}
+                      <div className="flex flex-col md:flex-row gap-8 items-start">
+                        {/* Icon Box */}
+                        <div className="w-full md:w-56 aspect-[4/5] bg-white rounded-[2.5rem] flex items-center justify-center relative overflow-hidden shrink-0 shadow-xl border-4 border-white">
+                          <div className="absolute inset-0 bg-gradient-to-tr from-sky/10 to-transparent"></div>
+                          {activeBlock.classType === 'EKSKUL' ? <Brush size={64} className="text-sky opacity-30" /> : <Monitor size={64} className="text-sky opacity-30" />}
+                          <div className="absolute bottom-6 bg-sky text-white px-4 py-1 rounded-full text-xs font-black uppercase tracking-tighter">Current Step</div>
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 w-full space-y-6">
+                          <div className="space-y-2">
+                            <div className="flex flex-wrap items-center gap-3">
+                              <span className="px-4 py-1.5 bg-pastel-blue text-clevio-navy text-[10px] font-black rounded-full uppercase tracking-widest border border-sky/30">
+                                Beginner Level
+                              </span>
+                            </div>
+                            <h4 className="text-4xl font-black text-clevio-navy">{activeBlock.className}</h4>
+                            <p className="text-xl font-bold text-slate-600 flex items-center gap-2">
+                              <BookOpen className="text-orange-600" size={22} strokeWidth={2.5} />
+                              {activeBlock.block.name}
+                            </p>
+                          </div>
+
+                          {/* Mentor Bubble */}
+                          {activeBlock.coach && (
+                            <div className="flex items-end gap-4 mt-8">
+                              <div className="size-16 rounded-2xl bg-white border-2 border-pastel-pink shadow-sm overflow-hidden flex-shrink-0 relative">
+                                {activeBlock.coach.avatarUrl ? (
+                                  <img src={activeBlock.coach.avatarUrl} alt={activeBlock.coach.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="absolute inset-0 bg-coral/10 flex items-center justify-center">
+                                    <span className="text-3xl font-bold text-orange-600">{activeBlock.coach.name.charAt(0)}</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="bg-white p-5 rounded-2xl rounded-bl-none shadow-sm border-2 border-pastel-blue relative">
+                                <p className="text-sm font-bold text-slate-700 italic leading-relaxed">
+                                  &quot;Halo {userName}! Hari ini kita akan belajar <strong className="text-sky">{nextLesson?.title || 'lanjutan materi sebelumnya'}</strong>. Semangat ya!&quot;
+                                </p>
+                                <p className="text-[10px] font-black text-orange-600 mt-2 uppercase tracking-widest">— Mentor {activeBlock.coach.name.split(' ')[0]}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <SoftwareDetailModal software={sw} />
+
+                      {/* Middle: Lesson Summary & Slide Access */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t-2 border-dashed border-sky/20">
+                        <div className="space-y-4">
+                          <h5 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                            <ListChecks className="text-sky" size={18} />
+                            Ringkasan Materi
+                          </h5>
+                          {nextLesson?.summary ? (
+                            <p className="text-sm font-bold text-slate-600 leading-relaxed">{nextLesson.summary}</p>
+                          ) : (
+                            <p className="text-sm font-bold text-slate-400 italic">Belum ada ringkasan untuk materi ini.</p>
+                          )}
+                        </div>
+                        <div className="space-y-4">
+                          <h5 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                            <Zap className="text-orange-600" size={18} />
+                            Akses Slide
+                          </h5>
+                          {nextLesson?.slideUrl ? (
+                            <a
+                              href={nextLesson.slideUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center justify-between p-4 bg-pastel-blue hover:bg-sky hover:text-white rounded-2xl border-2 border-sky/20 transition-all group/link"
+                            >
+                              <div className="flex items-center gap-3">
+                                <Play className="text-sky group-hover/link:text-white" size={20} />
+                                <span className="text-sm font-black text-clevio-navy group-hover/link:text-white">Buka Slide Presentasi</span>
+                              </div>
+                              <ChevronRight className="text-sky group-hover/link:text-white group-hover/link:translate-x-1 transition-transform" size={18} />
+                            </a>
+                          ) : (
+                            <p className="text-sm font-bold text-slate-400 italic p-4 bg-slate-50 rounded-2xl">Slide belum tersedia untuk materi ini.</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Bottom: Progress + CTA */}
+                      <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-6">
+                        <div className="w-full md:w-1/2 space-y-2">
+                          <div className="flex justify-between items-center text-xs font-black text-slate-400 uppercase tracking-widest">
+                            <span>Current Progress</span>
+                            <span className="text-orange-600 text-lg">{activeProgressPct}%</span>
+                          </div>
+                          <div className="w-full bg-white rounded-full h-4 p-1 shadow-inner">
+                            <div className="bg-gradient-to-r from-sky to-clevio-green h-full rounded-full transition-all duration-1000" style={{ width: `${activeProgressPct}%` }}></div>
+                          </div>
+                        </div>
+                        <ClassDetailTrigger
+                          classInfo={{
+                            classId: activeBlock.classId,
+                            className: activeBlock.className,
+                            classType: activeBlock.classType,
+                            block: activeBlock.block,
+                            progressPct: activeProgressPct,
+                            bgColor: '',
+                            coach: activeBlock.coach,
+                            schedule: activeBlock.schedule
+                          }}
+                          customTrigger={
+                            <button className="w-full md:w-auto bg-coral text-white px-12 py-4 rounded-2xl font-black text-lg shadow-[0_8px_0_0_#E86E7E] hover:translate-y-1 hover:shadow-[0_4px_0_0_#E86E7E] active:translate-y-2 active:shadow-none transition-all">
+                              Lanjut Belajar
+                            </button>
+                          }
+                        />
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            </section>
-          )}
-        </div>
-
-        {/* Right Column - Sidebar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-
-          {/* Quick Stats */}
-          <div style={sideCardStyle}>
-            <h3 style={sideCardTitleStyle}>📊 Statistik</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
-              <div style={quickStatStyle}>
-                <span style={{ fontSize: '1.5rem', fontWeight: 700, color: '#3b82f6' }}>{progress.length}</span>
-                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Kelas Aktif</span>
-              </div>
-              <div style={quickStatStyle}>
-                <span style={{ fontSize: '1.5rem', fontWeight: 700, color: '#10b981' }}>{totalCompleted}</span>
-                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Block Selesai</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Upcoming Tasks */}
-          <div style={sideCardStyle}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={sideCardTitleStyle}>📋 Materi Mendatang</h3>
-              <Link href="/coder/materials" style={{ fontSize: '0.8rem', color: '#3b82f6', textDecoration: 'none', fontWeight: 500 }}>
-                Lihat Semua
-              </Link>
-            </div>
-            <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {upcomingBlocks.slice(0, 3).map(({ classId, className, block }) => (
-                <div key={classId} style={taskItemStyle}>
-                  <div style={taskIconStyle}>
-                    <BookOpen size={14} color="#3b82f6" />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1e293b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {block.nextLesson?.title || block.name}
-                    </p>
-                    <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.15rem 0 0' }}>{className}</p>
-                  </div>
-                  <ChevronRight size={16} color="#94a3b8" />
                 </div>
-              ))}
-              {upcomingBlocks.length === 0 && (
-                <p style={{ fontSize: '0.85rem', color: '#94a3b8', textAlign: 'center', padding: '1rem 0' }}>
-                  Tidak ada materi mendatang
-                </p>
+              ) : (
+                <div className="bg-white rounded-[3rem] p-12 text-center border-4 border-dashed border-pastel-pink/30">
+                  <Palmtree size={48} className="text-sky/30 mx-auto mb-4" />
+                  <h4 className="text-xl font-black text-slate-700">Belum Ada Kelas Aktif</h4>
+                  <p className="text-sm font-bold text-slate-400 mt-2">Santai dulu! Nanti jadwal kelas barumu akan muncul di sini.</p>
+                </div>
               )}
+            </section>
+
+            {/* ===== PERALATAN TEMPUR ===== */}
+            {softwareList.length > 0 && (
+              <section>
+                <h3 className="text-2xl font-black text-clevio-navy mb-6 flex items-center gap-3">
+                  <span className="bg-amber-100 text-amber-600 p-2 rounded-xl"><Pencil size={22} strokeWidth={3} /></span>
+                  Peralatan Tempur
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {softwareList.map((sw, idx) => {
+                    const themes = [
+                      { border: 'border-pastel-blue/60', iconBg: 'bg-pastel-blue', hoverBg: 'hover:bg-pastel-blue/10', hoverBtn: 'hover:bg-sky hover:text-white', rotate: 'group-hover:rotate-6' },
+                      { border: 'border-pastel-yellow/60', iconBg: 'bg-pastel-yellow', hoverBg: 'hover:bg-pastel-yellow/10', hoverBtn: 'hover:bg-sunshine hover:text-white', rotate: 'group-hover:-rotate-6' },
+                      { border: 'border-pastel-pink/60', iconBg: 'bg-pastel-pink', hoverBg: 'hover:bg-pastel-pink/10', hoverBtn: 'hover:bg-coral hover:text-white', rotate: 'group-hover:rotate-6' },
+                      { border: 'border-pastel-green/60', iconBg: 'bg-pastel-green', hoverBg: 'hover:bg-pastel-green/10', hoverBtn: 'hover:bg-clevio-green hover:text-white', rotate: 'group-hover:-rotate-6' },
+                    ];
+                    const theme = themes[idx % 4];
+
+                    const nameLower = sw.name.toLowerCase();
+                    const swIcon = nameLower.includes('vs code') || nameLower.includes('vscode') ? <Monitor size={28} /> :
+                      nameLower.includes('figma') ? <Brush size={28} /> :
+                        nameLower.includes('roblox') ? <Gamepad2 size={28} /> :
+                          nameLower.includes('scratch') ? <Cat size={28} /> :
+                            <Package size={28} />;
+
+                    const subtitle = nameLower.includes('vs code') || nameLower.includes('vscode') ? 'Markas Coding' :
+                      nameLower.includes('figma') ? 'Kanvas Desain' :
+                        nameLower.includes('roblox') ? 'Game Studio' :
+                          nameLower.includes('scratch') ? 'Playground Coding' :
+                            sw.version ? `Versi ${sw.version}` : 'Aplikasi Required';
+
+                    return (
+                      <div key={`${sw.id}-${idx}`} className={`bg-white border-4 ${theme.border} rounded-3xl p-6 flex items-center gap-5 shadow-[0_10px_0_0_rgba(0,0,0,0.05)] group ${theme.hoverBg} transition-colors`}>
+                        <div className={`size-16 ${theme.iconBg} rounded-2xl flex items-center justify-center shadow-inner ${theme.rotate} transition-transform`}>
+                          <span className="text-clevio-navy">{swIcon}</span>
+                        </div>
+                        <div className="flex-1">
+                          <h5 className="font-black text-clevio-navy text-lg">{sw.name}</h5>
+                          <p className="text-sm font-bold text-slate-400">{subtitle}</p>
+                        </div>
+                        <SoftwareDetailModal software={sw} customTrigger={
+                          <button className={`size-12 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center ${theme.hoverBtn} transition-all shadow-sm`}>
+                            <Download size={20} strokeWidth={2.5} />
+                          </button>
+                        } />
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+          </div>
+
+          {/* ===== RIGHT COLUMN - TIMELINE ===== */}
+          <div className="lg:col-span-4">
+            <div className="bg-white rounded-[3rem] border-4 border-dashed border-pastel-blue/30 p-8">
+              <div className="flex items-center justify-between mb-10">
+                <h3 className="text-2xl font-black text-clevio-navy">Materi Mendatang</h3>
+                <Star className="text-amber-500" size={22} />
+              </div>
+
+              <div className="space-y-6 relative mt-6">
+                {upcomingLessons.length > 0 ? (
+                  upcomingLessons.slice(0, 3).map((lesson, idx) => {
+                    const isNext = lesson.status === 'NEXT';
+                    const dateObj = lesson.scheduledAt ? new Date(lesson.scheduledAt[0]) : null;
+                    const dateString = dateObj ? format(dateObj, 'dd MMM • HH:mm', { locale: id }) : 'Akan Datang';
+
+                    const schemes = [
+                      { border: 'border-sky', text: 'text-sky', icon: <Rocket className="text-sky" size={20} strokeWidth={2.5} /> },
+                      { border: 'border-amber-400', text: 'text-amber-600', icon: <Palette className="text-amber-500" size={20} strokeWidth={2.5} /> },
+                      { border: 'border-coral', text: 'text-orange-600', icon: <Star className="text-orange-600" size={20} strokeWidth={2.5} /> },
+                    ];
+                    const scheme = schemes[idx % 3];
+
+                    return (
+                      <div className="relative flex items-center gap-6" key={`${lesson.title}-${idx}`}>
+                        {/* Icon Badge */}
+                        <div className={`shrink-0 size-16 bg-white border-4 ${scheme.border} rounded-3xl z-10 flex items-center justify-center shadow-lg -rotate-6`}>
+                          {scheme.icon}
+                        </div>
+
+                        {/* Content Card */}
+                        <div className={`flex-1 bg-slate-50 p-6 rounded-[2rem] border-2 border-slate-100/60 ${isNext ? 'cursor-pointer bg-white border-slate-200 shadow-sm' : 'opacity-80'} transition-all group`}>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className={`text-[11px] font-black ${scheme.text} uppercase tracking-wider`}>{dateString}</span>
+                          </div>
+                          <h5 className="font-black text-clevio-navy text-xl leading-tight">{lesson.title || 'Materi Belum Berjudul'}</h5>
+                          {isNext && (
+                            <p className="text-sm font-bold text-slate-500 mt-2">Interaksi langsung bareng Mentor!</p>
+                          )}
+                          {!isNext && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-black text-slate-400 mt-3">
+                              <Lock size={14} /> TERKUNCI
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-sm font-bold text-slate-400">Belum ada daftar materi</p>
+                )}
+              </div>
+
+              <div className="mt-8 px-4 relative z-20">
+                <UpcomingLessonsModal lessons={allUpcomingLessons} />
+              </div>
             </div>
           </div>
 
-          {/* Quick Links */}
-          <div style={sideCardStyle}>
-            <h3 style={sideCardTitleStyle}>🔗 Akses Cepat</h3>
-            <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <Link href="/coder/materials" style={quickLinkStyle}>
-                <BookOpen size={16} /> Lihat Materi
-              </Link>
-              <Link href="/coder/reports" style={quickLinkStyle}>
-                <FileText size={16} /> Lihat Rapor
-              </Link>
-              <Link href="/coder/makeup" style={quickLinkStyle}>
-                <Calendar size={16} /> Tugas Susulan
-              </Link>
-            </div>
-          </div>
         </div>
       </div>
-
-      {/* Responsive Styles */}
-      <style>{`
-        @media (max-width: 1024px) {
-          .coder-main-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
-        @media (max-width: 768px) {
-          .coder-welcome-banner {
-            padding: 1.5rem !important;
-            min-height: auto !important;
-          }
-          .coder-welcome-banner h1 {
-            font-size: 1.25rem !important;
-          }
-          .coder-courses-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .coder-software-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
-    </div>
+    </>
   );
 }
-
-// Styles - Modern Blue Theme
-const containerStyle: CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '1.5rem',
-  paddingBottom: '2rem',
-};
-
-const mainGridStyle: CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: '1fr 320px',
-  gap: '1.5rem',
-};
-
-const welcomeBannerStyle: CSSProperties = {
-  background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-  borderRadius: '20px',
-  padding: '2rem',
-  position: 'relative',
-  overflow: 'hidden',
-  minHeight: '140px',
-};
-
-const sectionHeaderStyle: CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginBottom: '1rem',
-};
-
-const sectionTitleStyle: CSSProperties = {
-  fontSize: '1.15rem',
-  fontWeight: 700,
-  color: '#1e293b',
-  margin: 0,
-};
-
-const coursesGridStyle: CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-  gap: '1rem',
-};
-
-const courseCardStyle: CSSProperties = {
-  borderRadius: '16px',
-  padding: '1.25rem',
-  transition: 'transform 0.2s, box-shadow 0.2s',
-};
-
-const emptyCardStyle: CSSProperties = {
-  background: '#f8fafc',
-  borderRadius: '16px',
-  padding: '2rem',
-  textAlign: 'center',
-  color: '#94a3b8',
-};
-
-const softwareCardStyle: CSSProperties = {
-  background: '#fff',
-  borderRadius: '12px',
-  padding: '1rem',
-  border: '1px solid #e2e8f0',
-};
-
-const sideCardStyle: CSSProperties = {
-  background: '#fff',
-  borderRadius: '16px',
-  padding: '1.25rem',
-  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-  border: '1px solid #f1f5f9',
-};
-
-const sideCardTitleStyle: CSSProperties = {
-  fontSize: '0.95rem',
-  fontWeight: 700,
-  color: '#1e293b',
-  margin: 0,
-};
-
-const quickStatStyle: CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  padding: '0.75rem',
-  background: '#f8fafc',
-  borderRadius: '12px',
-};
-
-const taskItemStyle: CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.75rem',
-  padding: '0.75rem',
-  background: '#f8fafc',
-  borderRadius: '12px',
-};
-
-const taskIconStyle: CSSProperties = {
-  width: '32px',
-  height: '32px',
-  borderRadius: '8px',
-  background: '#eff6ff',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-};
-
-const quickLinkStyle: CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.5rem',
-  padding: '0.65rem 0.75rem',
-  background: '#f8fafc',
-  borderRadius: '10px',
-  color: '#475569',
-  fontSize: '0.85rem',
-  fontWeight: 500,
-  textDecoration: 'none',
-  transition: 'background 0.2s',
-};

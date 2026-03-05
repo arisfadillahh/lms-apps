@@ -50,7 +50,7 @@ export default function BannerCarousel({ banners }: BannerCarouselProps) {
                 {activeBanners.map((banner, index) => (
                     <a
                         key={banner.id}
-                        href={banner.linkUrl}
+                        href={`/api/banners/${banner.id}/click`}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{

@@ -5,18 +5,27 @@ import ClassListClient from './ClassListClient';
 
 import { blocksDao, classesDao, levelsDao, usersDao } from '@/lib/dao';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
-
-import CreateClassForm from './CreateClassForm';
-
+import AdminClassesPageWrapper from './AdminClassesPageWrapper';
 export default async function AdminClassesPage() {
   const supabase = getSupabaseAdmin();
 
-  const [classes, coaches, levels, { data: ekskulPlansRaw }] = await Promise.all([
+  const [classes, coaches, levels, { data: ekskulPlansRaw }, { data: enrollmentsRaw }] = await Promise.all([
     classesDao.listClasses(),
     usersDao.listUsersByRole('COACH'),
     levelsDao.listLevels(),
     supabase.from('ekskul_lesson_plans').select('id, name').eq('is_active', true).order('name'),
+    supabase.from('enrollments').select('class_id').eq('status', 'ACTIVE')
   ]);
+
+  const enrollmentCounts = (enrollmentsRaw || []).reduce((acc: Record<string, number>, curr) => {
+    acc[curr.class_id] = (acc[curr.class_id] || 0) + 1;
+    return acc;
+  }, {});
+
+  const classesWithCounts = classes.map(c => ({
+    ...c,
+    studentCount: enrollmentCounts[c.id] || 0
+  }));
 
   // Calculate total meetings for each ekskul plan from lessons
   const ekskulPlans = await Promise.all(
@@ -46,17 +55,15 @@ export default async function AdminClassesPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <div>
-        <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#1e293b', marginBottom: '0.5rem', letterSpacing: '-0.02em' }}>Manajemen Kelas</h1>
-        <p style={{ color: '#64748b', maxWidth: '48rem', fontSize: '1rem', lineHeight: '1.6' }}>
-          Buat kelas baru, tentukan Coach utama, dan atur jadwal. Pembuatan sesi dan manajemen murid tersedia di dalam masing-masing kelas.
-        </p>
-      </div>
-
-      <CreateClassForm coaches={coaches} levels={levels} levelBlocks={levelBlocks} ekskulPlans={ekskulPlans} />
+      <AdminClassesPageWrapper
+        coaches={coaches}
+        levels={levels}
+        levelBlocks={levelBlocks}
+        ekskulPlans={ekskulPlans}
+      />
 
       <ClassListClient
-        initialClasses={classes}
+        initialClasses={classesWithCounts}
         coaches={coaches}
         levels={levels}
       />

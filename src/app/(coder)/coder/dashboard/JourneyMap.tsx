@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { Rocket, CheckCircle2, PlayCircle, Lock, Trophy, ArrowRight } from 'lucide-react';
 
 type JourneyBlock = {
   blockId: string;
@@ -14,7 +15,7 @@ type JourneyBlock = {
 export type JourneyCourse = {
   classId: string;
   name: string;
-  classType?: 'WEEKLY' | 'EKSKUL'; // Added for terminology
+  classType?: 'WEEKLY' | 'EKSKUL';
   completedBlocks: number;
   totalBlocks: number | null;
   journeyBlocks: JourneyBlock[];
@@ -24,334 +25,139 @@ type JourneyMapProps = {
   courses: JourneyCourse[];
 };
 
-const STATUS_STYLE = {
-  COMPLETED: {
-    dot: '#16a34a',
-    dotBorder: '#0f9a3f',
-    pillBg: 'rgba(22, 163, 74, 0.12)',
-    pillText: '#166534',
-  },
-  CURRENT: {
-    dot: '#1e3a5f',
-    dotBorder: '#1d4ed8',
-    pillBg: 'rgba(37, 99, 235, 0.12)',
-    pillText: '#1d4ed8',
-  },
-  UPCOMING: {
-    dot: '#94a3b8',
-    dotBorder: '#64748b',
-    pillBg: 'rgba(148, 163, 184, 0.16)',
-    pillText: '#475569',
-  },
-} as const;
-
-const STATUS_LABEL: Record<JourneyBlock['status'], string> = {
-  COMPLETED: 'Selesai',
-  CURRENT: 'Sedang berjalan',
-  UPCOMING: 'Menunggu',
-};
-
 export default function JourneyMap({ courses }: JourneyMapProps) {
   if (courses.length === 0) {
     return null;
   }
 
   return (
-    <section style={sectionStyle}>
-      <h2 style={sectionHeadingStyle}>Learning Journey</h2>
-      <p style={sectionSubheadingStyle}>
-        Ikuti peta perjalanan belajarmu. Item yang sudah selesai berwarna hijau, yang sedang berjalan berwarna biru.
-      </p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        {courses.map((course) => (
-          <CourseJourney key={course.classId} course={course} />
-        ))}
-      </div>
-    </section>
+    <div className="flex flex-col gap-6 sm:gap-12 px-5 py-4 sm:px-8 sm:py-6 w-full max-w-2xl mx-auto">
+      {courses.map((course) => (
+        <CourseJourney key={course.classId} course={course} />
+      ))}
+    </div>
   );
 }
 
 function CourseJourney({ course }: { course: JourneyCourse }) {
   const blocks = course.journeyBlocks;
-  const [animate, setAnimate] = useState(false);
   const isEkskul = course.classType === 'EKSKUL';
-  const itemName = isEkskul ? 'lessons' : 'blocks'; // Terminology
+  const itemName = isEkskul ? 'Sesi' : 'Blok';
 
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => setAnimate(true));
-    return () => cancelAnimationFrame(frame);
-  }, []);
-
-  const progressPercent = useMemo(() => {
-    if (blocks.length === 0) return 0;
-    const progressUnits = blocks.reduce((acc, block, index) => {
-      if (block.status === 'COMPLETED') {
-        return index + 1;
-      }
-      if (block.status === 'CURRENT') {
-        return index + 0.6;
-      }
-      return acc;
-    }, 0);
-    return Math.min(100, (progressUnits / Math.max(blocks.length, 1)) * 100);
-  }, [blocks]);
-
-  const rowMinWidth = Math.max(blocks.length * 220, 640);
+  const totalItemCount = course.totalBlocks ?? Math.max(blocks.length, 1);
+  const progressPercent = Math.min(100, Math.round((course.completedBlocks / totalItemCount) * 100));
 
   return (
-    <article style={courseCardStyle}>
-      <header style={courseHeaderStyle}>
-        <div>
-          <h3 style={courseTitleStyle}>{course.name}</h3>
-          <p style={courseSubtitleStyle}>
-            {course.completedBlocks}/{course.totalBlocks ?? course.journeyBlocks.length} {itemName} completed
-          </p>
-        </div>
-      </header>
+    <div className="w-full">
+      {/* Course Title (Optional if multiple courses, helps distinguish them) */}
+      <h3 className="text-lg sm:text-xl font-bold text-slate-800 mb-4 sm:mb-6">{course.name}</h3>
 
-      <div style={mapWrapperStyle}>
-        <div style={{ minWidth: `${rowMinWidth}px` }}>
-          <div style={trackWrapperStyle}>
-            <div style={trackBaseStyle} />
-            <div
-              style={{
-                ...trackProgressStyle,
-                width: animate ? `${progressPercent}%` : '0%',
-              }}
-            />
+      {/* Progress Summary */}
+      <div className="mb-8 sm:mb-10 bg-blue-500/5 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-blue-500/10">
+        <div className="flex justify-between items-end mb-3">
+          <div>
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-blue-600">Kemajuan Belajar</span>
+            <p className="text-base sm:text-lg font-bold text-slate-900">
+              {course.completedBlocks} dari {totalItemCount} {itemName} Selesai
+            </p>
           </div>
-
-          <div style={{ ...nodesRowStyle, minWidth: `${rowMinWidth}px` }}>
-            {blocks.map((block, index) => (
-              <JourneyNode
-                key={`${course.classId}-${block.blockId}-${index}`}
-                block={block}
-                index={index}
-                isLast={index === blocks.length - 1}
-              />
-            ))}
-          </div>
+          <span className="text-blue-600 font-bold bg-blue-500/10 px-2.5 sm:px-3 py-1 rounded-full text-xs sm:text-sm">
+            {progressPercent}%
+          </span>
         </div>
-      </div>
-    </article>
-  );
-}
-
-function JourneyNode({ block, index, isLast }: { block: JourneyBlock; index: number; isLast: boolean }) {
-  const palette = STATUS_STYLE[block.status];
-  const isCurrent = block.status === 'CURRENT';
-
-  return (
-    <div style={nodeColumnStyle}>
-      <div style={nodeMarkerWrapperStyle}>
-        <div
-          style={{
-            ...nodeDotStyle,
-            background: palette.dot,
-            borderColor: palette.dotBorder,
-            animation: isCurrent ? 'journey-pulse 1400ms ease-out infinite' : undefined,
-          }}
-        >
-          {block.orderIndex != null ? block.orderIndex + 1 : index + 1}
+        <div className="w-full bg-slate-200 h-2 sm:h-3 rounded-full overflow-hidden">
+          <div
+            className="bg-blue-600 h-full rounded-full transition-all duration-1000 ease-out"
+            style={{ width: `${progressPercent}%` }}
+          ></div>
         </div>
-        {!isLast ? (
-          <div style={nodeConnectorStyle}>
-            <div
-              style={{
-                height: '100%',
-                width: '100%',
-                background:
-                  block.status === 'COMPLETED'
-                    ? 'linear-gradient(90deg, #22c55e 0%, #1e3a5f 100%)'
-                    : 'rgba(148, 163, 184, 0.4)',
-              }}
-            />
-          </div>
-        ) : null}
+        <p className="mt-3 sm:mt-4 text-xs sm:text-sm text-slate-600 flex items-center gap-2">
+          <Rocket className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 flex-shrink-0" />
+          Keren! {Math.max(0, totalItemCount - course.completedBlocks)} {itemName.toLowerCase()} lagi untuk menyelesaikan program ini!
+        </p>
       </div>
 
-      <div style={nodeCardStyle}>
-        <span
-          style={{
-            ...nodeStatusBadgeStyle,
-            background: palette.pillBg,
-            color: palette.pillText,
-          }}
-        >
-          {STATUS_LABEL[block.status]}
-        </span>
-        <strong style={{ color: '#0f172a', fontSize: '0.9rem' }}>{block.name}</strong>
-        <span style={{ fontSize: '0.75rem', color: '#475569' }}>
-          {new Date(block.startDate).toLocaleDateString()} – {new Date(block.endDate).toLocaleDateString()}
-        </span>
+      {/* Vertical Journey Path */}
+      <div className="relative space-y-0 pl-2">
+        {blocks.map((block, index) => {
+          const isLast = index === blocks.length - 1;
+          const isCompleted = block.status === 'COMPLETED';
+          const isCurrent = block.status === 'CURRENT';
+          const isUpcoming = block.status === 'UPCOMING';
+          const isFinalGoal = isLast && isUpcoming; // Often the last one acts as a trophy/goal if not yet reached
+
+          return (
+            <div key={`${course.classId}-${block.blockId}`} className={`relative flex gap-4 sm:gap-6 ${isLast ? '' : 'pb-8 sm:pb-12'} ${isUpcoming && !isFinalGoal ? 'opacity-60' : ''}`}>
+              {/* Connector Line */}
+              {!isLast && (
+                <div
+                  className={`absolute left-[19px] sm:left-[23px] top-[40px] sm:top-[48px] bottom-0 w-[3px] sm:w-[4px] ${isCompleted ? 'bg-blue-600' : 'border-l-2 sm:border-l-4 border-dashed border-slate-300'}`}
+                  style={isCurrent ? { top: '48px' } : undefined} // Adjust origin if current node is larger
+                ></div>
+              )}
+
+              {/* Icon Node */}
+              {isCompleted && (
+                <div className="relative z-10 flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-green-500 text-white flex-shrink-0 shadow-lg shadow-green-200">
+                  <CheckCircle2 strokeWidth={3} className="w-5 h-5 sm:w-7 sm:h-7" />
+                </div>
+              )}
+
+              {isCurrent && (
+                <div className="relative z-10 flex-shrink-0">
+                  <div className="absolute inset-0 rounded-full bg-blue-500/40 animate-ping"></div>
+                  <div className="relative flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-600 text-white shadow-xl shadow-blue-500/40 ring-4 ring-white">
+                    <PlayCircle className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" stroke="none" />
+                  </div>
+                </div>
+              )}
+
+              {isUpcoming && (
+                <div className="relative z-10 flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-200 text-slate-500 flex-shrink-0">
+                  {isFinalGoal ? <Trophy className="w-5 h-5 sm:w-6 sm:h-6" /> : <Lock strokeWidth={2.5} className="w-4 h-4 sm:w-5 sm:h-5" />}
+                </div>
+              )}
+
+              {/* Content Card */}
+              <div className={`flex-1 ${isCurrent ? 'p-4 sm:p-5 rounded-xl bg-blue-500/10 border-2 border-blue-500/30 -mt-1 sm:-mt-2' : 'pt-0.5 sm:pt-1'}`}>
+
+
+                {/* Status Badges */}
+                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                  {isCompleted && (
+                    <span className="text-[9px] sm:text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full uppercase tracking-wide">Selesai</span>
+                  )}
+                  {isCurrent && (
+                    <span className="text-[9px] sm:text-[10px] font-bold text-blue-700 bg-blue-500/20 px-2 py-0.5 rounded-full uppercase tracking-wide">Sedang Dipelajari</span>
+                  )}
+                  {/* Provide extra context for current node if possible */}
+                  {isCurrent && (
+                    <span className="text-[10px] sm:text-[11px] font-medium text-slate-500">• Lanjutkan Sesi</span>
+                  )}
+                </div>
+
+                <h4 className={`font-bold leading-tight ${isCurrent ? 'text-lg sm:text-xl font-extrabold text-slate-900 mb-1' : 'text-base sm:text-lg text-slate-800 mb-0.5'}`}>
+                  {itemName} {block.orderIndex != null ? block.orderIndex + 1 : index + 1}: {block.name}
+                </h4>
+
+                <p className={`text-xs sm:text-sm ${isCurrent ? 'text-slate-600 mb-3 sm:mb-4' : 'text-slate-500'}`}>
+                  {new Date(block.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} – {new Date(block.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                  {isUpcoming && !isFinalGoal && " • Selesaikan tahapan sebelumnya untuk membuka"}
+                  {isFinalGoal && " • Selesaikan projek akhir kamu!"}
+                </p>
+
+                {isCurrent && (
+                  <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-full font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shadow-lg shadow-blue-500/20 w-max mt-2">
+                    Lanjutkan Belajar
+                    <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={3} />
+                  </button>
+                )}
+              </div>
+
+            </div>
+          );
+        })}
       </div>
     </div>
   );
-}
-
-const sectionStyle: React.CSSProperties = {
-  background: '#ffffff',
-  borderRadius: '0.85rem',
-  border: '1px solid #e5e7eb',
-  padding: '1.5rem',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '1rem',
-};
-
-const sectionHeadingStyle: React.CSSProperties = {
-  fontSize: '1.2rem',
-  fontWeight: 600,
-  color: '#0f172a',
-};
-
-const sectionSubheadingStyle: React.CSSProperties = {
-  fontSize: '0.85rem',
-  color: '#64748b',
-};
-
-const courseCardStyle: React.CSSProperties = {
-  border: '1px solid #e2e8f0',
-  borderRadius: '0.8rem',
-  padding: '1.15rem',
-  background: '#f8fafc',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '1.1rem',
-};
-
-const courseHeaderStyle: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'baseline',
-  flexWrap: 'wrap',
-  gap: '0.75rem',
-};
-
-const courseTitleStyle: React.CSSProperties = {
-  fontSize: '1.05rem',
-  fontWeight: 600,
-  color: '#0f172a',
-};
-
-const courseSubtitleStyle: React.CSSProperties = {
-  fontSize: '0.8rem',
-  color: '#64748b',
-};
-
-const mapWrapperStyle: React.CSSProperties = {
-  overflowX: 'auto',
-  paddingBottom: '0.5rem',
-};
-
-const trackWrapperStyle: React.CSSProperties = {
-  position: 'relative',
-  height: '6px',
-  background: 'transparent',
-  margin: '0 0 2.5rem 0',
-  borderRadius: '999px',
-};
-
-const trackBaseStyle: React.CSSProperties = {
-  position: 'absolute',
-  inset: 0,
-  background: '#e2e8f0',
-  borderRadius: '999px',
-};
-
-const trackProgressStyle: React.CSSProperties = {
-  position: 'absolute',
-  inset: 0,
-  background: 'linear-gradient(90deg, #1e3a5f 0%, #22c55e 100%)',
-  borderRadius: '999px',
-  transition: 'width 900ms ease',
-};
-
-const nodesRowStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'flex-start',
-  gap: '1.5rem',
-  padding: '0 0.5rem',
-  minWidth: 'min(960px, 100%)',
-};
-
-const nodeColumnStyle: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  gap: '0.75rem',
-  minWidth: '180px',
-  flex: 1,
-};
-
-const nodeMarkerWrapperStyle: React.CSSProperties = {
-  position: 'relative',
-  width: '100%',
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-};
-
-const nodeDotStyle: React.CSSProperties = {
-  width: '40px',
-  height: '40px',
-  borderRadius: '999px',
-  borderWidth: '4px',
-  borderStyle: 'solid',
-  color: '#ffffff',
-  fontWeight: 700,
-  fontSize: '0.85rem',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  transition: 'transform 300ms ease, box-shadow 300ms ease',
-} as const;
-
-const nodeConnectorStyle: React.CSSProperties = {
-  position: 'absolute',
-  right: '-50%',
-  top: '50%',
-  transform: 'translateY(-50%)',
-  height: '4px',
-  width: '100%',
-  borderRadius: '999px',
-  overflow: 'hidden',
-};
-
-const nodeCardStyle: React.CSSProperties = {
-  background: '#ffffff',
-  border: '1px solid rgba(148, 163, 184, 0.3)',
-  borderRadius: '0.75rem',
-  padding: '0.85rem',
-  boxShadow: '0 12px 24px rgba(15, 23, 42, 0.08)',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.35rem',
-  width: '100%',
-};
-
-const nodeStatusBadgeStyle: React.CSSProperties = {
-  alignSelf: 'flex-start',
-  padding: '0.2rem 0.6rem',
-  borderRadius: '999px',
-  fontSize: '0.7rem',
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-};
-
-// Pulse animation for current node
-const pulseKeyframes = `
-  @keyframes journey-pulse {
-    0% { box-shadow: 0 0 0 0 rgba(37,99,235,0.4); }
-    70% { box-shadow: 0 0 0 18px rgba(37,99,235,0); }
-    100% { box-shadow: 0 0 0 0 rgba(37,99,235,0); }
-  }
-`;
-
-if (typeof document !== 'undefined' && !document.getElementById('journey-pulse-style')) {
-  const style = document.createElement('style');
-  style.id = 'journey-pulse-style';
-  style.innerHTML = pulseKeyframes;
-  document.head.appendChild(style);
 }

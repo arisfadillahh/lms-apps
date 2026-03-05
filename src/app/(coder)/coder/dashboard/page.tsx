@@ -124,11 +124,11 @@ export default async function CoderDashboardPage() {
             </div>
           ) : (
             <div className="w-full bg-gradient-to-br from-clevio-navy via-[#2A5082] to-[#1A2F4F] rounded-[2.5rem] overflow-hidden shadow-2xl shadow-clevio-navy/20 relative flex items-center min-h-[280px]">
-              <div className="p-10 md:p-16 z-10 w-full md:w-3/5">
+              <div className="p-8 md:p-12 z-10 w-full md:w-3/5">
                 <span className="inline-block px-4 py-1.5 bg-clevio-green/30 text-white rounded-full text-xs font-black uppercase tracking-widest mb-6 backdrop-blur-md">Pengumuman Seru!</span>
-                <h3 className="text-4xl md:text-5xl font-black text-white leading-[1.1] mb-4">Beasiswa Clevio 2026!</h3>
-                <p className="text-blue-100 text-lg mb-8 max-w-md font-semibold opacity-90">Ayo daftar sekarang dan raih mimpimu jadi jagoan IT masa depan!</p>
-                <button className="bg-clevio-green text-white px-10 py-4 rounded-2xl font-black text-base shadow-[0_6px_0_0_#5A9832] hover:translate-y-1 hover:shadow-[0_2px_0_0_#5A9832] transition-all active:translate-y-1.5 active:shadow-none">
+                <h3 className="text-3xl md:text-4xl font-black text-white leading-[1.1] mb-4">Beasiswa Clevio 2026!</h3>
+                <p className="text-blue-100 text-base mb-6 max-w-md font-semibold opacity-90">Ayo daftar sekarang dan raih mimpimu jadi jagoan IT masa depan!</p>
+                <button className="bg-clevio-green text-white px-8 py-3 rounded-2xl font-black text-sm shadow-[0_4px_0_0_#5A9832] hover:translate-y-1 hover:shadow-[0_2px_0_0_#5A9832] transition-all active:translate-y-1">
                   Daftar Sekarang
                 </button>
               </div>
@@ -146,8 +146,8 @@ export default async function CoderDashboardPage() {
             <section>
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h3 className="text-2xl font-black text-clevio-navy flex items-center gap-3">
-                    <span className="bg-orange-100 text-orange-600 p-2 rounded-xl"><Flame size={24} strokeWidth={3} /></span>
+                  <h3 className="text-xl font-black text-clevio-navy flex items-center gap-3">
+                    <span className="bg-orange-100 text-orange-600 p-2 rounded-xl"><Flame size={20} strokeWidth={3} /></span>
                     Lanjutkan Belajarmu
                   </h3>
                   <p className="text-slate-400 font-bold text-sm">Petualanganmu sedang berlangsung!</p>
@@ -160,53 +160,31 @@ export default async function CoderDashboardPage() {
 
               {activeBlock ? (
                 <div className="group bg-white rounded-[3rem] p-1 shadow-[0_20px_50px_rgba(0,0,0,0.04)] border-2 border-white/50 overflow-hidden">
-                  <div className="bg-pastel-blue/30 p-8 md:p-12 rounded-[2.8rem] relative overflow-hidden">
-                    <div className="flex flex-col gap-10 relative z-10">
+                  <div className="bg-pastel-blue/30 p-6 md:p-10 rounded-[2.5rem] relative overflow-hidden">
+                    {/* Ongoing Indicator */}
+                    <div className="absolute top-6 md:top-8 right-6 md:right-8 flex items-center gap-2.5 px-3 py-1.5 md:px-4 md:py-2 bg-white/90 backdrop-blur-md rounded-full shadow-sm z-20 border-2 border-clevio-green/20">
+                      <span className="relative flex size-2.5 md:size-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-clevio-green opacity-75"></span>
+                        <span className="relative inline-flex rounded-full size-full bg-clevio-green"></span>
+                      </span>
+                      <span className="text-[9px] md:text-[10px] font-black text-clevio-green uppercase tracking-widest mt-[1px]">On Going</span>
+                    </div>
 
-                      {/* Top: Image + Info */}
-                      <div className="flex flex-col md:flex-row gap-8 items-start">
-                        {/* Icon Box */}
-                        <div className="w-full md:w-56 aspect-[4/5] bg-white rounded-[2.5rem] flex items-center justify-center relative overflow-hidden shrink-0 shadow-xl border-4 border-white">
-                          <div className="absolute inset-0 bg-gradient-to-tr from-sky/10 to-transparent"></div>
-                          {activeBlock.classType === 'EKSKUL' ? <Brush size={64} className="text-sky opacity-30" /> : <Monitor size={64} className="text-sky opacity-30" />}
-                          <div className="absolute bottom-6 bg-sky text-white px-4 py-1 rounded-full text-xs font-black uppercase tracking-tighter">Current Step</div>
-                        </div>
+                    <div className="flex flex-col gap-8 relative z-10">
 
-                        {/* Info */}
-                        <div className="flex-1 w-full space-y-6">
-                          <div className="space-y-2">
-                            <div className="flex flex-wrap items-center gap-3">
-                              <span className="px-4 py-1.5 bg-pastel-blue text-clevio-navy text-[10px] font-black rounded-full uppercase tracking-widest border border-sky/30">
-                                Beginner Level
-                              </span>
-                            </div>
-                            <h4 className="text-4xl font-black text-clevio-navy">{activeBlock.className}</h4>
-                            <p className="text-xl font-bold text-slate-600 flex items-center gap-2">
-                              <BookOpen className="text-orange-600" size={22} strokeWidth={2.5} />
-                              {activeBlock.block.name}
-                            </p>
+                      {/* Top: Header Info */}
+                      <div className="flex-1 w-full space-y-6">
+                        <div className="space-y-3">
+                          <div className="flex flex-wrap items-center gap-3 pr-32">
+                            <span className="px-4 py-1.5 bg-pastel-blue text-clevio-navy text-[10px] font-black rounded-full uppercase tracking-widest border-2 border-sky/40 shadow-sm shadow-sky/20">
+                              BEGINNER LEVEL
+                            </span>
                           </div>
-
-                          {/* Mentor Bubble */}
-                          {activeBlock.coach && (
-                            <div className="flex items-end gap-4 mt-8">
-                              <div className="size-16 rounded-2xl bg-white border-2 border-pastel-pink shadow-sm overflow-hidden flex-shrink-0 relative">
-                                {activeBlock.coach.avatarUrl ? (
-                                  <img src={activeBlock.coach.avatarUrl} alt={activeBlock.coach.name} className="w-full h-full object-cover" />
-                                ) : (
-                                  <div className="absolute inset-0 bg-coral/10 flex items-center justify-center">
-                                    <span className="text-3xl font-bold text-orange-600">{activeBlock.coach.name.charAt(0)}</span>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="bg-white p-5 rounded-2xl rounded-bl-none shadow-sm border-2 border-pastel-blue relative">
-                                <p className="text-sm font-bold text-slate-700 italic leading-relaxed">
-                                  &quot;Halo {userName}! Hari ini kita akan belajar <strong className="text-sky">{nextLesson?.title || 'lanjutan materi sebelumnya'}</strong>. Semangat ya!&quot;
-                                </p>
-                                <p className="text-[10px] font-black text-orange-600 mt-2 uppercase tracking-widest">— Mentor {activeBlock.coach.name.split(' ')[0]}</p>
-                              </div>
-                            </div>
-                          )}
+                          <h4 className="text-4xl font-black text-clevio-navy pt-2 pr-12">{activeBlock.className}</h4>
+                          <p className="text-xl font-medium text-slate-600 flex items-center gap-3">
+                            <BookOpen className="text-orange-600" size={24} strokeWidth={2.5} />
+                            {activeBlock.block.name}
+                          </p>
                         </div>
                       </div>
 
@@ -215,7 +193,7 @@ export default async function CoderDashboardPage() {
                         <div className="space-y-4">
                           <h5 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
                             <ListChecks className="text-sky" size={18} />
-                            Ringkasan Materi
+                            Ringkasan Materi Sebelumnya
                           </h5>
                           {nextLesson?.summary ? (
                             <p className="text-sm font-bold text-slate-600 leading-relaxed">{nextLesson.summary}</p>
@@ -226,7 +204,7 @@ export default async function CoderDashboardPage() {
                         <div className="space-y-4">
                           <h5 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
                             <Zap className="text-orange-600" size={18} />
-                            Akses Slide
+                            Akses Slide Sesi Sebelumnya
                           </h5>
                           {nextLesson?.slideUrl ? (
                             <a
@@ -252,9 +230,9 @@ export default async function CoderDashboardPage() {
                         <div className="w-full md:w-1/2 space-y-2">
                           <div className="flex justify-between items-center text-xs font-black text-slate-400 uppercase tracking-widest">
                             <span>Current Progress</span>
-                            <span className="text-orange-600 text-lg">{activeProgressPct}%</span>
+                            <span className="text-orange-600 text-base">{activeProgressPct}%</span>
                           </div>
-                          <div className="w-full bg-white rounded-full h-4 p-1 shadow-inner">
+                          <div className="w-full bg-white rounded-full h-3 p-1 shadow-inner">
                             <div className="bg-gradient-to-r from-sky to-clevio-green h-full rounded-full transition-all duration-1000" style={{ width: `${activeProgressPct}%` }}></div>
                           </div>
                         </div>
@@ -270,7 +248,7 @@ export default async function CoderDashboardPage() {
                             schedule: activeBlock.schedule
                           }}
                           customTrigger={
-                            <button className="w-full md:w-auto bg-coral text-white px-12 py-4 rounded-2xl font-black text-lg shadow-[0_8px_0_0_#E86E7E] hover:translate-y-1 hover:shadow-[0_4px_0_0_#E86E7E] active:translate-y-2 active:shadow-none transition-all">
+                            <button className="w-full md:w-auto bg-coral text-white px-8 py-3 rounded-xl font-black text-base shadow-[0_6px_0_0_#E86E7E] hover:translate-y-1 hover:shadow-[0_2px_0_0_#E86E7E] active:translate-y-1.5 active:shadow-none transition-all">
                               Lanjut Belajar
                             </button>
                           }
@@ -291,8 +269,8 @@ export default async function CoderDashboardPage() {
             {/* ===== PERALATAN TEMPUR ===== */}
             {softwareList.length > 0 && (
               <section>
-                <h3 className="text-2xl font-black text-clevio-navy mb-6 flex items-center gap-3">
-                  <span className="bg-amber-100 text-amber-600 p-2 rounded-xl"><Pencil size={22} strokeWidth={3} /></span>
+                <h3 className="text-xl font-black text-clevio-navy mb-4 flex items-center gap-3">
+                  <span className="bg-amber-100 text-amber-600 p-2 rounded-xl"><Pencil size={20} strokeWidth={3} /></span>
                   Peralatan Tempur
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -319,13 +297,13 @@ export default async function CoderDashboardPage() {
                             sw.version ? `Versi ${sw.version}` : 'Aplikasi Required';
 
                     return (
-                      <div key={`${sw.id}-${idx}`} className={`bg-white border-4 ${theme.border} rounded-3xl p-6 flex items-center gap-5 shadow-[0_10px_0_0_rgba(0,0,0,0.05)] group ${theme.hoverBg} transition-colors`}>
-                        <div className={`size-16 ${theme.iconBg} rounded-2xl flex items-center justify-center shadow-inner ${theme.rotate} transition-transform`}>
+                      <div key={`${sw.id}-${idx}`} className={`bg-white border-4 ${theme.border} rounded-3xl p-5 flex items-center gap-4 shadow-[0_10px_0_0_rgba(0,0,0,0.05)] group ${theme.hoverBg} transition-colors`}>
+                        <div className={`size-14 ${theme.iconBg} rounded-2xl flex items-center justify-center shadow-inner ${theme.rotate} transition-transform`}>
                           <span className="text-clevio-navy">{swIcon}</span>
                         </div>
                         <div className="flex-1">
-                          <h5 className="font-black text-clevio-navy text-lg">{sw.name}</h5>
-                          <p className="text-sm font-bold text-slate-400">{subtitle}</p>
+                          <h5 className="font-black text-clevio-navy text-base">{sw.name}</h5>
+                          <p className="text-xs font-bold text-slate-400">{subtitle}</p>
                         </div>
                         <SoftwareDetailModal software={sw} customTrigger={
                           <button className={`size-12 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center ${theme.hoverBtn} transition-all shadow-sm`}>
@@ -342,10 +320,10 @@ export default async function CoderDashboardPage() {
 
           {/* ===== RIGHT COLUMN - TIMELINE ===== */}
           <div className="lg:col-span-4">
-            <div className="bg-white rounded-[3rem] border-4 border-dashed border-pastel-blue/30 p-8">
-              <div className="flex items-center justify-between mb-10">
-                <h3 className="text-2xl font-black text-clevio-navy">Materi Mendatang</h3>
-                <Star className="text-amber-500" size={22} />
+            <div className="bg-white rounded-[2.5rem] border-4 border-dashed border-pastel-blue/30 p-6">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-xl font-black text-clevio-navy">Materi Mendatang</h3>
+                <Star className="text-amber-500" size={20} />
               </div>
 
               <div className="space-y-6 relative mt-6">
@@ -365,16 +343,16 @@ export default async function CoderDashboardPage() {
                     return (
                       <div className="relative flex items-center gap-6" key={`${lesson.title}-${idx}`}>
                         {/* Icon Badge */}
-                        <div className={`shrink-0 size-16 bg-white border-4 ${scheme.border} rounded-3xl z-10 flex items-center justify-center shadow-lg -rotate-6`}>
+                        <div className={`shrink-0 size-14 bg-white border-4 ${scheme.border} rounded-2xl z-10 flex items-center justify-center shadow-lg -rotate-6`}>
                           {scheme.icon}
                         </div>
 
                         {/* Content Card */}
-                        <div className={`flex-1 bg-slate-50 p-6 rounded-[2rem] border-2 border-slate-100/60 ${isNext ? 'cursor-pointer bg-white border-slate-200 shadow-sm' : 'opacity-80'} transition-all group`}>
+                        <div className={`flex-1 bg-slate-50 p-5 rounded-3xl border-2 border-slate-100/60 ${isNext ? 'cursor-pointer bg-white border-slate-200 shadow-sm' : 'opacity-80'} transition-all group`}>
                           <div className="flex items-center gap-2 mb-2">
                             <span className={`text-[11px] font-black ${scheme.text} uppercase tracking-wider`}>{dateString}</span>
                           </div>
-                          <h5 className="font-black text-clevio-navy text-xl leading-tight">{lesson.title || 'Materi Belum Berjudul'}</h5>
+                          <h5 className="font-black text-clevio-navy text-lg leading-tight">{lesson.title || 'Materi Belum Berjudul'}</h5>
                           {isNext && (
                             <p className="text-sm font-bold text-slate-500 mt-2">Interaksi langsung bareng Mentor!</p>
                           )}
@@ -398,8 +376,8 @@ export default async function CoderDashboardPage() {
             </div>
           </div>
 
-        </div>
-      </div>
+        </div >
+      </div >
     </>
   );
 }

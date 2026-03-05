@@ -26,7 +26,7 @@ export default function UpcomingLessonsModal({ lessons }: UpcomingLessonsModalPr
                 onClick={() => setIsOpen(true)}
                 className="w-full py-5 rounded-[2.5rem] border-4 border-dashed border-pastel-blue/50 bg-white text-sm font-black text-slate-400 text-center hover:text-sky hover:border-sky/30 hover:bg-pastel-blue/20 transition-all uppercase tracking-widest cursor-pointer"
             >
-                Lihat Materi Block Saat Ini
+                Lihat Rute Block Saat Ini
             </button>
 
             <AnimatePresence>

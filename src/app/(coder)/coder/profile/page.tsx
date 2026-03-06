@@ -1,7 +1,7 @@
 import { getSessionOrThrow } from '@/lib/auth';
 import { getUserById } from '@/lib/dao/usersDao';
-import ProfileForm from '@/components/profile/ProfileForm';
-import CoderProfileForm from '@/components/profile/CoderProfileForm';
+import CoderSettingsAccordion from '@/components/profile/CoderSettingsAccordion';
+import { StaggerContainer, StaggerItem } from '../StaggerWrapper';
 
 export default async function CoderProfilePage() {
   const session = await getSessionOrThrow();
@@ -11,17 +11,11 @@ export default async function CoderProfilePage() {
     return <div>User not found</div>;
   }
 
-  // Map to frontend interface
-  const userProfile = {
+  // Unified Coder Profile Data
+  const unifiedProfile = {
     username: user.username,
     fullName: user.full_name,
     avatarPath: (user as any).avatar_path || null,
-    role: user.role
-  };
-
-  // Coder-specific profile data
-  const coderProfile = {
-    fullName: user.full_name,
     birthDate: user.birth_date || null,
     gender: user.gender || null,
     schoolName: user.school_name || null,
@@ -30,21 +24,13 @@ export default async function CoderProfilePage() {
     parentEmail: user.parent_email || null,
     parentContactPhone: user.parent_contact_phone || null,
     address: user.address || null,
-    referralSource: user.referral_source || null,
   };
 
   return (
-    <div style={{ width: '100%', padding: '2rem 1rem' }}>
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '1.875rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.5rem' }}>Profile & Keamanan</h1>
-        <p style={{ color: '#64748b' }}>Kelola informasi pribadi dan keamanan akun Anda</p>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-        <ProfileForm user={userProfile} />
-        <CoderProfileForm profile={coderProfile} />
-      </div>
-    </div>
+    <StaggerContainer className="flex-1 flex justify-center py-10 px-4 sm:px-10 overflow-y-auto">
+      <StaggerItem className="w-full flex justify-center">
+        <CoderSettingsAccordion profile={unifiedProfile} />
+      </StaggerItem>
+    </StaggerContainer>
   );
 }
-

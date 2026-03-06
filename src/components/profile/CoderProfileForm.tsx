@@ -1,8 +1,8 @@
 'use client';
 
-import type { CSSProperties } from 'react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { User, Calendar as CalendarIcon, MapPin, School, Users, AtSign, Phone, Link as LinkIcon, Save } from 'lucide-react';
 
 interface CoderProfile {
     fullName: string;
@@ -66,204 +66,181 @@ export default function CoderProfileForm({ profile }: { profile: CoderProfile })
     };
 
     return (
-        <form onSubmit={handleSubmit} style={formStyle}>
-            <h3 style={sectionTitleStyle}>📝 Data Pribadi</h3>
+        <form onSubmit={handleSubmit} className="bg-white rounded-[2.5rem] p-8 border-2 border-slate-50 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-sky/5 rounded-bl-full -z-10 transition-transform group-hover:scale-110"></div>
 
-            <div style={gridStyle}>
-                <div style={fieldStyle}>
-                    <label style={labelStyle}>Nama Lengkap *</label>
+            {/* PERSONAL DATA */}
+            <h3 className="text-xl font-black text-clevio-navy mb-6 pb-4 border-b-2 border-dashed border-pastel-blue/50 flex items-center gap-2">
+                <span className="p-2 bg-pastel-blue rounded-xl text-sky"><User size={20} /></span>
+                Data Pribadi
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-500 flex items-center gap-2">Nama Lengkap <span className="text-coral">*</span></label>
                     <input
                         type="text"
                         value={formData.fullName}
                         onChange={(e) => handleChange('fullName', e.target.value)}
-                        style={inputStyle}
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-3 text-clevio-navy font-bold focus:border-sky focus:bg-white focus:outline-none transition-all"
                         required
                     />
                 </div>
 
-                <div style={fieldStyle}>
-                    <label style={labelStyle}>Tanggal Lahir</label>
-                    <input
-                        type="date"
-                        value={formData.birthDate || ''}
-                        onChange={(e) => handleChange('birthDate', e.target.value)}
-                        style={inputStyle}
-                    />
+                <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-500 flex items-center gap-2">Tanggal Lahir</label>
+                    <div className="relative">
+                        <CalendarIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                            type="date"
+                            value={formData.birthDate || ''}
+                            onChange={(e) => handleChange('birthDate', e.target.value)}
+                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl pl-12 pr-5 py-3 text-clevio-navy font-bold focus:border-sky focus:bg-white focus:outline-none transition-all"
+                        />
+                    </div>
                 </div>
 
-                <div style={fieldStyle}>
-                    <label style={labelStyle}>Jenis Kelamin</label>
+                <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-500 flex items-center gap-2">Jenis Kelamin</label>
                     <select
                         value={formData.gender || ''}
                         onChange={(e) => handleChange('gender', e.target.value as 'MALE' | 'FEMALE' | null)}
-                        style={inputStyle}
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-3 text-clevio-navy font-bold focus:border-sky focus:bg-white focus:outline-none transition-all appearance-none cursor-pointer"
                     >
-                        <option value="">-- Pilih --</option>
+                        <option value="">Pilih Jenis Kelamin</option>
                         <option value="MALE">Laki-laki</option>
                         <option value="FEMALE">Perempuan</option>
                     </select>
                 </div>
 
-                <div style={fieldStyle}>
-                    <label style={labelStyle}>Nama Sekolah</label>
-                    <input
-                        type="text"
-                        value={formData.schoolName || ''}
-                        onChange={(e) => handleChange('schoolName', e.target.value)}
-                        placeholder="SDN 01, SMPN 02, dll"
-                        style={inputStyle}
-                    />
+                <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-500 flex items-center gap-2">Nama Sekolah</label>
+                    <div className="relative">
+                        <School size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                            type="text"
+                            value={formData.schoolName || ''}
+                            onChange={(e) => handleChange('schoolName', e.target.value)}
+                            placeholder="Contoh: SDN 01"
+                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl pl-12 pr-5 py-3 text-clevio-navy font-bold focus:border-sky focus:bg-white focus:outline-none transition-all"
+                        />
+                    </div>
                 </div>
 
-                <div style={fieldStyle}>
-                    <label style={labelStyle}>Kelas / Tingkat</label>
+                <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-500 flex items-center gap-2">Kelas / Tingkat Sekolah</label>
                     <input
                         type="text"
                         value={formData.schoolGrade || ''}
                         onChange={(e) => handleChange('schoolGrade', e.target.value)}
-                        placeholder="5 SD, 2 SMP, dll"
-                        style={inputStyle}
+                        placeholder="Contoh: 5 SD"
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-3 text-clevio-navy font-bold focus:border-sky focus:bg-white focus:outline-none transition-all"
                     />
                 </div>
             </div>
 
-            <h3 style={{ ...sectionTitleStyle, marginTop: '1.5rem' }}>👨‍👩‍👧 Data Orang Tua / Wali</h3>
 
-            <div style={gridStyle}>
-                <div style={fieldStyle}>
-                    <label style={labelStyle}>Nama Orang Tua</label>
+            {/* PARENT DATA */}
+            <h3 className="text-xl font-black text-clevio-navy mb-6 pb-4 border-b-2 border-dashed border-pastel-pink/50 flex items-center gap-2">
+                <span className="p-2 bg-pastel-pink rounded-xl text-coral"><Users size={20} /></span>
+                Data Orang Tua / Wali
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-500 flex items-center gap-2">Nama Orang Tua</label>
                     <input
                         type="text"
                         value={formData.parentName || ''}
                         onChange={(e) => handleChange('parentName', e.target.value)}
-                        style={inputStyle}
+                        placeholder="Nama Ayah/Ibu/Wali"
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-3 text-clevio-navy font-bold focus:border-coral focus:bg-white focus:outline-none transition-all"
                     />
                 </div>
 
-                <div style={fieldStyle}>
-                    <label style={labelStyle}>Email Orang Tua</label>
-                    <input
-                        type="email"
-                        value={formData.parentEmail || ''}
-                        onChange={(e) => handleChange('parentEmail', e.target.value)}
-                        placeholder="email@contoh.com"
-                        style={inputStyle}
-                    />
+                <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-500 flex items-center gap-2">Nomor HP / WhatsApp</label>
+                    <div className="relative">
+                        <Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                            type="tel"
+                            value={formData.parentContactPhone || ''}
+                            onChange={(e) => handleChange('parentContactPhone', e.target.value)}
+                            placeholder="08123456789"
+                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl pl-12 pr-5 py-3 text-clevio-navy font-bold focus:border-coral focus:bg-white focus:outline-none transition-all"
+                        />
+                    </div>
                 </div>
 
-                <div style={fieldStyle}>
-                    <label style={labelStyle}>No. HP Orang Tua</label>
-                    <input
-                        type="tel"
-                        value={formData.parentContactPhone || ''}
-                        onChange={(e) => handleChange('parentContactPhone', e.target.value)}
-                        placeholder="08xxxxxxxxxx"
-                        style={inputStyle}
-                    />
+                <div className="space-y-2 md:col-span-2">
+                    <label className="text-sm font-bold text-slate-500 flex items-center gap-2">Email Orang Tua</label>
+                    <div className="relative">
+                        <AtSign size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                            type="email"
+                            value={formData.parentEmail || ''}
+                            onChange={(e) => handleChange('parentEmail', e.target.value)}
+                            placeholder="email@contoh.com"
+                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl pl-12 pr-5 py-3 text-clevio-navy font-bold focus:border-coral focus:bg-white focus:outline-none transition-all"
+                        />
+                    </div>
                 </div>
 
-                <div style={{ ...fieldStyle, gridColumn: '1 / -1' }}>
-                    <label style={labelStyle}>Alamat</label>
-                    <textarea
-                        value={formData.address || ''}
-                        onChange={(e) => handleChange('address', e.target.value)}
-                        rows={2}
-                        style={{ ...inputStyle, resize: 'vertical' }}
-                    />
+                <div className="space-y-2 md:col-span-2">
+                    <label className="text-sm font-bold text-slate-500 flex items-center gap-2">Alamat Lengkap</label>
+                    <div className="relative">
+                        <MapPin size={18} className="absolute left-4 top-4 text-slate-400" />
+                        <textarea
+                            value={formData.address || ''}
+                            onChange={(e) => handleChange('address', e.target.value)}
+                            rows={3}
+                            placeholder="Alamat rumah"
+                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl pl-12 pr-5 py-3 text-clevio-navy font-bold focus:border-coral focus:bg-white focus:outline-none transition-all resize-none"
+                        />
+                    </div>
                 </div>
 
-                <div style={fieldStyle}>
-                    <label style={labelStyle}>Dari Mana Tahu Clevio?</label>
-                    <select
-                        value={formData.referralSource || ''}
-                        onChange={(e) => handleChange('referralSource', e.target.value)}
-                        style={inputStyle}
-                    >
-                        <option value="">-- Pilih --</option>
-                        <option value="INSTAGRAM">Instagram</option>
-                        <option value="FACEBOOK">Facebook</option>
-                        <option value="TIKTOK">TikTok</option>
-                        <option value="YOUTUBE">YouTube</option>
-                        <option value="GOOGLE">Google</option>
-                        <option value="FRIEND">Teman/Keluarga</option>
-                        <option value="SCHOOL">Sekolah</option>
-                        <option value="OTHER">Lainnya</option>
-                    </select>
+                <div className="space-y-2 md:col-span-2">
+                    <label className="text-sm font-bold text-slate-500 flex items-center gap-2">Tahu Clevio dari mana?</label>
+                    <div className="relative">
+                        <LinkIcon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <select
+                            value={formData.referralSource || ''}
+                            onChange={(e) => handleChange('referralSource', e.target.value)}
+                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl pl-12 pr-5 py-3 text-clevio-navy font-bold focus:border-coral focus:bg-white focus:outline-none transition-all appearance-none cursor-pointer"
+                        >
+                            <option value="">-- Pilih --</option>
+                            <option value="INSTAGRAM">Instagram</option>
+                            <option value="FACEBOOK">Facebook</option>
+                            <option value="TIKTOK">TikTok</option>
+                            <option value="YOUTUBE">YouTube</option>
+                            <option value="GOOGLE">Pencarian Google</option>
+                            <option value="FRIEND">Teman/Keluarga</option>
+                            <option value="SCHOOL">Sekolah</option>
+                            <option value="OTHER">Lainnya</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
+            {/* MESSAGE */}
             {message && (
-                <div
-                    style={{
-                        padding: '0.75rem',
-                        borderRadius: '0.5rem',
-                        marginTop: '1rem',
-                        background: message.type === 'success' ? '#f0fdf4' : '#fef2f2',
-                        color: message.type === 'success' ? '#15803d' : '#b91c1c',
-                        fontWeight: 500,
-                    }}
-                >
+                <div className={`mb-6 p-4 rounded-2xl flex items-center gap-3 font-bold text-sm border-2 ${message.type === 'success' ? 'bg-pastel-green text-clevio-green border-clevio-green/20' : 'bg-pastel-pink text-coral border-coral/20'}`}>
                     {message.text}
                 </div>
             )}
 
-            <button type="submit" disabled={isSubmitting} style={buttonStyle}>
-                {isSubmitting ? 'Menyimpan...' : 'Simpan Data Profil'}
-            </button>
+            {/* SUBMIT BUTTON */}
+            <div className="flex justify-end pt-4 border-t-2 border-dashed border-slate-100">
+                <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex items-center gap-2 bg-clevio-green text-white px-8 py-4 rounded-2xl font-black text-sm shadow-[0_4px_0_0_#5A9832] hover:translate-y-1 hover:shadow-[0_2px_0_0_#5A9832] focus:translate-y-1 focus:shadow-[0_2px_0_0_#5A9832] active:translate-y-2 active:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <Save size={18} />
+                    {isSubmitting ? 'MENYIMPAN...' : 'SIMPAN DATA PROFIL'}
+                </button>
+            </div>
         </form>
     );
 }
-
-const formStyle: CSSProperties = {
-    background: '#fff',
-    borderRadius: '1rem',
-    padding: '1.5rem',
-    border: '1px solid #e2e8f0',
-    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-};
-
-const sectionTitleStyle: CSSProperties = {
-    fontSize: '1rem',
-    fontWeight: 600,
-    color: '#1e293b',
-    marginBottom: '1rem',
-};
-
-const gridStyle: CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: '1rem',
-};
-
-const fieldStyle: CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.25rem',
-};
-
-const labelStyle: CSSProperties = {
-    fontSize: '0.85rem',
-    fontWeight: 500,
-    color: '#475569',
-};
-
-const inputStyle: CSSProperties = {
-    padding: '0.5rem 0.75rem',
-    borderRadius: '0.5rem',
-    border: '1px solid #cbd5e1',
-    fontSize: '0.9rem',
-    color: '#0f172a',
-};
-
-const buttonStyle: CSSProperties = {
-    marginTop: '1.5rem',
-    padding: '0.75rem 1.5rem',
-    borderRadius: '0.5rem',
-    border: 'none',
-    background: '#1e3a5f',
-    color: '#fff',
-    fontSize: '0.9rem',
-    fontWeight: 600,
-    cursor: 'pointer',
-    width: '100%',
-};

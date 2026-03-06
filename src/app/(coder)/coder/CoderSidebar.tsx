@@ -42,6 +42,7 @@ export default function CoderSidebar({ session }: CoderSidebarProps) {
                             <Link
                                 key={link.href}
                                 href={link.href}
+                                prefetch={true}
                                 className={`flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all hover:scale-105 ${isActive
                                     ? `${link.activeBg} ${link.activeText}`
                                     : `text-slate-500 ${link.hoverBg} ${link.hoverText}`

@@ -6,6 +6,7 @@ export type CoderClassProgress = {
   classId: string;
   name: string;
   type: 'WEEKLY' | 'EKSKUL';
+  levelName?: string | null;
   currentBlockName?: string | null;
   upcomingBlockName?: string | null;
   upNext?: {
@@ -110,6 +111,15 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
         }
       }
 
+      // Fetch Level Name
+      let levelName: string | null = null;
+      if (klass.level_id) {
+        const { data: levelData } = await supabase.from('levels').select('name').eq('id', klass.level_id).maybeSingle();
+        if (levelData) {
+          levelName = levelData.name;
+        }
+      }
+
       // --- EKSKUL HANDLING ---
       if (klass.type === 'EKSKUL') {
         let upNext: CoderClassProgress['upNext'] = null;
@@ -203,6 +213,7 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
           classId: klass.id,
           name: klass.name,
           type: klass.type,
+          levelName,
           currentBlockName: upNext?.name ?? null,
           upcomingBlockName: null,
           upNext,
@@ -389,6 +400,7 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
         classId: klass.id,
         name: klass.name,
         type: klass.type,
+        levelName,
         currentBlockName: currentBlock?.block_name ?? null,
         upcomingBlockName: upcomingBlock?.block_name ?? null,
         upNext,

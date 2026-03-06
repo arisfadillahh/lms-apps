@@ -68,9 +68,25 @@ export default async function CoderDashboardPage() {
   // Get the first active block
   const activeBlock = upcomingBlocks[0] || null;
   const nextLesson = activeBlock?.block.lessons?.find((l: any) => l.status === 'NEXT');
-  const completedLessons = activeBlock?.block.lessons?.filter((l: any) => l.status === 'COMPLETED').length || 0;
+
+  // Get the last completed lesson for summary and slides
+  const completedLessonsArr = activeBlock?.block.lessons?.filter((l: any) => l.status === 'COMPLETED') || [];
+  const lastCompletedLesson = completedLessonsArr.length > 0 ? completedLessonsArr[completedLessonsArr.length - 1] : null;
+
+  const completedLessons = completedLessonsArr.length;
   const totalLessons = activeBlock?.block.lessons?.length || 1;
   const activeProgressPct = Math.round((completedLessons / totalLessons) * 100);
+
+  // All lessons in current active blocks (for the modal)
+  const allLessonsInCurrentBlocks = upcomingBlocks
+    .flatMap(b =>
+      (b.block.lessons || []).map((l: any) => ({ ...l, className: b.className }))
+    )
+    .sort((a: any, b: any) => {
+      const dateA = a.scheduledAt?.[0] ? new Date(a.scheduledAt[0]).getTime() : Infinity;
+      const dateB = b.scheduledAt?.[0] ? new Date(b.scheduledAt[0]).getTime() : Infinity;
+      return dateA - dateB;
+    });
 
   // Upcoming lessons for the timeline — flat list of all next sessions across all classes
   const allUpcomingLessons = upcomingBlocks
@@ -91,14 +107,27 @@ export default async function CoderDashboardPage() {
   const softwareList = upcomingBlocks.flatMap(b => b.block.software || []).slice(0, 4);
 
   // Journey courses for the modal
-  const journeyCourses = journeyProgress.map((item) => ({
-    classId: item.classId,
-    name: item.name,
-    classType: item.type,
-    journeyBlocks: item.journeyBlocks,
-    completedBlocks: item.completedBlocks,
-    totalBlocks: item.totalBlocks || item.journeyBlocks.length,
-  }));
+  const journeyCourses = journeyProgress.map((item) => {
+    let currentBlockProgress = 0;
+
+    const currentJourneyBlock = item.journeyBlocks.find(b => b.status === 'CURRENT');
+    if (currentJourneyBlock && item.upNext && item.upNext.blockId === currentJourneyBlock.blockId && item.upNext.lessons) {
+      const completed = item.upNext.lessons.filter((l: any) => l.status === 'COMPLETED').length;
+      const total = item.upNext.lessons.length || 1;
+      currentBlockProgress = Math.round((completed / total) * 100);
+    }
+
+    return {
+      classId: item.classId,
+      name: item.name,
+      levelName: item.levelName,
+      classType: item.type,
+      currentBlockProgress,
+      journeyBlocks: item.journeyBlocks,
+      completedBlocks: item.completedBlocks,
+      totalBlocks: item.totalBlocks || item.journeyBlocks.length,
+    };
+  });
 
   return (
     <>
@@ -195,10 +224,10 @@ export default async function CoderDashboardPage() {
                             <ListChecks className="text-sky" size={18} />
                             Ringkasan Materi Sebelumnya
                           </h5>
-                          {nextLesson?.summary ? (
-                            <p className="text-sm font-bold text-slate-600 leading-relaxed">{nextLesson.summary}</p>
+                          {lastCompletedLesson?.summary ? (
+                            <p className="text-sm font-bold text-slate-600 leading-relaxed">{lastCompletedLesson.summary}</p>
                           ) : (
-                            <p className="text-sm font-bold text-slate-400 italic">Belum ada ringkasan untuk materi ini.</p>
+                            <p className="text-sm font-bold text-slate-400 italic">Belum ada ringkasan untuk materi sebelumnya.</p>
                           )}
                         </div>
                         <div className="space-y-4">
@@ -206,9 +235,9 @@ export default async function CoderDashboardPage() {
                             <Zap className="text-orange-600" size={18} />
                             Akses Slide Sesi Sebelumnya
                           </h5>
-                          {nextLesson?.slideUrl ? (
+                          {lastCompletedLesson?.slideUrl ? (
                             <a
-                              href={nextLesson.slideUrl}
+                              href={lastCompletedLesson.slideUrl}
                               target="_blank"
                               rel="noreferrer"
                               className="flex items-center justify-between p-4 bg-pastel-blue hover:bg-sky hover:text-white rounded-2xl border-2 border-sky/20 transition-all group/link"
@@ -371,7 +400,7 @@ export default async function CoderDashboardPage() {
               </div>
 
               <div className="mt-8 px-4 relative z-20">
-                <UpcomingLessonsModal lessons={allUpcomingLessons} />
+                <UpcomingLessonsModal lessons={allLessonsInCurrentBlocks} />
               </div>
             </div>
           </div>

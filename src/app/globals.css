@@ -135,3 +135,13 @@
     background-position: -200% 0;
   }
 }
+
+/* Hide scrollbar while keeping scroll behavior */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

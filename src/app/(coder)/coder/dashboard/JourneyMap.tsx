@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo } from 'react';
-import { Rocket, CheckCircle2, PlayCircle, Lock, Trophy, ArrowRight } from 'lucide-react';
+import { useMemo, useRef } from 'react';
+import { CheckCircle2, Lock, Rocket, Trophy, ChevronLeft, ChevronRight } from 'lucide-react';
 
 type JourneyBlock = {
   blockId: string;
@@ -16,147 +16,282 @@ export type JourneyCourse = {
   classId: string;
   name: string;
   classType?: 'WEEKLY' | 'EKSKUL';
+  levelName?: string | null;
+  currentBlockProgress: number;
   completedBlocks: number;
   totalBlocks: number | null;
   journeyBlocks: JourneyBlock[];
 };
 
-type JourneyMapProps = {
-  courses: JourneyCourse[];
-};
+// ── Layout constants ──────────────────────────────────────────────────────────
+const COL_W = 280;   // px per node column
+const PAD_X = 80;    // horizontal padding
+const HIGH_CY = 95;   // bubble-centre Y for even nodes
+const LOW_CY = 230;  // bubble-centre Y for odd nodes
+const MAP_H = 410;  // total map height
 
-export default function JourneyMap({ courses }: JourneyMapProps) {
-  if (courses.length === 0) {
-    return null;
-  }
-
+export default function JourneyMap({ courses }: { courses: JourneyCourse[] }) {
+  if (courses.length === 0) return null;
   return (
-    <div className="flex flex-col gap-6 sm:gap-12 px-5 py-4 sm:px-8 sm:py-6 w-full max-w-2xl mx-auto">
-      {courses.map((course) => (
-        <CourseJourney key={course.classId} course={course} />
-      ))}
+    <div className="flex flex-col gap-10 py-4 w-full">
+      {courses.map((c) => <CourseJourney key={c.classId} course={c} />)}
     </div>
   );
 }
 
 function CourseJourney({ course }: { course: JourneyCourse }) {
   const blocks = course.journeyBlocks;
-  const isEkskul = course.classType === 'EKSKUL';
-  const itemName = isEkskul ? 'Sesi' : 'Blok';
+  const itemName = course.classType === 'EKSKUL' ? 'Sesi' : 'Blok';
+  const total = course.totalBlocks ?? Math.max(blocks.length, 1);
+  const journeyPct = Math.min(100, Math.round((course.completedBlocks / total) * 100));
+  const blockPct = course.currentBlockProgress || 0;
+  const totalWidth = PAD_X * 2 + blocks.length * COL_W;
 
-  const totalItemCount = course.totalBlocks ?? Math.max(blocks.length, 1);
-  const progressPercent = Math.min(100, Math.round((course.completedBlocks / totalItemCount) * 100));
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollMap = (offset: number) => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+    }
+  };
+
+  // Node centre coordinates
+  const nodes = useMemo(() =>
+    blocks.map((_, i) => ({
+      cx: PAD_X + i * COL_W + COL_W / 2,
+      cy: i % 2 === 0 ? HIGH_CY : LOW_CY,
+    })), [blocks]);
+
+  // Full dashed background path
+  const fullPath = useMemo(() => {
+    if (nodes.length < 2) return '';
+    let d = `M ${nodes[0].cx},${nodes[0].cy}`;
+    for (let i = 1; i < nodes.length; i++) {
+      const { cx: x0, cy: y0 } = nodes[i - 1];
+      const { cx: x1, cy: y1 } = nodes[i];
+      const mx = (x0 + x1) / 2;
+      d += ` C ${mx},${y0} ${mx},${y1} ${x1},${y1}`;
+    }
+    return d;
+  }, [nodes]);
+
+  // Solid green path for completed+current nodes
+  const donePath = useMemo(() => {
+    let last = -1;
+    blocks.forEach((b, i) => { if (b.status !== 'UPCOMING') last = i; });
+    if (nodes.length < 2 || last < 1) return '';
+    let d = `M ${nodes[0].cx},${nodes[0].cy}`;
+    for (let i = 1; i <= Math.min(last, nodes.length - 1); i++) {
+      const { cx: x0, cy: y0 } = nodes[i - 1];
+      const { cx: x1, cy: y1 } = nodes[i];
+      const mx = (x0 + x1) / 2;
+      d += ` C ${mx},${y0} ${mx},${y1} ${x1},${y1}`;
+    }
+    return d;
+  }, [nodes, blocks]);
 
   return (
-    <div className="w-full">
-      {/* Course Title (Optional if multiple courses, helps distinguish them) */}
-      <h3 className="text-lg sm:text-xl font-bold text-slate-800 mb-4 sm:mb-6">{course.name}</h3>
-
-      {/* Progress Summary */}
-      <div className="mb-8 sm:mb-10 bg-blue-500/5 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-blue-500/10">
-        <div className="flex justify-between items-end mb-3">
-          <div>
-            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-blue-600">Kemajuan Belajar</span>
-            <p className="text-base sm:text-lg font-bold text-slate-900">
-              {course.completedBlocks} dari {totalItemCount} {itemName} Selesai
-            </p>
-          </div>
-          <span className="text-blue-600 font-bold bg-blue-500/10 px-2.5 sm:px-3 py-1 rounded-full text-xs sm:text-sm">
-            {progressPercent}%
-          </span>
-        </div>
-        <div className="w-full bg-slate-200 h-2 sm:h-3 rounded-full overflow-hidden">
-          <div
-            className="bg-blue-600 h-full rounded-full transition-all duration-1000 ease-out"
-            style={{ width: `${progressPercent}%` }}
-          ></div>
-        </div>
-        <p className="mt-3 sm:mt-4 text-xs sm:text-sm text-slate-600 flex items-center gap-2">
-          <Rocket className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 flex-shrink-0" />
-          Keren! {Math.max(0, totalItemCount - course.completedBlocks)} {itemName.toLowerCase()} lagi untuk menyelesaikan program ini!
-        </p>
+    <div className="w-full relative group">
+      {/* Scroll Navigators */}
+      <div className="absolute inset-y-0 left-0 flex items-center w-16 z-20 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <button
+          onClick={() => scrollMap(-300)}
+          className="pointer-events-auto ml-2 md:ml-4 size-10 bg-white/90 hover:bg-white rounded-full shadow-sm shadow-sky-900/20 flex items-center justify-center text-sky-600 border-none outline-none transition-transform hover:scale-110 active:scale-95"
+        >
+          <ChevronLeft size={24} />
+        </button>
       </div>
 
-      {/* Vertical Journey Path */}
-      <div className="relative space-y-0 pl-2">
-        {blocks.map((block, index) => {
-          const isLast = index === blocks.length - 1;
-          const isCompleted = block.status === 'COMPLETED';
-          const isCurrent = block.status === 'CURRENT';
-          const isUpcoming = block.status === 'UPCOMING';
-          const isFinalGoal = isLast && isUpcoming; // Often the last one acts as a trophy/goal if not yet reached
+      <div className="absolute inset-y-0 right-0 flex items-center justify-end w-16 z-20 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <button
+          onClick={() => scrollMap(300)}
+          className="pointer-events-auto mr-2 md:mr-4 size-10 bg-white/90 hover:bg-white rounded-full shadow-sm shadow-sky-900/20 flex items-center justify-center text-sky-600 border-none outline-none transition-transform hover:scale-110 active:scale-95"
+        >
+          <ChevronRight size={24} />
+        </button>
+      </div>
 
-          return (
-            <div key={`${course.classId}-${block.blockId}`} className={`relative flex gap-4 sm:gap-6 ${isLast ? '' : 'pb-8 sm:pb-12'} ${isUpcoming && !isFinalGoal ? 'opacity-60' : ''}`}>
-              {/* Connector Line */}
-              {!isLast && (
-                <div
-                  className={`absolute left-[19px] sm:left-[23px] top-[40px] sm:top-[48px] bottom-0 w-[3px] sm:w-[4px] ${isCompleted ? 'bg-blue-600' : 'border-l-2 sm:border-l-4 border-dashed border-slate-300'}`}
-                  style={isCurrent ? { top: '48px' } : undefined} // Adjust origin if current node is larger
-                ></div>
-              )}
+      {/* ── Scrollable sky map ──────────────────────────────────────────── */}
+      <div
+        ref={scrollRef}
+        className="overflow-x-auto no-scrollbar px-6 md:px-10"
+      >
+        <div
+          className="relative"
+          style={{ width: totalWidth, height: MAP_H }}
+        >
+          {/* SVG: S-curve paths */}
+          <svg
+            className="absolute inset-0 pointer-events-none"
+            style={{ zIndex: 0 }}
+            width={totalWidth}
+            height={MAP_H}
+          >
+            {/* Dashed white background path */}
+            {fullPath && (
+              <path
+                d={fullPath}
+                fill="none"
+                stroke="white"
+                strokeOpacity="0.65"
+                strokeWidth="10"
+                strokeDasharray="16 12"
+                strokeLinecap="round"
+              />
+            )}
+            {/* Solid green completed path */}
+            {donePath && (
+              <path
+                d={donePath}
+                fill="none"
+                stroke="#5A9832"
+                strokeOpacity="0.85"
+                strokeWidth="10"
+                strokeLinecap="round"
+              />
+            )}
+          </svg>
 
-              {/* Icon Node */}
-              {isCompleted && (
-                <div className="relative z-10 flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-green-500 text-white flex-shrink-0 shadow-lg shadow-green-200">
-                  <CheckCircle2 strokeWidth={3} className="w-5 h-5 sm:w-7 sm:h-7" />
+          {/* ── Nodes ──────────────────────────────────────────────────── */}
+          {blocks.map((block, i) => {
+            const { cx, cy } = nodes[i];
+            const isCompleted = block.status === 'COMPLETED';
+            const isCurrent = block.status === 'CURRENT';
+            const isUpcoming = block.status === 'UPCOMING';
+            const isLast = i === blocks.length - 1;
+            const isTrophy = isLast && isUpcoming;
+
+            const BUBBLE_R = isCurrent ? 48 : 36;
+            const bSize = BUBBLE_R * 2;
+
+            const bubLeft = cx - BUBBLE_R;
+            const bubTop = cy - BUBBLE_R;
+            const cardTop = cy + BUBBLE_R + (isCurrent ? 26 : 16);
+
+            return (
+              <div
+                key={block.blockId}
+                className="absolute"
+                style={{ top: 0, left: 0, width: 0, height: 0, zIndex: 10 }}
+              >
+                {/* ── Bubble ─────────────────────────────────────────── */}
+                <div className="absolute" style={{ left: bubLeft, top: bubTop }}>
+                  {/* Pulse ring for current */}
+                  {isCurrent && (
+                    <span
+                      className="absolute rounded-full bg-white/50 animate-ping"
+                      style={{ inset: -10, zIndex: -1 }}
+                    />
+                  )}
+                  <div
+                    className={`flex items-center justify-center rounded-full border-[6px] border-white shadow-xl transition-transform duration-300 hover:-translate-y-2
+                      ${isCurrent
+                        ? 'bg-[#0ea5e9] shadow-[0_12px_40px_-8px_rgba(14,165,233,0.5)]'
+                        : isCompleted
+                          ? 'bg-[#5A9832] shadow-[0_8px_24px_-6px_rgba(90,152,50,0.45)]'
+                          : 'bg-white/50 backdrop-blur-md border-white/70 shadow-sm'
+                      }`}
+                    style={{ width: bSize, height: bSize }}
+                  >
+                    {isCompleted && <CheckCircle2 className="text-white" size={28} strokeWidth={2.5} />}
+                    {isCurrent && <Rocket className="text-white" size={32} strokeWidth={2} />}
+                    {isUpcoming && (isTrophy
+                      ? <Trophy className="text-amber-400" size={26} strokeWidth={2} />
+                      : <Lock className="text-slate-400/70" size={22} strokeWidth={2.5} />
+                    )}
+                  </div>
+
+                  {/* Completed gem badge */}
+                  {isCompleted && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap bg-[#5A9832] text-white text-[8px] font-black px-2 py-0.5 rounded-full border-2 border-white shadow-md uppercase tracking-wide">
+                      ✓ Selesai
+                    </div>
+                  )}
                 </div>
-              )}
 
-              {isCurrent && (
-                <div className="relative z-10 flex-shrink-0">
-                  <div className="absolute inset-0 rounded-full bg-blue-500/40 animate-ping"></div>
-                  <div className="relative flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-600 text-white shadow-xl shadow-blue-500/40 ring-4 ring-white">
-                    <PlayCircle className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" stroke="none" />
+                {/* ── Card ───────────────────────────────────────────── */}
+                <div
+                  className={`absolute text-center rounded-[1.5rem] border-2 transition-transform duration-300 overflow-hidden
+                    ${isCurrent
+                      ? 'bg-white border-sky/30 shadow-[0_12px_36px_-6px_rgba(14,165,233,0.25)] scale-[1.05]'
+                      : isCompleted
+                        ? 'bg-white/75 backdrop-blur-md border-white/60 shadow-sm'
+                        : 'bg-white/35 backdrop-blur-sm border-dashed border-white/40 opacity-70'
+                    }`}
+                  style={{ left: cx - 110, top: cardTop, width: 220 }}
+                >
+
+
+                  <div className="p-4">
+                    {/* On-going badge — clean pill at top of card */}
+                    {isCurrent && (
+                      <span className="inline-block mb-2 px-3 py-0.5 bg-sky/10 text-[#0ea5e9] text-[9px] font-black uppercase tracking-widest rounded-full border border-sky/20">
+                        Dalam Perjalanan 🚀
+                      </span>
+                    )}
+                    {/* Quest label */}
+                    <span className={`text-[9px] font-black uppercase tracking-widest block mb-1
+                      ${isCurrent ? 'text-[#0ea5e9]' : isCompleted ? 'text-[#5A9832]' : 'text-slate-400'}`}
+                    >
+                      {isLast && isUpcoming ? 'Final Quest' : `${itemName} ${(block.orderIndex != null ? block.orderIndex : i) + 1}`}
+                    </span>
+
+                    {/* Block name */}
+                    <h4 className={`font-black text-sm leading-tight
+                      ${isCurrent ? 'text-sky-950' : isCompleted ? 'text-slate-700' : 'text-slate-400'}`}
+                    >
+                      {block.name}
+                    </h4>
+
+                    {/* Date range */}
+                    <p className="text-[10px] font-bold text-slate-400 mt-1.5">
+                      {new Date(block.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                      {' – '}
+                      {new Date(block.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                    </p>
+
+                    {/* Progress bar — only for CURRENT block */}
+                    {isCurrent && (
+                      <div className="mt-3 pt-3 border-t border-slate-100">
+                        <div className="flex justify-between items-center text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
+                          <span>Progress Blok</span>
+                          <span className="text-[#0ea5e9]">{blockPct}%</span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden shadow-inner">
+                          <div
+                            className="bg-gradient-to-r from-[#0ea5e9] to-[#5A9832] h-full rounded-full transition-all duration-1000 shadow-sm"
+                            style={{ width: `${blockPct}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Locked hint */}
+                    {isUpcoming && !isTrophy && (
+                      <p className="text-[9px] text-slate-400 mt-2 font-bold">
+                        Selesaikan tahap sebelumnya 🔒
+                      </p>
+                    )}
+                    {isTrophy && (
+                      <p className="text-[9px] text-amber-500 mt-2 font-bold">
+                        Selesaikan projek akhir kamu! 🏆
+                      </p>
+                    )}
                   </div>
                 </div>
-              )}
-
-              {isUpcoming && (
-                <div className="relative z-10 flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-200 text-slate-500 flex-shrink-0">
-                  {isFinalGoal ? <Trophy className="w-5 h-5 sm:w-6 sm:h-6" /> : <Lock strokeWidth={2.5} className="w-4 h-4 sm:w-5 sm:h-5" />}
-                </div>
-              )}
-
-              {/* Content Card */}
-              <div className={`flex-1 ${isCurrent ? 'p-4 sm:p-5 rounded-xl bg-blue-500/10 border-2 border-blue-500/30 -mt-1 sm:-mt-2' : 'pt-0.5 sm:pt-1'}`}>
-
-
-                {/* Status Badges */}
-                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                  {isCompleted && (
-                    <span className="text-[9px] sm:text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full uppercase tracking-wide">Selesai</span>
-                  )}
-                  {isCurrent && (
-                    <span className="text-[9px] sm:text-[10px] font-bold text-blue-700 bg-blue-500/20 px-2 py-0.5 rounded-full uppercase tracking-wide">Sedang Dipelajari</span>
-                  )}
-                  {/* Provide extra context for current node if possible */}
-                  {isCurrent && (
-                    <span className="text-[10px] sm:text-[11px] font-medium text-slate-500">• Lanjutkan Sesi</span>
-                  )}
-                </div>
-
-                <h4 className={`font-bold leading-tight ${isCurrent ? 'text-lg sm:text-xl font-extrabold text-slate-900 mb-1' : 'text-base sm:text-lg text-slate-800 mb-0.5'}`}>
-                  {itemName} {block.orderIndex != null ? block.orderIndex + 1 : index + 1}: {block.name}
-                </h4>
-
-                <p className={`text-xs sm:text-sm ${isCurrent ? 'text-slate-600 mb-3 sm:mb-4' : 'text-slate-500'}`}>
-                  {new Date(block.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} – {new Date(block.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
-                  {isUpcoming && !isFinalGoal && " • Selesaikan tahapan sebelumnya untuk membuka"}
-                  {isFinalGoal && " • Selesaikan projek akhir kamu!"}
-                </p>
-
-                {isCurrent && (
-                  <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-full font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shadow-lg shadow-blue-500/20 w-max mt-2">
-                    Lanjutkan Belajar
-                    <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={3} />
-                  </button>
-                )}
               </div>
+            );
+          })}
+        </div>
+      </div>
 
-            </div>
-          );
-        })}
+      {/* ── Scroll hint ─────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-center mt-3 pb-6">
+        <div className="flex items-center gap-2 bg-white/50 backdrop-blur-sm border border-white/40 px-5 py-2 rounded-full shadow-sm">
+          <ChevronLeft size={13} className="text-sky-800" />
+          <span className="text-[10px] font-black text-sky-900 uppercase tracking-wider">Geser untuk menjelajah</span>
+          <ChevronRight size={13} className="text-sky-800" />
+        </div>
       </div>
     </div>
   );

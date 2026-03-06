@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Rocket, Palette, Star, Lock } from 'lucide-react';
+import { X, Rocket, Palette, Star, Lock, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 
 type UpcomingLesson = {
     title: string;
-    status: 'NEXT' | 'UPCOMING' | 'LOCKED';
+    status: 'NEXT' | 'UPCOMING' | 'LOCKED' | 'COMPLETED';
     scheduledAt?: string[];
     className?: string;
 };
@@ -85,31 +85,39 @@ export default function UpcomingLessonsModal({ lessons }: UpcomingLessonsModalPr
                                         return (
                                             <div className="relative flex items-center gap-6" key={`${lesson.title}-${idx}`}>
                                                 {/* Icon Badge */}
-                                                <div className={`shrink-0 size-20 bg-white border-4 ${scheme.border} rounded-[2rem] z-10 flex items-center justify-center shadow-lg -rotate-6`}>
-                                                    {scheme.icon}
+                                                <div className={`shrink-0 size-20 bg-white border-4 ${lesson.status === 'COMPLETED' ? 'border-clevio-green bg-green-50' : scheme.border} rounded-[2rem] z-10 flex items-center justify-center shadow-lg -rotate-6`}>
+                                                    {lesson.status === 'COMPLETED' ? <CheckCircle2 className="text-clevio-green" size={28} strokeWidth={3} /> : scheme.icon}
                                                 </div>
 
                                                 {/* Content Card */}
-                                                <div className={`flex-1 bg-slate-50 p-6 rounded-[2rem] border-2 border-slate-100/60 ${isNext ? 'shadow-sm bg-white border-slate-200' : 'opacity-80'} transition-all`}>
+                                                <div className={`flex-1 p-6 rounded-[2rem] border-2 transition-all ${lesson.status === 'COMPLETED' ? 'bg-green-50/50 border-clevio-green/30' :
+                                                    isNext ? 'bg-white border-slate-200 shadow-sm' :
+                                                        'bg-slate-50 border-slate-100/60 opacity-80'
+                                                    }`}>
                                                     <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
                                                         <div className="flex flex-wrap gap-2">
                                                             {dates.map((d, i) => (
-                                                                <span key={i} className={`text-[11px] font-black ${scheme.text} bg-white px-3 py-1.5 border border-slate-100 rounded-xl uppercase tracking-wider shadow-sm`}>
+                                                                <span key={i} className={`text-[11px] font-black ${lesson.status === 'COMPLETED' ? 'text-clevio-green' : scheme.text} bg-white px-3 py-1.5 border border-slate-100 rounded-xl uppercase tracking-wider shadow-sm`}>
                                                                     {d}
                                                                 </span>
                                                             ))}
                                                         </div>
                                                         {lesson.className && (
-                                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 py-1 bg-slate-50 rounded-lg">
+                                                            <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg ${lesson.status === 'COMPLETED' ? 'bg-green-100 text-clevio-green' : 'bg-slate-50 text-slate-400'}`}>
                                                                 {lesson.className}
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <h5 className="font-black text-clevio-navy text-xl leading-tight mt-3">{lesson.title || 'Materi Belum Berjudul'}</h5>
+                                                    <h5 className={`font-black text-xl leading-tight mt-3 ${lesson.status === 'COMPLETED' ? 'text-slate-700 line-through decoration-clevio-green/40 decoration-2' : 'text-clevio-navy'}`}>{lesson.title || 'Materi Belum Berjudul'}</h5>
 
                                                     {isNext && (
                                                         <div className="mt-3 inline-block px-3 py-1 bg-green-50 border border-green-200 text-clevio-green text-xs font-black rounded-lg uppercase tracking-wider">
                                                             Materi Selanjutnya
+                                                        </div>
+                                                    )}
+                                                    {lesson.status === 'COMPLETED' && (
+                                                        <div className="mt-3 inline-block px-3 py-1 bg-green-100 border border-clevio-green/30 text-clevio-green text-xs font-black rounded-lg uppercase tracking-wider">
+                                                            Selesai
                                                         </div>
                                                     )}
                                                     {!isNext && lesson.status === 'LOCKED' && (

@@ -42,24 +42,24 @@ export default async function CoderLessonDetailPage(props: PageProps) {
                 </Link>
             </header>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '3rem', alignItems: 'start' }}>
+            {/* Hero Header */}
+            <div style={{ marginBottom: '2rem' }}>
+                <h1 style={{
+                    fontSize: '2rem',
+                    fontWeight: 800,
+                    color: '#1e293b',
+                    lineHeight: 1.2,
+                    marginBottom: '1rem',
+                    letterSpacing: '-0.02em'
+                }}>
+                    {lesson.title}
+                </h1>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 350px', gap: '3rem', alignItems: 'start' }}>
 
                 {/* Main Content Area */}
                 <main>
-                    {/* Hero Header */}
-                    <div style={{ marginBottom: '2rem' }}>
-                        <h1 style={{
-                            fontSize: '2rem',
-                            fontWeight: 800,
-                            color: '#1e293b',
-                            lineHeight: 1.2,
-                            marginBottom: '1rem',
-                            letterSpacing: '-0.02em'
-                        }}>
-                            {lesson.title}
-                        </h1>
-                    </div>
-
                     {/* Slide Viewer (Cinema Mode) */}
                     <div style={cardStyle}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9' }}>

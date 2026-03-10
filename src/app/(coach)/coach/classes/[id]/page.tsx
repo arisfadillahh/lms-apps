@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 
 type PageProps = {
     params: Promise<{ id: string }>;
-    searchParams: Promise<{ block?: string }>;
+    searchParams: Promise<{ block?: string; page?: string }>;
 };
 
 export default async function ClassDetailPage({ params, searchParams }: PageProps) {
@@ -146,6 +146,20 @@ export default async function ClassDetailPage({ params, searchParams }: PageProp
     // Compute unlocked sessions logic:
     // Display all sessions so that past sessions are visible and their attendance can be updated.
     const unlockedSessionsList = sortedSessions;
+
+    // Pagination logic
+    const searchParamsAwaited = await searchParams;
+    const pageParam = searchParamsAwaited.page;
+    const itemsPerPage = 8;
+    const totalSessions = unlockedSessionsList.length;
+    const totalPages = Math.ceil(totalSessions / itemsPerPage);
+
+    let currentPage = parseInt(pageParam ?? '1', 10);
+    if (isNaN(currentPage) || currentPage < 1) currentPage = 1;
+    if (currentPage > totalPages && totalPages > 0) currentPage = totalPages;
+
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginatedSessions = unlockedSessionsList.slice(startIndex, startIndex + itemsPerPage);
 
     // Let's create a Set for 'Detail' access: all scheduled sessions.
     const unlockedSessionIds = new Set(allSessions.map(s => s.id));
@@ -303,7 +317,7 @@ export default async function ClassDetailPage({ params, searchParams }: PageProp
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                            {unlockedSessionsList.map((sessionInfo) => {
+                            {paginatedSessions.map((sessionInfo) => {
                                 const lessonSlot = lessonSchedule.get(sessionInfo.id);
                                 const template = lessonSlot?.lessonTemplate;
 
@@ -389,6 +403,45 @@ export default async function ClassDetailPage({ params, searchParams }: PageProp
                                 );
                             })}
                         </div>
+
+                        {/* Pagination Controls */}
+                        {totalPages > 1 && (
+                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', marginTop: '2.5rem' }}>
+                                {currentPage > 1 ? (
+                                    <Link
+                                        href={`?page=${currentPage - 1}`}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.625rem 1.25rem', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '0.75rem', color: '#475569', fontWeight: 600, fontSize: '0.875rem', textDecoration: 'none', transition: 'all 0.2s' }}
+                                    >
+                                        <span className="material-symbols-outlined" style={{ fontSize: '1.25rem' }}>chevron_left</span>
+                                        Previous
+                                    </Link>
+                                ) : (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.625rem 1.25rem', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '0.75rem', color: '#94a3b8', fontWeight: 600, fontSize: '0.875rem', cursor: 'not-allowed' }}>
+                                        <span className="material-symbols-outlined" style={{ fontSize: '1.25rem' }}>chevron_left</span>
+                                        Previous
+                                    </div>
+                                )}
+
+                                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>
+                                    Halaman {currentPage} dari {totalPages}
+                                </div>
+
+                                {currentPage < totalPages ? (
+                                    <Link
+                                        href={`?page=${currentPage + 1}`}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.625rem 1.25rem', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '0.75rem', color: '#475569', fontWeight: 600, fontSize: '0.875rem', textDecoration: 'none', transition: 'all 0.2s' }}
+                                    >
+                                        Next
+                                        <span className="material-symbols-outlined" style={{ fontSize: '1.25rem' }}>chevron_right</span>
+                                    </Link>
+                                ) : (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.625rem 1.25rem', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '0.75rem', color: '#94a3b8', fontWeight: 600, fontSize: '0.875rem', cursor: 'not-allowed' }}>
+                                        Next
+                                        <span className="material-symbols-outlined" style={{ fontSize: '1.25rem' }}>chevron_right</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </section>
 

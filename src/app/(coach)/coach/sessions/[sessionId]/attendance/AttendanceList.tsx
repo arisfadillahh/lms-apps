@@ -52,13 +52,17 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
-// Helper to determine the UI state from db status
+// Helper to determine the UI state from db status + reason
 function getUiState(status: AttendanceStatus | null, reason: string | null) {
   if (status === 'PRESENT') return 'HADIR';
+  // ABSENT with specific reasons (Izin / Sakit saved as ABSENT since DB only has 2 enums)
+  if (status === 'ABSENT' && reason === 'Izin') return 'IZIN';
+  if (status === 'ABSENT' && reason === 'Sakit') return 'SAKIT';
+  if (status === 'ABSENT') return 'ALPHA'; // fallback: no reason or reason='Alpha'
+  // Legacy EXCUSED support (in case old records exist)
   if (status === 'EXCUSED' && reason === 'Izin') return 'IZIN';
   if (status === 'EXCUSED' && reason === 'Sakit') return 'SAKIT';
-  if (status === 'ABSENT') return 'ALPHA';
-  if (status === 'EXCUSED') return 'IZIN'; // Fallback for other excused reasons
+  if (status === 'EXCUSED') return 'IZIN';
   return null;
 }
 
@@ -213,8 +217,8 @@ const AttendanceList = forwardRef<AttendanceListHandle, AttendanceListProps>(
                       onClick={() => {
                         const statusMap: Record<string, { status: AttendanceStatus; reason: string }> = {
                           HADIR: { status: 'PRESENT', reason: '' },
-                          IZIN: { status: 'EXCUSED', reason: 'Izin' },
-                          SAKIT: { status: 'EXCUSED', reason: 'Sakit' },
+                          IZIN: { status: 'ABSENT', reason: 'Izin' },
+                          SAKIT: { status: 'ABSENT', reason: 'Sakit' },
                           ALPHA: { status: 'ABSENT', reason: 'Alpha' },
                         };
                         const { status, reason } = statusMap[option];

@@ -1,10 +1,17 @@
 import Link from 'next/link';
-import { format } from 'date-fns';
-import { id } from 'date-fns/locale';
+import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
+import { id as localeId } from 'date-fns/locale';
 import { getSessionOrThrow } from '@/lib/auth';
 import { getCoachClassesWithBlocks, getAllCoachSessions } from '@/lib/services/coach';
 import { makeUpTasksDao } from '@/lib/dao';
 import CalendarModal from '@/components/coach/CalendarModal';
+import WeeklyScheduleClient from './WeeklyScheduleClient';
+import HeroCountdownClient from './HeroCountdownClient';
+
+import CoachDashboardHeader from '@/components/coach/CoachDashboardHeader';
+import { StaggerContainer, StaggerItem } from '@/components/animations/StaggerContainer';
+
+export const dynamic = 'force-dynamic';
 
 export default async function CoachDashboardPage() {
     const session = await getSessionOrThrow();
@@ -14,292 +21,235 @@ export default async function CoachDashboardPage() {
         makeUpTasksDao.listTasksForCoach(session.user.id),
     ]);
 
+    const user = session.user;
+    const userName = user.fullName || 'Coach';
+    const nameParts = userName.split(' ');
+    const firstName = nameParts[0];
+
     // Calculate stats
     const today = new Date();
     const todaySessions = activeSessions.filter(s =>
-        new Date(s.date_time).toDateString() === today.toDateString() &&
+        isSameDay(new Date(s.date_time), today) &&
         s.status !== 'CANCELLED'
     );
 
     const upcomingSessions = activeSessions.filter(s =>
-        new Date(s.date_time) > today && s.status !== 'CANCELLED'
-    );
+        new Date(s.date_time) >= today && s.status !== 'CANCELLED'
+    ).sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
+
+    const nextSession = upcomingSessions[0] || null;
 
     // Count pending tasks
     const pendingMakeUpCount = makeUpTasks.filter(t => t.status === 'SUBMITTED').length;
-    const pendingUploadCount = makeUpTasks.filter(t => t.status === 'PENDING_UPLOAD').length;
+    const totalStudents = classes.reduce((acc, cls) => acc + (cls.studentsCount || 0), 0);
+    const averageCompletion = 84.5; // Placeholder since no historical completion stat exists
+
+    // Weekly Schedule Variables
+    const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 1 }); // Monday
 
     return (
-        <div style={{ fontFamily: 'system-ui, sans-serif', color: '#1e293b', paddingBottom: '40px' }}>
+        <>
+            <style>{`
+                @keyframes float-up {
+                    0%   { transform: translateY(0) rotate(0deg);   opacity: 0; }
+                    20%  { opacity: 0.15; }
+                    80%  { opacity: 0.15; }
+                    100% { transform: translateY(-100px) rotate(20deg); opacity: 0; }
+                }
+                @keyframes float-down {
+                    0%   { transform: translateY(0) rotate(0deg);    opacity: 0; }
+                    20%  { opacity: 0.1; }
+                    80%  { opacity: 0.1; }
+                    100% { transform: translateY(100px) rotate(-15deg); opacity: 0; }
+                }
+                .animate-float-1 { animation: float-up   12s linear infinite; }
+                .animate-float-2 { animation: float-down 15s linear infinite; }
+                .animate-float-3 { animation: float-up   18s linear infinite; }
+                .animate-float-4 { animation: float-down 20s linear infinite; }
+            `}</style>
 
-            {/* Quick Stats */}
-            <div className="coach-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-                <Link href="/coach/sessions" style={{
-                    background: '#eff6ff', padding: '16px 20px', borderRadius: '12px', textDecoration: 'none',
-                    border: '1px solid #bfdbfe', display: 'flex', flexDirection: 'column', gap: '4px'
-                }}>
-                    <span style={{ fontSize: '12px', color: '#3b82f6', fontWeight: 600, textTransform: 'uppercase' }}>Jadwal Hari Ini</span>
-                    <span style={{ fontSize: '24px', fontWeight: 700, color: '#1d4ed8' }}>{todaySessions.length}</span>
-                    <span style={{ fontSize: '13px', color: '#64748b' }}>sesi</span>
-                </Link>
+            <StaggerContainer>
+                <StaggerItem>
+                    <CoachDashboardHeader user={{
+                        id: user.id,
+                        fullName: user.fullName,
+                        role: user.role,
+                        avatarPath: user.avatarPath
+                    }} />
+                </StaggerItem>
 
-                <Link href="/coach/makeup" style={{
-                    background: pendingMakeUpCount > 0 ? '#fef3c7' : '#f8fafc',
-                    padding: '16px 20px', borderRadius: '12px', textDecoration: 'none',
-                    border: pendingMakeUpCount > 0 ? '1px solid #fbbf24' : '1px solid #e2e8f0',
-                    display: 'flex', flexDirection: 'column', gap: '4px'
-                }}>
-                    <span style={{ fontSize: '12px', color: pendingMakeUpCount > 0 ? '#b45309' : '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Tugas Susulan</span>
-                    <span style={{ fontSize: '24px', fontWeight: 700, color: pendingMakeUpCount > 0 ? '#92400e' : '#475569' }}>{pendingMakeUpCount}</span>
-                    <span style={{ fontSize: '13px', color: '#64748b' }}>menunggu review</span>
-                </Link>
-
-                <div style={{
-                    background: '#f8fafc', padding: '16px 20px', borderRadius: '12px',
-                    border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '4px'
-                }}>
-                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Kelas Aktif</span>
-                    <span style={{ fontSize: '24px', fontWeight: 700, color: '#475569' }}>{classes.length}</span>
-                    <span style={{ fontSize: '13px', color: '#64748b' }}>kelas</span>
-                </div>
-            </div>
-
-            {/* Top Action Bar */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
-                <CalendarModal
-                    sessions={activeSessions}
-                    triggerClassName=""
-                    triggerText={
-                        <div style={{
-                            display: 'flex', alignItems: 'center', gap: '8px',
-                            background: 'white', color: '#1e3a5f', border: '1px solid #e2e8f0',
-                            padding: '10px 20px', borderRadius: '12px', fontWeight: '600',
-                            cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 4px -1px rgba(0,0,0,0.05)'
-                        }} className="hover:bg-slate-50">
-                            <span style={{ fontSize: '18px' }}>📅</span>
-                            <span>Buka Kalender</span>
-                        </div>
-                    }
-                />
-            </div>
-
-            <div className="coach-main-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
-
-                {/* Left Column: Schedule & Tasks */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-
-                    {/* Today's Schedule */}
-                    <div>
-                        <h2 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            📅 Jadwal Hari Ini
-                        </h2>
-                        {todaySessions.length > 0 ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                {todaySessions.map(session => (
-                                    <div key={session.id} className="coach-session-card" style={{
-                                        background: 'white', padding: '20px', borderRadius: '16px',
-                                        border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
-                                        display: 'flex', gap: '16px', alignItems: 'center'
-                                    }}>
-                                        <div style={{
-                                            background: '#eff6ff', color: '#1e3a5f', padding: '12px', borderRadius: '12px',
-                                            textAlign: 'center', minWidth: '70px'
-                                        }}>
-                                            <div style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>
-                                                {format(new Date(session.date_time), 'MMM', { locale: id })}
+                <div className="flex gap-8">
+                    <div className="flex-grow max-w-[calc(100%-360px)]">
+                        <StaggerItem className="mb-8">
+                            <section>
+                                <div className="bg-gradient-to-r from-[#0f172a] to-[#1e3a5f] rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden group border border-white/5">
+                                    <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
+                                        {/* Far layer - tiny, blurry, slow */}
+                                        <div className="absolute top-0 left-0 w-full h-[200%] animate-marquee-up-slow">
+                                            <div className="absolute top-0 w-full h-1/2">
+                                                <span className="material-symbols-outlined absolute text-emerald-400/15 top-[20%] left-[8%] blur-[3px]" style={{ fontSize: '28px' }}>video_call</span>
+                                                <span className="material-symbols-outlined absolute text-white/10 top-[55%] right-[12%] blur-[3px]" style={{ fontSize: '32px' }}>data_object</span>
                                             </div>
-                                            <div style={{ fontSize: '20px', fontWeight: 'bold' }}>
-                                                {format(new Date(session.date_time), 'd')}
+                                            <div className="absolute top-[50%] w-full h-1/2">
+                                                <span className="material-symbols-outlined absolute text-emerald-400/15 top-[20%] left-[8%] blur-[3px]" style={{ fontSize: '28px' }}>video_call</span>
+                                                <span className="material-symbols-outlined absolute text-white/10 top-[55%] right-[12%] blur-[3px]" style={{ fontSize: '32px' }}>data_object</span>
                                             </div>
                                         </div>
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ color: '#1e3a5f', fontWeight: '600', fontSize: '14px', marginBottom: '4px' }}>
-                                                {format(new Date(session.date_time), 'HH:mm')} WIB
+                                        {/* Mid layer */}
+                                        <div className="absolute top-0 left-0 w-full h-[200%] animate-marquee-up-medium">
+                                            <div className="absolute top-0 w-full h-1/2">
+                                                <span className="material-symbols-outlined absolute text-emerald-400/20 top-[30%] left-[55%] blur-[1px]" style={{ fontSize: '52px' }}>terminal</span>
+                                                <span className="material-symbols-outlined absolute text-white/15 top-[65%] right-[8%] blur-[2px]" style={{ fontSize: '44px' }}>hub</span>
                                             </div>
-                                            <div style={{ fontWeight: '700', fontSize: '18px', color: '#0f172a', marginBottom: '4px' }}>
-                                                {session.class_name}
-                                            </div>
-                                            <div style={{ fontSize: '14px', color: '#64748b' }}>
-                                                {session.lesson ? session.lesson.title : 'Belum ada materi'}
+                                            <div className="absolute top-[50%] w-full h-1/2">
+                                                <span className="material-symbols-outlined absolute text-emerald-400/20 top-[30%] left-[55%] blur-[1px]" style={{ fontSize: '52px' }}>terminal</span>
+                                                <span className="material-symbols-outlined absolute text-white/15 top-[65%] right-[8%] blur-[2px]" style={{ fontSize: '44px' }}>hub</span>
                                             </div>
                                         </div>
-                                        <div>
-                                            <Link href={`/coach/sessions/${session.id}/attendance`} style={{
-                                                background: '#1e3a5f', color: 'white', padding: '10px 20px', borderRadius: '8px',
-                                                fontSize: '14px', fontWeight: '600', display: 'inline-block'
-                                            }}>
-                                                Presensi
-                                            </Link>
+                                        {/* Near layer - large, sharp, fast */}
+                                        <div className="absolute top-0 left-0 w-full h-[200%] animate-marquee-up-fast">
+                                            <div className="absolute top-0 w-full h-1/2">
+                                                <span className="material-symbols-outlined absolute text-emerald-500/25 top-[15%] left-[5%]" style={{ fontSize: '75px' }}>terminal</span>
+                                                <span className="material-symbols-outlined absolute text-white/20 top-[55%] right-[8%]" style={{ fontSize: '80px' }}>webhook</span>
+                                            </div>
+                                            <div className="absolute top-[50%] w-full h-1/2">
+                                                <span className="material-symbols-outlined absolute text-emerald-500/25 top-[15%] left-[5%]" style={{ fontSize: '75px' }}>terminal</span>
+                                                <span className="material-symbols-outlined absolute text-white/20 top-[55%] right-[8%]" style={{ fontSize: '80px' }}>webhook</span>
+                                            </div>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div style={{
-                                padding: '32px', background: '#f8fafc', borderRadius: '16px', border: '2px dashed #cbd5e1',
-                                textAlign: 'center', color: '#64748b'
-                            }}>
-                                <p style={{ fontWeight: '500' }}>Tidak ada jadwal hari ini</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
+                                    <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl"></div>
 
-                {/* Right Column: Active Classes List */}
-                <div>
-                    <h2 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        🏫 Kelas Aktif Anda
-                    </h2>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        {classes.map(cls => (
-                            <div key={cls.classId} style={{ position: 'relative' }}>
-                                <div style={{
-                                    background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '20px',
-                                    transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', position: 'relative'
-                                }} className="hover:shadow-lg hover:border-blue-300">
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                                        <span style={{
-                                            background: cls.type === 'EKSKUL' ? '#f3e8ff' : '#eff6ff',
-                                            color: cls.type === 'EKSKUL' ? '#7e22ce' : '#1d4ed8',
-                                            padding: '4px 10px', borderRadius: '99px', fontSize: '11px', fontWeight: '700'
-                                        }}>
-                                            {cls.type}
-                                        </span>
-                                        {cls.isSubstitute && (
-                                            <span style={{
-                                                background: '#ffedd5',
-                                                color: '#c2410c',
-                                                padding: '4px 10px', borderRadius: '99px', fontSize: '11px', fontWeight: '700',
-                                                marginLeft: '8px'
-                                            }}>
-                                                PENGGANTI
-                                            </span>
-                                        )}
-                                        {cls.currentBlock && (
-                                            <span style={{ background: '#f1f5f9', color: '#475569', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '600' }}>
-                                                Block {cls.currentBlock.name}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', marginBottom: '12px' }}>
-                                        <Link href={`/coach/classes/${cls.classId}`} style={{ color: 'inherit', textDecoration: 'none' }}>
-                                            <span style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1 }} aria-hidden="true" />
-                                            {cls.name}
-                                        </Link>
-                                    </h3>
-
-                                    {/* Next Session */}
-                                    <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
-                                        <div style={{ fontSize: '11px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '6px' }}>
-                                            Sesi Berikutnya
-                                        </div>
-                                        {cls.nextSessionDate ? (
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#334155', fontWeight: '500', fontSize: '14px' }}>
-                                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }}></div>
-                                                {format(new Date(cls.nextSessionDate), 'EEEE, d MMM, HH:mm', { locale: id })}
-                                            </div>
+                                    <div className="relative z-10 w-full">
+                                        {nextSession ? (
+                                            <>
+                                                {/* Background Particles now strictly handled in the master layers above */}
+                                                <HeroCountdownClient session={nextSession} />
+                                            </>
                                         ) : (
-                                            <div style={{ color: '#cbd5e1', fontSize: '14px', fontStyle: 'italic' }}>Belum ada jadwal</div>
+                                            <div className="text-center w-full py-8">
+                                                <h2 className="text-2xl font-bold mb-2">Belum ada sesi mendatang</h2>
+                                                <p className="text-slate-400">Anda dapat bersantai atau mengecek tugas susulan.</p>
+                                            </div>
                                         )}
                                     </div>
+                                </div>
+                            </section>
+                        </StaggerItem>
 
-                                    {/* Next Lesson */}
-                                    {cls.nextLesson && (
-                                        <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px', marginTop: '12px', position: 'relative', zIndex: 2 }}>
-                                            <div style={{ fontSize: '11px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '6px' }}>
-                                                📚 Materi Berikutnya
-                                            </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                                <span style={{ color: '#1e40af', fontWeight: '600', fontSize: '14px' }}>{cls.nextLesson.title}</span>
-                                                {cls.nextLesson.lessonTemplateId && (
-                                                    <Link
-                                                        href={`/coach/lesson/${cls.nextLesson.lessonTemplateId}`}
-                                                        style={{ background: '#dbeafe', color: '#1d4ed8', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', textDecoration: 'none' }}
-                                                    >
-                                                        Lihat Detail ↗
-                                                    </Link>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
+                        <StaggerItem className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                            <div className="bg-white p-6 rounded-3xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] border border-slate-100">
+                                <div className="flex justify-between items-start mb-4">
+                                    <span className="p-2 bg-blue-50 text-blue-600 rounded-lg material-symbols-outlined">groups</span>
+                                    <span className="text-xs font-bold text-emerald-600 flex items-center">+4.2% <span className="material-symbols-outlined text-xs">trending_up</span></span>
+                                </div>
+                                <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Total Siswa Bimbingan</p>
+                                <h3 className="text-2xl font-extrabold text-brand-deep mt-1">{totalStudents}</h3>
+                            </div>
+                            <div className="bg-white p-6 rounded-3xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] border border-slate-100">
+                                <div className="flex justify-between items-start mb-4">
+                                    <span className="p-2 bg-orange-50 text-orange-600 rounded-lg material-symbols-outlined">pending_actions</span>
+                                </div>
+                                <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Tugas Perlu Review</p>
+                                <h3 className="text-2xl font-extrabold text-brand-deep mt-1">{pendingMakeUpCount}</h3>
+                            </div>
+                            <div className="bg-white p-6 rounded-3xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] border border-slate-100">
+                                <div className="flex justify-between items-start mb-4">
+                                    <span className="p-2 bg-emerald-50 text-emerald-600 rounded-lg material-symbols-outlined">verified</span>
+                                </div>
+                                <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Average Completion</p>
+                                <h3 className="text-2xl font-extrabold text-brand-deep mt-1">{averageCompletion}%</h3>
+                            </div>
+                        </StaggerItem>
 
-                                    {/* Software Info */}
-                                    {cls.currentBlock?.software && cls.currentBlock.software.length > 0 && (
-                                        <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px', marginTop: '12px', position: 'relative', zIndex: 2 }}>
-                                            <div style={{ fontSize: '11px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px' }}>
-                                                📦 Software yang Digunakan
+                        <StaggerItem className="bg-white rounded-3xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] border border-slate-100 overflow-hidden">
+                            <div className="p-6">
+                                <div className="flex items-center justify-between mb-8">
+                                    <h2 className="text-lg font-extrabold text-brand-deep flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-emerald-600">school</span>
+                                        Manajemen Kelas
+                                    </h2>
+                                    <button className="text-slate-500 font-bold text-xs flex items-center gap-1 hover:text-brand-deep transition-colors">
+                                        Kelola Semua Kelas <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {classes.slice(0, 4).length > 0 ? classes.slice(0, 4).map(cls => (
+                                        <Link href={`/coach/classes/${cls.classId}`} key={cls.classId} className="block border border-slate-100 rounded-2xl p-5 hover:border-emerald-500/30 hover:shadow-md transition-all group bg-white">
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div>
+                                                    <h3 className="font-bold text-brand-deep group-hover:text-emerald-600 transition-colors">
+                                                        {cls.name}
+                                                    </h3>
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">
+                                                        {cls.nextSessionDate ? format(new Date(cls.nextSessionDate), 'EEEE, HH:mm', { locale: localeId }) : 'Belum Ada Jadwal'}
+                                                    </p>
+                                                </div>
+                                                <span className="px-2.5 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-bold rounded-full">{cls.type === 'EKSKUL' ? 'Ekskul' : 'Aktif'}</span>
                                             </div>
-                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                                {cls.currentBlock.software.map(sw => (
-                                                    <span
-                                                        key={sw.id}
-                                                        style={{
-                                                            display: 'inline-flex',
-                                                            alignItems: 'center',
-                                                            gap: '4px',
-                                                            background: '#f0fdf4',
-                                                            color: '#15803d',
-                                                            padding: '4px 10px',
-                                                            borderRadius: '6px',
-                                                            fontSize: '12px',
-                                                            fontWeight: '600',
-                                                        }}
-                                                        title={sw.access_info || undefined}
-                                                    >
-                                                        {sw.name}
-                                                        {sw.version && <span style={{ opacity: 0.7, fontSize: '10px' }}>v{sw.version}</span>}
-                                                        {sw.installation_url && (
-                                                            <a
-                                                                href={sw.installation_url}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                style={{ color: '#15803d', marginLeft: '2px' }}
-                                                                title="Download"
-                                                            >
-                                                                ↗
-                                                            </a>
-                                                        )}
-                                                    </span>
-                                                ))}
+                                            <div className="grid grid-cols-2 gap-4 border-t border-slate-50 pt-4">
+                                                <div>
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Block Saat Ini</p>
+                                                    <p className="text-xs font-bold text-brand-slate flex items-center gap-1">
+                                                        <span className="material-symbols-outlined text-sm text-emerald-600">deployed_code</span>
+                                                        {cls.currentBlock ? cls.currentBlock.name : 'Unknown'}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Jumlah Anak</p>
+                                                    <p className="text-xs font-bold text-brand-slate flex items-center gap-1">
+                                                        <span className="material-symbols-outlined text-sm text-emerald-600">person</span>
+                                                        {cls.studentsCount || 0} Siswa
+                                                    </p>
+                                                </div>
                                             </div>
+                                        </Link>
+                                    )) : (
+                                        <div className="col-span-1 md:col-span-2 text-center py-6 text-slate-400">
+                                            Belum ada kelas yang terdaftar.
                                         </div>
                                     )}
                                 </div>
                             </div>
-                        ))}
-
-                        {classes.length === 0 && (
-                            <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', background: '#f8fafc', borderRadius: '16px' }}>
-                                Belum ada kelas aktif.
-                            </div>
-                        )}
+                        </StaggerItem>
                     </div>
-                </div>
-            </div>
 
-            {/* Responsive Styles */}
-            <style>{`
-                @media (max-width: 768px) {
-                    .coach-stats-grid {
-                        grid-template-columns: 1fr !important;
-                    }
-                    .coach-main-grid {
-                        grid-template-columns: 1fr !important;
-                    }
-                    .coach-session-card {
-                        flex-direction: column !important;
-                        align-items: flex-start !important;
-                        gap: 1rem !important;
-                    }
-                    .coach-session-card > div:last-child {
-                        width: 100% !important;
-                    }
-                    .coach-session-card a {
-                        width: 100% !important;
-                        text-align: center !important;
-                    }
-                }
-            `}</style>
-        </div>
+                    <StaggerItem className="w-[360px] flex-shrink-0">
+                        <aside className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] flex flex-col h-full overflow-hidden">
+                            <div className="p-6 border-b border-slate-50 flex items-center justify-between">
+                                <div>
+                                    <h3 className="font-extrabold text-brand-deep">Weekly Schedule</h3>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                        JANUARI 12-18, 2024
+                                    </p>
+                                </div>
+                                <CalendarModal
+                                    sessions={activeSessions}
+                                    triggerClassName="bg-brand-surface p-2 rounded-xl text-emerald-600 flex items-center justify-center hover:bg-emerald-50 transition-colors"
+                                    triggerText={<span className="material-symbols-outlined text-xl">view_week</span>}
+                                />
+                            </div>
+                            <WeeklyScheduleClient
+                                sessions={activeSessions}
+                                classes={classes.map(c => ({ classId: c.classId, studentsCount: c.studentsCount }))}
+                            />
+
+                            <div className="mt-auto p-6 bg-slate-50 border-t border-slate-100">
+                                <CalendarModal
+                                    sessions={activeSessions}
+                                    triggerClassName="w-full bg-[#0f172a] text-white font-bold py-3.5 rounded-2xl text-sm shadow-xl shadow-[#0f172a]/20 hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
+                                    triggerText={
+                                        <>
+                                            <span className="material-symbols-outlined text-lg">event_repeat</span>
+                                            View Monthly Schedule
+                                        </>
+                                    }
+                                />
+                            </div>
+                        </aside>
+                    </StaggerItem>
+                </div>
+            </StaggerContainer>
+        </>
     );
 }

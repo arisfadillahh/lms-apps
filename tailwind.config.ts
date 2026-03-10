@@ -20,6 +20,15 @@ const config: Config = {
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
+        brand: {
+          deep: '#0f172a',
+          slate: '#1e293b',
+          mutedGreen: '#52796f',
+          accentGreen: '#84a98c',
+          surface: '#f8fafc',
+          midnight: '#0a1428',
+          sophisticatedBlue: '#6bb3ff',
+        },
         primary: {
           DEFAULT: '#22367b', // Clevio Navy Blue (brand)
           foreground: '#FFFFFF',
@@ -92,10 +101,10 @@ const config: Config = {
         'pj-default': '1.5rem',
         'pj-lg': '2rem',
         'pj-xl': '2.5rem',
+        card: '12px',
       },
       fontFamily: {
-        sans: ['var(--font-geist-sans)', 'system-ui', 'sans-serif'],
-        display: ['Nunito', 'var(--font-geist-sans)', 'system-ui', 'sans-serif'],
+        sans: ['Plus Jakarta Sans', 'sans-serif'],
       },
     },
   },

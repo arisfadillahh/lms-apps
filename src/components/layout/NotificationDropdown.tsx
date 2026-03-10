@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -18,6 +19,8 @@ export default function NotificationDropdown() {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [selectedNotif, setSelectedNotif] = useState<Notification | null>(null);
+    const [mounted, setMounted] = useState(false);
+    const [portalContainer, setPortalContainer] = useState<Element | null>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     const fetchNotifications = async () => {
@@ -70,6 +73,8 @@ export default function NotificationDropdown() {
     };
 
     useEffect(() => {
+        setMounted(true);
+        setPortalContainer(document.body);
         fetchNotifications();
         const interval = setInterval(fetchNotifications, 60000);
         return () => clearInterval(interval);
@@ -213,114 +218,11 @@ export default function NotificationDropdown() {
                 </AnimatePresence>
             </div>
 
-            {/* Detail Modal */}
-            <AnimatePresence>
-                {selectedNotif && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        style={{
-                            position: 'fixed',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            background: 'rgba(0, 0, 0, 0.5)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            zIndex: 100,
-                            padding: '1rem',
-                            backdropFilter: 'blur(4px)'
-                        }}
-                        onClick={() => setSelectedNotif(null)}
-                    >
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                            style={{
-                                background: '#ffffff',
-                                borderRadius: '16px',
-                                width: '100%',
-                                maxWidth: '75vw',
-                                maxHeight: '85vh',
-                                overflow: 'hidden',
-                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            {/* Modal Header */}
-                            <div style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'flex-start',
-                                padding: '1.5rem',
-                                borderBottom: '1px solid #f1f5f9'
-                            }}>
-                                <div>
-                                    <span style={{
-                                        fontSize: '0.7rem',
-                                        color: '#64748b',
-                                        textTransform: 'uppercase',
-                                        letterSpacing: '0.05em',
-                                        fontWeight: 600
-                                    }}>
-                                        {selectedNotif.type === 'BROADCAST' ? '📢 Broadcast' : '🔔 Notifikasi'}
-                                    </span>
-                                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', margin: '0.25rem 0 0 0' }}>
-                                        {selectedNotif.title}
-                                    </h2>
-                                    <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.25rem' }}>
-                                        {new Date(selectedNotif.created_at).toLocaleDateString('id-ID', {
-                                            weekday: 'long',
-                                            day: 'numeric',
-                                            month: 'long',
-                                            year: 'numeric',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                        })}
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => setSelectedNotif(null)}
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        padding: '0.5rem',
-                                        borderRadius: '8px',
-                                        border: 'none',
-                                        background: '#f1f5f9',
-                                        color: '#64748b',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    <X size={24} />
-                                </button>
-                            </div>
-
-                            {/* Modal Body */}
-                            <div style={{
-                                padding: '2rem',
-                                overflowY: 'auto',
-                                maxHeight: 'calc(80vh - 120px)',
-                                lineHeight: '1.7',
-                                fontSize: '1rem',
-                                color: '#334155'
-                            }}>
-                                <div
-                                    dangerouslySetInnerHTML={{ __html: selectedNotif.message }}
-                                    className="notif-content"
-                                />
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {/* Detail Modal Component */}
+            <NotificationModal
+                notif={selectedNotif}
+                onClose={() => setSelectedNotif(null)}
+            />
 
             {/* Add styles for rich content */}
             <style>{`
@@ -355,5 +257,149 @@ export default function NotificationDropdown() {
                 }
             `}</style>
         </>
+    );
+}
+
+function NotificationModal({ notif, onClose }: { notif: Notification | null, onClose: () => void }) {
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted || !notif) return null;
+
+    return createPortal(
+        <AnimatePresence>
+            {notif && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(0, 0, 0, 0.65)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 9999999, // Extremely high
+                        padding: '1rem',
+                        backdropFilter: 'blur(10px)'
+                    }}
+                    onClick={onClose}
+                >
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9, y: 40 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, y: 40 }}
+                        transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+                        style={{
+                            background: '#ffffff',
+                            borderRadius: '28px',
+                            width: '100%',
+                            maxWidth: '850px',
+                            maxHeight: '90vh',
+                            overflow: 'hidden',
+                            boxShadow: '0 30px 60px -12px rgba(0, 0, 0, 0.4)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            display: 'flex',
+                            flexDirection: 'column'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Modal Header */}
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            padding: '2.5rem 2.5rem 1.5rem 2.5rem',
+                            borderBottom: '1px solid #f1f5f9',
+                            background: 'linear-gradient(135deg, #ffffff 0%, #f9fafb 100%)'
+                        }}>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                                    <span style={{
+                                        fontSize: '0.65rem',
+                                        padding: '5px 12px',
+                                        background: notif.type === 'BROADCAST' ? '#eff6ff' : '#f0fdf4',
+                                        color: notif.type === 'BROADCAST' ? '#1e40af' : '#166534',
+                                        borderRadius: '100px',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.08em',
+                                        fontWeight: 800,
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                                    }}>
+                                        {notif.type === 'BROADCAST' ? '📢 Broadcast' : '🔔 Notifikasi'}
+                                    </span>
+                                </div>
+                                <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a', margin: 0, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
+                                    {notif.title}
+                                </h2>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94a3b8', marginTop: '14px' }}>
+                                    <p style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                                        {new Date(notif.created_at).toLocaleDateString('id-ID', {
+                                            weekday: 'long',
+                                            day: 'numeric',
+                                            month: 'long',
+                                            year: 'numeric'
+                                        })}
+                                    </p>
+                                    <span>•</span>
+                                    <p style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                                        {new Date(notif.created_at).toLocaleTimeString('id-ID', {
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={onClose}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '44px',
+                                    height: '44px',
+                                    borderRadius: '14px',
+                                    border: 'none',
+                                    background: '#f1f5f9',
+                                    color: '#64748b',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    marginLeft: '20px',
+                                    flexShrink: 0
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.background = '#0f172a'; e.currentTarget.style.color = '#ffffff'; e.currentTarget.style.transform = 'rotate(90deg)'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#64748b'; e.currentTarget.style.transform = 'rotate(0deg)'; }}
+                            >
+                                <X size={22} />
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div style={{
+                            padding: '2.5rem',
+                            overflowY: 'auto',
+                            maxHeight: 'calc(90vh - 200px)',
+                            lineHeight: '1.9',
+                            fontSize: '1.1rem',
+                            color: '#334155',
+                            background: '#ffffff'
+                        }}>
+                            <div
+                                dangerouslySetInnerHTML={{ __html: notif.message }}
+                                className="notif-content"
+                            />
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>,
+        document.body
     );
 }

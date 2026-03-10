@@ -1,10 +1,10 @@
-import type { CSSProperties } from 'react';
-
 import { getSessionOrThrow } from '@/lib/auth';
 import { makeUpTasksDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
 
 import MakeUpTaskList from './MakeUpTaskList';
+
+export const dynamic = 'force-dynamic';
 
 export default async function CoachMakeUpPage() {
   const session = await getSessionOrThrow();
@@ -12,42 +12,47 @@ export default async function CoachMakeUpPage() {
 
   const tasks = await makeUpTasksDao.listTasksForCoach(session.user.id);
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <header>
-        <h1 style={{ fontSize: '1.6rem', fontWeight: 600, marginBottom: '0.5rem' }}>Make-Up Tasks</h1>
-        <p style={{ color: '#64748b', maxWidth: '48rem' }}>
-          Tinjau tugas make-up yang diajukan coder setelah ketidakhadiran. Beri feedback untuk menyelesaikan proses.
-        </p>
-      </header>
+  const pendingUploadCount = tasks.filter((t) => t.status === 'PENDING_UPLOAD').length;
+  const submittedCount = tasks.filter((t) => t.status === 'SUBMITTED').length;
 
-      {tasks.length === 0 ? (
-        <div style={emptyStyle}>Belum ada make-up task yang perlu ditinjau.</div>
-      ) : (
-        <MakeUpTaskList
-          tasks={tasks.map((task) => ({
-            id: task.id,
-            coderName: task.coder?.full_name ?? 'Coder',
-            className: task.class?.name ?? 'Class',
-            dueDate: task.due_date,
-            status: task.status,
-            submittedAt: task.submitted_at,
-            instructions: task.instructions,
-            sessionDate: task.session?.date_time ?? null,
-            feedback: task.feedback,
-            submissionFiles: task.submission_files ?? undefined,
-          }))}
-        />
-      )}
+  const taskItems = tasks.map((task) => ({
+    id: task.id,
+    coderName: task.coder?.full_name ?? 'Coder',
+    className: task.class?.name ?? 'Class',
+    dueDate: task.due_date,
+    status: task.status as 'PENDING_UPLOAD' | 'SUBMITTED' | 'REVIEWED',
+    submittedAt: task.submitted_at,
+    instructions: task.instructions,
+    sessionDate: task.session?.date_time ?? null,
+    feedback: task.feedback,
+    submissionFiles: task.submission_files ?? undefined,
+  }));
+
+  return (
+    <div className="-mx-8 -mt-0 bg-slate-50 pb-16 font-sans min-h-screen">
+
+      {/* Page header */}
+      <div className="bg-white border-b border-slate-200 px-6 sm:px-8 py-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Tugas Susulan</h1>
+            <p className="text-slate-500 mt-1 text-sm">Kelola dan tinjau tugas tambahan siswa</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="px-6 sm:px-8 pt-6">
+        {taskItems.length === 0 ? (
+          <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center max-w-2xl">
+            <span className="material-symbols-outlined text-slate-300 text-5xl mb-4 block">assignment_turned_in</span>
+            <h3 className="font-bold text-slate-700 mb-2">Tidak ada tugas susulan</h3>
+            <p className="text-slate-400 text-sm">Semua siswa hadir atau belum ada yang mengumpulkan tugas susulan.</p>
+          </div>
+        ) : (
+          <MakeUpTaskList tasks={taskItems} />
+        )}
+      </div>
     </div>
   );
 }
-
-const emptyStyle: CSSProperties = {
-  padding: '1.2rem 1.5rem',
-  borderRadius: '0.75rem',
-  border: '1px solid #e2e8f0',
-  background: '#ffffff',
-  color: '#64748b',
-  fontSize: '0.95rem',
-};

@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { ArrowLeft, ExternalLink, Play, Calendar } from 'lucide-react';
 import type { CSSProperties } from 'react';
 
 import { getSessionOrThrow } from '@/lib/auth';
@@ -24,189 +25,242 @@ export default async function CoachLessonDetailPage({ params }: PageProps) {
     }
 
     return (
-        <div style={containerStyle}>
-            <Link href="/coach/dashboard" style={backLinkStyle}>
-                ← Kembali ke Dashboard
-            </Link>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '3rem', paddingTop: '1rem' }}>
+            {/* Navigation */}
+            <header style={{ marginBottom: '2rem' }}>
+                <Link
+                    href="/coach/dashboard"
+                    style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        color: '#64748b',
+                        fontSize: '0.95rem',
+                        fontWeight: 600,
+                        textDecoration: 'none',
+                        transition: 'color 0.2s'
+                    }}
+                >
+                    <ArrowLeft size={18} />
+                    Kembali ke Dashboard
+                </Link>
+            </header>
 
-            <div style={cardStyle}>
-                <div style={headerStyle}>
-                    <div>
-                        <h1 style={titleStyle}>{lesson.title}</h1>
+            {/* Hero Header */}
+            <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                    <h1 style={{
+                        fontSize: '2rem',
+                        fontWeight: 800,
+                        color: '#1e293b',
+                        lineHeight: 1.2,
+                        marginBottom: '0.5rem',
+                        letterSpacing: '-0.02em'
+                    }}>
+                        {lesson.title}
+                    </h1>
+                    <div style={{ display: 'flex', gap: '1rem', color: '#64748b', fontSize: '0.9rem', fontWeight: 600 }}>
+                        <span>Lesson {lesson.order_index}</span>
+                        <span>•</span>
+                        <span>{lesson.estimated_meeting_count ?? '-'} Pertemuan</span>
+                    </div>
+                </div>
+                {/* Keep Report Button Prominent */}
+                <ReportLessonButton lessonId={lesson.id} lessonTitle={lesson.title} coachId={session.user.id} />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 350px', gap: '2.5rem', alignItems: 'start' }}>
+                {/* Main Content Area */}
+                <main style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                    {/* Slide Viewer (Cinema Mode) */}
+                    <div style={cardStyle}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#eff6ff', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Play size={18} fill="currentColor" />
+                                </div>
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Slide Materi</h2>
+                            </div>
+                            {lesson.slide_url && (
+                                <a
+                                    href={lesson.slide_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{ fontSize: '0.9rem', color: '#3b82f6', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none' }}
+                                >
+                                    Buka Fullscreen <ExternalLink size={14} />
+                                </a>
+                            )}
+                        </div>
+
+                        {lesson.slide_url ? (
+                            <div style={slideContainerStyle}>
+                                <iframe
+                                    src={getSlideEmbedUrl(lesson.slide_url)}
+                                    title={lesson.title}
+                                    allowFullScreen
+                                    style={slideFrameStyle}
+                                />
+                            </div>
+                        ) : (
+                            <div style={{ padding: '4rem', textAlign: 'center', background: '#f8fafc', borderRadius: '12px', border: '2px dashed #cbd5e1', color: '#94a3b8' }}>
+                                <p style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Slide belum tersedia</p>
+                                <p style={{ fontSize: '0.9rem' }}>Materi presentasi belum diunggah untuk sesi ini.</p>
+                            </div>
+                        )}
+
                         {lesson.summary && (
-                            <p style={summaryStyle}>{lesson.summary}</p>
+                            <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #e2e8f0' }}>
+                                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.75rem' }}>Ringkasan Materi</h3>
+                                <div style={{ fontSize: '1rem', color: '#475569', lineHeight: 1.6 }}>
+                                    {lesson.summary}
+                                </div>
+                            </div>
                         )}
                     </div>
-                    <ReportLessonButton lessonId={lesson.id} lessonTitle={lesson.title} coachId={session.user.id} />
-                </div>
+                </main>
 
-                <div style={infoRowStyle}>
-                    <div style={infoItemStyle}>
-                        <span style={infoLabelStyle}>Jumlah Pertemuan</span>
-                        <span style={infoValueStyle}>{lesson.estimated_meeting_count ?? '-'} sesi</span>
-                    </div>
-                    <div style={infoItemStyle}>
-                        <span style={infoLabelStyle}>Urutan</span>
-                        <span style={infoValueStyle}>Lesson {lesson.order_index}</span>
-                    </div>
-                </div>
+                {/* Sidebar */}
+                <aside style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'sticky', top: '2rem' }}>
 
-                {/* Actions */}
-                <div style={actionsStyle}>
-                    {lesson.slide_url ? (
-                        <a href={lesson.slide_url} target="_blank" rel="noopener noreferrer" style={primaryButtonStyle}>
-                            📊 Buka Slide Materi
-                        </a>
-                    ) : (
-                        <span style={noSlideStyle}>Belum ada slide</span>
-                    )}
+                    {/* Contoh Game Card */}
                     {lesson.example_url && (
-                        <a href={lesson.example_url} target="_blank" rel="noopener noreferrer" style={secondaryButtonStyle}>
-                            🎮 Lihat Contoh Game
-                        </a>
-                    )}
-                </div>
+                        <div style={projectCardStyle}>
+                            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                                <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🎮</div>
+                                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', margin: 0 }}>Contoh Game</h3>
+                                <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem', marginTop: '0.4rem' }}>
+                                    Cek hasil akhir project yang akan diajarkan hari ini!
+                                </p>
+                            </div>
 
-                {/* Make-up Instructions */}
-                {lesson.make_up_instructions && (
-                    <div style={makeUpSectionStyle}>
-                        <h3 style={sectionTitleStyle}>📝 Instruksi Make-Up / Pengganti</h3>
-                        <p style={makeUpTextStyle}>{lesson.make_up_instructions}</p>
-                    </div>
-                )}
+                            <a
+                                href={lesson.example_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={primaryButtonStyle}
+                            >
+                                <Play size={18} fill="currentColor" /> Mainkan Game
+                            </a>
+                        </div>
+                    )}
+
+                    {/* Make-up Instructions Card */}
+                    {lesson.make_up_instructions && (
+                        <div style={{ ...sidebarCardStyle, borderColor: '#fef3c7', background: '#fffbeb' }}>
+                            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#92400e', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                📝 Instruksi Make-Up
+                            </h3>
+                            <div style={{ fontSize: '0.9rem', color: '#78350f', lineHeight: 1.6 }}>
+                                {lesson.make_up_instructions}
+                            </div>
+                        </div>
+                    )}
+
+                </aside>
+
+                {/* Responsive CSS */}
+                <style>{`
+                    @media (max-width: 1024px) {
+                        div[style*="grid-template-columns"] {
+                            grid-template-columns: 1fr !important;
+                        }
+                        aside {
+                            position: static !important;
+                        }
+                    }
+                `}</style>
             </div>
         </div>
     );
 }
 
-const containerStyle: CSSProperties = {
-    maxWidth: '800px',
-    margin: '0 auto',
-};
+function getSlideEmbedUrl(url: string): string {
+    try {
+        const parsed = new URL(url);
+        if (parsed.hostname.includes('docs.google.com') && parsed.pathname.includes('/presentation/d/')) {
+            if (parsed.pathname.includes('/d/e/')) {
+                const segments = parsed.pathname.split('/');
+                const eIndex = segments.indexOf('e');
+                if (eIndex !== -1 && segments[eIndex + 1]) {
+                    const presentationId = segments[eIndex + 1];
+                    return `https://docs.google.com/presentation/d/e/${presentationId}/embed${parsed.search}`;
+                }
+            }
 
-const backLinkStyle: CSSProperties = {
-    display: 'inline-block',
-    marginBottom: '1rem',
-    color: '#1e3a5f',
-    fontSize: '0.9rem',
-    fontWeight: 500,
-    textDecoration: 'none',
-};
+            const segments = parsed.pathname.split('/');
+            const dIndex = segments.indexOf('d');
+
+            if (dIndex !== -1 && segments[dIndex + 1]) {
+                const presentationId = segments[dIndex + 1];
+                if (presentationId !== 'e') {
+                    return `https://docs.google.com/presentation/d/${presentationId}/embed${parsed.search}`;
+                }
+            }
+        }
+    } catch {
+        // ignore
+    }
+    return url.replace('/edit', '/embed');
+}
 
 const cardStyle: CSSProperties = {
-    background: '#fff',
-    borderRadius: '1rem',
-    padding: '2rem',
-    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+    background: '#ffffff',
+    borderRadius: '16px',
     border: '1px solid #e2e8f0',
+    padding: '1.5rem',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
 };
 
-const headerStyle: CSSProperties = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: '1rem',
-    marginBottom: '1.5rem',
-    flexWrap: 'wrap',
+const slideContainerStyle: CSSProperties = {
+    position: 'relative',
+    width: '100%',
+    paddingTop: '62.5%',
+    minHeight: '400px',
+    background: '#0f172a',
+    borderRadius: '16px',
+    overflow: 'hidden',
+    boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255,255,255,0.05)'
 };
 
-const titleStyle: CSSProperties = {
-    fontSize: '1.5rem',
-    fontWeight: 700,
-    color: '#0f172a',
-    margin: 0,
+const slideFrameStyle: CSSProperties = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    border: 'none',
 };
 
-const summaryStyle: CSSProperties = {
-    fontSize: '0.95rem',
-    color: '#64748b',
-    marginTop: '0.5rem',
-    lineHeight: 1.5,
+const sidebarCardStyle: CSSProperties = {
+    background: '#ffffff',
+    borderRadius: '16px',
+    border: '1px solid #e2e8f0',
+    padding: '1.25rem',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
 };
 
-const infoRowStyle: CSSProperties = {
-    display: 'flex',
-    gap: '2rem',
-    marginBottom: '1.5rem',
-    padding: '1rem',
-    background: '#f8fafc',
-    borderRadius: '0.75rem',
-};
-
-const infoItemStyle: CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.25rem',
-};
-
-const infoLabelStyle: CSSProperties = {
-    fontSize: '0.75rem',
-    fontWeight: 600,
-    color: '#64748b',
-    textTransform: 'uppercase',
-};
-
-const infoValueStyle: CSSProperties = {
-    fontSize: '1rem',
-    fontWeight: 600,
-    color: '#0f172a',
-};
-
-const actionsStyle: CSSProperties = {
-    display: 'flex',
-    gap: '0.75rem',
-    flexWrap: 'wrap',
-    marginBottom: '1.5rem',
+const projectCardStyle: CSSProperties = {
+    background: 'linear-gradient(135deg, #2563eb 0%, #1e40af 100%)',
+    borderRadius: '16px',
+    padding: '1.5rem',
+    boxShadow: '0 10px 20px -5px rgba(37, 99, 235, 0.4)',
+    color: '#fff',
+    border: '1px solid rgba(255,255,255,0.1)'
 };
 
 const primaryButtonStyle: CSSProperties = {
-    display: 'inline-flex',
+    display: 'flex',
+    justifyContent: 'center',
     alignItems: 'center',
     gap: '0.5rem',
-    padding: '0.75rem 1.25rem',
-    background: '#1e3a5f',
-    color: '#fff',
-    borderRadius: '0.5rem',
-    fontWeight: 600,
-    fontSize: '0.9rem',
+    width: '100%',
+    background: '#fff',
+    color: '#1e40af',
+    padding: '0.8rem',
+    borderRadius: '10px',
+    fontWeight: 700,
     textDecoration: 'none',
-};
-
-const secondaryButtonStyle: CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    padding: '0.75rem 1.25rem',
-    background: '#f1f5f9',
-    color: '#334155',
-    borderRadius: '0.5rem',
-    fontWeight: 600,
-    fontSize: '0.9rem',
-    textDecoration: 'none',
-    border: '1px solid #e2e8f0',
-};
-
-const noSlideStyle: CSSProperties = {
-    color: '#94a3b8',
-    fontStyle: 'italic',
-};
-
-const makeUpSectionStyle: CSSProperties = {
-    padding: '1rem',
-    background: '#fffbeb',
-    borderRadius: '0.75rem',
-    border: '1px solid #fef3c7',
-};
-
-const sectionTitleStyle: CSSProperties = {
-    fontSize: '0.9rem',
-    fontWeight: 600,
-    color: '#92400e',
-    marginBottom: '0.5rem',
-};
-
-const makeUpTextStyle: CSSProperties = {
-    fontSize: '0.9rem',
-    color: '#78350f',
-    lineHeight: 1.6,
+    transition: 'transform 0.1s, box-shadow 0.1s',
+    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
 };

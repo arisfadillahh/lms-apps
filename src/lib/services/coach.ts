@@ -31,6 +31,7 @@ type CoachClassSummary = {
   } | null;
   upcomingBlock?: { name?: string | null; startDate: string; endDate: string } | null;
   isSubstitute?: boolean; // New flag
+  studentsCount?: number;
 };
 
 function pickBlock(blocks: (ClassBlockRecord & { block_name?: string | null })[], status: ClassBlockRecord['status']) {
@@ -109,6 +110,9 @@ export async function getCoachClassesWithBlocks(coachId: string): Promise<CoachC
         }
       }
 
+      const enrollments = await classesDao.listEnrollmentsByClass(klass.id);
+      const activeEnrollments = enrollments.filter(e => e.status === 'ACTIVE');
+
       return {
         classId: klass.id,
         name: klass.name,
@@ -118,6 +122,7 @@ export async function getCoachClassesWithBlocks(coachId: string): Promise<CoachC
         currentBlock,
         upcomingBlock,
         isSubstitute: !isMainCoach, // Set flag
+        studentsCount: activeEnrollments.length,
       };
     }),
   );
@@ -126,6 +131,7 @@ export async function getCoachClassesWithBlocks(coachId: string): Promise<CoachC
 export type ExtendedSession = import('@/lib/dao/sessionsDao').SessionRecord & {
   class_name?: string;
   lesson?: {
+    id: string;
     title: string;
     block_name: string;
     slide_url: string | null;
@@ -149,6 +155,7 @@ export async function getAllCoachSessions(coachId: string): Promise<ExtendedSess
         class_name: klass.name,
         lesson: lessonSlot
           ? {
+            id: lessonSlot.lessonTemplate.id,
             title: formatLessonTitle(lessonSlot),
             block_name: lessonSlot.block.name ?? 'Unknown Block',
             slide_url: lessonSlot.lessonTemplate.slide_url,
@@ -205,6 +212,7 @@ async function getSubstituteSessions(coachId: string): Promise<ExtendedSession[]
           class_name: session.class_name, // Already populated by listAllSubstituteSessions
           lesson: lessonSlot
             ? {
+              id: lessonSlot.lessonTemplate.id,
               title: formatLessonTitle(lessonSlot),
               block_name: lessonSlot.block.name ?? 'Unknown Block',
               slide_url: lessonSlot.lessonTemplate.slide_url,

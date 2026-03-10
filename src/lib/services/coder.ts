@@ -43,6 +43,7 @@ export type CoderClassProgress = {
   schedule?: {
     days: string[];
     timeInfo: string | null;
+    zoomLink?: string | null;
   } | null;
   completedBlocks: number;
   totalBlocks: number | null;
@@ -203,7 +204,8 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
                 title: `Sesi: ${new Date(nextSession.date_time).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' })}`,
                 summary: `Jam ${new Date(nextSession.date_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`,
                 slideUrl: null,
-                status: 'NEXT' as const
+                status: 'NEXT' as const,
+                scheduledAt: [nextSession.date_time]
               }] : []
             };
           }
@@ -220,7 +222,8 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
           coach: coachInfo,
           schedule: {
             days: scheduleDays,
-            timeInfo: timeInfo
+            timeInfo: timeInfo,
+            zoomLink: klass.zoom_link || null
           },
           completedBlocks,
           totalBlocks,
@@ -407,7 +410,8 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
         coach: coachInfo,
         schedule: {
           days: scheduleDays,
-          timeInfo: timeInfo
+          timeInfo: timeInfo,
+          zoomLink: klass.zoom_link || null
         },
         completedBlocks,
         totalBlocks,

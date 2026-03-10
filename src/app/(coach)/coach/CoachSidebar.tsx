@@ -1,134 +1,67 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import type { CSSProperties } from 'react';
-import { Home, ClipboardCheck, FileUp, CalendarOff, Settings, LogOut } from 'lucide-react';
-import { motion } from 'framer-motion';
-
-
 
 const NAV_LINKS = [
-    { href: '/coach/dashboard', label: 'Dashboard', icon: Home },
-    { href: '/coach/rubrics', label: 'Rubrik', icon: ClipboardCheck },
-    { href: '/coach/makeup', label: 'Tugas Susulan', icon: FileUp },
-    { href: '/coach/leave', label: 'Pengajuan Izin', icon: CalendarOff },
+    { href: '/coach/dashboard', label: 'Dashboard', icon: 'grid_view' },
+    { href: '/coach/rubrics', label: 'Rubrik & Penilaian', icon: 'analytics' },
+    { href: '/coach/makeup', label: 'Tugas Susulan', icon: 'history_edu' },
+    { href: '/coach/leave', label: 'Pengajuan Izin', icon: 'mail_lock' },
 ];
 
-type CoachSidebarProps = {
-    session: { user: { fullName: string } } | null;
-};
-
-const container = {
-    hidden: { opacity: 0 },
-    show: {
-        opacity: 1,
-        transition: { staggerChildren: 0.08 }
-    }
-};
-
-const item = {
-    hidden: { opacity: 0, x: -20 },
-    show: { opacity: 1, x: 0 }
-};
-
-export default function CoachSidebar({ session }: CoachSidebarProps) {
+export default function CoachSidebar() {
     const pathname = usePathname();
 
     return (
-        <aside className="coach-sidebar" style={sidebarStyle}>
-            {/* Logo */}
-            <div style={{ padding: '0.5rem 0.75rem', marginBottom: '0.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <div style={{
-                        width: '32px',
-                        height: '32px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    }}>
-                        <Image src="/favicon.ico" alt="Clevio LMS" width={32} height={32} />
-                    </div>
-                    <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1e293b', letterSpacing: '-0.02em' }}>
-                        Clevio LMS
-                    </span>
+        <>
+            <style>{`
+                .sidebar-active-indicator {
+                    width: 4px;
+                    height: 20px;
+                    background-color: #6bb3ff;
+                    position: absolute;
+                    left: 0;
+                    border-radius: 0 4px 4px 0;
+                }
+                .material-symbols-outlined {
+                    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+                }
+                .active-icon {
+                    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+                }
+            `}</style>
+            <aside className="fixed left-0 top-0 h-full w-[260px] bg-[#0a1428] text-white flex flex-col z-50">
+                <div className="p-8">
+                    <h2 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[#6bb3ff] text-[24px]">strategy</span>
+                        Clevio
+                    </h2>
                 </div>
-            </div>
 
-            {/* Navigation */}
-            <motion.nav
-                variants={container}
-                initial="hidden"
-                animate="show"
-                style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: 1 }}
-            >
-                {NAV_LINKS.map((link) => {
-                    const isActive = pathname.startsWith(link.href);
-                    const Icon = link.icon;
-                    return (
-                        <motion.div key={link.href} variants={item}>
-                            <Link href={link.href} style={isActive ? activeNavLinkStyle : navLinkStyle}>
-                                <div style={{
-                                    width: '32px',
-                                    height: '32px',
-                                    borderRadius: '8px',
-                                    background: isActive ? '#10b981' : 'transparent',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    color: isActive ? '#fff' : '#64748b',
-                                    transition: 'all 0.2s ease',
-                                }}>
-                                    <Icon size={18} />
-                                </div>
-                                <span>{link.label}</span>
+                <nav className="flex-grow px-4 space-y-1.5 mt-4">
+                    {NAV_LINKS.map((link) => {
+                        const isActive = pathname.startsWith(link.href);
+
+                        if (isActive) {
+                            return (
+                                <Link key={link.href} href={link.href} className="relative flex items-center px-4 py-3 text-white bg-slate-800/30 rounded-lg group">
+                                    <div className="sidebar-active-indicator"></div>
+                                    <span className="material-symbols-outlined active-icon mr-3 text-[#6bb3ff]">{link.icon}</span>
+                                    <span className="font-semibold text-[#6bb3ff]">{link.label}</span>
+                                </Link>
+                            );
+                        }
+
+                        return (
+                            <Link key={link.href} href={link.href} className="flex items-center px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800/40 transition-colors rounded-lg group">
+                                <span className="material-symbols-outlined mr-3">{link.icon}</span>
+                                <span className="font-medium">{link.label}</span>
                             </Link>
-                        </motion.div>
-                    );
-                })}
-            </motion.nav>
-
-
-        </aside>
+                        );
+                    })}
+                </nav>
+            </aside>
+        </>
     );
 }
-
-// Styles - Modern Green Theme for Coach
-const sidebarStyle: CSSProperties = {
-    width: '240px',
-    height: '100vh',
-    background: '#ffffff',
-    color: '#1e293b',
-    padding: '1.25rem 0.75rem',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1rem',
-    position: 'fixed',
-    left: 0,
-    top: 0,
-    overflowY: 'auto',
-    zIndex: 50,
-    borderRight: 'none',
-    boxShadow: '4px 0 20px rgba(0, 0, 0, 0.03)',
-};
-
-const navLinkStyle: CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.75rem',
-    padding: '0.5rem 0.75rem',
-    borderRadius: '12px',
-    color: '#64748b',
-    textDecoration: 'none',
-    fontSize: '0.9rem',
-    fontWeight: 500,
-    transition: 'all 0.2s ease',
-};
-
-const activeNavLinkStyle: CSSProperties = {
-    ...navLinkStyle,
-    background: '#ecfdf5',
-    color: '#1e293b',
-    fontWeight: 600,
-};

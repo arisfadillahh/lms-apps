@@ -13,7 +13,6 @@ import JourneyModal from './JourneyModal';
 import UpcomingLessonsModal from './UpcomingLessonsModal';
 import SoftwareDetailModal from './SoftwareDetailModal';
 import BannerCarousel from '@/components/coder/BannerCarousel';
-import ClassDetailTrigger from './ClassDetailTrigger';
 import { StaggerContainer, StaggerItem } from '../StaggerWrapper';
 import CoderHeader from './CoderHeader';
 
@@ -49,6 +48,7 @@ export default async function CoderDashboardPage() {
     .map((item) => ({
       classId: item.classId,
       className: item.name,
+      levelName: item.levelName,
       classType: item.type,
       block: item.upNext!,
       coach: item.coach,
@@ -77,6 +77,23 @@ export default async function CoderDashboardPage() {
   const completedLessons = completedLessonsArr.length;
   const totalLessons = activeBlock?.block.lessons?.length || 1;
   const activeProgressPct = Math.round((completedLessons / totalLessons) * 100);
+
+  // Check if class link is active (class time up to 1.5 hours later)
+  let isLinkActive = false;
+  let zoomLink = activeBlock?.schedule?.zoomLink || null;
+  const scheduledTime = nextLesson?.scheduledAt?.[0] ? new Date(nextLesson.scheduledAt[0]) : null;
+
+  if (scheduledTime) {
+    const msPerMinute = 60000;
+    const startTime = new Date(scheduledTime.getTime());
+    startTime.setMinutes(startTime.getMinutes() - 30); // 30 mins buffer before class
+    const endTime = new Date(scheduledTime.getTime() + 90 * msPerMinute); // 1.5 hours after start
+    const now = new Date();
+
+    if (now >= startTime && now <= endTime) {
+      isLinkActive = true;
+    }
+  }
 
   // All lessons in current active blocks (for the modal)
   const allLessonsInCurrentBlocks = upcomingBlocks
@@ -144,7 +161,7 @@ export default async function CoderDashboardPage() {
       />
 
       {/* ===== CONTENT ===== */}
-      <StaggerContainer className="flex-1 p-8 overflow-y-auto">
+      <StaggerContainer className="flex-1 p-4 md:p-8 overflow-y-auto overflow-x-hidden">
 
         {/* ===== BANNER SECTION ===== */}
         <StaggerItem className="mb-10">
@@ -169,10 +186,10 @@ export default async function CoderDashboardPage() {
         </StaggerItem>
 
         {/* ===== MAIN GRID ===== */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-10">
 
           {/* ===== LEFT COLUMN ===== */}
-          <div className="lg:col-span-8 space-y-10">
+          <div className="lg:col-span-8 space-y-8 md:space-y-10">
 
             {/* ===== LANJUTKAN BELAJARMU ===== */}
             <StaggerItem>
@@ -192,10 +209,10 @@ export default async function CoderDashboardPage() {
                 </div>
 
                 {activeBlock ? (
-                  <div className="group bg-white rounded-[3rem] p-1 shadow-[0_20px_50px_rgba(0,0,0,0.04)] border-2 border-white/50 overflow-hidden">
-                    <div className="bg-pastel-blue/30 p-6 md:p-10 rounded-[2.5rem] relative overflow-hidden">
+                  <div className="group bg-white rounded-3xl md:rounded-[3rem] p-1 shadow-[0_20px_50px_rgba(0,0,0,0.04)] border-2 border-white/50 overflow-hidden">
+                    <div className="bg-pastel-blue/30 p-5 md:p-10 rounded-2xl md:rounded-[2.5rem] relative overflow-hidden">
                       {/* Ongoing Indicator */}
-                      <div className="absolute top-6 md:top-8 right-6 md:right-8 flex items-center gap-2.5 px-3 py-1.5 md:px-4 md:py-2 bg-white/90 backdrop-blur-md rounded-full shadow-sm z-20 border-2 border-clevio-green/20">
+                      <div className="absolute top-4 md:top-8 right-4 md:right-8 flex items-center gap-2.5 px-3 py-1.5 md:px-4 md:py-2 bg-white/90 backdrop-blur-md rounded-full shadow-sm z-20 border-2 border-clevio-green/20">
                         <span className="relative flex size-2.5 md:size-3">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-clevio-green opacity-75"></span>
                           <span className="relative inline-flex rounded-full size-full bg-clevio-green"></span>
@@ -206,23 +223,25 @@ export default async function CoderDashboardPage() {
                       <div className="flex flex-col gap-8 relative z-10">
 
                         {/* Top: Header Info */}
-                        <div className="flex-1 w-full space-y-6">
-                          <div className="space-y-3">
-                            <div className="flex flex-wrap items-center gap-3 pr-32">
-                              <span className="px-4 py-1.5 bg-pastel-blue text-clevio-navy text-[10px] font-black rounded-full uppercase tracking-widest border-2 border-sky/40 shadow-sm shadow-sky/20">
-                                BEGINNER LEVEL
+                        <div className="flex-1 w-full space-y-4 md:space-y-6">
+                          <div className="space-y-2 md:space-y-3">
+                            <div className="flex flex-wrap items-center gap-2 md:gap-3 pr-24 md:pr-32">
+                              <span className="px-3 md:px-4 py-1.5 bg-pastel-blue text-clevio-navy text-[9px] md:text-[10px] font-black rounded-full uppercase tracking-widest border-2 border-sky/40 shadow-sm shadow-sky/20">
+                                {activeBlock.levelName ? activeBlock.levelName.toUpperCase() : 'LEVEL'}
                               </span>
                             </div>
-                            <h4 className="text-4xl font-black text-clevio-navy pt-2 pr-12">{activeBlock.className}</h4>
-                            <p className="text-xl font-medium text-slate-600 flex items-center gap-3">
-                              <BookOpen className="text-orange-600" size={24} strokeWidth={2.5} />
-                              {activeBlock.block.name}
-                            </p>
+                            <h4 className="text-[28px] md:text-4xl font-black text-clevio-navy pt-2 md:pt-2 pr-0 md:pr-12 leading-tight md:leading-normal">{activeBlock.className}</h4>
+                            <div className="flex items-start md:items-center gap-2 md:gap-3">
+                              <BookOpen className="text-orange-600 shrink-0 mt-1 md:mt-0" size={24} strokeWidth={2.5} />
+                              <p className="text-lg md:text-xl font-medium text-slate-600 leading-snug">
+                                {activeBlock.block.name}
+                              </p>
+                            </div>
                           </div>
                         </div>
 
                         {/* Middle: Lesson Summary & Slide Access */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t-2 border-dashed border-sky/20">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 pt-6 md:pt-8 border-t-2 border-dashed border-sky/20">
                           <div className="space-y-4">
                             <h5 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
                               <ListChecks className="text-sky" size={18} />
@@ -246,11 +265,11 @@ export default async function CoderDashboardPage() {
                                 rel="noreferrer"
                                 className="flex items-center justify-between p-4 bg-pastel-blue hover:bg-sky hover:text-white rounded-2xl border-2 border-sky/20 transition-all group/link"
                               >
-                                <div className="flex items-center gap-3">
-                                  <Play className="text-sky group-hover/link:text-white" size={20} />
-                                  <span className="text-sm font-black text-clevio-navy group-hover/link:text-white">Buka Slide Presentasi</span>
+                                <div className="flex items-center gap-3 w-[85%]">
+                                  <Play className="text-sky group-hover/link:text-white shrink-0" size={20} />
+                                  <span className="text-sm font-black text-clevio-navy group-hover/link:text-white truncate">Buka Slide Presentasi</span>
                                 </div>
-                                <ChevronRight className="text-sky group-hover/link:text-white group-hover/link:translate-x-1 transition-transform" size={18} />
+                                <ChevronRight className="text-sky group-hover/link:text-white group-hover/link:translate-x-1 transition-transform shrink-0" size={18} />
                               </a>
                             ) : (
                               <p className="text-sm font-bold text-slate-400 italic p-4 bg-slate-50 rounded-2xl">Slide belum tersedia untuk materi ini.</p>
@@ -269,23 +288,29 @@ export default async function CoderDashboardPage() {
                               <div className="bg-gradient-to-r from-sky to-clevio-green h-full rounded-full transition-all duration-1000" style={{ width: `${activeProgressPct}%` }}></div>
                             </div>
                           </div>
-                          <ClassDetailTrigger
-                            classInfo={{
-                              classId: activeBlock.classId,
-                              className: activeBlock.className,
-                              classType: activeBlock.classType,
-                              block: activeBlock.block,
-                              progressPct: activeProgressPct,
-                              bgColor: '',
-                              coach: activeBlock.coach,
-                              schedule: activeBlock.schedule
-                            }}
-                            customTrigger={
-                              <button className="w-full md:w-auto bg-coral text-white px-8 py-3 rounded-xl font-black text-base shadow-[0_6px_0_0_#E86E7E] hover:translate-y-1 hover:shadow-[0_2px_0_0_#E86E7E] active:translate-y-1.5 active:shadow-none transition-all">
-                                Lanjut Belajar
+                          {isLinkActive && zoomLink ? (
+                            <a
+                              href={zoomLink}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="w-full md:w-auto text-center bg-coral text-white px-8 py-3 rounded-xl font-black text-base shadow-[0_6px_0_0_#E86E7E] hover:translate-y-1 hover:shadow-[0_2px_0_0_#E86E7E] active:translate-y-1.5 active:shadow-none transition-all cursor-pointer"
+                            >
+                              Masuk Kelas
+                            </a>
+                          ) : (
+                            <div className="w-full md:w-auto relative group/btn cursor-not-allowed">
+                              <button
+                                disabled
+                                className="w-full bg-slate-200 text-slate-400 px-8 py-3 rounded-xl font-black text-base transition-all pointer-events-none"
+                              >
+                                Masuk Kelas
                               </button>
-                            }
-                          />
+                              <div className="absolute top-[-40px] left-1/2 -translate-x-1/2 opacity-0 group-hover/btn:opacity-100 transition-opacity bg-slate-800 text-white text-xs font-bold py-1 px-3 rounded-lg whitespace-nowrap z-50 pointer-events-none">
+                                Tombol aktif 30 menit sebelum kelas
+                                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -332,17 +357,17 @@ export default async function CoderDashboardPage() {
                               sw.version ? `Versi ${sw.version}` : 'Aplikasi Required';
 
                       return (
-                        <div key={`${sw.id}-${idx}`} className={`bg-white border-4 ${theme.border} rounded-3xl p-5 flex items-center gap-4 shadow-[0_10px_0_0_rgba(0,0,0,0.05)] group ${theme.hoverBg} transition-colors`}>
-                          <div className={`size-14 ${theme.iconBg} rounded-2xl flex items-center justify-center shadow-inner ${theme.rotate} transition-transform`}>
-                            <span className="text-clevio-navy">{swIcon}</span>
+                        <div key={`${sw.id}-${idx}`} className={`bg-white border-4 ${theme.border} rounded-2xl md:rounded-3xl p-4 md:p-5 flex items-center gap-3 md:gap-4 shadow-[0_10px_0_0_rgba(0,0,0,0.05)] group ${theme.hoverBg} transition-colors min-w-0`}>
+                          <div className={`shrink-0 size-12 md:size-14 ${theme.iconBg} rounded-xl md:rounded-2xl flex items-center justify-center shadow-inner ${theme.rotate} transition-transform`}>
+                            <span className="text-clevio-navy scale-90 md:scale-100">{swIcon}</span>
                           </div>
-                          <div className="flex-1">
-                            <h5 className="font-black text-clevio-navy text-base">{sw.name}</h5>
-                            <p className="text-xs font-bold text-slate-400">{subtitle}</p>
+                          <div className="flex-1 min-w-0">
+                            <h5 className="font-black text-clevio-navy text-sm md:text-base truncate">{sw.name}</h5>
+                            <p className="text-[10px] md:text-xs font-bold text-slate-400 truncate">{subtitle}</p>
                           </div>
                           <SoftwareDetailModal software={sw} customTrigger={
-                            <button className={`size-12 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center ${theme.hoverBtn} transition-all shadow-sm`}>
-                              <Download size={20} strokeWidth={2.5} />
+                            <button className={`shrink-0 size-10 md:size-12 rounded-lg md:rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center ${theme.hoverBtn} transition-all shadow-sm`}>
+                              <Download className="scale-90 md:scale-100" strokeWidth={2.5} />
                             </button>
                           } />
                         </div>
@@ -355,10 +380,10 @@ export default async function CoderDashboardPage() {
           </div>
 
           {/* ===== RIGHT COLUMN - TIMELINE ===== */}
-          <div className="lg:col-span-4">
+          <div className="lg:col-span-4 mt-4 md:mt-0">
             <StaggerItem>
-              <div className="bg-white rounded-[2.5rem] border-4 border-dashed border-pastel-blue/30 p-6">
-                <div className="flex items-center justify-between mb-8">
+              <div className="bg-white rounded-3xl md:rounded-[2.5rem] border-4 border-dashed border-pastel-blue/30 p-5 md:p-6">
+                <div className="flex items-center justify-between mb-6 md:mb-8">
                   <h3 className="text-xl font-black text-clevio-navy">Materi Mendatang</h3>
                   <Star className="text-amber-500" size={20} />
                 </div>

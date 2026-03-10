@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import type React from 'react';
-import { Video, BookOpen, CheckCircle, ExternalLink, Play } from 'lucide-react';
-
+import { ExternalLink } from 'lucide-react';
 import MarkSessionCompleteButton from '@/app/(coach)/coach/classes/[id]/MarkSessionCompleteButton';
 
 type SessionActionsProps = {
@@ -24,239 +23,106 @@ export default function SessionActions({
   const [showSlides, setShowSlides] = useState(false);
 
   const handleOpenSlides = () => {
-    if (!slideUrl) {
-      return;
-    }
+    if (!slideUrl) return;
     setShowSlides(true);
   };
 
   return (
     <>
-      <div style={actionsGridStyle}>
-        {/* Main Action Card - Zoom */}
-        <div style={actionCardStyle}>
-          <div style={{ ...iconWrapperStyle, background: '#eff6ff', color: '#3b82f6' }}>
-            <Video size={24} />
-          </div>
-          <div style={{ flex: 1 }}>
-            <h3 style={cardTitleStyle}>Kelas Online</h3>
-            <p style={cardDescStyle}>Mulai kelas via Zoom</p>
-          </div>
+      {/* Fixed Action Strip */}
+      <div className="fixed bottom-0 right-0 left-0 lg:left-64 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-center justify-between z-30 shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)] gap-3 sm:gap-0">
+
+        {/* Left Side: Auto-save info or Primary Tools */}
+        <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto no-scrollbar pb-1 sm:pb-0">
           <a
             href={zoomLink}
             target="_blank"
             rel="noreferrer"
-            style={launchButtonStyle}
+            className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-400 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-colors whitespace-nowrap border border-blue-200 dark:border-blue-800/50"
           >
-            <Play size={16} fill="currentColor" /> Mulai
+            <span className="material-symbols-outlined text-[18px]">videocam</span>
+            Buka Zoom
           </a>
-        </div>
 
-        {/* Slides Card */}
-        <div style={actionCardStyle}>
-          <div style={{ ...iconWrapperStyle, background: '#f5f3ff', color: '#8b5cf6' }}>
-            <BookOpen size={24} />
-          </div>
-          <div style={{ flex: 1 }}>
-            <h3 style={cardTitleStyle}>Materi & Slide</h3>
-            <p style={cardDescStyle}>{slideTitle ? 'Materi tersedia' : 'Belum tersedia'}</p>
-          </div>
           <button
             type="button"
             onClick={handleOpenSlides}
             disabled={!slideUrl}
-            style={{
-              ...secondaryButtonStyle,
-              opacity: slideUrl ? 1 : 0.5,
-              cursor: slideUrl ? 'pointer' : 'not-allowed',
-            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap border ${slideUrl
+                ? 'bg-purple-50 hover:bg-purple-100 text-purple-600 border-purple-200 dark:bg-purple-900/30 dark:border-purple-800/50 dark:text-purple-400'
+                : 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed dark:bg-slate-800 dark:border-slate-700'
+              }`}
           >
-            Buka Slide
+            <span className="material-symbols-outlined text-[18px]">menu_book</span>
+            Lihat Slide
           </button>
         </div>
 
-        {/* Status Card */}
-        {canComplete ? (
-          <div style={actionCardStyle}>
-            <div style={{ ...iconWrapperStyle, background: '#ecfdf5', color: '#10b981' }}>
-              <CheckCircle size={24} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <h3 style={cardTitleStyle}>Status Sesi</h3>
-              <p style={cardDescStyle}>Tandai selesai</p>
-            </div>
-            <div style={{ transform: 'scale(0.95)', transformOrigin: 'right center' }}>
+        {/* Right Side: Actions */}
+        <div className="flex items-center gap-3 w-full sm:w-auto overflow-x-auto no-scrollbar pb-1 sm:pb-0">
+          <div className="flex items-center gap-1.5 mr-2 opacity-70">
+            <span className="material-symbols-outlined text-emerald-500 text-sm">cloud_done</span>
+            <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap tracking-wide uppercase">Auto-Saved</span>
+          </div>
+
+          {canComplete && (
+            <div className="scale-90 origin-right shrink-0">
               <MarkSessionCompleteButton sessionId={sessionId} />
             </div>
-          </div>
-        ) : null}
+          )}
+
+          <button className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-md shadow-emerald-500/25 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 whitespace-nowrap shrink-0 border border-emerald-400">
+            Selesai Absen
+            <span className="material-symbols-outlined text-base">task_alt</span>
+          </button>
+        </div>
       </div>
 
-      {showSlides && slideUrl ? (
-        <div style={modalOverlayStyle} role="dialog" aria-modal="true">
-          <div style={modalContentStyle}>
-            <header style={modalHeaderStyle}>
+      {/* Slide Modal */}
+      {showSlides && slideUrl && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-[1000]" role="dialog" aria-modal="true">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-5xl h-[85vh] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden animate-slide-up border border-slate-200 dark:border-slate-800">
+            <header className="flex justify-between items-center p-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 relative z-10">
               <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.25rem', color: '#1e293b' }}>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">
                   Slide Pembelajaran
                 </h3>
-                {slideTitle ? (
-                  <p style={{ fontSize: '0.9rem', color: '#64748b' }}>{slideTitle}</p>
-                ) : null}
+                {slideTitle && (
+                  <p className="text-sm text-slate-500 truncate max-w-sm sm:max-w-xl">{slideTitle}</p>
+                )}
               </div>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <div className="flex items-center gap-3">
                 <a
                   href={slideUrl}
                   target="_blank"
                   rel="noreferrer"
-                  style={externalLinkStyle}
+                  className="hidden sm:flex items-center gap-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 font-semibold text-sm bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 px-3 py-1.5 rounded-lg transition-colors border border-blue-200 dark:border-blue-800/50"
+                  title="Buka di Tab Baru"
                 >
-                  <ExternalLink size={16} /> Buka di Tab Baru
+                  <ExternalLink size={16} /> Buka Tab
                 </a>
-                <button type="button" onClick={() => setShowSlides(false)} style={closeButtonStyle}>
-                  Tutup
+                <button
+                  type="button"
+                  onClick={() => setShowSlides(false)}
+                  className="p-2 sm:px-4 sm:py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-semibold transition-colors flex items-center justify-center"
+                >
+                  <span className="material-symbols-outlined sm:hidden text-lg">close</span>
+                  <span className="hidden sm:inline text-sm">Tutup</span>
                 </button>
               </div>
             </header>
-            <div style={modalBodyStyle}>
+            <div className="flex-1 bg-black p-0 border-t border-slate-800 relative z-0">
               <iframe
                 title={slideTitle ?? 'Slide pembelajaran'}
                 src={slideUrl.replace('/pub?', '/embed?')}
-                style={{ width: '100%', height: '100%', border: 'none', borderRadius: '0.75rem', background: '#f1f5f9' }}
+                className="w-full h-full border-none"
                 allow="fullscreen"
                 allowFullScreen
               />
             </div>
           </div>
         </div>
-      ) : null}
+      )}
     </>
   );
 }
-
-const actionsGridStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-  gap: '1.5rem',
-  marginBottom: '2rem',
-};
-
-const actionCardStyle: React.CSSProperties = {
-  background: '#ffffff',
-  border: '1px solid #e2e8f0',
-  borderRadius: '16px',
-  padding: '1.5rem',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '1rem',
-  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-  transition: 'transform 0.2s',
-};
-
-const iconWrapperStyle: React.CSSProperties = {
-  width: '3.5rem',
-  height: '3.5rem',
-  borderRadius: '12px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-};
-
-const cardTitleStyle: React.CSSProperties = {
-  fontSize: '1rem',
-  fontWeight: 700,
-  color: '#1e293b',
-  marginBottom: '0.25rem',
-};
-
-const cardDescStyle: React.CSSProperties = {
-  fontSize: '0.9rem',
-  color: '#64748b',
-};
-
-const launchButtonStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '0.5rem',
-  padding: '0.6rem 1.2rem',
-  borderRadius: '10px',
-  background: '#3b82f6',
-  color: '#fff',
-  fontWeight: 600,
-  fontSize: '0.9rem',
-  textDecoration: 'none',
-  border: 'none',
-  cursor: 'pointer',
-  transition: 'background 0.2s',
-  boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.3)'
-};
-
-const secondaryButtonStyle: React.CSSProperties = {
-  ...launchButtonStyle,
-  background: '#fff',
-  color: '#475569',
-  border: '1px solid #cbd5e1',
-  boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-};
-
-const modalOverlayStyle: React.CSSProperties = {
-  position: 'fixed',
-  inset: 0,
-  background: 'rgba(15, 23, 42, 0.75)',
-  backdropFilter: 'blur(4px)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '2rem',
-  zIndex: 1000,
-};
-
-const modalContentStyle: React.CSSProperties = {
-  background: '#fff',
-  borderRadius: '16px',
-  width: 'min(1000px, 95vw)',
-  height: 'min(700px, 90vh)',
-  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-  display: 'flex',
-  flexDirection: 'column',
-  overflow: 'hidden',
-};
-
-const modalHeaderStyle: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  padding: '1.25rem 1.5rem',
-  borderBottom: '1px solid #f1f5f9',
-  background: '#fff'
-};
-
-const closeButtonStyle: React.CSSProperties = {
-  padding: '0.5rem 1rem',
-  borderRadius: '8px',
-  border: '1px solid #e2e8f0',
-  background: '#f8fafc',
-  color: '#475569',
-  fontWeight: 600,
-  cursor: 'pointer',
-  fontSize: '0.9rem'
-};
-
-const externalLinkStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.5rem',
-  color: '#3b82f6',
-  fontWeight: 600,
-  fontSize: '0.9rem',
-  textDecoration: 'none',
-  padding: '0.5rem 1rem',
-  borderRadius: '8px',
-  background: '#eff6ff'
-};
-
-const modalBodyStyle: React.CSSProperties = {
-  flex: 1,
-  padding: '0',
-  background: '#000',
-};

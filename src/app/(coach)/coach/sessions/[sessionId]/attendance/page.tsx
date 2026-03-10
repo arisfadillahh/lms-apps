@@ -1,12 +1,10 @@
 import Link from 'next/link';
-import { Calendar, Monitor, BookOpen } from 'lucide-react';
 import { getSessionOrThrow } from '@/lib/auth';
-import { attendanceDao, classesDao, materialsDao, sessionsDao, usersDao } from '@/lib/dao';
+import { attendanceDao, classesDao, sessionsDao, usersDao } from '@/lib/dao';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
-import UploadMaterialForm from '@/app/(coach)/coach/classes/[id]/UploadMaterialForm';
 
-import AttendanceList from './AttendanceList';
-import SessionActions from './SessionActions';
+import AttendanceWrapper from './AttendanceWrapper';
+import MarkSessionCompleteButton from '@/app/(coach)/coach/classes/[id]/MarkSessionCompleteButton';
 
 type PageProps = {
   params: Promise<{ sessionId: string }>;
@@ -41,7 +39,7 @@ export default async function SessionAttendancePage({ params }: PageProps) {
     return renderError('Akses Ditolak', 'Anda bukan coach untuk sesi ini.');
   }
 
-  const [enrollments, classSessions, lessonScheduleMap, materials] = await Promise.all([
+  const [enrollments, classSessions, lessonScheduleMap] = await Promise.all([
     classesDao.listEnrollmentsByClass(classRecord.id, { includeInactive: true }),
     sessionsDao.listSessionsByClass(classRecord.id),
     computeLessonSchedule(
@@ -49,7 +47,6 @@ export default async function SessionAttendancePage({ params }: PageProps) {
       classRecord.level_id ?? null,
       (classRecord as any).ekskul_lesson_plan_id
     ),
-    materialsDao.listMaterialsByClass(classRecord.id),
   ]);
 
   const attendanceRecords = classSessions.length
@@ -91,90 +88,173 @@ export default async function SessionAttendancePage({ params }: PageProps) {
   const slideTitle = currentLessonSlot ? formatLessonTitle(currentLessonSlot) : null;
   const lessonSummary = currentLessonSlot?.lessonTemplate.summary ?? 'Tidak ada ringkasan materi.';
 
-  const sessionMaterials = materials.filter((m) => m.session_id === sessionId);
+  // Compute attendance stats
+  const totalCoders = attendees.length;
+  const markedCoders = attendees.filter((a) => a.attendance !== null).length;
+  const attendancePercentage = totalCoders > 0 ? Math.round((markedCoders / totalCoders) * 100) : 0;
+
+  // Compute block name
+  const blockName = classRecord.type === 'EKSKUL'
+    ? 'Ekskul'
+    : (lessonScheduleMap.get(sessionRecord.id)?.block.name ?? 'General');
+
+  const lessonNumber = classRecord.type === 'EKSKUL'
+    ? classSessions.findIndex(s => s.id === sessionRecord.id) + 1
+    : (lessonScheduleMap.get(sessionRecord.id)?.globalIndex ?? 0) + 1;
+
+  const sessionStart = new Date(sessionRecord.date_time);
+  const sessionEnd = new Date(sessionStart.getTime() + 90 * 60000);
+  const formattedDate = sessionStart.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+  const formattedTime = `${sessionStart.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} - ${sessionEnd.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`;
+
+  // Monthly recap stats
+  const currentMonth = sessionStart.getMonth();
+  const currentYear = sessionStart.getFullYear();
+  const monthSessions = classSessions.filter(s => {
+    const d = new Date(s.date_time);
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear && s.status !== 'CANCELLED';
+  });
+  const allMonthAttendance = attendanceRecords.filter(r =>
+    monthSessions.some(s => s.id === r.session_id)
+  );
+  const presentCount = allMonthAttendance.filter(r => r.status === 'PRESENT').length;
+  const excusedCount = allMonthAttendance.filter(r => r.status === 'EXCUSED').length;
+  const weekdayAbbrMap: Record<string, string> = { 'Senin': 'Sen', 'Selasa': 'Sel', 'Rabu': 'Rab', 'Kamis': 'Kam', 'Jumat': 'Jum', 'Sabtu': 'Sab', 'Minggu': 'Min' };
+  const avgAttendance = monthSessions.length > 0 && totalCoders > 0
+    ? Math.round((presentCount / (monthSessions.length * totalCoders)) * 100)
+    : 0;
 
   return (
-    <div style={pageContainerStyle}>
-      {/* 1. Header with Lesson Title */}
-      <div style={{ marginBottom: '1rem' }}>
-        <Link
-          href={`/coach/classes/${classRecord.id}`}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#64748b', fontSize: '0.9rem', fontWeight: 600, textDecoration: 'none', marginBottom: '0.75rem' }}
-        >
-          ← Kembali ke Detail Kelas
-        </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
-          <span style={{ padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700, background: '#eff6ff', color: '#3b82f6', border: '1px solid #dbeafe' }}>SESSION</span>
-          <span style={{ color: '#64748b', fontSize: '0.9rem', fontWeight: 500 }}>
-            {new Date(sessionRecord.date_time).toLocaleString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+    <div className="-mx-8 -mt-0 pb-32 bg-slate-50 font-sans">
+
+      {/* Breadcrumb + Context Bar */}
+      <div className="bg-white border-b border-slate-200 sticky top-0 z-20 px-6 py-3 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link href={`/coach/classes/${classRecord.id}`} className="p-1 hover:bg-slate-100 rounded-lg transition-colors flex items-center justify-center">
+            <span className="material-symbols-outlined text-slate-500">arrow_back</span>
+          </Link>
+          <nav className="flex items-center text-sm font-medium">
+            <span className="text-slate-400">Classes</span>
+            <span className="mx-2 text-slate-300">/</span>
+            <span className="text-slate-900 truncate max-w-[200px] sm:max-w-xs">{classRecord.name}</span>
+          </nav>
+        </div>
+        <div className="flex items-center gap-4">
+          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${sessionRecord.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-600'
+            }`}>
+            {sessionRecord.status}
           </span>
         </div>
-        <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#1e293b', margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-          {slideTitle ?? 'Administrasi Sesi'}
-        </h1>
-        {currentLessonSlot && (
-          <p style={{ marginTop: '0.75rem', color: '#475569', fontSize: '1rem', lineHeight: 1.6, maxWidth: '800px' }}>
-            <BookOpen size={16} style={{ display: 'inline', marginRight: '0.4rem', verticalAlign: 'text-bottom' }} />
-            {lessonSummary}
-          </p>
-        )}
       </div>
 
-      {/* 2. Actions (Start Class, etc) */}
-      <section>
-        <SessionActions
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6 w-full">
+        {/* Session Hero Card */}
+        <div className="bg-slate-800 rounded-2xl p-6 sm:p-8 grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 text-white relative overflow-hidden shadow-xl shadow-slate-200 dark:shadow-none">
+          <div className="absolute top-0 right-0 opacity-10 pointer-events-none">
+            <span className="material-symbols-outlined text-[12rem] -mr-12 -mt-12">pattern</span>
+          </div>
+
+          {/* Column 1: DateTime */}
+          <div className="flex items-center gap-4 sm:gap-5 border-b md:border-b-0 md:border-r border-slate-700/50 pb-4 md:pb-0 md:pr-4">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-slate-700 rounded-2xl flex flex-col items-center justify-center text-white shrink-0 border border-slate-600">
+              <span className="material-symbols-outlined text-xl sm:text-2xl mb-0.5">calendar_today</span>
+            </div>
+            <div>
+              <p className="text-slate-400 text-[10px] sm:text-xs font-medium uppercase tracking-widest mb-1">Session Date</p>
+              <p className="text-base sm:text-lg font-bold">{formattedDate}</p>
+              <p className="text-slate-300 text-xs sm:text-sm">{formattedTime}</p>
+            </div>
+          </div>
+
+          {/* Column 2: Details */}
+          <div className="flex flex-col justify-center border-b md:border-b-0 md:border-r border-slate-700/50 pb-4 md:pb-0 md:pr-4 relative z-10">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="bg-emerald-500/20 text-emerald-400 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded uppercase">Block {blockName}</span>
+            </div>
+            <h2 className="text-lg sm:text-xl font-bold leading-tight mb-1">{slideTitle ?? 'Session Administration'}</h2>
+            <p className="text-slate-400 text-xs sm:text-sm line-clamp-2">{lessonSummary}</p>
+          </div>
+
+          {/* Column 3: Stats */}
+          <div className="flex items-center gap-4 sm:gap-6 justify-start md:justify-end relative z-10">
+            <div className="text-left md:text-right">
+              <p className="text-2xl sm:text-3xl font-bold">{attendancePercentage}%</p>
+              <p className="text-slate-400 text-xs font-medium">{markedCoders} from {totalCoders} coder ditandai</p>
+            </div>
+            {/* Simple Donut Chart Representation */}
+            <div className="relative w-14 h-14 sm:w-16 sm:h-16 shrink-0">
+              <svg className="w-full h-full transform -rotate-90">
+                <circle className="text-slate-700" cx="50%" cy="50%" fill="transparent" r="40%" stroke="currentColor" strokeWidth="6"></circle>
+                <circle
+                  className="text-emerald-500 transition-all duration-1000 ease-out"
+                  cx="50%" cy="50%" fill="transparent" r="40%" stroke="currentColor"
+                  strokeDasharray="250%"
+                  strokeDashoffset={`${250 - (250 * attendancePercentage) / 100}%`}
+                  strokeWidth="6"
+                  strokeLinecap="round"
+                ></circle>
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="material-symbols-outlined text-slate-400 text-base sm:text-lg">how_to_reg</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Progress Section */}
+        <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200">
+          <div className="flex justify-between items-end mb-3">
+            <div>
+              <h3 className="font-bold text-slate-900">Presensi Kedatangan</h3>
+              <p className="text-xs text-slate-500">Sudah diisi: <span className="font-bold text-emerald-600">{markedCoders}/{totalCoders}</span> coder</p>
+            </div>
+            <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest">{attendancePercentage}% Complete</span>
+          </div>
+          <div className="h-2 sm:h-3 w-full bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${attendancePercentage}%` }}></div>
+          </div>
+        </div>
+
+        {/* AttendanceWrapper handles the list + action strip + slide modal */}
+        <AttendanceWrapper
           sessionId={sessionRecord.id}
+          attendees={attendees}
           zoomLink={sessionRecord.zoom_link_snapshot}
           canComplete={sessionRecord.status === 'SCHEDULED'}
           slideUrl={slideUrl}
-          slideTitle={slideTitle ?? undefined}
+          slideTitle={slideTitle}
         />
-      </section>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem', alignItems: 'start' }}>
-        {/* 3. Attendance */}
-        <section style={cardStyle}>
-          <h2 style={sectionTitleStyle}>Presensi Coder</h2>
-          <p style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '0.25rem', marginBottom: '1.25rem' }}>
-            Catat kehadiran siswa untuk sesi ini.
-          </p>
-          <AttendanceList sessionId={sessionRecord.id} attendees={attendees} />
-        </section>
-
-        {/* 4. Documentation / Materials */}
-        <section style={cardStyle}>
-          <h2 style={sectionTitleStyle}>Dokumentasi & Laporan</h2>
-          <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '1.25rem', marginTop: '0.25rem' }}>
-            Upload foto kelas atau laporan sesi untuk orang tua.
-          </p>
-
-          <div style={{ padding: '1.25rem', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1', marginBottom: '1.5rem' }}>
-            <UploadMaterialForm
-              classId={classRecord.id}
-              sessions={classSessions}
-              defaultSessionId={sessionId}
-            />
+        {/* Monthly Recap Section */}
+        <div className="mt-6 border-t border-slate-200 pt-6">
+          <div className="flex items-center justify-between w-full mb-5">
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-slate-400">analytics</span>
+              <h3 className="font-bold text-slate-900">Rekap Kehadiran Bulanan</h3>
+            </div>
+            <span className="material-symbols-outlined text-slate-400">expand_more</span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#334155' }}>File Sesi Ini</h3>
-            {sessionMaterials.length === 0 ? (
-              <p style={{ fontSize: '0.9rem', color: '#94a3b8', fontStyle: 'italic' }}>Belum ada dokumentasi diupload.</p>
-            ) : (
-              sessionMaterials.map(m => (
-                <div key={m.id} style={{ padding: '1rem', borderRadius: '12px', background: '#fff', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-                  <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#1e293b' }}>{m.title}</div>
-                  {m.description && <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.2rem' }}>{m.description}</div>}
-                  {m.file_url && (
-                    <a href={m.file_url} target="_blank" rel="noreferrer" style={fileLinkStyle}>
-                      📄 Buka File
-                    </a>
-                  )}
-                </div>
-              ))
-            )}
+          {/* Stats Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+            <div className="p-4 bg-white rounded-2xl border border-slate-200">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Sesi Bln Ini</p>
+              <p className="text-2xl font-bold text-slate-900">{monthSessions.length} <span className="text-xs font-medium text-slate-400">Sessions</span></p>
+            </div>
+            <div className="p-4 bg-white rounded-2xl border border-slate-200">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Avg. Attendance</p>
+              <p className="text-2xl font-bold text-emerald-500">{avgAttendance}%</p>
+            </div>
+            <div className="p-4 bg-white rounded-2xl border border-slate-200">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Excused Absence</p>
+              <p className="text-2xl font-bold text-blue-500">{excusedCount}</p>
+            </div>
+            <div className="p-4 bg-white rounded-2xl border border-slate-200">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Active Coder</p>
+              <p className="text-2xl font-bold text-slate-900">{totalCoders}/{totalCoders}</p>
+            </div>
           </div>
-        </section>
+        </div>
       </div>
     </div>
   );
@@ -182,48 +262,16 @@ export default async function SessionAttendancePage({ params }: PageProps) {
 
 function renderError(title: string, message: string) {
   return (
-    <div style={{ padding: '4rem 2rem', textAlign: 'center', maxWidth: '600px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b' }}>{title}</h1>
-      <p style={{ color: '#64748b', marginTop: '0.5rem' }}>{message}</p>
-      <Link href="/coach/dashboard" style={{ marginTop: '1.5rem', display: 'inline-block', color: '#3b82f6', fontWeight: 600 }}>← Kembali ke Dashboard</Link>
+    <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50">
+      <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center shadow-lg border border-slate-200">
+        <span className="material-symbols-outlined text-red-500 text-6xl mb-4">error</span>
+        <h1 className="text-xl font-bold text-slate-900 mb-2">{title}</h1>
+        <p className="text-slate-500 mb-6">{message}</p>
+        <a href="/coach/dashboard" className="text-blue-600 font-semibold hover:underline inline-flex items-center gap-1">
+          <span className="material-symbols-outlined text-sm">arrow_back</span>
+          Kembali ke Dashboard
+        </a>
+      </div>
     </div>
   );
 }
-
-// Styles
-const pageContainerStyle: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '2rem',
-  maxWidth: '1200px',
-  width: '100%',
-  margin: '0 auto',
-  padding: '0 1.5rem 3rem',
-};
-
-const cardStyle: React.CSSProperties = {
-  background: '#ffffff',
-  borderRadius: '16px',
-  border: '1px solid #e2e8f0',
-  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-  padding: '1.5rem',
-  width: '100%',
-};
-
-const sectionTitleStyle: React.CSSProperties = {
-  fontSize: '1.2rem',
-  fontWeight: 700,
-  color: '#1e293b',
-  margin: 0
-};
-
-const fileLinkStyle: React.CSSProperties = {
-  fontSize: '0.85rem',
-  color: '#3b82f6',
-  fontWeight: 600,
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '0.3rem',
-  marginTop: '0.5rem',
-  textDecoration: 'none'
-};

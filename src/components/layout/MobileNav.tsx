@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -40,7 +41,12 @@ type MobileNavProps = {
 
 export default function MobileNav({ role, username = '', adminPermissions = null }: MobileNavProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const [mounted, setMounted] = useState(false);
     const pathname = usePathname();
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     // Permission check for admins
     const canAccess = (id: string) => {
@@ -75,111 +81,114 @@ export default function MobileNav({ role, username = '', adminPermissions = null
             </button>
 
             {/* Mobile Sidebar Overlay */}
-            <AnimatePresence>
-                {isOpen && (
-                    <>
-                        <motion.div
-                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            onClick={() => setIsOpen(false)}
-                            style={{ position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.5)', zIndex: 100 }}
-                        />
+            {mounted && createPortal(
+                <AnimatePresence>
+                    {isOpen && (
+                        <>
+                            <motion.div
+                                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                                onClick={() => setIsOpen(false)}
+                                style={{ position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.5)', zIndex: 1000 }}
+                            />
 
-                        <motion.div
-                            initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                            style={{
-                                position: 'fixed', left: 0, top: 0, bottom: 0,
-                                width: '280px', maxWidth: '85vw', background: '#ffffff',
-                                zIndex: 101, display: 'flex', flexDirection: 'column',
-                                boxShadow: '4px 0 20px rgba(0, 0, 0, 0.1)',
-                            }}
-                        >
-                            <div style={{
-                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                padding: '1rem 1.25rem', borderBottom: '1px solid #f1f5f9',
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                    <Image src="/favicon.ico" alt="Clevio LMS" width={28} height={28} />
-                                    <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b' }}>Clevio LMS</span>
+                            <motion.div
+                                initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
+                                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                                style={{
+                                    position: 'fixed', left: 0, top: 0, bottom: 0,
+                                    width: '280px', maxWidth: '85vw', background: '#ffffff',
+                                    zIndex: 1001, display: 'flex', flexDirection: 'column',
+                                    boxShadow: '4px 0 20px rgba(0, 0, 0, 0.1)',
+                                }}
+                            >
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                    padding: '1rem 1.25rem', borderBottom: '1px solid #f1f5f9',
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        <Image src="/favicon.ico" alt="Clevio LMS" width={28} height={28} />
+                                        <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b' }}>Clevio LMS</span>
+                                    </div>
+                                    <button
+                                        onClick={() => setIsOpen(false)}
+                                        style={{
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            width: '32px', height: '32px', borderRadius: '8px',
+                                            background: '#f1f5f9', border: 'none', cursor: 'pointer',
+                                        }}
+                                    >
+                                        <X size={18} color="#64748b" />
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={() => setIsOpen(false)}
-                                    style={{
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        width: '32px', height: '32px', borderRadius: '8px',
-                                        background: '#f1f5f9', border: 'none', cursor: 'pointer',
-                                    }}
-                                >
-                                    <X size={18} color="#64748b" />
-                                </button>
-                            </div>
 
-                            <nav style={{ flex: 1, overflowY: 'auto', padding: '0.75rem' }}>
-                                {role === 'ADMIN' ? (
-                                    // Admin Menu Rendering (using SIDEBAR_STRUCTURE)
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        {SIDEBAR_STRUCTURE.map((item, idx) => {
-                                            if (item.type === 'single') {
-                                                if (!canAccess(item.id)) return null;
-                                                const menu = MENU_ITEMS[item.id];
-                                                const isActive = pathname.startsWith(menu.href);
-                                                const Icon = menu.icon;
+                                <nav style={{ flex: 1, overflowY: 'auto', padding: '0.75rem' }}>
+                                    {role === 'ADMIN' ? (
+                                        // Admin Menu Rendering (using SIDEBAR_STRUCTURE)
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            {SIDEBAR_STRUCTURE.map((item, idx) => {
+                                                if (item.type === 'single') {
+                                                    if (!canAccess(item.id)) return null;
+                                                    const menu = MENU_ITEMS[item.id];
+                                                    const isActive = pathname.startsWith(menu.href);
+                                                    const Icon = menu.icon;
+                                                    return (
+                                                        <Link key={item.id} href={menu.href} onClick={() => setIsOpen(false)} style={{ ...linkStyle, background: isActive ? '#eff6ff' : 'transparent', color: isActive ? '#1e293b' : '#64748b', fontWeight: isActive ? 600 : 500 }}>
+                                                            <div style={{ ...iconBoxStyle, background: isActive ? '#3b82f6' : 'transparent', color: isActive ? '#fff' : '#64748b' }}>
+                                                                <Icon size={18} />
+                                                            </div>
+                                                            <span>{menu.label}</span>
+                                                        </Link>
+                                                    );
+                                                } else {
+                                                    const visibleChildren = item.children.filter(childId => canAccess(childId));
+                                                    if (visibleChildren.length === 0) return null;
+                                                    return (
+                                                        <div key={idx} style={{ marginBottom: '0.5rem' }}>
+                                                            <div style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                                {item.label}
+                                                            </div>
+                                                            {visibleChildren.map(childId => {
+                                                                const menu = MENU_ITEMS[childId];
+                                                                const isActive = pathname.startsWith(menu.href);
+                                                                const Icon = menu.icon;
+                                                                return (
+                                                                    <Link key={childId} href={menu.href} onClick={() => setIsOpen(false)} style={{ ...linkStyle, background: isActive ? '#eff6ff' : 'transparent', color: isActive ? '#1e293b' : '#64748b', fontWeight: isActive ? 600 : 500 }}>
+                                                                        <div style={{ ...iconBoxStyle, background: isActive ? '#3b82f6' : 'transparent', color: isActive ? '#fff' : '#64748b' }}>
+                                                                            <Icon size={18} />
+                                                                        </div>
+                                                                        <span>{menu.label}</span>
+                                                                    </Link>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    );
+                                                }
+                                            })}
+                                        </div>
+                                    ) : (
+                                        // Coach/Coder Menu Rendering (using flat Link lists)
+                                        <>
+                                            {(role === 'COACH' ? COACH_LINKS : CODER_LINKS).map((link) => {
+                                                const isActive = pathname.startsWith(link.href);
+                                                const Icon = link.icon;
                                                 return (
-                                                    <Link key={item.id} href={menu.href} onClick={() => setIsOpen(false)} style={{ ...linkStyle, background: isActive ? '#eff6ff' : 'transparent', color: isActive ? '#1e293b' : '#64748b', fontWeight: isActive ? 600 : 500 }}>
+                                                    <Link key={link.href} href={link.href} onClick={() => setIsOpen(false)} style={{ ...linkStyle, background: isActive ? '#eff6ff' : 'transparent', color: isActive ? '#1e293b' : '#64748b', fontWeight: isActive ? 600 : 500 }}>
                                                         <div style={{ ...iconBoxStyle, background: isActive ? '#3b82f6' : 'transparent', color: isActive ? '#fff' : '#64748b' }}>
                                                             <Icon size={18} />
                                                         </div>
-                                                        <span>{menu.label}</span>
+                                                        <span>{link.label}</span>
                                                     </Link>
                                                 );
-                                            } else {
-                                                const visibleChildren = item.children.filter(childId => canAccess(childId));
-                                                if (visibleChildren.length === 0) return null;
-                                                return (
-                                                    <div key={idx} style={{ marginBottom: '0.5rem' }}>
-                                                        <div style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                                            {item.label}
-                                                        </div>
-                                                        {visibleChildren.map(childId => {
-                                                            const menu = MENU_ITEMS[childId];
-                                                            const isActive = pathname.startsWith(menu.href);
-                                                            const Icon = menu.icon;
-                                                            return (
-                                                                <Link key={childId} href={menu.href} onClick={() => setIsOpen(false)} style={{ ...linkStyle, background: isActive ? '#eff6ff' : 'transparent', color: isActive ? '#1e293b' : '#64748b', fontWeight: isActive ? 600 : 500 }}>
-                                                                    <div style={{ ...iconBoxStyle, background: isActive ? '#3b82f6' : 'transparent', color: isActive ? '#fff' : '#64748b' }}>
-                                                                        <Icon size={18} />
-                                                                    </div>
-                                                                    <span>{menu.label}</span>
-                                                                </Link>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                );
-                                            }
-                                        })}
-                                    </div>
-                                ) : (
-                                    // Coach/Coder Menu Rendering (using flat Link lists)
-                                    <>
-                                        {(role === 'COACH' ? COACH_LINKS : CODER_LINKS).map((link) => {
-                                            const isActive = pathname.startsWith(link.href);
-                                            const Icon = link.icon;
-                                            return (
-                                                <Link key={link.href} href={link.href} onClick={() => setIsOpen(false)} style={{ ...linkStyle, background: isActive ? '#eff6ff' : 'transparent', color: isActive ? '#1e293b' : '#64748b', fontWeight: isActive ? 600 : 500 }}>
-                                                    <div style={{ ...iconBoxStyle, background: isActive ? '#3b82f6' : 'transparent', color: isActive ? '#fff' : '#64748b' }}>
-                                                        <Icon size={18} />
-                                                    </div>
-                                                    <span>{link.label}</span>
-                                                </Link>
-                                            );
-                                        })}
-                                    </>
-                                )}
-                            </nav>
-                        </motion.div>
-                    </>
-                )}
-            </AnimatePresence>
+                                            })}
+                                        </>
+                                    )}
+                                </nav>
+                            </motion.div>
+                        </>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
         </>
     );
 }

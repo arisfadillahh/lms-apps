@@ -57,6 +57,21 @@
 
   /* === Font === */
   --font-display: 'Nunito', system-ui, sans-serif;
+
+  /* === Custom Animations === */
+  --animate-marquee-up-slow: marquee-up 50s linear infinite;
+  --animate-marquee-up-medium: marquee-up 32s linear infinite;
+  --animate-marquee-up-fast: marquee-up 20s linear infinite;
+
+  @keyframes marquee-up {
+    0% {
+      transform: translateY(0);
+    }
+
+    100% {
+      transform: translateY(-50%);
+    }
+  }
 }
 
 @layer base {

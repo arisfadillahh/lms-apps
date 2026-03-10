@@ -24,7 +24,7 @@ export default function CoderHeader({ userName, fullName, todayDate, avatarPath,
     const avatarUrl = avatarPath || `https://ui-avatars.com/api/?name=${userName}&background=FFF0F3&color=1E3A5F`;
 
     return (
-        <header className="flex-shrink-0 sticky top-0 z-20 bg-white/90 backdrop-blur-md px-8 py-5 flex items-center justify-between border-b-4 border-dashed border-pastel-blue/30">
+        <header className="flex-shrink-0 sticky top-0 z-[60] bg-white/90 backdrop-blur-md px-4 md:px-8 py-3 md:py-5 flex items-center gap-3 md:gap-4 border-b-4 border-dashed border-pastel-blue/30">
             {/* Mobile Nav */}
             <MobileNav
                 role={role as 'ADMIN' | 'COACH' | 'CODER'}
@@ -33,18 +33,19 @@ export default function CoderHeader({ userName, fullName, todayDate, avatarPath,
             />
 
             {/* Greeting */}
-            <div>
-                <h2 className="text-3xl font-black tracking-tight text-clevio-navy">
-                    Halo, {userName}! <Hand size={28} className="inline-block text-amber-500" />
+            <div className="flex-1 md:flex-none truncate">
+                <h2 className="text-xl md:text-3xl font-black tracking-tight text-clevio-navy flex items-center gap-1.5 md:gap-2 truncate">
+                    Halo, <span className="truncate">{userName}!</span> <Hand className="w-5 h-5 md:w-7 md:h-7 text-amber-500 shrink-0 hidden sm:block" />
                 </h2>
-                <p className="text-sm font-bold text-slate-400 mt-1 flex items-center gap-2">
-                    <Calendar size={14} />
+                <p className="text-[10px] md:text-sm font-bold text-slate-400 mt-0.5 md:mt-1 flex items-center gap-1.5 md:gap-2 truncate">
+                    <Calendar className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" />
                     {todayDate}
                 </p>
             </div>
 
             {/* Spacer */}
-            <div className="flex-1" />
+            {/* Spacer (Hidden on Mobile, takes space on Desktop) */}
+            <div className="hidden md:block flex-1" />
 
             {/* Right Actions */}
             <div className="flex items-center gap-5">

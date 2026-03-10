@@ -6,7 +6,7 @@ import { classesDao, makeUpTasksDao, sessionsDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
 
 const reviewSchema = z.object({
-  status: z.literal('REVIEWED'),
+  status: z.enum(['REVIEWED', 'APPROVED', 'REJECTED']),
   feedback: z.string().max(400).optional(),
 });
 
@@ -46,12 +46,17 @@ export async function POST(request: Request, props: RouteProps) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
+  // Build feedback with optional prefix to record approve/reject intent
+  const statusLabel = parsed.data.status === 'APPROVED' ? '[APPROVED] ' : parsed.data.status === 'REJECTED' ? '[REJECTED] ' : '';
+  const fullFeedback = statusLabel + (parsed.data.feedback ?? '');
+
   await makeUpTasksDao.reviewMakeUpTask({
     taskId: makeUpTask.id,
     reviewedByCoachId: coachSession.user.id,
-    feedback: parsed.data.feedback ?? null,
+    feedback: fullFeedback.trim() || null,
+    // DB enum only supports REVIEWED; store APPROVED/REJECTED as REVIEWED
     status: 'REVIEWED',
   });
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, status: parsed.data.status });
 }

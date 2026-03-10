@@ -1,9 +1,9 @@
 'use client';
 
-import type { CSSProperties } from 'react';
-import { useState, useTransition, useEffect, useRef } from 'react';
+import { useState, useTransition, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, X, Edit2, RotateCcw } from 'lucide-react';
+
+export type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'EXCUSED' | 'LATE';
 
 interface Attendee {
   coderId: string;
@@ -19,347 +19,238 @@ interface AttendanceListProps {
   attendees: Attendee[];
 }
 
-type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE'; // Added LATE support if needed later, but sticking to basics for now
+export type AttendanceListHandle = {
+  save: () => Promise<void>;
+  isSaving: boolean;
+};
 
-export default function AttendanceList({ sessionId, attendees }: AttendanceListProps) {
-  const router = useRouter();
-  const [records, setRecords] = useState(() =>
-    attendees.map((attendee) => ({
-      coderId: attendee.coderId,
-      fullName: attendee.fullName,
-      status: attendee.attendance?.status ?? null,
-      reason: attendee.attendance?.reason ?? '',
-    })),
-  );
-  const [isPending, startTransition] = useTransition();
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+type RecordState = {
+  coderId: string;
+  fullName: string;
+  status: AttendanceStatus | null;
+  reason: string;
+  dirty: boolean;
+};
 
-  // UX: Modal for Absent Reason
-  const [absentCandidateId, setAbsentCandidateId] = useState<string | null>(null);
-  const [absentReason, setAbsentReason] = useState('');
-  const reasonInputRef = useRef<HTMLInputElement>(null);
+const AVATAR_COLORS = [
+  'bg-indigo-100 text-indigo-600',
+  'bg-emerald-100 text-emerald-600',
+  'bg-amber-100 text-amber-600',
+  'bg-rose-100 text-rose-600',
+  'bg-cyan-100 text-cyan-600',
+  'bg-fuchsia-100 text-fuchsia-600',
+  'bg-violet-100 text-violet-600',
+  'bg-orange-100 text-orange-600',
+];
 
-  useEffect(() => {
-    if (absentCandidateId && reasonInputRef.current) {
-      reasonInputRef.current.focus();
-    }
-  }, [absentCandidateId]);
-
-  const updateRecord = (coderId: string, updates: Partial<{ status: AttendanceStatus | null; reason: string }>) => {
-    setRecords((prev) =>
-      prev.map((record) =>
-        record.coderId === coderId
-          ? {
-            ...record,
-            ...updates,
-          }
-          : record,
-      ),
-    );
-  };
-
-  const submit = (coderId: string, status: AttendanceStatus, reason?: string) => {
-    const record = records.find((item) => item.coderId === coderId);
-    if (!record) return;
-    setErrorMessage(null);
-    setStatusMessage(null);
-
-    startTransition(async () => {
-      const payload: Record<string, unknown> = {
-        sessionId,
-        coderId,
-        status,
-      };
-      // Always send reason if absent
-      if (status === 'ABSENT') {
-        payload.reason = reason?.trim() ?? '';
-      }
-
-      try {
-        const response = await fetch('/api/coach/attendance', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-          const data = await response.json().catch(() => ({}));
-          setErrorMessage(data.error ?? 'Gagal menyimpan absensi');
-          return;
-        }
-
-        updateRecord(coderId, { status, reason: status === 'ABSENT' ? reason?.trim() ?? '' : '' });
-        setStatusMessage('Berhasil disimpan');
-        // Auto clear
-        setTimeout(() => setStatusMessage(null), 2000);
-        router.refresh();
-      } catch (err) {
-        console.error(err);
-        setErrorMessage('Terjadi kesalahan koneksi');
-      }
-    });
-  };
-
-  const handleAbsentClick = (coderId: string, currentReason?: string) => {
-    setAbsentCandidateId(coderId);
-    setAbsentReason(currentReason || '');
-  };
-
-  const confirmAbsent = () => {
-    if (absentCandidateId) {
-      if (!absentReason.trim()) {
-        alert('Alasan wajib diisi!');
-        return;
-      }
-      submit(absentCandidateId, 'ABSENT', absentReason);
-      setAbsentCandidateId(null);
-      setAbsentReason('');
-    }
-  };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      {errorMessage ? <div style={{ padding: '0.75rem', borderRadius: '8px', background: '#fee2e2', color: '#b91c1c', fontSize: '0.9rem' }}>{errorMessage}</div> : null}
-      {statusMessage ? <div style={{ padding: '0.75rem', borderRadius: '8px', background: '#dcfce7', color: '#16a34a', fontSize: '0.9rem' }}>{statusMessage}</div> : null}
-
-      <div style={{ overflowX: 'auto' }}>
-        <table style={tableStyle}>
-          <thead>
-            <tr>
-              <th style={nameHeaderStyle}>Nama Coder</th>
-              <th style={statusHeaderStyle}>Status Kehadiran</th>
-              <th style={actionHeaderStyle}>Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {records.map((record) => {
-              const isAbsent = record.status === 'ABSENT';
-              const isPresent = record.status === 'PRESENT';
-              const isMarked = record.status !== null;
-
-              return (
-                <tr key={record.coderId} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={nameCellStyle}>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ fontSize: '0.95rem', color: '#334155' }}>{record.fullName}</span>
-                      {isAbsent && record.reason && (
-                        <span style={{ fontSize: '0.8rem', color: '#ef4444', fontStyle: 'italic' }}>
-                          "{record.reason}"
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td style={statusCellStyle}>
-                    {isMarked ? (
-                      <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        padding: '0.3rem 0.6rem',
-                        borderRadius: '6px',
-                        fontSize: '0.8rem',
-                        fontWeight: 700,
-                        background: isPresent ? '#dcfce7' : '#fee2e2',
-                        color: isPresent ? '#15803d' : '#b91c1c',
-                        border: isPresent ? '1px solid #bbf7d0' : '1px solid #fecaca'
-                      }}>
-                        {isPresent ? 'HADIR' : 'TIDAK HADIR'}
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>Belum diabsen</span>
-                    )}
-                  </td>
-                  <td style={actionCellStyle}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>
-                      <button
-                        type="button"
-                        onClick={() => submit(record.coderId, 'PRESENT')}
-                        disabled={isPending}
-                        title="Hadir"
-                        style={{
-                          ...actionButtonStyle,
-                          background: isPresent ? '#22c55e' : '#fff',
-                          color: isPresent ? '#fff' : '#22c55e',
-                          border: '1px solid #22c55e',
-                        }}
-                      >
-                        <Check size={18} strokeWidth={3} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleAbsentClick(record.coderId, record.reason)}
-                        disabled={isPending}
-                        title="Tidak Hadir"
-                        style={{
-                          ...actionButtonStyle,
-                          background: isAbsent ? '#ef4444' : '#fff',
-                          color: isAbsent ? '#fff' : '#ef4444',
-                          border: '1px solid #ef4444',
-                        }}
-                      >
-                        <X size={18} strokeWidth={3} />
-                      </button>
-                      {isMarked && (
-                        <button
-                          type="button"
-                          onClick={() => updateRecord(record.coderId, { status: null, reason: '' })}
-                          style={{ ...actionButtonStyle, border: '1px solid #cbd5e1', color: '#64748b' }}
-                          title="Reset"
-                        >
-                          <RotateCcw size={16} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Reason Modal */}
-      {absentCandidateId && (
-        <div style={modalOverlayStyle}>
-          <div style={modalContentStyle}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.5rem' }}>Alasan Tidak Hadir</h3>
-            <p style={{ marginBottom: '1rem', color: '#64748b', fontSize: '0.9rem' }}>
-              Wajib mengisi alasan ketidakhadiran coder.
-            </p>
-            <input
-              ref={reasonInputRef}
-              type="text"
-              value={absentReason}
-              onChange={e => setAbsentReason(e.target.value)}
-              placeholder="Contoh: Sakit, Ijin, Tanpa Keterangan..."
-              style={modalInputStyle}
-              onKeyDown={e => e.key === 'Enter' && confirmAbsent()}
-            />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
-              <button
-                onClick={() => setAbsentCandidateId(null)}
-                style={cancelModalButtonStyle}
-              >
-                Batal
-              </button>
-              <button
-                onClick={confirmAbsent}
-                style={submitModalButtonStyle}
-              >
-                Simpan
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+function getInitials(name: string) {
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
 }
 
-const tableStyle: CSSProperties = {
-  width: '100%',
-  borderCollapse: 'collapse',
-  background: '#fff',
-  borderRadius: '12px',
-  overflow: 'hidden',
-  boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-  border: '1px solid #e2e8f0'
+// Helper to determine the UI state from db status
+function getUiState(status: AttendanceStatus | null, reason: string | null) {
+  if (status === 'PRESENT') return 'HADIR';
+  if (status === 'EXCUSED' && reason === 'Izin') return 'IZIN';
+  if (status === 'EXCUSED' && reason === 'Sakit') return 'SAKIT';
+  if (status === 'ABSENT') return 'ALPHA';
+  if (status === 'EXCUSED') return 'IZIN'; // Fallback for other excused reasons
+  return null;
+}
+
+// Get status badge coloring for each option
+const STATUS_STYLES: Record<string, { active: string; inactive: string }> = {
+  HADIR: {
+    active: 'bg-emerald-500 text-white',
+    inactive: 'text-slate-500 hover:bg-white',
+  },
+  IZIN: {
+    active: 'bg-blue-500 text-white',
+    inactive: 'text-slate-500 hover:bg-white',
+  },
+  SAKIT: {
+    active: 'bg-orange-500 text-white',
+    inactive: 'text-slate-500 hover:bg-white',
+  },
+  ALPHA: {
+    active: 'bg-red-500 text-white',
+    inactive: 'text-slate-500 hover:bg-white',
+  },
 };
 
-const nameHeaderStyle: CSSProperties = {
-  padding: '1rem',
-  textAlign: 'left',
-  background: '#f8fafc',
-  color: '#64748b',
-  fontSize: '0.8rem',
-  fontWeight: 700,
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-  borderBottom: '1px solid #e2e8f0'
-};
+const AttendanceList = forwardRef<AttendanceListHandle, AttendanceListProps>(
+  function AttendanceList({ sessionId, attendees }, ref) {
+    const router = useRouter();
+    const [records, setRecords] = useState<RecordState[]>(() =>
+      attendees.map((a) => ({
+        coderId: a.coderId,
+        fullName: a.fullName,
+        status: a.attendance?.status ?? null,
+        reason: a.attendance?.reason ?? '',
+        dirty: false,
+      }))
+    );
+    const [isSaving, startTransition] = useTransition();
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [saveSuccess, setSaveSuccess] = useState(false);
 
-const statusHeaderStyle: CSSProperties = {
-  ...nameHeaderStyle,
-  textAlign: 'center'
-};
+    const mark = useCallback((coderId: string, status: AttendanceStatus, reason = '') => {
+      setRecords((prev) =>
+        prev.map((r) => (r.coderId === coderId ? { ...r, status, reason, dirty: true } : r))
+      );
+      setSaveSuccess(false);
+    }, []);
 
-const actionHeaderStyle: CSSProperties = {
-  ...nameHeaderStyle,
-  textAlign: 'center'
-};
+    const save = useCallback(async () => {
+      const dirty = records.filter((r) => r.dirty && r.status !== null);
+      if (dirty.length === 0) {
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 2000);
+        return;
+      }
+      setErrorMessage(null);
 
-const nameCellStyle: CSSProperties = {
-  padding: '1rem',
-  fontWeight: 600,
-  color: '#1e293b'
-};
+      startTransition(async () => {
+        try {
+          const results = await Promise.all(
+            dirty.map((r) =>
+              fetch('/api/coach/attendance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  sessionId,
+                  coderId: r.coderId,
+                  status: r.status,
+                  reason: r.reason.trim(),
+                }),
+              }).then((res) => {
+                if (!res.ok) throw new Error(`Failed for ${r.fullName}`);
+                return res;
+              })
+            )
+          );
 
-const statusCellStyle: CSSProperties = {
-  padding: '1rem',
-  textAlign: 'center'
-};
+          if (results) {
+            setRecords((prev) => prev.map((r) => ({ ...r, dirty: false })));
+            setSaveSuccess(true);
+            setTimeout(() => setSaveSuccess(false), 3000);
+            router.refresh();
+          }
+        } catch (err: any) {
+          setErrorMessage(err.message ?? 'Gagal menyimpan presensi.');
+        }
+      });
+    }, [records, sessionId, router]);
 
-const actionCellStyle: CSSProperties = {
-  padding: '1rem',
-  textAlign: 'center'
-};
+    // Expose save fn to parent via ref
+    useImperativeHandle(ref, () => ({ save, isSaving }), [save, isSaving]);
 
-const actionButtonStyle: CSSProperties = {
-  width: '36px',
-  height: '36px',
-  borderRadius: '8px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  cursor: 'pointer',
-  transition: 'all 0.1s',
-  background: '#fff',
-};
+    const dirtyCount = records.filter((r) => r.dirty).length;
 
-const modalOverlayStyle: CSSProperties = {
-  position: 'fixed',
-  inset: 0,
-  background: 'rgba(0,0,0,0.5)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 100
-};
+    return (
+      <div className="space-y-3">
+        {/* Toast notifications */}
+        {errorMessage && (
+          <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm font-medium text-center">
+            {errorMessage}
+          </div>
+        )}
+        {saveSuccess && (
+          <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-sm font-medium text-center flex items-center justify-center gap-2">
+            <span className="material-symbols-outlined text-base">task_alt</span>
+            Presensi berhasil disimpan!
+          </div>
+        )}
+        {dirtyCount > 0 && !saveSuccess && (
+          <div className="p-2.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl text-xs font-medium text-center">
+            {dirtyCount} perubahan belum disimpan. Klik &ldquo;Simpan Presensi&rdquo; di bawah.
+          </div>
+        )}
 
-const modalContentStyle: CSSProperties = {
-  background: '#fff',
-  padding: '1.5rem',
-  borderRadius: '16px',
-  width: '90%',
-  maxWidth: '400px',
-  boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
-};
+        {/* Student rows */}
+        {records.map((record, idx) => {
+          const uiState = getUiState(record.status, record.reason);
+          const isHadir = uiState === 'HADIR';
+          const needsMakeUp = uiState !== null && uiState !== 'HADIR';
 
-const modalInputStyle: CSSProperties = {
-  width: '100%',
-  padding: '0.75rem',
-  borderRadius: '8px',
-  border: '1px solid #cbd5e1',
-  fontSize: '1rem',
-  outline: 'none'
-};
+          let wrapperClass =
+            'rounded-2xl p-4 flex flex-col md:flex-row items-center gap-4 sm:gap-6 border transition-all ';
+          if (uiState !== null) {
+            // All marked students get a light teal/emerald background
+            wrapperClass += 'border-emerald-100 bg-emerald-50/60';
+          } else {
+            wrapperClass += 'bg-white border-slate-200 hover:border-slate-300 shadow-sm';
+          }
 
-const submitModalButtonStyle: CSSProperties = {
-  padding: '0.6rem 1.2rem',
-  background: '#1e3a5f',
-  color: '#fff',
-  fontWeight: 600,
-  borderRadius: '8px',
-  border: 'none',
-  cursor: 'pointer'
-};
+          return (
+            <div key={record.coderId} className={wrapperClass}>
+              {/* Avatar + Name */}
+              <div className="flex items-center gap-4 flex-1 w-full md:w-auto">
+                <div
+                  className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center font-bold text-base sm:text-lg shrink-0 ${AVATAR_COLORS[idx % AVATAR_COLORS.length]}`}
+                >
+                  {getInitials(record.fullName)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900">{record.fullName}</p>
+                  <p className="text-[10px] text-slate-400 font-mono tracking-wider mt-0.5">
+                    Coder ID: {record.coderId.split('-')[0].toUpperCase()}
+                  </p>
+                </div>
+              </div>
 
-const cancelModalButtonStyle: CSSProperties = {
-  padding: '0.6rem 1.2rem',
-  background: 'transparent',
-  color: '#64748b',
-  borderRadius: '8px',
-  border: '1px solid #cbd5e1',
-  cursor: 'pointer'
-};
+              {/* Segmented Controls */}
+              <div className="flex bg-slate-100 p-1 rounded-xl shrink-0">
+                {(['HADIR', 'IZIN', 'SAKIT', 'ALPHA'] as const).map((option) => {
+                  const isActive = uiState === option;
+                  return (
+                    <button
+                      key={option}
+                      onClick={() => {
+                        const statusMap: Record<string, { status: AttendanceStatus; reason: string }> = {
+                          HADIR: { status: 'PRESENT', reason: '' },
+                          IZIN: { status: 'EXCUSED', reason: 'Izin' },
+                          SAKIT: { status: 'EXCUSED', reason: 'Sakit' },
+                          ALPHA: { status: 'ABSENT', reason: 'Alpha' },
+                        };
+                        const { status, reason } = statusMap[option];
+                        mark(record.coderId, status, reason);
+                      }}
+                      className={`px-3 sm:px-4 py-2 text-[10px] sm:text-xs font-bold rounded-lg transition-all whitespace-nowrap ${isActive ? STATUS_STYLES[option].active : STATUS_STYLES[option].inactive}`}
+                    >
+                      {option}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Make-Up badge — visible only for absent/excused, no toggle */}
+              <div
+                className={`hidden sm:flex items-center gap-2 min-w-[130px] justify-end ${!needsMakeUp ? 'opacity-30 pointer-events-none' : ''}`}
+              >
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${needsMakeUp ? 'text-emerald-600' : 'text-slate-400'}`}>
+                  Make-Up Task
+                </span>
+                {needsMakeUp ? (
+                  <div className="w-10 h-5 bg-emerald-500 rounded-full relative shrink-0">
+                    <div className="absolute right-0.5 top-[2px] w-4 h-4 bg-white rounded-full" />
+                  </div>
+                ) : (
+                  <div className="w-10 h-5 bg-slate-200 rounded-full relative shrink-0">
+                    <div className="absolute left-0.5 top-[2px] w-4 h-4 bg-white rounded-full" />
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+);
+
+export default AttendanceList;

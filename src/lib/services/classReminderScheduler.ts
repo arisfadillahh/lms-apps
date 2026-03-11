@@ -187,7 +187,7 @@ export async function checkAndSendClassReminders(): Promise<{
         }
     }
 
-    // 6. Send Messages
+    // 6. Send Messages to Parents
     let sentCount = 0;
     const template = settings.class_reminder_message_template || '';
 
@@ -208,6 +208,60 @@ export async function checkAndSendClassReminders(): Promise<{
         const delayMs = Math.floor(Math.random() * (maxDelay - minDelay + 1) + minDelay) * 1000;
 
         await new Promise(r => setTimeout(r, delayMs));
+    }
+
+    // 7. Send In-App Notifications to Coaches
+    try {
+        const { createNotification } = await import('@/lib/dao/notificationsDao');
+        const { getUsersByIds } = await import('@/lib/dao/usersDao');
+        
+        // Find coach_id for each session
+        const { data: coachesClasses } = await supabase
+            .from('classes')
+            .select('id, name, coach_id')
+            .in('id', classIds);
+
+        if (coachesClasses && coachesClasses.length > 0) {
+            // Group sessions by coach to send one summarized notification
+            const coachSchedules = new Map<string, string[]>(); // coach_id -> array of descriptions
+            
+            for (const session of rawSessions) {
+                const cls = coachesClasses.find(c => c.id === session.class_id);
+                if (cls && cls.coach_id) {
+                    const time = new Date(session.date_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                    const desc = `- ${cls.name} (${time} WIB)`;
+                    
+                    if (!coachSchedules.has(cls.coach_id)) {
+                        coachSchedules.set(cls.coach_id, []);
+                    }
+                    if (!coachSchedules.get(cls.coach_id)!.includes(desc)) {
+                        coachSchedules.get(cls.coach_id)!.push(desc);
+                    }
+                }
+            }
+            
+            // Get coach preferences
+            const uniqueCoachIds = Array.from(coachSchedules.keys());
+            const coaches = await getUsersByIds(uniqueCoachIds);
+            
+            for (const coach of coaches) {
+                const wantsNotif = (coach as any).notif_session_reminder === true; // Note: defaults to false per migration
+                
+                if (wantsNotif) {
+                    const scheduleList = coachSchedules.get(coach.id)?.join('\n') || '';
+                    const message = `Anda memiliki ${coachSchedules.get(coach.id)?.length} sesi kelas besok:\n${scheduleList}\n\nMohon persiapkan materi dan hadir tepat waktu.`;
+                    
+                    await createNotification(
+                        coach.id,
+                        'Pengingat Sesi',
+                        message,
+                        'SYSTEM'
+                    );
+                }
+            }
+        }
+    } catch (coachNotifError) {
+        console.error('[Scheduler] Failed to send coach internal notifications:', coachNotifError);
     }
 
     return { success: true, sent: sentCount, message: 'Reminders sent' };

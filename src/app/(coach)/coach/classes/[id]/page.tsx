@@ -378,7 +378,7 @@ export default async function ClassDetailPage({ params, searchParams }: PageProp
                                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                                                     {showDetail && (
                                                         <Link
-                                                            href={`/coach/lesson/${template.id}`}
+                                                            href={`/coach/lesson/${template.id}?classId=${classIdParam}&sessionId=${sessionInfo.id}`}
                                                             style={{ flex: 1, textAlign: 'center', fontSize: '0.875rem', fontWeight: 700, color: '#475569', padding: '0.625rem 0', borderRadius: '0.75rem', textDecoration: 'none', border: '1px solid #e2e8f0', backgroundColor: 'white' }}
                                                         >
                                                             Detail

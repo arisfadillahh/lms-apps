@@ -61,5 +61,28 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
     await sessionsDao.assignSubstituteCoach(existing.session_id, null);
   }
 
+  // Try to send notification to coach if preference is enabled
+  if (parsed.data.status === 'APPROVED' || parsed.data.status === 'REJECTED') {
+    try {
+      const { getUserById } = await import('@/lib/dao/usersDao');
+      const { createNotification } = await import('@/lib/dao/notificationsDao');
+      const coach = await getUserById(existing.coach_id);
+      
+      const wantsNotif = coach && ((coach as any).notif_leave_update !== false);
+      
+      if (wantsNotif) {
+        let statusText = parsed.data.status === 'APPROVED' ? 'Disetujui' : 'Ditolak';
+        await createNotification(
+          existing.coach_id,
+          'Update Pengajuan Izin',
+          `Pengajuan izin Anda untuk kelas terkait telah ${statusText}.`,
+          'SYSTEM'
+        );
+      }
+    } catch (error) {
+      console.error('Failed to notify coach about leave update', error);
+    }
+  }
+
   return NextResponse.json({ request: updated });
 }

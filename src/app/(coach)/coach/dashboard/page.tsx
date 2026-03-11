@@ -11,7 +11,8 @@ import HeroCountdownClient from './HeroCountdownClient';
 import CoachDashboardHeader from '@/components/coach/CoachDashboardHeader';
 import { StaggerContainer, StaggerItem } from '@/components/animations/StaggerContainer';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300; // Cache dashboard data for 5 minutes
+
 
 export default async function CoachDashboardPage() {
     const session = await getSessionOrThrow();

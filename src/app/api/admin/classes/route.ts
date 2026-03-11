@@ -144,6 +144,27 @@ export async function POST(request: NextRequest) {
     endDate,
   });
 
+  // Try to send notification to coach if preference is enabled
+  try {
+    const { getUserById } = await import('@/lib/dao/usersDao');
+    const { createNotification } = await import('@/lib/dao/notificationsDao');
+    const coach = await getUserById(input.coachId);
+    
+    // Check toggle preference (default true if undefined)
+    const wantsNotif = coach && ((coach as any).notif_new_class !== false);
+    
+    if (wantsNotif) {
+      await createNotification(
+        input.coachId,
+        'Kelas Baru',
+        `Anda telah ditugaskan untuk mengajar kelas: ${created.name}`,
+        'SYSTEM' // Keeping type SYSTEM to ensure it displays everywhere normally
+      );
+    }
+  } catch (error) {
+    console.error('Failed to notify coach about new class', error);
+  }
+
   if (created.type === 'WEEKLY') {
     try {
       console.log('[Create Class] Auto planning with initialBlockId:', initialBlockId, 'initialLessonId:', initialLessonId);

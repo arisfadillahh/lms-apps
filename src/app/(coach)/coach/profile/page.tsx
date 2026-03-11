@@ -10,22 +10,19 @@ export default async function CoachProfilePage() {
         return <div>User not found</div>;
     }
 
-    // Map to frontend interface
     const userProfile = {
         username: user.username,
         fullName: user.full_name,
         avatarPath: (user as any).avatar_path || null,
-        role: user.role
+        role: user.role,
+        // Coach-specific
+        coachBio: (user as any).coach_bio ?? '',
+        coachSkills: (user as any).coach_skills ?? [],
+        // Notification prefs
+        notifNewClass: (user as any).notif_new_class ?? true,
+        notifLeaveUpdate: (user as any).notif_leave_update ?? true,
+        notifSessionReminder: (user as any).notif_session_reminder ?? false,
     };
 
-    return (
-        <div style={{ width: '100%', padding: '2rem 1rem' }}>
-            <div style={{ marginBottom: '2rem' }}>
-                <h1 style={{ fontSize: '1.875rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.5rem' }}>Profile & Keamanan</h1>
-                <p style={{ color: '#64748b' }}>Kelola informasi pribadi dan keamanan akun Coach</p>
-            </div>
-
-            <ProfileForm user={userProfile} />
-        </div>
-    );
+    return <ProfileForm user={userProfile} />;
 }

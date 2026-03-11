@@ -1,6 +1,5 @@
 'use client';
 
-import type { CSSProperties } from 'react';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -36,41 +35,25 @@ export default function ReportLessonButton({ lessonId, lessonTitle, coachId }: R
     };
 
     const handleSubmit = () => {
-        if (!reportType) {
-            setError('Pilih jenis masalah');
-            return;
-        }
-        if (!description.trim()) {
-            setError('Deskripsi wajib diisi');
-            return;
-        }
+        if (!reportType) { setError('Pilih jenis masalah'); return; }
+        if (!description.trim()) { setError('Deskripsi wajib diisi'); return; }
         setError(null);
 
         startTransition(async () => {
             try {
-                const response = await fetch('/api/coach/lesson-reports', {
+                const res = await fetch('/api/coach/lesson-reports', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        lessonTemplateId: lessonId,
-                        reportType,
-                        description: description.trim(),
-                    }),
+                    body: JSON.stringify({ lessonTemplateId: lessonId, reportType, description: description.trim() }),
                 });
-
-                if (!response.ok) {
-                    const data = await response.json().catch(() => ({}));
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
                     setError(data.error || 'Gagal mengirim laporan');
                     return;
                 }
-
                 setSuccess(true);
-                setTimeout(() => {
-                    handleClose();
-                    router.refresh();
-                }, 2000);
-            } catch (err) {
-                console.error(err);
+                setTimeout(() => { handleClose(); router.refresh(); }, 2000);
+            } catch {
                 setError('Terjadi kesalahan');
             }
         });
@@ -78,182 +61,125 @@ export default function ReportLessonButton({ lessonId, lessonTitle, coachId }: R
 
     return (
         <>
-            <button onClick={() => setOpen(true)} style={triggerStyle}>
-                ⚠️ Laporkan Masalah
+            {/* Trigger — matches hero button style */}
+            <button
+                onClick={() => setOpen(true)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-rose-400/40 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-semibold transition-all text-sm"
+            >
+                <span className="material-symbols-outlined text-xl">flag</span>
+                Laporkan Masalah
             </button>
 
+            {/* Modal */}
             {open && (
-                <div style={backdropStyle} onClick={handleClose}>
-                    <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-                        <h3 style={titleStyle}>Laporkan Masalah Lesson</h3>
-                        <p style={subtitleStyle}>Lesson: <strong>{lessonTitle}</strong></p>
-
-                        {success ? (
-                            <div style={successStyle}>
-                                ✅ Laporan berhasil dikirim! Admin akan meninjau.
+                <div
+                    className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm"
+                    onClick={handleClose}
+                >
+                    <div
+                        className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-slate-200"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Modal Header */}
+                        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-900">Laporkan Masalah</h3>
+                                <p className="text-xs text-slate-500 mt-0.5 truncate max-w-xs">{lessonTitle}</p>
                             </div>
-                        ) : (
-                            <>
-                                <div style={fieldStyle}>
-                                    <label style={labelStyle}>Jenis Masalah *</label>
-                                    <select
-                                        value={reportType}
-                                        onChange={(e) => setReportType(e.target.value)}
-                                        style={selectStyle}
-                                    >
-                                        <option value="">-- Pilih Jenis Masalah --</option>
-                                        {REPORT_TYPES.map((type) => (
-                                            <option key={type.value} value={type.value}>
-                                                {type.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
+                            <button
+                                onClick={handleClose}
+                                className="text-slate-400 hover:text-slate-600 transition-colors"
+                            >
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
 
-                                <div style={fieldStyle}>
-                                    <label style={labelStyle}>Deskripsi *</label>
-                                    <textarea
-                                        value={description}
-                                        onChange={(e) => setDescription(e.target.value)}
-                                        placeholder="Jelaskan masalah yang Anda temukan..."
-                                        rows={4}
-                                        style={{ ...inputStyle, resize: 'vertical' }}
-                                    />
+                        {/* Modal Body */}
+                        <div className="p-6 space-y-5">
+                            {success ? (
+                                <div className="flex flex-col items-center justify-center py-6 text-center gap-3">
+                                    <span className="material-symbols-outlined text-5xl text-emerald-500">check_circle</span>
+                                    <p className="font-bold text-slate-800">Laporan Terkirim!</p>
+                                    <p className="text-sm text-slate-500">Admin akan segera meninjau laporan Anda.</p>
                                 </div>
+                            ) : (
+                                <>
+                                    {/* Jenis Masalah */}
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-slate-700">Jenis Masalah</label>
+                                        <div className="relative">
+                                            <select
+                                                value={reportType}
+                                                onChange={(e) => setReportType(e.target.value)}
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-slate-400 focus:border-slate-400 appearance-none text-slate-700 pr-10"
+                                            >
+                                                <option value="">Pilih jenis masalah...</option>
+                                                {REPORT_TYPES.map((t) => (
+                                                    <option key={t.value} value={t.value}>{t.label}</option>
+                                                ))}
+                                            </select>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                <span className="material-symbols-outlined">expand_more</span>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                                {error && <p style={errorStyle}>{error}</p>}
+                                    {/* Deskripsi */}
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-semibold text-slate-700">Deskripsi Masalah</label>
+                                        <textarea
+                                            value={description}
+                                            onChange={(e) => setDescription(e.target.value)}
+                                            placeholder="Jelaskan masalah yang Anda temukan secara detail..."
+                                            rows={4}
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-slate-400 placeholder-slate-400 resize-none"
+                                        />
+                                    </div>
 
-                                <div style={actionsStyle}>
-                                    <button onClick={handleClose} style={cancelStyle} disabled={isPending}>
-                                        Batal
-                                    </button>
-                                    <button onClick={handleSubmit} style={submitStyle} disabled={isPending}>
-                                        {isPending ? 'Mengirim...' : 'Kirim Laporan'}
-                                    </button>
-                                </div>
-                            </>
-                        )}
+                                    {/* Error */}
+                                    {error && (
+                                        <div className="flex items-center gap-2 bg-red-50 border border-red-100 text-red-700 text-sm p-3 rounded-xl">
+                                            <span className="material-symbols-outlined text-red-500 text-lg">error</span>
+                                            {error}
+                                        </div>
+                                    )}
+
+                                    {/* Actions */}
+                                    <div className="flex gap-3 pt-1">
+                                        <button
+                                            onClick={handleClose}
+                                            disabled={isPending}
+                                            className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-colors"
+                                        >
+                                            Batal
+                                        </button>
+                                        <button
+                                            onClick={handleSubmit}
+                                            disabled={isPending}
+                                            className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white font-bold text-sm transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            {isPending ? (
+                                                <>
+                                                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                                    </svg>
+                                                    Mengirim...
+                                                </>
+                                            ) : 'Kirim Laporan'}
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 text-center">
+                            <p className="text-[11px] text-slate-400 uppercase tracking-widest font-bold">Clevio Coach Quality Control</p>
+                        </div>
                     </div>
                 </div>
             )}
         </>
     );
 }
-
-const triggerStyle: CSSProperties = {
-    padding: '0.5rem 1rem',
-    borderRadius: '0.5rem',
-    border: '1px solid #fecaca',
-    background: '#fef2f2',
-    color: '#dc2626',
-    fontSize: '0.85rem',
-    fontWeight: 600,
-    cursor: 'pointer',
-};
-
-const backdropStyle: CSSProperties = {
-    position: 'fixed',
-    inset: 0,
-    background: 'rgba(15, 23, 42, 0.6)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 99999,
-};
-
-const modalStyle: CSSProperties = {
-    background: '#fff',
-    padding: '1.5rem',
-    borderRadius: '1rem',
-    width: '100%',
-    maxWidth: '480px',
-    boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
-};
-
-const titleStyle: CSSProperties = {
-    margin: '0 0 0.25rem 0',
-    fontSize: '1.15rem',
-    fontWeight: 600,
-    color: '#0f172a',
-};
-
-const subtitleStyle: CSSProperties = {
-    fontSize: '0.85rem',
-    color: '#64748b',
-    marginBottom: '1.25rem',
-};
-
-const fieldStyle: CSSProperties = {
-    marginBottom: '1rem',
-};
-
-const labelStyle: CSSProperties = {
-    display: 'block',
-    fontSize: '0.85rem',
-    fontWeight: 500,
-    color: '#334155',
-    marginBottom: '0.35rem',
-};
-
-const selectStyle: CSSProperties = {
-    width: '100%',
-    padding: '0.55rem 0.75rem',
-    borderRadius: '0.5rem',
-    border: '1px solid #cbd5e1',
-    fontSize: '0.9rem',
-    color: '#0f172a',
-    background: '#fff',
-};
-
-const inputStyle: CSSProperties = {
-    width: '100%',
-    padding: '0.55rem 0.75rem',
-    borderRadius: '0.5rem',
-    border: '1px solid #cbd5e1',
-    fontSize: '0.9rem',
-    color: '#0f172a',
-};
-
-const actionsStyle: CSSProperties = {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    gap: '0.75rem',
-    marginTop: '1.25rem',
-};
-
-const cancelStyle: CSSProperties = {
-    padding: '0.55rem 1rem',
-    borderRadius: '0.5rem',
-    border: '1px solid #e2e8f0',
-    background: '#fff',
-    color: '#475569',
-    fontSize: '0.9rem',
-    fontWeight: 600,
-    cursor: 'pointer',
-};
-
-const submitStyle: CSSProperties = {
-    padding: '0.55rem 1rem',
-    borderRadius: '0.5rem',
-    border: 'none',
-    background: '#dc2626',
-    color: '#fff',
-    fontSize: '0.9rem',
-    fontWeight: 600,
-    cursor: 'pointer',
-};
-
-const errorStyle: CSSProperties = {
-    color: '#dc2626',
-    fontSize: '0.85rem',
-    marginTop: '0.5rem',
-};
-
-const successStyle: CSSProperties = {
-    padding: '1rem',
-    background: '#f0fdf4',
-    color: '#16a34a',
-    borderRadius: '0.5rem',
-    fontWeight: 500,
-    textAlign: 'center',
-};

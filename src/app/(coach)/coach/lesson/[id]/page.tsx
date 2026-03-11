@@ -1,179 +1,16 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, ExternalLink, Play, Calendar } from 'lucide-react';
-import type { CSSProperties } from 'react';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { assertRole } from '@/lib/roles';
-import { lessonTemplatesDao } from '@/lib/dao';
+import { lessonTemplatesDao, blocksDao, classesDao } from '@/lib/dao';
+import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import ReportLessonButton from './ReportLessonButton';
 
 type PageProps = {
     params: Promise<{ id: string }>;
+    searchParams: Promise<{ classId?: string; sessionId?: string }>;
 };
-
-export default async function CoachLessonDetailPage({ params }: PageProps) {
-    const session = await getSessionOrThrow();
-    await assertRole(session, 'COACH');
-
-    const resolvedParams = await params;
-    const lessonId = resolvedParams.id;
-
-    const lesson = await lessonTemplatesDao.getLessonTemplateById(lessonId);
-    if (!lesson) {
-        notFound();
-    }
-
-    return (
-        <div style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '3rem', paddingTop: '1rem' }}>
-            {/* Navigation */}
-            <header style={{ marginBottom: '2rem' }}>
-                <Link
-                    href="/coach/dashboard"
-                    style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        color: '#64748b',
-                        fontSize: '0.95rem',
-                        fontWeight: 600,
-                        textDecoration: 'none',
-                        transition: 'color 0.2s'
-                    }}
-                >
-                    <ArrowLeft size={18} />
-                    Kembali ke Dashboard
-                </Link>
-            </header>
-
-            {/* Hero Header */}
-            <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-                <div>
-                    <h1 style={{
-                        fontSize: '2rem',
-                        fontWeight: 800,
-                        color: '#1e293b',
-                        lineHeight: 1.2,
-                        marginBottom: '0.5rem',
-                        letterSpacing: '-0.02em'
-                    }}>
-                        {lesson.title}
-                    </h1>
-                    <div style={{ display: 'flex', gap: '1rem', color: '#64748b', fontSize: '0.9rem', fontWeight: 600 }}>
-                        <span>Lesson {lesson.order_index}</span>
-                        <span>•</span>
-                        <span>{lesson.estimated_meeting_count ?? '-'} Pertemuan</span>
-                    </div>
-                </div>
-                {/* Keep Report Button Prominent */}
-                <ReportLessonButton lessonId={lesson.id} lessonTitle={lesson.title} coachId={session.user.id} />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 350px', gap: '2.5rem', alignItems: 'start' }}>
-                {/* Main Content Area */}
-                <main style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                    {/* Slide Viewer (Cinema Mode) */}
-                    <div style={cardStyle}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#eff6ff', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <Play size={18} fill="currentColor" />
-                                </div>
-                                <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Slide Materi</h2>
-                            </div>
-                            {lesson.slide_url && (
-                                <a
-                                    href={lesson.slide_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    style={{ fontSize: '0.9rem', color: '#3b82f6', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none' }}
-                                >
-                                    Buka Fullscreen <ExternalLink size={14} />
-                                </a>
-                            )}
-                        </div>
-
-                        {lesson.slide_url ? (
-                            <div style={slideContainerStyle}>
-                                <iframe
-                                    src={getSlideEmbedUrl(lesson.slide_url)}
-                                    title={lesson.title}
-                                    allowFullScreen
-                                    style={slideFrameStyle}
-                                />
-                            </div>
-                        ) : (
-                            <div style={{ padding: '4rem', textAlign: 'center', background: '#f8fafc', borderRadius: '12px', border: '2px dashed #cbd5e1', color: '#94a3b8' }}>
-                                <p style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Slide belum tersedia</p>
-                                <p style={{ fontSize: '0.9rem' }}>Materi presentasi belum diunggah untuk sesi ini.</p>
-                            </div>
-                        )}
-
-                        {lesson.summary && (
-                            <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #e2e8f0' }}>
-                                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', marginBottom: '0.75rem' }}>Ringkasan Materi</h3>
-                                <div style={{ fontSize: '1rem', color: '#475569', lineHeight: 1.6 }}>
-                                    {lesson.summary}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </main>
-
-                {/* Sidebar */}
-                <aside style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'sticky', top: '2rem' }}>
-
-                    {/* Contoh Game Card */}
-                    {lesson.example_url && (
-                        <div style={projectCardStyle}>
-                            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-                                <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🎮</div>
-                                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', margin: 0 }}>Contoh Game</h3>
-                                <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem', marginTop: '0.4rem' }}>
-                                    Cek hasil akhir project yang akan diajarkan hari ini!
-                                </p>
-                            </div>
-
-                            <a
-                                href={lesson.example_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={primaryButtonStyle}
-                            >
-                                <Play size={18} fill="currentColor" /> Mainkan Game
-                            </a>
-                        </div>
-                    )}
-
-                    {/* Make-up Instructions Card */}
-                    {lesson.make_up_instructions && (
-                        <div style={{ ...sidebarCardStyle, borderColor: '#fef3c7', background: '#fffbeb' }}>
-                            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#92400e', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                📝 Instruksi Make-Up
-                            </h3>
-                            <div style={{ fontSize: '0.9rem', color: '#78350f', lineHeight: 1.6 }}>
-                                {lesson.make_up_instructions}
-                            </div>
-                        </div>
-                    )}
-
-                </aside>
-
-                {/* Responsive CSS */}
-                <style>{`
-                    @media (max-width: 1024px) {
-                        div[style*="grid-template-columns"] {
-                            grid-template-columns: 1fr !important;
-                        }
-                        aside {
-                            position: static !important;
-                        }
-                    }
-                `}</style>
-            </div>
-        </div>
-    );
-}
 
 function getSlideEmbedUrl(url: string): string {
     try {
@@ -187,10 +24,8 @@ function getSlideEmbedUrl(url: string): string {
                     return `https://docs.google.com/presentation/d/e/${presentationId}/embed${parsed.search}`;
                 }
             }
-
             const segments = parsed.pathname.split('/');
             const dIndex = segments.indexOf('d');
-
             if (dIndex !== -1 && segments[dIndex + 1]) {
                 const presentationId = segments[dIndex + 1];
                 if (presentationId !== 'e') {
@@ -204,63 +39,265 @@ function getSlideEmbedUrl(url: string): string {
     return url.replace('/edit', '/embed');
 }
 
-const cardStyle: CSSProperties = {
-    background: '#ffffff',
-    borderRadius: '16px',
-    border: '1px solid #e2e8f0',
-    padding: '1.5rem',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-};
+export default async function CoachLessonDetailPage({ params, searchParams }: PageProps) {
+    const session = await getSessionOrThrow();
+    await assertRole(session, 'COACH');
 
-const slideContainerStyle: CSSProperties = {
-    position: 'relative',
-    width: '100%',
-    paddingTop: '62.5%',
-    minHeight: '400px',
-    background: '#0f172a',
-    borderRadius: '16px',
-    overflow: 'hidden',
-    boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255,255,255,0.05)'
-};
+    const resolvedParams = await params;
+    const resolvedSearch = await searchParams;
+    const lessonId = resolvedParams.id;
 
-const slideFrameStyle: CSSProperties = {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    border: 'none',
-};
+    // classId and sessionId passed from the class detail page via query params
+    const classIdFromUrl = resolvedSearch.classId ?? null;
+    const sessionIdFromUrl = resolvedSearch.sessionId ?? null;
 
-const sidebarCardStyle: CSSProperties = {
-    background: '#ffffff',
-    borderRadius: '16px',
-    border: '1px solid #e2e8f0',
-    padding: '1.25rem',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-};
+    const lesson = await lessonTemplatesDao.getLessonTemplateById(lessonId);
+    if (!lesson) {
+        notFound();
+    }
 
-const projectCardStyle: CSSProperties = {
-    background: 'linear-gradient(135deg, #2563eb 0%, #1e40af 100%)',
-    borderRadius: '16px',
-    padding: '1.5rem',
-    boxShadow: '0 10px 20px -5px rgba(37, 99, 235, 0.4)',
-    color: '#fff',
-    border: '1px solid rgba(255,255,255,0.1)'
-};
+    const block = lesson.block_id ? await blocksDao.getBlockById(lesson.block_id) : null;
 
-const primaryButtonStyle: CSSProperties = {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: '0.5rem',
-    width: '100%',
-    background: '#fff',
-    color: '#1e40af',
-    padding: '0.8rem',
-    borderRadius: '10px',
-    fontWeight: 700,
-    textDecoration: 'none',
-    transition: 'transform 0.1s, box-shadow 0.1s',
-    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
-};
+    // Get class name from URL param if provided, otherwise fall back to DB lookup
+    let className: string | null = null;
+    let sessionId: string | null = sessionIdFromUrl;
+
+    if (classIdFromUrl) {
+        const cls = await classesDao.getClassById(classIdFromUrl);
+        className = cls?.name ?? null;
+    } else {
+        // Fallback: find class through class_lessons → class_blocks → classes
+        const supabase = getSupabaseAdmin();
+        const { data: classLessonRow } = await supabase
+            .from('class_lessons')
+            .select('class_block_id, class_blocks:class_block_id(class_id, classes:class_id(name))')
+            .eq('lesson_template_id', lessonId)
+            .limit(1)
+            .maybeSingle();
+        const classBlock = (classLessonRow?.class_blocks as any);
+        const classId: string | null = classBlock?.class_id ?? null;
+        className = classBlock?.classes?.name ?? null;
+
+        if (!sessionId && classId) {
+            const supabase2 = getSupabaseAdmin();
+            const { data: sessionRow } = await supabase2
+                .from('sessions')
+                .select('id')
+                .eq('class_id', classId)
+                .gte('date_time', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+                .order('date_time', { ascending: true })
+                .limit(1)
+                .maybeSingle();
+            sessionId = sessionRow?.id ?? null;
+        }
+    }
+
+    return (
+        <div className="-mx-8 -mt-0 pb-20 font-sans">
+
+            {/* Dark Hero Section */}
+            <section
+                className="px-8 py-10 lg:py-14 text-white"
+                style={{ background: 'linear-gradient(to bottom right, #0f172a, #1e293b)' }}
+            >
+                <div className="max-w-6xl mx-auto">
+                    {/* Back link */}
+                    <Link
+                        href="/coach/dashboard"
+                        className="inline-flex items-center gap-2 text-slate-300 hover:text-white mb-8 transition-colors text-sm font-medium"
+                    >
+                        <span className="material-symbols-outlined text-base">arrow_back</span>
+                        Kembali ke Dashboard
+                    </Link>
+
+                    <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+                        {/* Title area */}
+                        <div className="flex-1">
+                            {/* Tags */}
+                            <div className="flex flex-wrap gap-2 mb-4">
+                                {lesson.estimated_meeting_count && lesson.estimated_meeting_count > 1 && (
+                                    <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-full text-xs font-bold tracking-wide uppercase border border-emerald-500/30">
+                                        {lesson.estimated_meeting_count} Pertemuan
+                                    </span>
+                                )}
+                                {className && (
+                                    <span className="px-3 py-1 bg-white/10 rounded-full text-xs font-semibold tracking-wide uppercase border border-white/20">
+                                        {className}
+                                    </span>
+                                )}
+                            </div>
+                            <h1 className="text-3xl lg:text-4xl font-extrabold leading-tight tracking-tight">
+                                {lesson.title}
+                            </h1>
+                            {lesson.summary && (
+                                <p className="text-slate-400 mt-3 text-base max-w-2xl line-clamp-2">{lesson.summary}</p>
+                            )}
+                        </div>
+
+                        {/* Action buttons — right side */}
+                        <div className="flex flex-wrap gap-3">
+                            {sessionId && (
+                                <Link
+                                    href={`/coach/sessions/${sessionId}/attendance`}
+                                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/30 bg-white/5 hover:bg-white/10 text-white font-semibold transition-all text-sm"
+                                >
+                                    <span className="material-symbols-outlined text-xl">how_to_reg</span>
+                                    Presensi
+                                </Link>
+                            )}
+                            {lesson.example_url && (
+                                <a
+                                    href={lesson.example_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/30 bg-white/5 hover:bg-white/10 text-white font-semibold transition-all text-sm"
+                                >
+                                    <span className="material-symbols-outlined text-xl">sports_esports</span>
+                                    Game Sample
+                                </a>
+                            )}
+                            <ReportLessonButton lessonId={lesson.id} lessonTitle={lesson.title} coachId={session.user.id} />
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+            {/* Content Area */}
+            <div className="max-w-6xl mx-auto w-full px-8 py-10">
+                <div className="grid grid-cols-1 lg:grid-cols-10 gap-8 items-start">
+
+                    {/* Left Column: Slide Viewer */}
+                    <div className="lg:col-span-7 space-y-6">
+                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 lg:p-8">
+                            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+                                <span className="material-symbols-outlined text-emerald-600">auto_awesome_motion</span>
+                                <h2 className="text-xl font-bold text-slate-800">Slide Materi Utama</h2>
+                            </div>
+
+                            {lesson.slide_url ? (
+                                <div className="relative w-full rounded-xl overflow-hidden border border-slate-200 bg-slate-900"
+                                    style={{ paddingTop: '62.5%', minHeight: '360px' }}
+                                >
+                                    <iframe
+                                        src={getSlideEmbedUrl(lesson.slide_url)}
+                                        title={lesson.title}
+                                        allowFullScreen
+                                        className="absolute inset-0 w-full h-full border-0"
+                                    />
+                                </div>
+                            ) : (
+                                <div className="aspect-video w-full bg-slate-50 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center p-8">
+                                    <span className="material-symbols-outlined text-7xl text-slate-300 mb-4">gallery_thumbnail</span>
+                                    <p className="text-base font-semibold text-slate-600">Slide belum tersedia</p>
+                                    <p className="text-sm text-slate-400 mt-1">Materi presentasi belum diunggah untuk lesson ini.</p>
+                                </div>
+                            )}
+
+                            {lesson.summary && (
+                                <div className="mt-6 pt-6 border-t border-slate-100">
+                                    <h3 className="text-base font-bold text-slate-800 mb-2">Ringkasan Materi</h3>
+                                    <p className="text-slate-600 leading-relaxed text-sm">{lesson.summary}</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Make-up Instructions */}
+                        {lesson.make_up_instructions && (
+                            <div className="bg-amber-50 rounded-xl border border-amber-200 p-6">
+                                <h3 className="font-bold text-amber-800 mb-3 flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-amber-600">assignment_late</span>
+                                    Instruksi Make-Up
+                                </h3>
+                                <p className="text-amber-900 text-sm leading-relaxed">{lesson.make_up_instructions}</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Right Column: Sidebar */}
+                    <div className="lg:col-span-3 space-y-6">
+
+                        {/* Game Sample Card */}
+                        {lesson.example_url && (
+                            <div className="bg-white rounded-xl shadow-sm border border-emerald-100 p-6">
+                                <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-emerald-600">sports_esports</span>
+                                    Game Sample
+                                </h4>
+                                <a
+                                    href={lesson.example_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition-colors justify-center"
+                                >
+                                    <span className="material-symbols-outlined text-base">play_arrow</span>
+                                    Buka Game
+                                </a>
+                            </div>
+                        )}
+
+                        {/* Lesson Info Card */}
+                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                            <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <span className="material-symbols-outlined text-slate-400">info</span>
+                                Info Lesson
+                            </h4>
+                            <div className="space-y-3">
+                                {block && (
+                                    <div className="flex justify-between gap-2 text-sm">
+                                        <span className="text-slate-500 shrink-0">Block</span>
+                                        <span className="font-bold text-slate-800 text-right break-words min-w-0">{block.name}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between gap-2 text-sm">
+                                    <span className="text-slate-500 shrink-0">Urutan</span>
+                                    <span className="font-bold text-slate-800">Lesson {lesson.order_index}</span>
+                                </div>
+                                {lesson.estimated_meeting_count && (
+                                    <div className="flex justify-between gap-2 text-sm">
+                                        <span className="text-slate-500 shrink-0">Durasi</span>
+                                        <span className="font-bold text-slate-800">{lesson.estimated_meeting_count} Pertemuan</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between gap-2 text-sm">
+                                    <span className="text-slate-500 shrink-0">Slide</span>
+                                    <span className={`font-bold ${lesson.slide_url ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                        {lesson.slide_url ? 'Tersedia' : 'Belum ada'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+
+
+                        {/* Game Sample Card */}
+                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                            <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <span className="material-symbols-outlined text-slate-400">sports_esports</span>
+                                Game Sample
+                            </h4>
+                            {lesson.example_url ? (
+                                <a
+                                    href={lesson.example_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition-colors justify-center"
+                                >
+                                    <span className="material-symbols-outlined text-base">play_arrow</span>
+                                    Buka Game Sample
+                                </a>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-4 text-center">
+                                    <span className="material-symbols-outlined text-3xl text-slate-300 mb-2">videogame_asset_off</span>
+                                    <p className="text-sm text-slate-400 font-medium">Belum tersedia</p>
+                                    <p className="text-xs text-slate-300 mt-0.5">Link game sample belum ditambahkan</p>
+                                </div>
+                            )}
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}

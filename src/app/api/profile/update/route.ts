@@ -16,6 +16,13 @@ const updateProfileSchema = z.object({
     parentContactPhone: z.string().nullable().optional(),
     address: z.string().nullable().optional(),
     referralSource: z.string().nullable().optional(),
+    // Coach-specific fields
+    coachBio: z.string().nullable().optional(),
+    coachSkills: z.array(z.string()).optional(),
+    // Notification preferences
+    notifNewClass: z.boolean().optional(),
+    notifLeaveUpdate: z.boolean().optional(),
+    notifSessionReminder: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {
@@ -45,8 +52,14 @@ export async function POST(request: Request) {
         if (data.parentContactPhone !== undefined) updatePayload.parent_contact_phone = data.parentContactPhone || null;
         if (data.address !== undefined) updatePayload.address = data.address || null;
         if (data.referralSource !== undefined) updatePayload.referral_source = data.referralSource || null;
+        // Coach-specific
+        if (data.coachBio !== undefined) updatePayload.coach_bio = data.coachBio || null;
+        if (data.coachSkills !== undefined) updatePayload.coach_skills = data.coachSkills ?? [];
+        // Notification prefs
+        if (data.notifNewClass !== undefined) updatePayload.notif_new_class = data.notifNewClass;
+        if (data.notifLeaveUpdate !== undefined) updatePayload.notif_leave_update = data.notifLeaveUpdate;
+        if (data.notifSessionReminder !== undefined) updatePayload.notif_session_reminder = data.notifSessionReminder;
 
-        // Call DAO to update user
         await usersDao.updateUser(userId, updatePayload);
 
         return NextResponse.json({ success: true });
@@ -55,4 +68,3 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 });
     }
 }
-

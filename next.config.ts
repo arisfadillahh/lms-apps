@@ -18,6 +18,14 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Keep dynamic pages in the client-side router cache for 5 minutes
+  // so navigating back to dashboard doesn't trigger a full re-fetch
+  experimental: {
+    staleTimes: {
+      dynamic: 300, // seconds - cached for 5 min after first load
+    },
+  },
 };
 
 export default nextConfig;
+

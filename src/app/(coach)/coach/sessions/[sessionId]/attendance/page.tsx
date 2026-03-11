@@ -91,7 +91,8 @@ export default async function SessionAttendancePage({ params }: PageProps) {
   // Compute attendance stats
   const totalCoders = attendees.length;
   const markedCoders = attendees.filter((a) => a.attendance !== null).length;
-  const attendancePercentage = totalCoders > 0 ? Math.round((markedCoders / totalCoders) * 100) : 0;
+  const presentCoders = attendees.filter((a) => a.attendance?.status === 'PRESENT').length;
+  const attendancePercentage = totalCoders > 0 ? Math.round((presentCoders / totalCoders) * 100) : 0;
 
   // Compute block name
   const blockName = classRecord.type === 'EKSKUL'
@@ -179,7 +180,7 @@ export default async function SessionAttendancePage({ params }: PageProps) {
           <div className="flex items-center gap-4 sm:gap-6 justify-start md:justify-end relative z-10">
             <div className="text-left md:text-right">
               <p className="text-2xl sm:text-3xl font-bold">{attendancePercentage}%</p>
-              <p className="text-slate-400 text-xs font-medium">{markedCoders} from {totalCoders} coder ditandai</p>
+              <p className="text-slate-400 text-xs font-medium">{presentCoders} dari {totalCoders} coder hadir</p>
             </div>
             {/* Simple Donut Chart Representation */}
             <div className="relative w-14 h-14 sm:w-16 sm:h-16 shrink-0">

@@ -23,7 +23,7 @@ export default function CoachDashboardHeader({ user }: CoachDashboardHeaderProps
     const initial = firstName.charAt(0).toUpperCase();
 
     return (
-        <nav className="sticky top-0 z-40 bg-white border-b border-[#e2e8f0] px-8 py-4 mb-8 -mx-8 flex items-center justify-between shadow-sm">
+        <nav className="sticky top-0 z-40 bg-white border-b border-[#e2e8f0] px-8 py-4 mb-0 -mx-8 flex items-center justify-between shadow-sm">
             <div className="flex items-center">
                 <h1 className="text-xl font-bold text-slate-800 hidden lg:block">
                     Selamat datang kembali, Coach {firstName}! 👋

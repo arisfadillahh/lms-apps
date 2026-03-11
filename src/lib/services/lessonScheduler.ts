@@ -76,9 +76,10 @@ export async function computeLessonSchedule(
 ): Promise<Map<string, LessonSlot>> {
     if (!levelId && !ekskulLessonPlanId) return new Map();
 
-    const [sessions, classBlocks] = await Promise.all([
+    const [sessions, classBlocks, allBlocksForLevel] = await Promise.all([
         sessionsDao.listSessionsByClass(classId),
         classesDao.getClassBlocks(classId),
+        levelId ? blocksDao.listBlocksByLevel(levelId) : Promise.resolve([]),
     ]);
 
     // For Ekskul, use the old buildEkskulSlots approach
@@ -111,19 +112,25 @@ export async function computeLessonSchedule(
         const supabase = getSupabaseAdmin();
         let globalIndex = 0;
 
+        // Batch fetch all class_lessons for all blocks of this class at once
+        const classBlockIds = sortedBlocks.map(b => b.id);
+        const { data: allClassLessons } = classBlockIds.length > 0 
+            ? await supabase
+                .from('class_lessons')
+                .select('*, lesson_templates(*)')
+                .in('class_block_id', classBlockIds)
+                .order('order_index', { ascending: true })
+            : { data: [] };
+
         for (const classBlock of sortedBlocks) {
             if (!classBlock.block_id) continue;
 
-            // Get the block info
-            const block = await blocksDao.getBlockById(classBlock.block_id);
+            // Get the block info from our pre-fetched list to avoid N+1 queries causing 502s
+            const block = allBlocksForLevel.find(b => b.id === classBlock.block_id);
             if (!block) continue;
 
-            // Fetch class_lessons for this class_block
-            const { data: classLessons } = await supabase
-                .from('class_lessons')
-                .select('*, lesson_templates(*)')
-                .eq('class_block_id', classBlock.id)
-                .order('order_index', { ascending: true });
+            // Filter class_lessons for this specific class_block from our bulk fetch
+            const classLessons = allClassLessons?.filter(cl => cl.class_block_id === classBlock.id) || [];
 
             if (!classLessons || classLessons.length === 0) continue;
 

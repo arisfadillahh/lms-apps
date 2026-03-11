@@ -4,6 +4,7 @@ import { usersDao } from '@/lib/dao';
 import CoachSidebar from './CoachSidebar';
 import CoachMobileNav from './CoachMobileNav';
 import PageTransition from '@/components/PageTransition';
+import CoachDashboardHeader from '@/components/coach/CoachDashboardHeader';
 
 export default async function CoachLayout({ children }: { children: ReactNode }) {
   const session = await getServerAuthSession();
@@ -51,6 +52,12 @@ export default async function CoachLayout({ children }: { children: ReactNode })
 
       {/* Main content */}
       <main className="flex-1 flex flex-col min-h-screen md:ml-[260px] flex-grow px-8 pb-8">
+        <CoachDashboardHeader user={{
+            id: user.id,
+            fullName: user.full_name,
+            role: user.role,
+            avatarPath: user.avatar_path
+        }} />
         <div className="flex-1 pb-24 md:pb-0">
           <PageTransition>{children}</PageTransition>
         </div>

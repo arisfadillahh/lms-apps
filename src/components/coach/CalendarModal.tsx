@@ -143,9 +143,9 @@ export default function CalendarModal({ sessions, children, triggerClassName, tr
                                         const isCurrentMonth = isSameMonth(date, monthStart);
                                         const isToday = isSameDay(date, today);
                                         const isSelected = isSameDay(date, selectedDate);
-                                        const hasActive = daySessions.some(s => s.status !== 'CANCELLED');
-                                        const hasCancelled = daySessions.some(s => s.status === 'CANCELLED');
+                                        const hasCompleted = daySessions.some(s => s.status === 'COMPLETED');
                                         const hasScheduled = daySessions.some(s => s.status === 'SCHEDULED');
+                                        const hasCancelled = daySessions.some(s => s.status === 'CANCELLED');
 
                                         return (
                                             <div
@@ -170,8 +170,8 @@ export default function CalendarModal({ sessions, children, triggerClassName, tr
                                                 {/* Dot indicators at bottom */}
                                                 {daySessions.length > 0 && (
                                                     <div className="mt-auto flex gap-1">
-                                                        {hasActive && <div className="size-1.5 rounded-full bg-emerald-500" />}
-                                                        {hasScheduled && !hasActive && <div className="size-1.5 rounded-full bg-blue-500" />}
+                                                        {hasCompleted && <div className="size-1.5 rounded-full bg-emerald-500" />}
+                                                        {hasScheduled && <div className="size-1.5 rounded-full bg-blue-500" />}
                                                         {hasCancelled && <div className="size-1.5 rounded-full bg-red-400" />}
                                                     </div>
                                                 )}
@@ -202,15 +202,17 @@ export default function CalendarModal({ sessions, children, triggerClassName, tr
                                                         Sesi Aktif ({activeSessions.length})
                                                     </p>
                                                     <div className="flex flex-col gap-2">
-                                                        {activeSessions.map(s => (
+                                                        {activeSessions.map(s => {
+                                                            const isCompleted = s.status === 'COMPLETED';
+                                                            return(
                                                             <a
                                                                 key={s.id}
                                                                 href={`/coach/sessions/${s.id}/attendance`}
-                                                                className="p-3 rounded-xl bg-white border-l-4 border-emerald-500 shadow-sm hover:shadow-md transition-shadow block"
+                                                                className={`p-3 rounded-xl bg-white border-l-4 shadow-sm hover:shadow-md transition-shadow block ${isCompleted ? 'border-emerald-500' : 'border-blue-500'}`}
                                                             >
-                                                                <span className="text-[10px] font-bold text-emerald-600 uppercase">
+                                                                <span className={`text-[10px] font-bold uppercase ${isCompleted ? 'text-emerald-600' : 'text-blue-600'}`}>
                                                                     {format(new Date(s.date_time), 'HH:mm')}
-                                                                    {s.status === 'COMPLETED' && ' · Selesai'}
+                                                                    {isCompleted ? ' · Selesai' : ' · Terjadwal'}
                                                                 </span>
                                                                 <h4 className="text-sm font-bold text-slate-900 mt-0.5">{s.class_name ?? 'Kelas'}</h4>
                                                                 {s.lesson && (
@@ -231,7 +233,7 @@ export default function CalendarModal({ sessions, children, triggerClassName, tr
                                                                     )}
                                                                 </div>
                                                             </a>
-                                                        ))}
+                                                        )})}
                                                     </div>
                                                 </div>
                                             )}

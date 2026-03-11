@@ -5,7 +5,6 @@ import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonS
 
 import LeaveRequestTable from './LeaveRequestTable';
 import CreateLeaveRequestDialog from './CreateLeaveRequestDialog';
-import CoachDashboardHeader from '@/components/coach/CoachDashboardHeader';
 
 export default async function CoachLeavePage() {
   const session = await getSessionOrThrow();
@@ -69,10 +68,7 @@ export default async function CoachLeavePage() {
 
   return (
     <>
-      {/* Sticky Top Navbar — same as dashboard */}
-      <CoachDashboardHeader user={headerUser} />
-
-      <div className="-mx-8 pb-20 bg-slate-50 font-sans">
+      <div className="-mx-8 pt-8 pb-20 bg-slate-50 font-sans">
 
         {/* Page Header */}
         <div className="p-6 sm:p-8 pb-0">

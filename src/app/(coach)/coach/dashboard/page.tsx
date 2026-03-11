@@ -7,8 +7,6 @@ import { makeUpTasksDao } from '@/lib/dao';
 import CalendarModal from '@/components/coach/CalendarModal';
 import WeeklyScheduleClient from './WeeklyScheduleClient';
 import HeroCountdownClient from './HeroCountdownClient';
-
-import CoachDashboardHeader from '@/components/coach/CoachDashboardHeader';
 import { StaggerContainer, StaggerItem } from '@/components/animations/StaggerContainer';
 
 export const revalidate = 300; // Cache dashboard data for 5 minutes
@@ -29,13 +27,15 @@ export default async function CoachDashboardPage() {
 
     // Calculate stats
     const today = new Date();
+    const ninetyMinsAgo = new Date(today.getTime() - 90 * 60 * 1000);
+    
     const todaySessions = activeSessions.filter(s =>
         isSameDay(new Date(s.date_time), today) &&
         s.status !== 'CANCELLED'
     );
 
     const upcomingSessions = activeSessions.filter(s =>
-        new Date(s.date_time) >= today && s.status !== 'CANCELLED'
+        new Date(s.date_time) >= ninetyMinsAgo && s.status !== 'CANCELLED'
     ).sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
 
     const nextSession = upcomingSessions[0] || null;
@@ -43,7 +43,6 @@ export default async function CoachDashboardPage() {
     // Count pending tasks
     const pendingMakeUpCount = makeUpTasks.filter(t => t.status === 'SUBMITTED').length;
     const totalStudents = classes.reduce((acc, cls) => acc + (cls.studentsCount || 0), 0);
-    const averageCompletion = 84.5; // Placeholder since no historical completion stat exists
 
     // Weekly Schedule Variables
     const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 1 }); // Monday
@@ -69,16 +68,7 @@ export default async function CoachDashboardPage() {
                 .animate-float-4 { animation: float-down 20s linear infinite; }
             `}</style>
 
-            <StaggerContainer>
-                <StaggerItem>
-                    <CoachDashboardHeader user={{
-                        id: user.id,
-                        fullName: user.fullName,
-                        role: user.role,
-                        avatarPath: user.avatarPath
-                    }} />
-                </StaggerItem>
-
+            <StaggerContainer className="mt-8">
                 <div className="flex gap-8">
                     <div className="flex-grow max-w-[calc(100%-360px)]">
                         <StaggerItem className="mb-8">
@@ -156,10 +146,10 @@ export default async function CoachDashboardPage() {
                             </div>
                             <div className="bg-white p-6 rounded-3xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] border border-slate-100">
                                 <div className="flex justify-between items-start mb-4">
-                                    <span className="p-2 bg-emerald-50 text-emerald-600 rounded-lg material-symbols-outlined">verified</span>
+                                    <span className="p-2 bg-emerald-50 text-emerald-600 rounded-lg material-symbols-outlined">class</span>
                                 </div>
-                                <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Average Completion</p>
-                                <h3 className="text-2xl font-extrabold text-brand-deep mt-1">{averageCompletion}%</h3>
+                                <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Total Kelas Aktif</p>
+                                <h3 className="text-2xl font-extrabold text-brand-deep mt-1">{classes.length}</h3>
                             </div>
                         </StaggerItem>
 

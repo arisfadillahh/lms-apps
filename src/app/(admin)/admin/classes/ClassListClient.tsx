@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Clock, Users, User, Search, ChevronDown, Plus } from 'lucide-react';
+import DeleteClassButton from './DeleteClassButton';
 
 interface ClassListClientProps {
     initialClasses: any[];
@@ -253,33 +254,40 @@ export default function ClassListClient({ initialClasses, coaches, levels }: Cla
                                         e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.05)';
                                     }}
                                 >
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span style={{
-                                            background: category === 'Xplorer' ? '#3b82f6' : category === 'Innovator' ? '#a855f7' : category === 'Creator' ? '#f97316' : '#ec4899',
-                                            color: '#fff',
-                                            padding: '0.2rem 0.6rem',
-                                            borderRadius: '9999px',
-                                            fontSize: '0.75rem',
-                                            fontWeight: 600
-                                        }}>
-                                            {category}
-                                        </span>
-                                        <span style={{
-                                            background: bgStatus,
-                                            color: textStatus,
-                                            padding: '0.2rem 0.6rem',
-                                            borderRadius: '9999px',
-                                            fontSize: '0.75rem',
-                                            fontWeight: 600,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: dotStatus !== 'transparent' ? '0.35rem' : '0'
-                                        }}>
-                                            {dotStatus !== 'transparent' && (
-                                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: dotStatus }} />
-                                            )}
-                                            {labelStatus}
-                                        </span>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                            <span style={{
+                                                background: category === 'Xplorer' ? '#3b82f6' : category === 'Innovator' ? '#a855f7' : category === 'Creator' ? '#f97316' : '#ec4899',
+                                                color: '#fff',
+                                                padding: '0.2rem 0.6rem',
+                                                borderRadius: '9999px',
+                                                fontSize: '0.75rem',
+                                                fontWeight: 600
+                                            }}>
+                                                {category}
+                                            </span>
+                                            <span style={{
+                                                background: bgStatus,
+                                                color: textStatus,
+                                                padding: '0.2rem 0.6rem',
+                                                borderRadius: '9999px',
+                                                fontSize: '0.75rem',
+                                                fontWeight: 600,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: dotStatus !== 'transparent' ? '0.35rem' : '0'
+                                            }}>
+                                                {dotStatus !== 'transparent' && (
+                                                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: dotStatus }} />
+                                                )}
+                                                {labelStatus}
+                                            </span>
+                                        </div>
+                                        
+                                        {/* Stop propagation so clicking delete doesn't route to the class detail page */}
+                                        <div onClick={(e) => e.preventDefault()}>
+                                            <DeleteClassButton classId={hasValidId ? klass.id : ''} className={klass.name} />
+                                        </div>
                                     </div>
 
                                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', marginTop: '0.5rem' }}>

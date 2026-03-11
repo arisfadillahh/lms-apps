@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import Image from 'next/image';
 
 const NAV_LINKS = [
     { href: '/coach/dashboard', label: 'Dashboard', icon: 'grid_view' },
@@ -32,9 +33,9 @@ export default function CoachSidebar() {
                 }
             `}</style>
             <aside className="fixed left-0 top-0 h-full w-[260px] bg-[#0a1428] text-white flex flex-col z-50">
-                <div className="p-8">
-                    <h2 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[#6bb3ff] text-[24px]">strategy</span>
+                <div className="p-8 pb-4">
+                    <h2 className="text-2xl font-extrabold tracking-tight flex items-center gap-3">
+                        <Image src="/favicon.ico" alt="Clevio" width={32} height={32} className="rounded-md" />
                         Clevio
                     </h2>
                 </div>

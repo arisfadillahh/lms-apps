@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 import { makeUpTasksDao, reportsDao, sessionsDao, usersDao, classesDao } from '@/lib/dao';
 import { getAppBaseUrl } from '@/lib/env';
-import { sendParentAbsent } from '@/lib/whatsapp/client';
+import { sendAbsentNotification } from '@/lib/services/whatsappClient';
 import { verifyCronRequest } from '@/lib/cron';
 
 export async function POST(request: Request) {
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
       });
 
       try {
-        const response = await sendParentAbsent({
+        const response = await sendAbsentNotification({
           coderFullName: coder.full_name,
           className: classRecord.name,
           sessionDateTime: session.date_time,

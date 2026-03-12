@@ -1048,10 +1048,159 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['lesson_reports']['Insert']>;
         Relationships: [];
       };
+      block_reports: {
+        Row: {
+          id: string;
+          class_id: string;
+          block_id: string;
+          coder_id: string;
+          status: 'DRAFT' | 'SUBMITTED' | 'PUBLISHED' | 'SENT';
+          average_score: number | null;
+          grade: string | null;
+          is_ai_generated: boolean;
+          sent_via_whatsapp: boolean;
+          sent_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          class_id: string;
+          block_id: string;
+          coder_id: string;
+          status?: 'DRAFT' | 'SUBMITTED' | 'PUBLISHED' | 'SENT';
+          average_score?: number | null;
+          grade?: string | null;
+          is_ai_generated?: boolean;
+          sent_via_whatsapp?: boolean;
+          sent_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['block_reports']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: "block_reports_class_id_fkey";
+            columns: ["class_id"];
+            referencedRelation: "classes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "block_reports_block_id_fkey";
+            columns: ["block_id"];
+            referencedRelation: "blocks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "block_reports_coder_id_fkey";
+            columns: ["coder_id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      block_report_descriptions: {
+        Row: {
+          id: string;
+          report_id: string;
+          criteria_id: string;
+          score: number | null;
+          description: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          report_id: string;
+          criteria_id: string;
+          score?: number | null;
+          description?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['block_report_descriptions']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: "block_report_descriptions_report_id_fkey";
+            columns: ["report_id"];
+            referencedRelation: "block_reports";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "block_report_descriptions_criteria_id_fkey";
+            columns: ["criteria_id"];
+            referencedRelation: "evaluation_criteria";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      evaluation_criteria: {
+        Row: {
+          id: string;
+          name: string;
+          description: string | null;
+          order_index: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description?: string | null;
+          order_index?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['evaluation_criteria']['Insert']>;
+        Relationships: [];
+      };
+      lesson_evaluations: {
+        Row: {
+          id: string;
+          session_id: string;
+          coder_id: string;
+          criteria_id: string;
+          score: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          coder_id: string;
+          criteria_id: string;
+          score: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['lesson_evaluations']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: "lesson_evaluations_session_id_fkey";
+            columns: ["session_id"];
+            referencedRelation: "sessions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lesson_evaluations_coder_id_fkey";
+            columns: ["coder_id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "lesson_evaluations_criteria_id_fkey";
+            columns: ["criteria_id"];
+            referencedRelation: "evaluation_criteria";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {};
     Functions: {};
-    Enums: {};
+    Enums: {
+      block_report_status_enum: 'DRAFT' | 'PUBLISHED' | 'SENT';
+    };
   };
 }
 

@@ -2,7 +2,7 @@
 import {
     Home, Users, GraduationCap, BookOpen, CalendarOff, FileText,
     MessageCircle, Package, Image as ImageIcon, Wallet, BookMarked,
-    Megaphone, Receipt, Settings, UserCheck
+    Megaphone, Receipt, Settings, UserCheck, ClipboardList
 } from 'lucide-react';
 
 // Define the Leaf Menu Items (Source of Truth for Icons & Links)
@@ -20,7 +20,8 @@ export const MENU_ITEMS: Record<string, { href: string; label: string; icon: any
     software: { href: '/admin/software', label: 'Software', icon: Package },
     banners: { href: '/admin/banners', label: 'Banner', icon: ImageIcon },
     leave: { href: '/admin/leave', label: 'Izin Coach', icon: CalendarOff },
-    reports: { href: '/admin/reports', label: 'Laporan', icon: FileText },
+    reports: { href: '/admin/reports', label: 'Laporan Rapor', icon: FileText },
+    evaluations: { href: '/admin/evaluations', label: 'Kompetensi Rapor', icon: ClipboardList },
     whatsapp: { href: '/admin/whatsapp', label: 'WhatsApp', icon: MessageCircle },
     broadcast: { href: '/admin/broadcast', label: 'Broadcast', icon: Megaphone },
     settings: { href: '/admin/settings', label: 'Settings', icon: Settings },
@@ -46,7 +47,7 @@ export const SIDEBAR_STRUCTURE: (SidebarGroup | SidebarSingle)[] = [
         type: 'group',
         label: 'Akademik',
         icon: GraduationCap,
-        children: ['classes', 'curriculum', 'lessonReports', 'ekskul']
+        children: ['classes', 'curriculum', 'lessonReports', 'ekskul', 'evaluations']
     },
     {
         type: 'group',

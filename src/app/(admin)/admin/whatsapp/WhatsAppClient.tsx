@@ -3,6 +3,7 @@
 import { useState, useEffect, type CSSProperties } from 'react';
 import type { InvoiceSettings, WhatsAppStatus } from '@/lib/types/invoice';
 import WhatsAppTemplatesContent from './WhatsAppTemplates';
+import WhatsAppReportTemplates from './WhatsAppReportTemplates';
 
 // SVG Icons
 const ConnectionIcon = () => (
@@ -51,7 +52,7 @@ interface ExtendedStatus extends WhatsAppStatus {
     serverTime?: string;
 }
 
-type TabKey = 'connection' | 'class' | 'makeup' | 'templates' | 'logs';
+type TabKey = 'connection' | 'class' | 'makeup' | 'templates' | 'reports' | 'logs';
 
 export default function WhatsAppSettingsPage() {
     const [activeTab, setActiveTab] = useState<TabKey>('connection');
@@ -290,6 +291,7 @@ export default function WhatsAppSettingsPage() {
         { key: 'class', label: 'Reminder Kelas', icon: <ClassIcon /> },
         { key: 'makeup', label: 'Reminder Susulan', icon: <MakeupIcon /> },
         { key: 'templates', label: 'Pesan Absen', icon: <TemplateIcon /> },
+        { key: 'reports', label: 'Pesan Rapor', icon: <TemplateIcon /> },
         { key: 'logs', label: 'Log Pengiriman', icon: <LogIcon /> },
     ];
 
@@ -353,6 +355,16 @@ export default function WhatsAppSettingsPage() {
 
                 {activeTab === 'templates' && (
                     <WhatsAppTemplatesContent
+                        settings={settings}
+                        settingsMsg={settingsMsg}
+                        savingSettings={savingSettings}
+                        onSettingChange={handleSettingChange}
+                        onSave={handleSaveSettings}
+                    />
+                )}
+
+                {activeTab === 'reports' && (
+                    <WhatsAppReportTemplates
                         settings={settings}
                         settingsMsg={settingsMsg}
                         savingSettings={savingSettings}

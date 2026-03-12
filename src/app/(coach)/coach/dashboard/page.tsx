@@ -7,6 +7,7 @@ import { makeUpTasksDao } from '@/lib/dao';
 import CalendarModal from '@/components/coach/CalendarModal';
 import WeeklyScheduleClient from './WeeklyScheduleClient';
 import HeroCountdownClient from './HeroCountdownClient';
+import CoachDraftReportsAlert from './CoachDraftReportsAlert';
 import { StaggerContainer, StaggerItem } from '@/components/animations/StaggerContainer';
 
 export const revalidate = 300; // Cache dashboard data for 5 minutes
@@ -71,6 +72,7 @@ export default async function CoachDashboardPage() {
             <StaggerContainer className="mt-8">
                 <div className="flex gap-8">
                     <div className="flex-grow max-w-[calc(100%-360px)]">
+                        <CoachDraftReportsAlert coachId={session.user.id} />
                         <StaggerItem className="mb-8">
                             <section>
                                 <div className="bg-gradient-to-r from-[#0f172a] to-[#1e3a5f] rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden group border border-white/5">

@@ -471,6 +471,7 @@ export async function sendAbsentNotification(params: {
     reason?: string | null;
     instructions?: string | null;
     dueDate?: string | null;
+    reminderType?: 'H-3' | 'H-1' | 'INITIAL';
 }): Promise<{ success: boolean; error?: string }> {
     try {
         // Check connection
@@ -553,6 +554,72 @@ export async function sendAbsentNotification(params: {
 
     } catch (error) {
         console.error('[WhatsApp] Absent notification error:', error);
+        return { success: false, error: String(error) };
+    }
+}
+
+/**
+ * Send Report Notification to Parent (via Baileys)
+ */
+export async function sendReportNotification(params: {
+    parentPhone: string;
+    coderFullName: string;
+    className: string;
+    reportUrl: string;
+    period?: string;
+}): Promise<{ success: boolean; error?: string }> {
+    try {
+        // Check connection
+        if (!isConnected || !sock) {
+            await initializeWhatsApp();
+            if (!isConnected || !sock) {
+                return { success: false, error: 'WhatsApp not connected' };
+            }
+        }
+
+        // Try to fetch template from database
+        let message: string;
+        try {
+            const supabase = getSupabaseAdmin();
+            const { data: templateData } = await (supabase as any)
+                .from('whatsapp_templates')
+                .select('template_content')
+                .eq('category', 'REPORT_SEND')
+                .single();
+
+            if (templateData?.template_content) {
+                // Use DB template — replace variables
+                message = templateData.template_content
+                    .replace(/{nama_siswa}/g, params.coderFullName)
+                    .replace(/{nama_kelas}/g, params.className)
+                    .replace(/{periode}/g, params.period || '-')
+                    .replace(/{link_raport}/g, params.reportUrl);
+
+                // Auto-append link if not present in template
+                if (!message.includes(params.reportUrl)) {
+                    message += `\n\nLink Raport: ${params.reportUrl}`;
+                }
+
+                console.log('[WhatsApp] Using REPORT_SEND template from database');
+            } else {
+                // Fallback to hardcoded message
+                message = `Halo Ayah/Bunda,\n\nLaporan hasil belajar *${params.coderFullName}* untuk kelas *${params.className}* (${params.period || '-'}) sudah tersedia.\n\nSilakan lihat detail laporannya melalui link berikut:\n${params.reportUrl}\n\nTerima kasih! 🙏`;
+                console.log('[WhatsApp] No DB template found for REPORT_SEND, using default message');
+            }
+        } catch (templateError) {
+            console.warn('[WhatsApp] Failed to fetch REPORT_SEND template, using default:', templateError);
+            message = `Halo Ayah/Bunda,\n\nLaporan hasil belajar *${params.coderFullName}* untuk kelas *${params.className}* sudah tersedia.\n\nSilakan lihat detail laporannya melalui link berikut:\n${params.reportUrl}\n\nTerima kasih! 🙏`;
+        }
+
+        console.log(`[WhatsApp] Sending report notification to ${params.parentPhone} for ${params.coderFullName}`);
+
+        // Send message
+        const result = await sendWhatsAppMessage(params.parentPhone, message);
+
+        return result;
+
+    } catch (error) {
+        console.error('[WhatsApp] Report notification error:', error);
         return { success: false, error: String(error) };
     }
 }

@@ -2,14 +2,14 @@ import { NextResponse } from 'next/server';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { assertRole } from '@/lib/roles';
-import { requestConnection } from '@/lib/whatsapp/client';
+import { initializeWhatsApp } from '@/lib/services/whatsappClient';
 
 export async function POST() {
   const session = await getSessionOrThrow();
   await assertRole(session, 'ADMIN');
 
   try {
-    await requestConnection();
+    const result = await initializeWhatsApp();
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Failed to request WhatsApp connection', error);

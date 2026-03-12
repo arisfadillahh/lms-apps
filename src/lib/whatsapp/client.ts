@@ -18,7 +18,7 @@ type SendParentAbsentPayload = {
 type SendReportPayload = {
   coderFullName: string;
   className: string;
-  pdfUrl: string;
+  reportUrl: string;
   parentPhone: string;
 };
 

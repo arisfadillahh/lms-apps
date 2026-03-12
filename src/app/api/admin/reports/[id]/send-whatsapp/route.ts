@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 import { getSessionOrThrow } from '@/lib/auth';
-import { reportsDao, rubricsDao, usersDao } from '@/lib/dao';
+import { reportsDao, usersDao } from '@/lib/dao';
+import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { assertRole } from '@/lib/roles';
-import { sendReport } from '@/lib/whatsapp/client';
+import { sendReportNotification } from '@/lib/services/whatsappClient';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -12,12 +13,25 @@ interface RouteContext {
 
 export async function POST(_request: NextRequest, context: RouteContext) {
   const params = await context.params;
+  const reportId = params.id;
   const session = await getSessionOrThrow();
   await assertRole(session, 'ADMIN');
 
-  const reportId = params.id;
-  const report = await reportsDao.getReportById(reportId);
-  if (!report) {
+  const supabase = getSupabaseAdmin();
+
+  // 1. Fetch the unified block_report
+  const { data: report, error } = await supabase
+    .from('block_reports')
+    .select(`
+      *,
+      class:classes(id, name),
+      block:blocks(id, name),
+      coder:users!block_reports_coder_id_fkey(id, full_name, parent_contact_phone)
+    `)
+    .eq('id', reportId)
+    .single();
+
+  if (error || !report) {
     return NextResponse.json({ error: 'Report tidak ditemukan' }, { status: 404 });
   }
 
@@ -25,45 +39,63 @@ export async function POST(_request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: 'Report sudah pernah dikirim via WhatsApp' }, { status: 400 });
   }
 
-  const detail = await rubricsDao.getRubricSubmissionDetail(report.rubric_submission_id);
-  if (!detail) {
-    return NextResponse.json({ error: 'Rubric submission tidak ditemukan' }, { status: 404 });
+  if (report.status === 'PUBLISHED') {
+     return NextResponse.json({ error: 'Report sudah pernah di-publish oleh Admin' }, { status: 400 });
   }
 
-  const coderUser = await usersDao.getUserById(detail.coder.id);
-  const parentPhone = coderUser?.parent_contact_phone;
+  if (report.status !== 'SUBMITTED') {
+     return NextResponse.json({ error: 'Report belum dikirim oleh Coach' }, { status: 400 });
+  }
+
+  const coder = Array.isArray(report.coder) ? report.coder[0] : report.coder;
+  const klass = Array.isArray(report.class) ? report.class[0] : report.class;
+  const block = Array.isArray(report.block) ? report.block[0] : report.block;
+  const parentPhone = coder?.parent_contact_phone;
+
   if (!parentPhone) {
     return NextResponse.json({ error: 'Nomor WhatsApp orang tua belum tersedia untuk coder ini' }, { status: 400 });
   }
 
+  // Generate the new web view URL instead of a PDF URL
+  const reportUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://lms.clevio.co'}/report/${reportId}`;
+
+  // Log to WA events table (using block report fields instead of old rubric submission ids)
   const logEntry = await reportsDao.logWhatsappEvent({
     category: 'REPORT_SEND',
     payload: {
       reportId,
-      rubricSubmissionId: report.rubric_submission_id,
-      coderId: detail.coder.id,
-      classId: detail.class.id,
+      coderId: coder.id,
+      classId: klass.id,
       parentPhone,
+      reportUrl
     },
   });
 
   try {
-    const response = await sendReport({
-      coderFullName: detail.coder.full_name,
-      className: detail.class.name,
-      pdfUrl: report.pdf_url,
+    const response = await sendReportNotification({
+      coderFullName: coder.full_name,
+      className: klass.name,
+      period: block?.name || undefined,
+      reportUrl,
       parentPhone,
     });
 
     const sentAt = new Date().toISOString();
-    await reportsDao.markReportSent(report.id, sentAt);
+    
+    // Update the block_reports sent status to PUBLISHED
+    await reportsDao.updateBlockReport(reportId, {
+       status: 'PUBLISHED',
+       sent_via_whatsapp: true,
+       sent_at: sentAt
+    });
+    
     await reportsDao.updateWhatsappLogStatus(logEntry.id, 'SENT', response as any);
 
     return NextResponse.json({
-      status: 'SENT',
+      status: 'PUBLISHED',
       report: {
-        id: report.id,
-        pdfUrl: report.pdf_url,
+        id: reportId,
+        reportUrl,
         sentToParentAt: sentAt,
       },
     });

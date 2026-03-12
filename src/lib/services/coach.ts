@@ -226,3 +226,115 @@ async function getSubstituteSessions(coachId: string): Promise<ExtendedSession[]
 
   return results.flat();
 }
+
+// --- NEW CODER REPORT SYSTEM ---
+
+export type PendingEvaluationLesson = {
+  sessionId: string;
+  classId: string;
+  className: string;
+  blockId: string | null;
+  blockName: string | null;
+  lessonTitle: string;
+  sessionDate: string;
+  studentsCount: number;
+};
+
+export async function getPendingLessonEvaluationsForCoach(coachId: string): Promise<PendingEvaluationLesson[]> {
+  // 1. Get all classes for this coach
+  const classes = await classesDao.listClassesForCoach(coachId);
+  const results: PendingEvaluationLesson[] = [];
+
+  // 2. For each class, find COMPLETED sessions that belong to the main coach
+  for (const klass of classes) {
+    // Only fetch sessions where this coach is the actor or the main coach
+    const sessions = await sessionsDao.listSessionsByClass(klass.id);
+    const completedSessions = sessions.filter(
+      s => s.status === 'COMPLETED' && (klass.coach_id === coachId || s.substitute_coach_id === coachId)
+    );
+
+    if (completedSessions.length === 0) continue;
+
+    const lessonMap = await computeLessonSchedule(klass.id, klass.level_id);
+    const activeEnrollments = (await classesDao.listEnrollmentsByClass(klass.id)).filter(e => e.status === 'ACTIVE');
+    
+    // 3. Check which completed sessions already have evaluations
+    for (const session of completedSessions) {
+      // Is there an evaluation for this session?
+      const existingEvaluations = await import('@/lib/dao/reportsDao').then(m => m.getLessonEvaluationsBySession(session.id));
+      
+      // If no evaluations exist, or not all active students are evaluated, it's pending
+      // For simplicity, if count === 0 we say it's pending
+      if (existingEvaluations.length > 0) continue;
+
+      const slot = lessonMap.get(session.id);
+      if (!slot) continue;
+
+      results.push({
+        sessionId: session.id,
+        classId: klass.id,
+        className: klass.name,
+        blockId: slot.block.id,
+        blockName: slot.block.name ?? 'Unknown Block',
+        lessonTitle: formatLessonTitle(slot),
+        sessionDate: session.date_time,
+        studentsCount: activeEnrollments.length
+      });
+    }
+  }
+
+  // Sort by date ascending (oldest pending first)
+  return results.sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime());
+}
+
+export type DraftReportInfo = {
+  reportId: string;
+  coderId: string;
+  coderName: string;
+  classId: string;
+  className: string;
+  blockId: string;
+  blockName: string;
+  createdAt: string;
+};
+
+export async function getDraftReportsForCoach(coachId: string): Promise<DraftReportInfo[]> {
+  const classes = await classesDao.listClassesForCoach(coachId);
+  if (classes.length === 0) return [];
+  
+  const classIds = classes.map(c => c.id);
+  
+  // Directly query block_reports filtering by class ids and DRAFT status
+  const supabase = (await import('@/lib/supabaseServer')).getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('block_reports')
+    .select(`
+      id,
+      coder_id,
+      class_id,
+      block_id,
+      created_at,
+      classes:class_id(name),
+      users:coder_id(full_name),
+      blocks:block_id(name)
+    `)
+    .eq('status', 'DRAFT')
+    .in('class_id', classIds)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Failed to fetch draft reports for coach', error);
+    return [];
+  }
+
+  return (data || []).map(row => ({
+    reportId: row.id,
+    coderId: row.coder_id as string,
+    coderName: (row.users as any)?.full_name ?? 'Coder',
+    classId: row.class_id as string,
+    className: (row.classes as any)?.name ?? 'Class',
+    blockId: row.block_id as string,
+    blockName: (row.blocks as any)?.name ?? 'Block',
+    createdAt: row.created_at,
+  }));
+}

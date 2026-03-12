@@ -318,3 +318,215 @@ export async function listUnsentReports(): Promise<PitchingDayReportRecord[]> {
 
   return data ?? [];
 }
+
+// --- NEW REWORKED CODER REPORTS SYSTEM ---
+
+export type EvaluationCriteriaRecord = TablesRow<'evaluation_criteria'>;
+export type LessonEvaluationRecord = TablesRow<'lesson_evaluations'>;
+export type BlockReportRecord = TablesRow<'block_reports'>;
+export type BlockReportDescriptionRecord = TablesRow<'block_report_descriptions'>;
+
+// 1. Evaluation Criteria
+export async function getEvaluationCriteria(): Promise<EvaluationCriteriaRecord[]> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('evaluation_criteria')
+    .select('*')
+    .order('order_index', { ascending: true });
+
+  if (error) {
+    throw new Error(`Failed to fetch evaluation criteria: ${error.message}`);
+  }
+
+  return data ?? [];
+}
+
+// 2. Lesson Evaluations
+export type UpsertLessonEvaluationInput = {
+  sessionId: string;
+  coderId: string;
+  criteriaId: string;
+  score: number;
+};
+
+export async function upsertLessonEvaluations(evaluations: UpsertLessonEvaluationInput[]): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const payload: TablesInsert<'lesson_evaluations'>[] = evaluations.map(e => ({
+    session_id: e.sessionId,
+    coder_id: e.coderId,
+    criteria_id: e.criteriaId,
+    score: e.score,
+  }));
+
+  const { error } = await supabase
+    .from('lesson_evaluations')
+    .upsert(payload, { onConflict: 'session_id,coder_id,criteria_id' });
+
+  if (error) {
+    throw new Error(`Failed to upsert lesson evaluations: ${error.message}`);
+  }
+}
+
+export async function getLessonEvaluationsBySession(sessionId: string): Promise<LessonEvaluationRecord[]> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('lesson_evaluations')
+    .select('*')
+    .eq('session_id', sessionId);
+    
+  if (error) {
+    throw new Error(`Failed to fetch lesson evaluations: ${error.message}`);
+  }
+  
+  return data ?? [];
+}
+
+// 3. Block Reports
+export type UpsertBlockReportInput = {
+  classId: string;
+  blockId: string;
+  coderId: string;
+  status?: 'DRAFT' | 'SUBMITTED' | 'PUBLISHED' | 'SENT';
+  averageScore?: number | null;
+  grade?: string | null;
+  isAiGenerated?: boolean;
+};
+
+export async function upsertBlockReport(input: UpsertBlockReportInput): Promise<BlockReportRecord> {
+  const supabase = getSupabaseAdmin();
+  const payload: TablesInsert<'block_reports'> = {
+    class_id: input.classId,
+    block_id: input.blockId,
+    coder_id: input.coderId,
+    status: input.status,
+    average_score: input.averageScore,
+    grade: input.grade,
+    is_ai_generated: input.isAiGenerated ?? false,
+  };
+
+  const { data, error } = await supabase
+    .from('block_reports')
+    .upsert(payload, { onConflict: 'class_id,block_id,coder_id' })
+    .select('*')
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to upsert block report: ${error.message}`);
+  }
+
+  return data;
+}
+
+export async function getBlockReport(classId: string, blockId: string, coderId: string): Promise<BlockReportRecord | null> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('block_reports')
+    .select('*')
+    .eq('class_id', classId)
+    .eq('block_id', blockId)
+    .eq('coder_id', coderId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to fetch block report: ${error.message}`);
+  }
+
+  return data;
+}
+
+export async function getBlockReportById(id: string): Promise<BlockReportRecord | null> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('block_reports')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+    
+  if (error) {
+    throw new Error(`Failed to fetch block report by id: ${error.message}`);
+  }
+  return data;
+}
+
+export async function getBlockReportDescriptions(reportId: string): Promise<BlockReportDescriptionRecord[]> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('block_report_descriptions')
+    .select('*')
+    .eq('report_id', reportId);
+    
+  if (error) {
+    throw new Error(`Failed to fetch block report descriptions: ${error.message}`);
+  }
+  return data ?? [];
+}
+
+export type UpsertBlockReportDescriptionInput = {
+  reportId: string;
+  criteriaId: string;
+  score: number;
+  description: string;
+};
+
+export async function upsertBlockReportDescriptions(descriptions: UpsertBlockReportDescriptionInput[]): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  if (descriptions.length === 0) return;
+  
+  const payload: TablesInsert<'block_report_descriptions'>[] = descriptions.map(d => ({
+    report_id: d.reportId,
+    criteria_id: d.criteriaId,
+    score: d.score,
+    description: d.description
+  }));
+
+  const { error } = await supabase
+    .from('block_report_descriptions')
+    .upsert(payload, { onConflict: 'report_id,criteria_id' });
+
+  if (error) {
+    throw new Error(`Failed to upsert block report descriptions: ${error.message}`);
+  }
+}
+
+export async function updateBlockReport(id: string, updates: Partial<TablesUpdate<'block_reports'>>): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from('block_reports')
+    .update(updates)
+    .eq('id', id);
+
+  if (error) {
+    throw new Error(`Failed to update block report: ${error.message}`);
+  }
+}
+
+export async function listBlockReportsByCoder(coderId: string): Promise<BlockReportRecord[]> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('block_reports')
+    .select('*')
+    .eq('coder_id', coderId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw new Error(`Failed to list block reports by coder: ${error.message}`);
+  }
+
+  return data ?? [];
+}
+
+export async function listBlockReportsPendingSend(): Promise<BlockReportRecord[]> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('block_reports')
+    .select('*')
+    .eq('status', 'SUBMITTED')
+    .eq('sent_via_whatsapp', false)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw new Error(`Failed to list pending block reports: ${error.message}`);
+  }
+
+  return data ?? [];
+}

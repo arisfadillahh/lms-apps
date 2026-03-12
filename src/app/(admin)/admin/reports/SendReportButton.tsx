@@ -40,7 +40,7 @@ export default function SendReportButton({ reportId, disabled }: SendReportButto
         opacity: disabled || isPending ? 0.6 : 1,
       }}
     >
-      {isPending ? 'Sending…' : 'Send via WhatsApp'}
+      {isPending ? 'Mengirim…' : 'Publish & Kirim WA'}
     </button>
   );
 }

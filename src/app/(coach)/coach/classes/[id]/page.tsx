@@ -147,19 +147,13 @@ export default async function ClassDetailPage({ params, searchParams }: PageProp
     // Display all sessions so that past sessions are visible and their attendance can be updated.
     const unlockedSessionsList = sortedSessions;
 
-    // Pagination logic
-    const searchParamsAwaited = await searchParams;
-    const pageParam = searchParamsAwaited.page;
-    const itemsPerPage = 8;
-    const totalSessions = unlockedSessionsList.length;
-    const totalPages = Math.ceil(totalSessions / itemsPerPage);
-
-    let currentPage = parseInt(pageParam ?? '1', 10);
-    if (isNaN(currentPage) || currentPage < 1) currentPage = 1;
-    if (currentPage > totalPages && totalPages > 0) currentPage = totalPages;
-
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const paginatedSessions = unlockedSessionsList.slice(startIndex, startIndex + itemsPerPage);
+    // Show the next 12 upcoming sessions (starting from the next one)
+    const nextSessionIndex = sortedSessions.findIndex(s => s.id === nextSession?.id);
+    const focusIndex = nextSessionIndex >= 0 ? nextSessionIndex : sortedSessions.length;
+    // Take up to 12 sessions from the next one forward
+    const upcomingSessions = sortedSessions.slice(focusIndex, focusIndex + 12);
+    // Past sessions (completed/before next) — for presensi access, most recent first
+    const pastSessions = sortedSessions.slice(0, focusIndex).reverse();
 
     // Let's create a Set for 'Detail' access: all scheduled sessions.
     const unlockedSessionIds = new Set(allSessions.map(s => s.id));
@@ -317,7 +311,13 @@ export default async function ClassDetailPage({ params, searchParams }: PageProp
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                            {paginatedSessions.map((sessionInfo) => {
+                            {upcomingSessions.length === 0 && (
+                                <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
+                                    <p style={{ fontSize: '1rem', fontWeight: 600 }}>Tidak ada sesi mendatang.</p>
+                                    <p style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>Semua sesi telah selesai.</p>
+                                </div>
+                            )}
+                            {upcomingSessions.map((sessionInfo) => {
                                 const lessonSlot = lessonSchedule.get(sessionInfo.id);
                                 const template = lessonSlot?.lessonTemplate;
 
@@ -329,7 +329,6 @@ export default async function ClassDetailPage({ params, searchParams }: PageProp
 
                                 const isCompleted = sessionInfo.status === 'COMPLETED';
                                 const isCancelled = sessionInfo.status === 'CANCELLED';
-                                const isActive = !isCancelled;
                                 const isNext = displayNextSession && sessionInfo.id === displayNextSession.id && !isCompleted;
 
                                 const sessDate = new Date(sessionInfo.date_time);
@@ -378,7 +377,7 @@ export default async function ClassDetailPage({ params, searchParams }: PageProp
                                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                                                     {showDetail && (
                                                         <Link
-                                                            href={`/coach/lesson/${template.id}?classId=${classIdParam}&sessionId=${sessionInfo.id}`}
+                                                            href={`/coach/lesson/${template!.id}?classId=${classIdParam}&sessionId=${sessionInfo.id}`}
                                                             style={{ flex: 1, textAlign: 'center', fontSize: '0.875rem', fontWeight: 700, color: '#475569', padding: '0.625rem 0', borderRadius: '0.75rem', textDecoration: 'none', border: '1px solid #e2e8f0', backgroundColor: 'white' }}
                                                         >
                                                             Detail
@@ -404,62 +403,37 @@ export default async function ClassDetailPage({ params, searchParams }: PageProp
                             })}
                         </div>
 
-                        {/* Pagination Controls */}
-                        {totalPages > 1 && (
-                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', marginTop: '2.5rem' }}>
-                                {currentPage > 1 ? (
-                                    <Link
-                                        href={`?page=${currentPage - 1}`}
-                                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.625rem 1.25rem', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '0.75rem', color: '#475569', fontWeight: 600, fontSize: '0.875rem', textDecoration: 'none', transition: 'all 0.2s' }}
-                                    >
-                                        <span className="material-symbols-outlined" style={{ fontSize: '1.25rem' }}>chevron_left</span>
-                                        Previous
-                                    </Link>
-                                ) : (
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.625rem 1.25rem', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '0.75rem', color: '#94a3b8', fontWeight: 600, fontSize: '0.875rem', cursor: 'not-allowed' }}>
-                                        <span className="material-symbols-outlined" style={{ fontSize: '1.25rem' }}>chevron_left</span>
-                                        Previous
-                                    </div>
-                                )}
-
-                                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>
-                                    Halaman {currentPage} dari {totalPages}
+                        {/* Past Sessions — collapsed by default, for presensi access */}
+                        {pastSessions.length > 0 && (
+                            <details style={{ marginTop: '2rem' }}>
+                                <summary style={{ cursor: 'pointer', fontSize: '0.875rem', fontWeight: 700, color: '#64748b', padding: '0.75rem 1rem', backgroundColor: '#f8fafc', borderRadius: '0.75rem', border: '1px solid #e2e8f0', listStyle: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>history</span>
+                                    {pastSessions.length} Sesi Lampau — Klik untuk akses presensi
+                                </summary>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
+                                    {pastSessions.map(s => {
+                                        const isAllowed = !isSubstitute || (allowedSessionIds?.includes(s.id));
+                                        if (!isAllowed) return null;
+                                        const slot = lessonSchedule.get(s.id);
+                                        const title = slot?.lessonTemplate?.title || 'Tidak ada materi';
+                                        return (
+                                            <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', backgroundColor: 'white', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
+                                                <div>
+                                                    <p style={{ margin: 0, fontWeight: 600, color: '#1e293b', fontSize: '0.875rem' }}>{title}</p>
+                                                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>{formatDateShort(s.date_time)}</p>
+                                                </div>
+                                                <Link href={`/coach/sessions/${s.id}/attendance`}
+                                                    style={{ fontSize: '0.8rem', fontWeight: 700, color: 'white', backgroundColor: '#475569', padding: '0.4rem 0.9rem', borderRadius: '0.5rem', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                                                    Lihat Presensi
+                                                </Link>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
-
-                                {currentPage < totalPages ? (
-                                    <Link
-                                        href={`?page=${currentPage + 1}`}
-                                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.625rem 1.25rem', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '0.75rem', color: '#475569', fontWeight: 600, fontSize: '0.875rem', textDecoration: 'none', transition: 'all 0.2s' }}
-                                    >
-                                        Next
-                                        <span className="material-symbols-outlined" style={{ fontSize: '1.25rem' }}>chevron_right</span>
-                                    </Link>
-                                ) : (
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.625rem 1.25rem', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '0.75rem', color: '#94a3b8', fontWeight: 600, fontSize: '0.875rem', cursor: 'not-allowed' }}>
-                                        Next
-                                        <span className="material-symbols-outlined" style={{ fontSize: '1.25rem' }}>chevron_right</span>
-                                    </div>
-                                )}
-                            </div>
+                            </details>
                         )}
                     </div>
                 </section>
-
-                {/* Upload Materials Form */}
-                {(!isSubstitute || (isSubstitute && allowedSessionIds && allowedSessionIds.length > 0)) && (
-                    <section style={{ padding: '0 2rem 3rem' }}>
-                        <div style={{ maxWidth: '80rem', margin: '0 auto' }}>
-                            <CollapsibleUpload>
-                                <UploadMaterialForm
-                                    classId={classIdParam}
-                                    sessions={sessionsForUpload}
-                                    defaultSessionId={displayNextSession?.id}
-                                    allowedSessionIds={allowedSessionIds}
-                                />
-                            </CollapsibleUpload>
-                        </div>
-                    </section>
-                )}
 
             </main>
         </div>

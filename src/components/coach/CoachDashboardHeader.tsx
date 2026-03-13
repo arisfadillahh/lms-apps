@@ -59,7 +59,7 @@ export default function CoachDashboardHeader({ user }: CoachDashboardHeaderProps
                                 initial
                             )}
                         </div>
-                        <div className="hidden sm:flex flex-col items-start leading-tight min-w-[100px] max-w-[180px] md:max-w-[250px]">
+                        <div className="hidden sm:flex flex-col items-start leading-tight min-w-[100px] max-w-[180px] md:max-w-[250px] text-left">
                             <span className="text-xs md:text-sm font-bold text-slate-700 truncate w-full block">{user.fullName}</span>
                             <span className="text-[10px] text-slate-400 font-medium lowercase">coach</span>
                         </div>

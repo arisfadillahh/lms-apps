@@ -279,7 +279,16 @@ export async function getPendingLessonEvaluationsForCoach(coachId: string): Prom
 
       const evaluatedCoderIds = new Set((existingEvals || []).map(e => e.coder_id));
 
-      const allEvaluated = activeEnrollments.every(e => evaluatedCoderIds.has(e.coder_id));
+      // Filter enrollments: only students who were active AT THE TIME of the session should be evaluated.
+      const relevantEnrollments = activeEnrollments.filter(e => {
+        if (!e.enrolled_at) return true;
+        // Compare session date with enrollment date
+        return new Date(e.enrolled_at) <= new Date(session.date_time);
+      });
+
+      if (relevantEnrollments.length === 0) continue;
+
+      const allEvaluated = relevantEnrollments.every(e => evaluatedCoderIds.has(e.coder_id));
       if (allEvaluated) continue;
 
 

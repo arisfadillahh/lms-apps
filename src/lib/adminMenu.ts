@@ -20,7 +20,7 @@ export const MENU_ITEMS: Record<string, { href: string; label: string; icon: any
     software: { href: '/admin/software', label: 'Software', icon: Package },
     banners: { href: '/admin/banners', label: 'Banner', icon: ImageIcon },
     leave: { href: '/admin/leave', label: 'Izin Coach', icon: CalendarOff },
-    reports: { href: '/admin/reports', label: 'Laporan Rapor', icon: FileText },
+    reports: { href: '/admin/reports', label: 'Status Rapor', icon: FileText },
     evaluations: { href: '/admin/evaluations', label: 'Kompetensi Rapor', icon: ClipboardList },
     whatsapp: { href: '/admin/whatsapp', label: 'WhatsApp', icon: MessageCircle },
     broadcast: { href: '/admin/broadcast', label: 'Broadcast', icon: Megaphone },
@@ -47,7 +47,7 @@ export const SIDEBAR_STRUCTURE: (SidebarGroup | SidebarSingle)[] = [
         type: 'group',
         label: 'Akademik',
         icon: GraduationCap,
-        children: ['classes', 'curriculum', 'lessonReports', 'ekskul', 'evaluations']
+        children: ['classes', 'curriculum', 'lessonReports', 'ekskul', 'evaluations', 'reports']
     },
     {
         type: 'group',
@@ -65,6 +65,6 @@ export const SIDEBAR_STRUCTURE: (SidebarGroup | SidebarSingle)[] = [
         type: 'group',
         label: 'Lainnya',
         icon: Settings,
-        children: ['software', 'banners', 'leave', 'reports', 'settings']
+        children: ['software', 'banners', 'leave', 'settings']
     }
 ];

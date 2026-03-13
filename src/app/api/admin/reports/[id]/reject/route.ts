@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { getSessionOrThrow } from '@/lib/auth';
 import { assertRole } from '@/lib/roles';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
-import { sendWhatsAppMessage } from '@/lib/services/whatsappClient';
+import { notificationsDao } from '@/lib/dao';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -32,12 +32,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     // 2. Revert report status to DRAFT (don't delete — scores remain intact)
-    //    Store revision notes so coach knows what to fix in the report description
     const { error: updateError } = await supabase
       .from('block_reports')
       .update({
         status: 'DRAFT',
-        revision_notes: revisionNotes || null,
       })
       .eq('id', reportId);
 
@@ -69,14 +67,22 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       }
     }
 
-    // 4. Send WA to Coach
-    if (coachPhone) {
+    // 4. Create In-App Notification for Coach
+    if (coachId) {
       const coderName = coderData?.full_name || 'Siswa';
       const className = (report.class as any)?.name || 'Kelas';
       
-      const message = `Halo ${coachName}, admin telah mengembalikan draf rapor untuk Coder *${coderName}* di kelas *${className}* untuk direvisi.\n\n*Catatan Revisi dari Admin:*\n"${revisionNotes || 'Mohon diperbaiki deskripsinya.'}"\n\nSilakan buka portal Coach Clevio untuk memperbaiki dan submit ulang rapor tersebut. Terima kasih!`;
+      const title = 'Rapor Perlu Revisi';
+      const message = `
+        <p>Admin telah mengembalikan draf rapor untuk <strong>${coderName}</strong> di kelas <strong>${className}</strong> untuk direvisi.</p>
+        <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px; margin: 12px 0;">
+          <p style="margin: 0; font-weight: 600; color: #991b1b;">Catatan Revisi dari Admin:</p>
+          <p style="margin: 4px 0 0 0; color: #b91c1c;">"${revisionNotes || 'Mohon diperbaiki deskripsinya.'}"</p>
+        </div>
+        <p>Silakan perbaiki dan submit ulang rapor tersebut melalui portal Coach. Terima kasih!</p>
+      `.trim();
 
-      await sendWhatsAppMessage(coachPhone, message);
+      await notificationsDao.createNotification(coachId, title, message, 'REVISION_REQUIRED');
     }
 
     return NextResponse.json({ success: true, message: 'Rapor telah dikembalikan ke Coach untuk direvisi.' });

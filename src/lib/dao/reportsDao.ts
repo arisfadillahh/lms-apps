@@ -530,3 +530,49 @@ export async function listBlockReportsPendingSend(): Promise<BlockReportRecord[]
 
   return data ?? [];
 }
+
+/**
+ * Used when Admin REJECTS a report.
+ * Deletes the block report and all its related lesson_evaluations
+ * so that it returns to the Coach's pending rubrics queue.
+ */
+export async function deleteBlockReportAndEvaluations(reportId: string, classId: string, blockId: string, coderId: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+
+  // 1. Delete the block report
+  const { error: reportError } = await supabase
+    .from('block_reports')
+    .delete()
+    .eq('id', reportId);
+
+  if (reportError) {
+    throw new Error(`Failed to delete block report: ${reportError.message}`);
+  }
+
+  // 2. Find sessions in that class + block
+  const { data: sessions, error: sessionsError } = await supabase
+    .from('sessions')
+    .select('id')
+    .eq('class_id', classId)
+    .eq('block_id', blockId);
+
+  if (sessionsError) {
+    console.warn(`[deleteBlockReportAndEvaluations] Failed to fetch sessions to cleanup evaluations:`, sessionsError);
+    return;
+  }
+
+  if (sessions && sessions.length > 0) {
+    const sessionIds = sessions.map(s => s.id);
+    
+    // 3. Delete lesson_evaluations for that coder in those sessions
+    const { error: evalError } = await supabase
+      .from('lesson_evaluations')
+      .delete()
+      .in('session_id', sessionIds)
+      .eq('coder_id', coderId);
+
+    if (evalError) {
+      console.warn(`[deleteBlockReportAndEvaluations] Failed to delete lesson evaluations:`, evalError);
+    }
+  }
+}

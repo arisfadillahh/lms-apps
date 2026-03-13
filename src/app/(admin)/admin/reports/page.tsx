@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import SendReportButton from './SendReportButton';
+import RejectReportButton from './RejectReportButton';
 
 export const revalidate = 0;
 
@@ -179,6 +180,7 @@ function ReportTable({ reports, isInbox }: { reports: any[], isInbox: boolean })
                       >
                         <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>visibility</span> Web Preview
                       </a>
+                      <RejectReportButton reportId={report.id} disabled={isPublished} />
                       <SendReportButton reportId={report.id} disabled={isPublished} />
                     </div>
                   </td>

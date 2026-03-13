@@ -236,7 +236,7 @@ export type PendingEvaluationLesson = {
   blockId: string | null;
   blockName: string | null;
   lessonTitle: string;
-  sessionDate: string;
+  sessionDates: string[];
   studentsCount: number;
 };
 
@@ -245,7 +245,7 @@ export async function getPendingLessonEvaluationsForCoach(coachId: string): Prom
   const classes = await classesDao.listClassesForCoach(coachId);
   const results: PendingEvaluationLesson[] = [];
 
-  // 2. For each class, find COMPLETED sessions that belong to the main coach
+  // 2. For each class, find COMPLETED sessions that belong to the main coach or substitute
   for (const klass of classes) {
     // Only fetch sessions where this coach is the actor or the main coach
     const sessions = await sessionsDao.listSessionsByClass(klass.id);
@@ -260,15 +260,40 @@ export async function getPendingLessonEvaluationsForCoach(coachId: string): Prom
     
     // 3. Check which completed sessions already have evaluations
     for (const session of completedSessions) {
-      // Is there an evaluation for this session?
-      const existingEvaluations = await import('@/lib/dao/reportsDao').then(m => m.getLessonEvaluationsBySession(session.id));
-      
-      // If no evaluations exist, or not all active students are evaluated, it's pending
-      // For simplicity, if count === 0 we say it's pending
-      if (existingEvaluations.length > 0) continue;
-
       const slot = lessonMap.get(session.id);
       if (!slot) continue;
+
+      // RULE: Only evaluate a lesson when ALL parts of that lesson are completed.
+      // So if a lesson has 3 parts, we only ask for evaluation on Part 3.
+      if (slot.partNumber !== slot.totalParts) {
+        continue;
+      }
+
+      // 3. RULE: A lesson is pending if ANY active student does NOT have a SUBMITTED or PUBLISHED report for this block.
+      // RULE: A lesson is pending if ANY active student has NO lesson_evaluations for this session.
+      // We check lesson_evaluations directly — block_reports are created separately (H+1 or by system).
+      const { data: existingEvals } = await (await import('@/lib/supabaseServer')).getSupabaseAdmin()
+        .from('lesson_evaluations')
+        .select('coder_id')
+        .eq('session_id', session.id);
+
+      const evaluatedCoderIds = new Set((existingEvals || []).map(e => e.coder_id));
+
+      const allEvaluated = activeEnrollments.every(e => evaluatedCoderIds.has(e.coder_id));
+      if (allEvaluated) continue;
+
+
+      // Find all session dates that made up this lesson
+      const lessonGlobalIndexStart = slot.globalIndex - slot.totalParts + 1;
+      const lessonGlobalIndexEnd = slot.globalIndex;
+      
+      const relatedSessions = completedSessions.filter(s => {
+          const sSlot = lessonMap.get(s.id);
+          return sSlot && sSlot.globalIndex >= lessonGlobalIndexStart && sSlot.globalIndex <= lessonGlobalIndexEnd;
+      });
+      
+      // Sort chronologically
+      const sessionDates = relatedSessions.map(s => s.date_time).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
 
       results.push({
         sessionId: session.id,
@@ -276,15 +301,19 @@ export async function getPendingLessonEvaluationsForCoach(coachId: string): Prom
         className: klass.name,
         blockId: slot.block.id,
         blockName: slot.block.name ?? 'Unknown Block',
-        lessonTitle: formatLessonTitle(slot),
-        sessionDate: session.date_time,
+        lessonTitle: slot.lessonTemplate.title, // Use raw title without (Part X) suffix since it applies to the whole lesson
+        sessionDates: sessionDates,
         studentsCount: activeEnrollments.length
       });
     }
   }
 
-  // Sort by date ascending (oldest pending first)
-  return results.sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime());
+  // Sort by the last session date ascending (oldest pending first)
+  return results.sort((a, b) => {
+    const aLast = a.sessionDates[a.sessionDates.length - 1];
+    const bLast = b.sessionDates[b.sessionDates.length - 1];
+    return new Date(aLast).getTime() - new Date(bLast).getTime();
+  });
 }
 
 export type DraftReportInfo = {
@@ -296,6 +325,7 @@ export type DraftReportInfo = {
   blockId: string;
   blockName: string;
   createdAt: string;
+  averageScore?: number;
 };
 
 export async function getDraftReportsForCoach(coachId: string): Promise<DraftReportInfo[]> {
@@ -314,6 +344,7 @@ export async function getDraftReportsForCoach(coachId: string): Promise<DraftRep
       class_id,
       block_id,
       created_at,
+      average_score,
       classes:class_id(name),
       users:coder_id(full_name),
       blocks:block_id(name)
@@ -336,5 +367,6 @@ export async function getDraftReportsForCoach(coachId: string): Promise<DraftRep
     blockId: row.block_id as string,
     blockName: (row.blocks as any)?.name ?? 'Block',
     createdAt: row.created_at,
+    averageScore: row.average_score ? Number(row.average_score) : undefined,
   }));
 }

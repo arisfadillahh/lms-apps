@@ -1,23 +1,26 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import type { CSSProperties } from 'react';
-import { CheckCircle2, ChevronRight, User } from 'lucide-react';
-
+import { ChevronLeft, ChevronRight, Save, AlertTriangle, ArrowRight, ArrowLeft, FileText } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { EvaluationCriteriaRecord } from '@/lib/dao/reportsDao';
 
 type EvaluationFormClientProps = {
   sessionId: string;
   students: { id: string; full_name: string }[];
   criteriaList: EvaluationCriteriaRecord[];
+  lessonTitle: string;
+  blockName: string;
 };
 
-export default function EvaluationFormClient({ sessionId, students, criteriaList }: EvaluationFormClientProps) {
+export default function EvaluationFormClient({ sessionId, students, criteriaList, lessonTitle, blockName }: EvaluationFormClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [isExiting, setIsExiting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
-  // state: coderId -> criteriaId -> score (number or empty string)
+  // state: coderId -> criteriaId -> score (string integer)
   const [scores, setScores] = useState<Record<string, Record<string, string>>>(() => {
     const initial: Record<string, Record<string, string>> = {};
     students.forEach(s => {
@@ -30,14 +33,18 @@ export default function EvaluationFormClient({ sessionId, students, criteriaList
   });
 
   const [errorMessage, setErrorMessage] = useState('');
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [direction, setDirection] = useState(0);
+
+  // Auto-scroll to top when student changes
+  useEffect(() => {
+    const scrollContainer = document.querySelector('.custom-scrollbar');
+    if (scrollContainer) {
+      scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [currentIndex]);
 
   const handleScoreChange = (coderId: string, criteriaId: string, val: string) => {
-    // Only allow empty string or numbers 1-10
-    if (val !== '') {
-      const num = parseInt(val, 10);
-      if (isNaN(num) || num < 1 || num > 10) return;
-    }
-    
     setScores(prev => ({
       ...prev,
       [coderId]: {
@@ -47,18 +54,46 @@ export default function EvaluationFormClient({ sessionId, students, criteriaList
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const currentStudent = students[currentIndex];
+  
+  const calculateProgress = () => {
+    let filledStudents = 0;
+    students.forEach(s => {
+      const isComplete = criteriaList.every(c => scores[s.id][c.id] !== '');
+      if (isComplete) filledStudents++;
+    });
+    return filledStudents;
+  };
+  
+  const filledStudentsCount = calculateProgress();
+  const progressPercentage = (filledStudentsCount / students.length) * 100;
+  const isSubmissionReady = filledStudentsCount === students.length;
+
+  const handleNext = () => {
+    if (currentIndex < students.length - 1) {
+      setDirection(1);
+      setCurrentIndex(prev => prev + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentIndex > 0) {
+      setDirection(-1);
+      setCurrentIndex(prev => prev - 1);
+    }
+  };
+
+  const handleClose = () => {
+    setIsExiting(true);
+    setTimeout(() => {
+        router.push('/coach/rubrics');
+    }, 400);
+  };
+
+  const handleSubmit = () => {
     setErrorMessage('');
-
-    // Validate all fields are filled
-    const missingFields = students.some(s => 
-      criteriaList.some(c => scores[s.id][c.id] === '')
-    );
-
-    if (missingFields) {
-      setErrorMessage('Mohon isi semua nilai (1-10) untuk seluruh Coder sebelum menyimpan.');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (!isSubmissionReady) {
+      setErrorMessage('Mohon lengkapi semua nilai untuk seluruh murid.');
       return;
     }
 
@@ -67,195 +102,263 @@ export default function EvaluationFormClient({ sessionId, students, criteriaList
         const res = await fetch(`/api/coach/evaluations`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sessionId,
-            scores
-          })
+          body: JSON.stringify({ sessionId, scores })
         });
 
         if (!res.ok) {
           const data = await res.json();
-          throw new Error(data.error || 'Terjadi kesalahan saat menyimpan nilai.');
+          throw new Error(data.error || 'Gagal menyimpan nilai.');
         }
 
-        router.push('/coach/rubrics');
-        router.refresh();
+        // Close immediately on success as requested
+        setIsExiting(true);
+        setTimeout(() => {
+            router.push('/coach/rubrics');
+            router.refresh();
+        }, 300);
       } catch (err: any) {
         setErrorMessage(err.message);
       }
     });
   };
 
+  if (!students.length) return <div>No students found.</div>;
+
+  const variants = {
+    enter: (direction: number) => ({
+      x: direction > 0 ? 100 : -100,
+      opacity: 0
+    }),
+    center: {
+      zIndex: 1,
+      x: 0,
+      opacity: 1
+    },
+    exit: (direction: number) => ({
+      zIndex: 0,
+      x: direction < 0 ? 100 : -100,
+      opacity: 0
+    })
+  };
+
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      {errorMessage && (
-        <div style={{ padding: '1rem', borderRadius: '0.5rem', background: '#fef2f2', color: '#b91c1c', border: '1px solid #fca5a5', fontWeight: 500 }}>
-          {errorMessage}
+    <AnimatePresence>
+      {!isExiting && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-8 font-['Public_Sans',sans-serif]">
+          {/* Backdrop */}
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-md cursor-pointer"
+            onClick={handleClose}
+          />
+
+          {/* Modal */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="relative z-10 w-full max-w-3xl max-h-[90vh] bg-white rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden"
+          >
+            
+            <AnimatePresence>
+                {showSuccess && (
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 z-[100] bg-white flex flex-col items-center justify-center space-y-4"
+                    >
+                        <motion.div 
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: "spring", bounce: 0.6 }}
+                            className="w-24 h-24 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-500"
+                        >
+                            <Save className="w-12 h-12" />
+                        </motion.div>
+                        <h2 className="text-2xl font-black text-slate-800">Nilai Tersimpan!</h2>
+                        <p className="text-slate-500 font-medium">Mengalihkan ke dashboard...</p>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Header */}
+            <header className="shrink-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                 <div className="w-10 h-10 rounded-2xl bg-orange-50 flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-[#ec5b13]" />
+                 </div>
+                 <div>
+                    <h4 className="text-sm font-black text-slate-900 leading-none">Penilaian</h4>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{blockName}</p>
+                 </div>
+              </div>
+              
+              <button 
+                onClick={handleClose}
+                className="w-10 h-10 rounded-full border border-slate-100 flex items-center justify-center text-slate-400 hover:bg-slate-50 hover:rotate-90 transition-all duration-300"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>close</span>
+              </button>
+            </header>
+
+            {/* Content Container */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar relative">
+              <AnimatePresence initial={false} custom={direction} mode="popLayout">
+                <motion.div
+                  key={currentStudent.id}
+                  custom={direction}
+                  variants={variants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{
+                    x: { type: "spring", stiffness: 300, damping: 30 },
+                    opacity: { duration: 0.2 }
+                  }}
+                  className="p-6 md:p-10 space-y-10"
+                >
+                  <div className="text-center space-y-4">
+                      <div className="inline-flex items-center gap-2 bg-slate-900 text-white text-[9px] font-black tracking-widest uppercase px-4 py-1.5 rounded-full">
+                          <span className="opacity-50">LESSON:</span>
+                          <span>{lessonTitle}</span>
+                      </div>
+                      
+                      <div className="flex flex-col items-center gap-4 py-4">
+                          <div className="relative bg-white p-1 rounded-[2rem] shadow-xl border border-slate-50">
+                              <div className="w-20 h-20 rounded-[1.75rem] bg-gradient-to-br from-[#ec5b13] to-[#ff8c42] flex items-center justify-center text-white text-2xl font-black shadow-lg">
+                                {currentStudent.full_name.substring(0, 2).toUpperCase()}
+                              </div>
+                              <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-emerald-500 text-white rounded-full shadow-lg flex items-center justify-center border-2 border-white">
+                                 <span className="text-[10px] font-black">{currentIndex + 1}</span>
+                              </div>
+                          </div>
+                          <h3 className="text-xl font-black text-slate-900 tracking-tight">{currentStudent.full_name}</h3>
+                      </div>
+                      
+                      <div className="flex justify-center gap-1.5">
+                          {students.map((s, idx) => {
+                              const isFilled = criteriaList.every(c => scores[s.id][c.id] !== '');
+                              const isActive = idx === currentIndex;
+                              return (
+                                  <motion.div 
+                                      key={s.id}
+                                      animate={{ 
+                                          width: isActive ? 32 : 12,
+                                          backgroundColor: isActive ? '#ec5b13' : isFilled ? '#34d399' : '#f1f5f9' 
+                                      }}
+                                      className="h-1.5 rounded-full"
+                                  />
+                              );
+                          })}
+                      </div>
+                  </div>
+
+                  <div className="space-y-12">
+                    {criteriaList.map((criteria, cidx) => (
+                      <div key={criteria.id} className="group space-y-5">
+                        <div className="space-y-1">
+                          <h5 className="font-black text-slate-900 text-lg tracking-tight flex items-center gap-2">
+                             <div className="w-1.5 h-6 bg-[#ec5b13] rounded-full"></div>
+                             {criteria.name}
+                          </h5>
+                          <p className="text-xs text-slate-500 font-medium leading-relaxed">{criteria.description}</p>
+                        </div>
+                        
+                        <div className="grid grid-cols-5 md:grid-cols-10 gap-2">
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => {
+                            const isSelected = scores[currentStudent.id][criteria.id] === String(num);
+                            return (
+                                <button 
+                                  key={num}
+                                  onClick={() => handleScoreChange(currentStudent.id, criteria.id, String(num))}
+                                  className={`
+                                    h-10 md:h-12 rounded-xl flex items-center justify-center text-sm font-black transition-all duration-300
+                                    ${isSelected 
+                                      ? 'bg-[#ec5b13] text-white shadow-lg shadow-orange-500/30 scale-105 rotate-2' 
+                                      : 'bg-slate-50 text-slate-400 hover:bg-white hover:border-[#ec5b13] hover:text-[#ec5b13] hover:shadow-md border border-transparent'}
+                                  `}
+                                >
+                                  {num}
+                                </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="py-6 border-t border-dashed border-slate-100 text-center">
+                      {currentIndex < students.length - 1 ? (
+                        <button 
+                          onClick={handleNext}
+                          className="inline-flex items-center gap-3 px-8 py-3.5 bg-slate-900 text-white font-black rounded-2xl shadow-xl hover:bg-[#ec5b13] hover:-translate-y-1 active:scale-95 transition-all text-sm"
+                        >
+                          Lanjut ke Murid Berikutnya
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <p className="text-[10px] font-black text-slate-400 tracking-widest uppercase mb-4">
+                           AKHIR ANTREAN MURID ✨
+                        </p>
+                      )}
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            {/* Footer */}
+            <footer className="shrink-0 bg-slate-50 border-t border-slate-100 px-8 py-5 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <button 
+                   onClick={handlePrev}
+                   disabled={currentIndex === 0}
+                   className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-white disabled:opacity-0 transition-all shadow-sm"
+                >
+                   <ChevronLeft className="w-5 h-5" />
+                </button>
+                <div className="flex flex-col items-center">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">murid</span>
+                    <span className="text-sm font-black text-slate-900 leading-none mt-1">{currentIndex + 1} / {students.length}</span>
+                </div>
+                <button 
+                   onClick={handleNext}
+                   disabled={currentIndex === students.length - 1}
+                   className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-white disabled:opacity-0 transition-all shadow-sm"
+                >
+                   <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+
+              <button 
+                onClick={handleSubmit}
+                disabled={!isSubmissionReady || isPending}
+                className={`
+                   group flex items-center gap-2 px-8 py-3.5 font-black rounded-2xl transition-all shadow-xl text-sm
+                   ${isSubmissionReady 
+                       ? 'bg-emerald-500 text-white hover:bg-emerald-600 hover:scale-105 active:scale-95' 
+                       : 'bg-slate-200 text-slate-400 cursor-not-allowed'}
+                `}
+              >
+                {isPending ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                ) : (
+                    <motion.div
+                        animate={{ rotate: isSubmissionReady ? [0, 10, -10, 0] : 0 }}
+                        transition={{ repeat: Infinity, duration: 2 }}
+                    >
+                        <Save className="w-4 h-4" />
+                    </motion.div>
+                )}
+                {isPending ? 'Simpan...' : 'SIMPAN SEMUA NILAI'}
+              </button>
+            </footer>
+          </motion.div>
         </div>
       )}
-
-      {students.map((student) => (
-        <div key={student.id} style={studentCardStyle}>
-          <div style={studentHeaderStyle}>
-            <div style={avatarStyle}>
-              <User size={20} color="#1e3a5f" />
-            </div>
-            <h3 style={studentNameStyle}>{student.full_name}</h3>
-          </div>
-          
-          <div style={criteriaGridStyle}>
-            {criteriaList.map(criteria => (
-              <div key={criteria.id} style={criteriaInputGroup}>
-                <div style={{ flex: 1 }}>
-                  <label style={criteriaLabelStyle}>{criteria.name}</label>
-                  <p style={criteriaDescStyle}>{criteria.description}</p>
-                </div>
-                <input 
-                  type="number"
-                  min="1"
-                  max="10"
-                  required
-                  placeholder="-"
-                  value={scores[student.id][criteria.id]}
-                  onChange={(e) => handleScoreChange(student.id, criteria.id, e.target.value)}
-                  style={inputStyle}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-
-      <div style={actionFooterStyle}>
-        <button 
-          type="button" 
-          onClick={() => router.push('/coach/rubrics')}
-          style={cancelButtonStyle}
-          disabled={isPending}
-        >
-          Batal
-        </button>
-        <button 
-          type="submit"
-          style={submitButtonStyle}
-          disabled={isPending}
-        >
-          {isPending ? 'Menyimpan...' : (
-            <>Simpan Nilai <ChevronRight size={18} /></>
-          )}
-        </button>
-      </div>
-    </form>
+    </AnimatePresence>
   );
 }
-
-const studentCardStyle: CSSProperties = {
-  background: '#ffffff',
-  borderRadius: '1rem',
-  border: '1px solid #e2e8f0',
-  boxShadow: 'var(--shadow-small)',
-  overflow: 'hidden',
-};
-
-const studentHeaderStyle: CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '1rem',
-  padding: '1.25rem 1.5rem',
-  background: '#f8fafc',
-  borderBottom: '1px solid #e2e8f0',
-};
-
-const avatarStyle: CSSProperties = {
-  width: '40px',
-  height: '40px',
-  borderRadius: '50%',
-  background: '#e0f2fe',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-};
-
-const studentNameStyle: CSSProperties = {
-  fontSize: '1.2rem',
-  fontWeight: 700,
-  color: '#0f172a',
-  margin: 0,
-};
-
-const criteriaGridStyle: CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: '1fr',
-  gap: '0',
-};
-
-const criteriaInputGroup: CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'flex-start',
-  padding: '1.25rem 1.5rem',
-  borderBottom: '1px solid #f1f5f9',
-  gap: '2rem',
-};
-
-const criteriaLabelStyle: CSSProperties = {
-  display: 'block',
-  fontSize: '1.05rem',
-  fontWeight: 600,
-  color: '#1e293b',
-  marginBottom: '0.25rem',
-};
-
-const criteriaDescStyle: CSSProperties = {
-  fontSize: '0.85rem',
-  color: '#64748b',
-  margin: 0,
-  lineHeight: 1.5,
-};
-
-const inputStyle: CSSProperties = {
-  width: '80px',
-  height: '48px',
-  fontSize: '1.25rem',
-  fontWeight: 700,
-  textAlign: 'center',
-  borderRadius: '0.75rem',
-  border: '2px solid #cbd5e1',
-  color: '#0f172a',
-  outline: 'none',
-  transition: 'border-color 0.2s',
-};
-
-const actionFooterStyle: CSSProperties = {
-  display: 'flex',
-  justifyContent: 'flex-end',
-  alignItems: 'center',
-  gap: '1rem',
-  marginTop: '1rem',
-};
-
-const cancelButtonStyle: CSSProperties = {
-  padding: '0.85rem 1.5rem',
-  borderRadius: '0.5rem',
-  background: '#f1f5f9',
-  color: '#475569',
-  border: 'none',
-  fontWeight: 600,
-  fontSize: '0.95rem',
-  cursor: 'pointer',
-};
-
-const submitButtonStyle: CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.5rem',
-  padding: '0.85rem 1.75rem',
-  borderRadius: '0.5rem',
-  background: '#16a34a',
-  color: '#fff',
-  border: 'none',
-  fontWeight: 600,
-  fontSize: '0.95rem',
-  cursor: 'pointer',
-  boxShadow: '0 4px 6px -1px rgba(22, 163, 74, 0.2)',
-};

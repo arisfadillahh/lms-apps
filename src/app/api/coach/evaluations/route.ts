@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { getSessionOrThrow } from '@/lib/auth';
 import { sessionsDao, reportsDao, classesDao } from '@/lib/dao';
 import type { UpsertLessonEvaluationInput } from '@/lib/dao/reportsDao';
+import { computeLessonSchedule } from '@/lib/services/lessonScheduler';
 
 export async function POST(req: Request) {
   try {
@@ -36,12 +37,7 @@ export async function POST(req: Request) {
       for (const [criteriaId, scoreVal] of Object.entries(criteriaScores as Record<string, string>)) {
         const score = parseInt(scoreVal, 10);
         if (!isNaN(score) && score >= 1 && score <= 10) {
-          evaluationsToUpsert.push({
-            sessionId,
-            coderId,
-            criteriaId,
-            score
-          });
+          evaluationsToUpsert.push({ sessionId, coderId, criteriaId, score });
         }
       }
     }
@@ -50,8 +46,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No valid scores provided' }, { status: 400 });
     }
 
-    // Note: We need the server to be restarted to pick up the correct SUPABASE_SERVICE_ROLE_KEY
-    // if it was just changed in the .env file.
+    // Save lesson evaluations
     await reportsDao.upsertLessonEvaluations(evaluationsToUpsert);
 
     return NextResponse.json({ success: true });
@@ -60,3 +55,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
 }
+

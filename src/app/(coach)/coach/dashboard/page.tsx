@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { getSessionOrThrow } from '@/lib/auth';
-import { getCoachClassesWithBlocks, getAllCoachSessions } from '@/lib/services/coach';
+import { getCoachClassesWithBlocks, getAllCoachSessions, getPendingLessonEvaluationsForCoach } from '@/lib/services/coach';
 import { makeUpTasksDao } from '@/lib/dao';
 import CalendarModal from '@/components/coach/CalendarModal';
 import WeeklyScheduleClient from './WeeklyScheduleClient';
@@ -15,10 +15,11 @@ export const revalidate = 300; // Cache dashboard data for 5 minutes
 
 export default async function CoachDashboardPage() {
     const session = await getSessionOrThrow();
-    const [classes, activeSessions, makeUpTasks] = await Promise.all([
+    const [classes, activeSessions, makeUpTasks, pendingLessons] = await Promise.all([
         getCoachClassesWithBlocks(session.user.id),
         getAllCoachSessions(session.user.id),
         makeUpTasksDao.listTasksForCoach(session.user.id),
+        getPendingLessonEvaluationsForCoach(session.user.id),
     ]);
 
     const user = session.user;
@@ -148,10 +149,10 @@ export default async function CoachDashboardPage() {
                             </div>
                             <div className="bg-white p-6 rounded-3xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] border border-slate-100">
                                 <div className="flex justify-between items-start mb-4">
-                                    <span className="p-2 bg-emerald-50 text-emerald-600 rounded-lg material-symbols-outlined">class</span>
+                                    <span className="p-2 bg-emerald-50 text-emerald-600 rounded-lg material-symbols-outlined">library_add_check</span>
                                 </div>
-                                <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Total Kelas Aktif</p>
-                                <h3 className="text-2xl font-extrabold text-brand-deep mt-1">{classes.length}</h3>
+                                <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Menunggu Penilaian</p>
+                                <h3 className="text-2xl font-extrabold text-brand-deep mt-1">{pendingLessons.length}</h3>
                             </div>
                         </StaggerItem>
 

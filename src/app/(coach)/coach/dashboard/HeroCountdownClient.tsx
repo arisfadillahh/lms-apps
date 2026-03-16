@@ -79,8 +79,8 @@ export default function HeroCountdownClient({ session }: { session: NextSessionP
                         )}
                     </div>
                     {!timeLeft.isLive && (
-                        <div className="inline-flex bg-[#0f172a]/80 border border-white/10 px-4 py-2 rounded-xl text-xs font-bold text-emerald-400 items-center gap-2">
-                            <span className="material-symbols-outlined text-emerald-500 animate-pulse text-sm">hourglass_empty</span>
+                        <div className="inline-flex bg-black/30 border border-white/10 px-4 py-2 rounded-xl text-xs font-bold text-emerald-400 items-center gap-2">
+                            <span className="material-symbols-outlined text-emerald-400 animate-pulse text-sm">hourglass_empty</span>
                             MULAI DALAM
                             <span className="text-white ml-1 text-sm tracking-wider">
                                 {timeLeft.days > 0 ? `${String(timeLeft.days).padStart(2, '0')}d ` : ''}
@@ -95,14 +95,14 @@ export default function HeroCountdownClient({ session }: { session: NextSessionP
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mt-6 md:mt-0 w-full md:w-auto md:ml-auto md:justify-end">
                 {timeLeft.isZoomActive ? (
                     <>
-                        <Link href={`/coach/sessions/${session.id}/attendance`} className="w-full sm:w-auto justify-center px-6 py-4 bg-orange-500 hover:bg-orange-400 text-white font-extrabold rounded-2xl transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(249,115,22,0.3)] transform hover:-translate-y-1 hover:scale-105 active:translate-y-0 active:scale-95 border border-orange-400/50">
+                        <Link href={`/coach/sessions/${session.id}/attendance`} className="w-full sm:w-auto justify-center px-6 py-4 bg-orange-500 hover:bg-orange-600 text-white font-extrabold rounded-2xl transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(249,115,22,0.3)] transform hover:-translate-y-1 hover:scale-105 active:translate-y-0 active:scale-95 border border-orange-400/50">
                             <span className="material-symbols-outlined">how_to_reg</span>
                             <span className="hidden sm:inline">Isi Presensi</span>
                         </Link>
                         
                         {/* We use session zoom if needed, but the original logic didn't actually pull zoom_link for zoom button. It was a placeholder? The old link was /coach/sessions/${session.id}/attendance which makes no sense for 'Masuk Zoom'. I will change it to actually link to the class context or generic if zoom_link is missing. */}
                         {/* Wait, the original code had: href={`/coach/sessions/${session.id}/attendance`} with text "Masuk Zoom". Which means the original author mislabeled the button or linked it wrong. I'll fix it here: The Zoom link should open the zoom client or the class detail page. */}
-                        <Link href={`/coach/classes/${session.id ?? ''}`} className="w-full sm:w-auto justify-center px-8 py-4 bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-[#0a1428] font-extrabold rounded-2xl transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.3)] transform hover:-translate-y-1 hover:scale-105 active:translate-y-0 active:scale-95 border border-emerald-300/50 relative overflow-hidden group">
+                        <Link href={`/coach/classes/${session.id ?? ''}`} className="w-full sm:w-auto justify-center px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold rounded-2xl transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.3)] transform hover:-translate-y-1 hover:scale-105 active:translate-y-0 active:scale-95 border border-emerald-400/50 relative overflow-hidden group">
                             <div className="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out"></div>
                             <span className="material-symbols-outlined relative z-10">videocam</span>
                             <span className="relative z-10">Buka Kelas</span>
@@ -114,9 +114,9 @@ export default function HeroCountdownClient({ session }: { session: NextSessionP
                             <span className="material-symbols-outlined opacity-50">door_front</span>
                             Buka Kelas
                         </button>
-                        <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none -top-12 left-1/2 -translate-x-1/2 bg-[#0f172a] text-white text-[10px] font-bold px-4 py-2 rounded-xl whitespace-nowrap shadow-xl border border-slate-700 z-50">
+                        <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none -top-12 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-bold px-4 py-2 rounded-xl whitespace-nowrap shadow-xl border border-slate-700 z-50">
                             Tersedia saat 30 menit sebelum kelas
-                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#0f172a] border-b border-r border-slate-700 rotate-45"></div>
+                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900 border-b border-r border-slate-700 rotate-45"></div>
                         </div>
                     </div>
                 )}

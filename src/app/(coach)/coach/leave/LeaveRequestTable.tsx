@@ -54,10 +54,10 @@ export default function LeaveRequestTable({ requests }: Props) {
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       {Array.from(grouped.entries()).map(([month, items]) => (
         <div key={month}>
-          <h3 className="text-slate-900 font-bold flex items-center gap-2 mb-6">
+          <h3 className="text-slate-900 font-bold flex items-center gap-2 mb-4">
             <span className="material-symbols-outlined text-slate-400">calendar_month</span>
             {month}
           </h3>
@@ -73,29 +73,29 @@ export default function LeaveRequestTable({ requests }: Props) {
               const className = request.class?.name ?? '—';
 
               return (
-                <div key={request.id} className="relative pl-12 pb-8 group">
+                <div key={request.id} className="relative pl-10 pb-6 group">
                   {/* Timeline Dot */}
-                  <div className={`absolute left-0 mt-1 w-10 h-10 flex items-center justify-center bg-white rounded-full border-4 ${cfg.borderColor} z-10 shadow-sm transition-transform group-hover:scale-110`}>
-                    <span className={`material-symbols-outlined ${cfg.iconColor} text-xl font-bold`}>{cfg.icon}</span>
+                  <div className={`absolute left-0 mt-1 w-8 h-8 flex items-center justify-center bg-white rounded-full border-2 ${cfg.borderColor} z-10 shadow-sm transition-transform group-hover:scale-110`}>
+                    <span className={`material-symbols-outlined ${cfg.iconColor} text-base font-bold`}>{cfg.icon}</span>
                   </div>
 
                   {/* Card */}
-                  <div className={`bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow ${request.status === 'REJECTED' ? '' : 'flex items-center justify-between'}`}>
+                  <div className={`bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow ${request.status === 'REJECTED' ? '' : 'flex items-center justify-between'}`}>
                     {request.status === 'REJECTED' ? (
                       <>
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex-1">
-                            <div className="flex items-center gap-3">
-                              <h4 className="text-slate-900 font-bold text-lg leading-none">{className}</h4>
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mb-1">
+                              <h4 className="text-slate-900 font-bold text-base leading-none">{className}</h4>
                               <span className="text-xs font-medium text-slate-400">• Diajukan {createdAt}</span>
                             </div>
-                            <div className="mt-2 flex flex-wrap gap-4 items-center">
-                              <div className="flex items-center gap-1.5 text-slate-600 bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">
-                                <span className="material-symbols-outlined text-base">event</span>
-                                <span className="text-sm font-semibold">{sessionDate}</span>
+                            <div className="flex flex-wrap gap-3 items-center mt-2">
+                              <div className="flex items-center gap-1.5 text-slate-600 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100">
+                                <span className="material-symbols-outlined text-sm">event</span>
+                                <span className="text-xs font-semibold">{sessionDate}</span>
                               </div>
                               {request.note && (
-                                <p className="text-slate-500 text-sm italic truncate max-w-md">"{request.note}"</p>
+                                <p className="text-slate-500 text-xs italic truncate max-w-sm">"{request.note}"</p>
                               )}
                             </div>
                           </div>
@@ -119,17 +119,17 @@ export default function LeaveRequestTable({ requests }: Props) {
                     ) : (
                       <>
                         <div className="flex-1">
-                          <div className="flex items-center gap-3">
-                            <h4 className="text-slate-900 font-bold text-lg leading-none">{className}</h4>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mb-1">
+                            <h4 className="text-slate-900 font-bold text-base leading-none">{className}</h4>
                             <span className="text-xs font-medium text-slate-400">• Diajukan {createdAt}</span>
                           </div>
-                          <div className="mt-2 flex flex-wrap gap-4 items-center">
-                            <div className="flex items-center gap-1.5 text-slate-600 bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">
-                              <span className="material-symbols-outlined text-base">event</span>
-                              <span className="text-sm font-semibold">{sessionDate}</span>
+                          <div className="flex flex-wrap gap-3 items-center mt-2">
+                            <div className="flex items-center gap-1.5 text-slate-600 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100">
+                              <span className="material-symbols-outlined text-sm">event</span>
+                              <span className="text-xs font-semibold">{sessionDate}</span>
                             </div>
                             {request.note && (
-                              <p className="text-slate-500 text-sm italic truncate max-w-md">"{request.note}"</p>
+                              <p className="text-slate-500 text-xs italic truncate max-w-sm">"{request.note}"</p>
                             )}
                           </div>
                         </div>

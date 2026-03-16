@@ -212,9 +212,9 @@ export default async function CoachDashboardPage() {
                         <aside className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] flex flex-col h-full overflow-hidden">
                             <div className="p-6 border-b border-slate-50 flex items-center justify-between">
                                 <div>
-                                    <h3 className="font-extrabold text-brand-deep">Weekly Schedule</h3>
+                                    <h3 className="font-extrabold text-brand-deep">Next Schedule</h3>
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                                        JANUARI 12-18, 2024
+                                        JADWAL MENDATANG
                                     </p>
                                 </div>
                                 <CalendarModal

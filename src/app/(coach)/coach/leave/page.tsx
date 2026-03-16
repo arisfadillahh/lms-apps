@@ -67,33 +67,64 @@ export default async function CoachLeavePage() {
   const rejectedCount  = leaveRequests.filter((r) => r.status === 'REJECTED').length;
 
   return (
-    <>
-      <div className="-mx-8 pt-8 pb-20 bg-slate-50 font-sans">
+    <div className="-mx-8 pt-0 pb-20 bg-slate-50 font-sans min-h-screen">
 
-        {/* Page Header */}
-        <div className="p-6 sm:p-8 pb-0">
-          <div className="flex flex-wrap items-end justify-between gap-6">
-            {/* Title */}
-            <div className="max-w-xl">
-              <h1 className="text-3xl font-black text-slate-900 tracking-tight">Perizinan</h1>
-              <p className="text-slate-500 mt-2">
-                Kelola dan pantau status riwayat pengajuan izin sesi kelas Anda secara transparan dan teratur.
-              </p>
-            </div>
-
-            {/* CTa */}
-            <div className="flex items-center gap-3">
-              <CreateLeaveRequestDialog availableSessions={availableSessions} />
-            </div>
+      {/* Page Header */}
+      <div className="p-6 sm:p-8 pb-0 max-w-7xl mx-auto w-full">
+        <div className="flex flex-wrap items-start justify-between gap-6 mb-8">
+          <div>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+              <span className="material-symbols-outlined text-blue-500 text-3xl">event_busy</span>
+              Pengajuan Izin
+            </h1>
+            <p className="text-slate-500 mt-2">
+              Kelola dan pantau status riwayat pengajuan izin sesi kelas Anda secara transparan.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 mt-1">
+            <CreateLeaveRequestDialog availableSessions={availableSessions} />
           </div>
         </div>
 
+        {/* Status Overview Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-white border border-slate-200 p-5 rounded-2xl flex items-center gap-4 shadow-sm">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-emerald-50 text-emerald-600">
+              <span className="material-symbols-outlined">check_circle</span>
+            </div>
+            <div>
+              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Disetujui</p>
+              <p className="text-2xl font-black text-slate-800">{approvedCount}</p>
+            </div>
+          </div>
+
+          <div className="bg-white border border-slate-200 p-5 rounded-2xl flex items-center gap-4 shadow-sm">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-amber-50 text-amber-500">
+              <span className="material-symbols-outlined">hourglass_empty</span>
+            </div>
+            <div>
+              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Menunggu</p>
+              <p className="text-2xl font-black text-slate-800">{pendingCount}</p>
+            </div>
+          </div>
+
+          <div className="bg-white border border-slate-200 p-5 rounded-2xl flex items-center gap-4 shadow-sm">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-red-50 text-red-500">
+              <span className="material-symbols-outlined">cancel</span>
+            </div>
+            <div>
+              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Ditolak</p>
+              <p className="text-2xl font-black text-slate-800">{rejectedCount}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Timeline Content */}
-      <div className="px-6 sm:px-8 pt-8">
+      <div className="px-6 sm:px-8 pt-8 max-w-7xl mx-auto w-full">
         <LeaveRequestTable requests={leaveRequests} />
       </div>
 
     </div>
-    </>
   );
 }

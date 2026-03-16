@@ -155,7 +155,7 @@ export default function MakeUpTaskList({ tasks }: MakeUpTaskListProps) {
           <p className="text-slate-500 font-medium">Tidak ada tugas susulan di kategori ini.</p>
         </div>
       ) : (
-        <div className="space-y-5 max-w-5xl">
+        <div className="space-y-5 w-full">
           {filteredTasks.map((task, idx) => {
             const isSubmitted = task.status === 'SUBMITTED';
             const isPendingUpload = task.status === 'PENDING_UPLOAD';

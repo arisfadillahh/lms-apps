@@ -71,12 +71,12 @@ export default async function CoachDashboardPage() {
             `}</style>
 
             <StaggerContainer className="mt-8">
-                <div className="flex gap-8">
-                    <div className="flex-grow max-w-[calc(100%-360px)]">
+                <div className="flex flex-col lg:flex-row gap-6 md:gap-8">
+                    <div className="flex-grow w-full lg:max-w-[calc(100%-360px)]">
                         <CoachDraftReportsAlert coachId={session.user.id} />
                         <StaggerItem className="mb-8">
                             <section>
-                                <div className="bg-gradient-to-r from-[#0f172a] to-[#1e3a5f] rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden group border border-white/5">
+                                <div className="bg-gradient-to-r from-[#0f172a] to-[#1e3a5f] rounded-3xl p-6 md:p-8 text-white shadow-2xl relative overflow-hidden group border border-white/5">
                                     <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
                                         {/* Far layer - tiny, blurry, slow */}
                                         <div className="absolute top-0 left-0 w-full h-[200%] animate-marquee-up-slow">
@@ -208,7 +208,7 @@ export default async function CoachDashboardPage() {
                         </StaggerItem>
                     </div>
 
-                    <StaggerItem className="w-[360px] flex-shrink-0">
+                    <StaggerItem className="w-full lg:w-[360px] flex-shrink-0">
                         <aside className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] flex flex-col h-full overflow-hidden">
                             <div className="p-6 border-b border-slate-50 flex items-center justify-between">
                                 <div>

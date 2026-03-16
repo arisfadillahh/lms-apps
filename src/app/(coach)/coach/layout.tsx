@@ -58,13 +58,10 @@ export default async function CoachLayout({ children }: { children: ReactNode })
             role: user.role,
             avatarPath: user.avatar_path
         }} />
-        <div className="flex-1 pb-24 md:pb-0">
+        <div className="flex-1">
           <PageTransition>{children}</PageTransition>
         </div>
       </main>
-
-      {/* Mobile bottom nav */}
-      <CoachMobileNav />
     </div>
   );
 }

@@ -96,28 +96,29 @@ export default function MobileNav({ role, username = '', adminPermissions = null
                                 transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                                 style={{
                                     position: 'fixed', left: 0, top: 0, bottom: 0,
-                                    width: '280px', maxWidth: '85vw', background: '#ffffff',
+                                    width: '280px', maxWidth: '85vw', 
+                                    background: role === 'COACH' ? '#0a1428' : '#ffffff',
                                     zIndex: 1001, display: 'flex', flexDirection: 'column',
                                     boxShadow: '4px 0 20px rgba(0, 0, 0, 0.1)',
                                 }}
                             >
                                 <div style={{
                                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                    padding: '1rem 1.25rem', borderBottom: '1px solid #f1f5f9',
+                                    padding: '1rem 1.25rem', borderBottom: `1px solid ${role === 'COACH' ? '#1e293b' : '#f1f5f9'}`,
                                 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                         <Image src="/favicon.ico" alt="Clevio LMS" width={28} height={28} />
-                                        <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b' }}>Clevio LMS</span>
+                                        <span style={{ fontSize: '1.1rem', fontWeight: 700, color: role === 'COACH' ? '#ffffff' : '#1e293b' }}>Clevio LMS</span>
                                     </div>
                                     <button
                                         onClick={() => setIsOpen(false)}
                                         style={{
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                             width: '32px', height: '32px', borderRadius: '8px',
-                                            background: '#f1f5f9', border: 'none', cursor: 'pointer',
+                                            background: role === 'COACH' ? '#1e293b' : '#f1f5f9', border: 'none', cursor: 'pointer',
                                         }}
                                     >
-                                        <X size={18} color="#64748b" />
+                                        <X size={18} color={role === 'COACH' ? '#94a3b8' : '#64748b'} />
                                     </button>
                                 </div>
 
@@ -171,9 +172,32 @@ export default function MobileNav({ role, username = '', adminPermissions = null
                                             {(role === 'COACH' ? COACH_LINKS : CODER_LINKS).map((link) => {
                                                 const isActive = pathname.startsWith(link.href);
                                                 const Icon = link.icon;
+                                                
+                                                let linkBg = 'transparent';
+                                                let linkColor = '#64748b';
+                                                let iconBg = 'transparent';
+                                                let iconColor = '#64748b';
+
+                                                if (role === 'COACH') {
+                                                    linkColor = '#94a3b8'; // default text for coach
+                                                    iconColor = '#94a3b8'; // default icon for coach
+                                                    if (isActive) {
+                                                        linkBg = 'rgba(30, 41, 59, 0.5)'; // slate-800/50
+                                                        linkColor = '#6bb3ff';
+                                                        iconColor = '#6bb3ff';
+                                                    }
+                                                } else {
+                                                    if (isActive) {
+                                                        linkBg = '#eff6ff';
+                                                        linkColor = '#1e293b';
+                                                        iconBg = '#3b82f6';
+                                                        iconColor = '#fff';
+                                                    }
+                                                }
+
                                                 return (
-                                                    <Link key={link.href} href={link.href} onClick={() => setIsOpen(false)} style={{ ...linkStyle, background: isActive ? '#eff6ff' : 'transparent', color: isActive ? '#1e293b' : '#64748b', fontWeight: isActive ? 600 : 500 }}>
-                                                        <div style={{ ...iconBoxStyle, background: isActive ? '#3b82f6' : 'transparent', color: isActive ? '#fff' : '#64748b' }}>
+                                                    <Link key={link.href} href={link.href} onClick={() => setIsOpen(false)} style={{ ...linkStyle, background: linkBg, color: linkColor, fontWeight: isActive ? 600 : 500 }}>
+                                                        <div style={{ ...iconBoxStyle, background: iconBg, color: iconColor }}>
                                                             <Icon size={18} />
                                                         </div>
                                                         <span>{link.label}</span>

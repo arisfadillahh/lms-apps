@@ -92,17 +92,17 @@ export default function HeroCountdownClient({ session }: { session: NextSessionP
                     )}
                 </div>
             </div>
-            <div className="flex flex-wrap items-center gap-4 mt-6 md:mt-0 w-full md:w-auto md:ml-auto md:justify-end">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mt-6 md:mt-0 w-full md:w-auto md:ml-auto md:justify-end">
                 {timeLeft.isZoomActive ? (
                     <>
-                        <Link href={`/coach/sessions/${session.id}/attendance`} className="px-6 py-4 bg-orange-500 hover:bg-orange-400 text-white font-extrabold rounded-2xl transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(249,115,22,0.3)] transform hover:-translate-y-1 hover:scale-105 active:translate-y-0 active:scale-95 border border-orange-400/50">
+                        <Link href={`/coach/sessions/${session.id}/attendance`} className="w-full sm:w-auto justify-center px-6 py-4 bg-orange-500 hover:bg-orange-400 text-white font-extrabold rounded-2xl transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(249,115,22,0.3)] transform hover:-translate-y-1 hover:scale-105 active:translate-y-0 active:scale-95 border border-orange-400/50">
                             <span className="material-symbols-outlined">how_to_reg</span>
                             <span className="hidden sm:inline">Isi Presensi</span>
                         </Link>
                         
                         {/* We use session zoom if needed, but the original logic didn't actually pull zoom_link for zoom button. It was a placeholder? The old link was /coach/sessions/${session.id}/attendance which makes no sense for 'Masuk Zoom'. I will change it to actually link to the class context or generic if zoom_link is missing. */}
                         {/* Wait, the original code had: href={`/coach/sessions/${session.id}/attendance`} with text "Masuk Zoom". Which means the original author mislabeled the button or linked it wrong. I'll fix it here: The Zoom link should open the zoom client or the class detail page. */}
-                        <Link href={`/coach/classes/${session.id ?? ''}`} className="px-8 py-4 bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-[#0a1428] font-extrabold rounded-2xl transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.3)] transform hover:-translate-y-1 hover:scale-105 active:translate-y-0 active:scale-95 border border-emerald-300/50 relative overflow-hidden group">
+                        <Link href={`/coach/classes/${session.id ?? ''}`} className="w-full sm:w-auto justify-center px-8 py-4 bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-[#0a1428] font-extrabold rounded-2xl transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.3)] transform hover:-translate-y-1 hover:scale-105 active:translate-y-0 active:scale-95 border border-emerald-300/50 relative overflow-hidden group">
                             <div className="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out"></div>
                             <span className="material-symbols-outlined relative z-10">videocam</span>
                             <span className="relative z-10">Buka Kelas</span>
@@ -110,7 +110,7 @@ export default function HeroCountdownClient({ session }: { session: NextSessionP
                     </>
                 ) : (
                     <div className="relative group">
-                        <button disabled className="px-8 py-4 bg-slate-800/50 text-slate-500 font-bold rounded-2xl border border-slate-700/50 flex items-center gap-2 cursor-not-allowed">
+                        <button disabled className="w-full sm:w-auto justify-center px-8 py-4 bg-slate-800/50 text-slate-500 font-bold rounded-2xl border border-slate-700/50 flex items-center gap-2 cursor-not-allowed">
                             <span className="material-symbols-outlined opacity-50">door_front</span>
                             Buka Kelas
                         </button>
@@ -121,7 +121,7 @@ export default function HeroCountdownClient({ session }: { session: NextSessionP
                     </div>
                 )}
                 {session.lesson?.slide_url && (
-                    <a href={session.lesson.slide_url} target="_blank" rel="noreferrer" className="px-6 py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-2xl border border-white/10 transition-all flex items-center gap-2 backdrop-blur-sm transform hover:-translate-y-0.5 active:translate-y-0">
+                    <a href={session.lesson.slide_url} target="_blank" rel="noreferrer" className="w-full sm:w-auto justify-center px-6 py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-2xl border border-white/10 transition-all flex items-center gap-2 backdrop-blur-sm transform hover:-translate-y-0.5 active:translate-y-0">
                         <span className="material-symbols-outlined">menu_book</span>
                         <span className="hidden sm:inline">Modul</span>
                     </a>

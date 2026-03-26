@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { autoCompletePastSessions, ensureFutureSessions } from '@/lib/dao/sessionsDao';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { verifyCronRequest } from '@/lib/cron';
 
 export const dynamic = 'force-dynamic';
+
 
 /**
  * Cron endpoint to auto-complete past sessions AND ensure rolling 12-week schedule.
@@ -18,7 +20,12 @@ export const dynamic = 'force-dynamic';
  *   }]
  * }
  */
-export async function GET() {
+export async function GET(request: Request) {
+    if (!verifyCronRequest(request)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+
     try {
         console.log('[Cron] Running session auto-complete job');
 

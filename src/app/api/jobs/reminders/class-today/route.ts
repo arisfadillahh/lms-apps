@@ -1,18 +1,16 @@
 import { NextResponse } from 'next/server';
 import { checkAndSendClassReminders } from '@/lib/services/classReminderScheduler';
+import { verifyCronRequest } from '@/lib/cron';
 
-export const dynamic = 'force-dynamic'; // Ensure not cached
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
+    if (!verifyCronRequest(request)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     try {
-        // Optional: Add CRON_SECRET check here if needed in production
-        // const authHeader = request.headers.get('authorization');
-        // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        //   return new NextResponse('Unauthorized', { status: 401 });
-        // }
-
         const result = await checkAndSendClassReminders();
-
         return NextResponse.json(result);
     } catch (error) {
         console.error('[API] Class reminder job error:', error);

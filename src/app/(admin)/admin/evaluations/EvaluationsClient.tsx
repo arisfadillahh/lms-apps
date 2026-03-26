@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 type Criteria = {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
   order_index: number;
 };
 

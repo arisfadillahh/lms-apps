@@ -1,5 +1,7 @@
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { notFound } from 'next/navigation';
+import { readdir } from 'fs/promises';
+import path from 'path';
 import { Sparkles, User, Calendar, ClipboardList, MessageSquare } from 'lucide-react';
 import DownloadPdfButton from './DownloadPdfButton';
 
@@ -60,6 +62,38 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
   const block = Array.isArray(report.block) ? report.block[0] : report.block;
   const coder = Array.isArray(report.coder) ? report.coder[0] : report.coder;
   const coach = klass?.coach ? (Array.isArray(klass.coach) ? klass.coach[0] : klass.coach) : null;
+
+  // Fetch avatar in a separate, lightweight query to avoid join conflicts
+  let coderAvatarUrl: string | null = null;
+  if (report.coder_id) {
+    const { data: coderUser } = await supabase
+      .from('users')
+      .select('avatar_path, avatar_url')
+      .eq('id', report.coder_id)
+      .maybeSingle();
+    const rawAvatarPath: string | null = (coderUser as any)?.avatar_path || (coderUser as any)?.avatar_url || null;
+    console.log('[Report] coder_id:', report.coder_id, 'raw avatar:', rawAvatarPath);
+    if (rawAvatarPath) {
+      // avatar_path already stores the full path e.g. /api/avatars/filename.jpg
+      // OR it could be just a filename - in both cases use directly or prefix if needed
+      coderAvatarUrl = rawAvatarPath;
+    } else {
+      // Fallback: scan the local uploads folder for a file matching the coder's ID prefix
+      try {
+        const avatarsDir = path.join(process.cwd(), 'public/uploads/avatars');
+        const files = await readdir(avatarsDir);
+        const coderFiles = files
+          .filter(f => f.startsWith(report.coder_id))
+          .sort() // sort ascending; last one has the highest timestamp
+          .reverse(); // latest first
+        if (coderFiles.length > 0) {
+          coderAvatarUrl = `/api/avatars/${coderFiles[0]}`;
+        }
+      } catch {
+        // avatars folder doesn't exist or can't be read — skip silently
+      }
+    }
+  }
 
   const [{ data: evalCriteria }, { data: lessonTemplates }] = await Promise.all([
     supabase.from('evaluation_criteria').select('*').order('order_index'),
@@ -252,7 +286,11 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
           <div className="relative flex flex-col md:flex-row items-center gap-8 print:gap-6">
             <div className="relative">
               <div className="w-32 h-32 sm:w-40 sm:h-40 print:w-24 print:h-24 rounded-3xl overflow-hidden border-4 border-white/40 shadow-xl bg-white flex items-center justify-center text-5xl print:text-4xl font-black text-slate-300">
-                {coder?.full_name?.charAt(0).toUpperCase() || '?'}
+                {coderAvatarUrl ? (
+                  <img src={coderAvatarUrl} alt={coder?.full_name || 'Coder'} className="w-full h-full object-cover" />
+                ) : (
+                  coder?.full_name?.charAt(0).toUpperCase() || '?'
+                )}
               </div>
               <div className="absolute -bottom-3 -right-3 bg-sunshine p-2 rounded-2xl shadow-lg print:hidden">
                 <Sparkles className="text-clevio-navy" size={20} />

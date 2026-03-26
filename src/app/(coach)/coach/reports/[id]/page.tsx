@@ -3,6 +3,8 @@ import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { getSessionOrThrow } from '@/lib/auth';
 import ReportReviewClient from './ReportReviewClient';
 import { classesDao } from '@/lib/dao';
+import { readdir } from 'fs/promises';
+import path from 'path';
 
 export default async function CoachReportReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSessionOrThrow();
@@ -110,6 +112,41 @@ export default async function CoachReportReviewPage({ params }: { params: Promis
     .map((w: string) => w[0]?.toUpperCase() ?? '')
     .join('');
 
+  // Build the coder's avatar public URL if they have one
+  let coderAvatarUrl: string | null = null;
+  if ((coder as any)?.id) {
+    const { data: coderUser } = await supabase
+      .from('users')
+      .select('avatar_path, avatar_url')
+      .eq('id', (coder as any).id)
+      .maybeSingle();
+    const rawAvatarUrl: string | null = (coderUser as any)?.avatar_path || (coderUser as any)?.avatar_url || null;
+    if (rawAvatarUrl) {
+      if (rawAvatarUrl.startsWith('http')) {
+        coderAvatarUrl = rawAvatarUrl;
+      } else {
+        // Local storage: served via /api/avatars/[filename]
+        const filename = rawAvatarUrl.split('/').pop();
+        coderAvatarUrl = `/api/avatars/${filename}`;
+      }
+    } else {
+      // Fallback: scan local avatars folder for files matching the coder's ID prefix
+      try {
+        const avatarsDir = path.join(process.cwd(), 'public/uploads/avatars');
+        const files = await readdir(avatarsDir);
+        const coderFiles = files
+          .filter(f => f.startsWith((coder as any).id))
+          .sort()
+          .reverse();
+        if (coderFiles.length > 0) {
+          coderAvatarUrl = `/api/avatars/${coderFiles[0]}`;
+        }
+      } catch {
+        // avatars folder not accessible — skip silently
+      }
+    }
+  }
+
   return (
     <div className="-mx-8 -mb-8">
       <ReportReviewClient
@@ -117,6 +154,7 @@ export default async function CoachReportReviewPage({ params }: { params: Promis
         initialDescriptions={initialDescriptions}
         coderName={coderName}
         coderInitials={coderInitials}
+        coderAvatarUrl={coderAvatarUrl}
         className={klass.name}
         blockName={(block as any)?.name ?? ''}
         grade={report.grade}

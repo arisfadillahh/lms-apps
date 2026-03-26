@@ -125,6 +125,7 @@ type Props = {
   initialDescriptions: ReportDescriptionItem[];
   coderName: string;
   coderInitials: string;
+  coderAvatarUrl?: string | null;
   className: string;
   blockName: string;
   grade: string | null;
@@ -138,6 +139,7 @@ export default function ReportReviewClient({
   initialDescriptions,
   coderName,
   coderInitials,
+  coderAvatarUrl,
   className,
   blockName,
   grade,
@@ -237,9 +239,18 @@ export default function ReportReviewClient({
           {/* Identity */}
           <div className="text-center w-full">
             <div className="inline-block p-1 rounded-full border-2 border-slate-100 mb-4">
-              <div className="w-24 h-24 rounded-full bg-slate-800 flex items-center justify-center text-white text-3xl font-bold select-none">
-                {coderInitials}
-              </div>
+              {coderAvatarUrl ? (
+                <img
+                  src={coderAvatarUrl}
+                  alt={coderName}
+                  className="w-24 h-24 rounded-full object-cover"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-slate-800 flex items-center justify-center text-white text-3xl font-bold select-none">
+                  {coderInitials}
+                </div>
+              )}
             </div>
             <h2 className="text-2xl font-bold text-slate-900 leading-tight">{coderName}</h2>
             <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">

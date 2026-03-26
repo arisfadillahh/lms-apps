@@ -106,7 +106,7 @@ export default async function CoderDashboardPage() {
       for (const sess of todaySessions) {
         const sessionTime = new Date(sess.date_time).getTime();
         const windowStart = sessionTime - 30 * msPerMinute;   // 30 min before
-        const windowEnd   = sessionTime + 120 * msPerMinute;  // 2 hours after
+        const windowEnd = sessionTime + 120 * msPerMinute;  // 2 hours after
         if (nowMs >= windowStart && nowMs <= windowEnd) {
           isLinkActive = true;
           break;
@@ -127,12 +127,12 @@ export default async function CoderDashboardPage() {
     const nextIdx = allLessons.findIndex((l: any) => l.status === 'NEXT');
     // isLastLesson: the NEXT lesson is the last one in the block
     const isLastLesson = nextIdx !== -1 && nextIdx === allLessons.length - 1;
-    
+
     // Also check if an evaluation session already exists for this block
     const supabase = getSupabaseAdmin();
     let isEvalSessionActive = false;
     let evalSessionIdForFallback = '';
-    
+
     try {
       const { data: activeEvalSession } = await (supabase as any)
         .from('block_evaluation_sessions')
@@ -143,7 +143,7 @@ export default async function CoderDashboardPage() {
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
-        
+
       if (activeEvalSession) {
         isEvalSessionActive = true;
         evalSessionIdForFallback = activeEvalSession.session_id;
@@ -426,7 +426,7 @@ export default async function CoderDashboardPage() {
                                 Masuk Kelas
                               </button>
                               <div className="absolute top-[-40px] left-1/2 -translate-x-1/2 opacity-0 group-hover/btn:opacity-100 transition-opacity bg-slate-800 text-white text-xs font-bold py-1 px-3 rounded-lg whitespace-nowrap z-50 pointer-events-none">
-                                Tombol aktif 30 menit sebelum kelas hingga 2 jam setelah
+                                Tombol aktif 30 menit sebelum kelas
                                 <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
                               </div>
                             </div>

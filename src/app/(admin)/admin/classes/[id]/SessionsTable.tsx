@@ -15,6 +15,8 @@ type ClassLesson = {
     id: string;
     title: string;
     order_index: number;
+    blockName: string;
+    blockOrder: number;
 };
 
 type SessionsTableProps = {
@@ -26,9 +28,27 @@ type SessionsTableProps = {
 };
 
 export default function SessionsTable({ classId, sessions, coachMap, lessonMap, availableLessons }: SessionsTableProps) {
-    const [page, setPage] = useState(1);
-    const [editingMaterialSession, setEditingMaterialSession] = useState<Session | null>(null);
     const pageSize = 10;
+
+    // Compute the initial page to show — the page containing the nearest upcoming/current session
+    const initialPage = (() => {
+        const now = new Date();
+        // Find the index of the nearest session that is SCHEDULED and closest to today (past or future)
+        let nearestIndex = 0;
+        let nearestDiff = Infinity;
+        sessions.forEach((s, i) => {
+            if (s.status === 'CANCELLED') return;
+            const diff = Math.abs(new Date(s.date_time).getTime() - now.getTime());
+            if (diff < nearestDiff) {
+                nearestDiff = diff;
+                nearestIndex = i;
+            }
+        });
+        return Math.max(1, Math.ceil((nearestIndex + 1) / pageSize));
+    })();
+
+    const [page, setPage] = useState(initialPage);
+    const [editingMaterialSession, setEditingMaterialSession] = useState<Session | null>(null);
 
     const totalPages = Math.ceil(sessions.length / pageSize);
     const startIndex = (page - 1) * pageSize;

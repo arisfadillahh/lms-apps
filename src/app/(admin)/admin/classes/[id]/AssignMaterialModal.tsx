@@ -7,6 +7,8 @@ type ClassLesson = {
     id: string;
     title: string;
     order_index: number;
+    blockName: string;
+    blockOrder: number;
 };
 
 type Props = {
@@ -86,11 +88,28 @@ export default function AssignMaterialModal({ classId, sessionId, currentDate, i
                             required
                         >
                             <option value="" disabled>-- Pilih Materi --</option>
-                            {availableLessons.map(lesson => (
-                                <option key={lesson.id} value={lesson.id}>
-                                    {lesson.title}
-                                </option>
-                            ))}
+                            {(() => {
+                                // Group lessons by block, maintaining curriculum order
+                                const groups: { blockName: string; blockOrder: number; lessons: ClassLesson[] }[] = [];
+                                for (const lesson of availableLessons) {
+                                    const existing = groups.find(g => g.blockName === lesson.blockName);
+                                    if (existing) {
+                                        existing.lessons.push(lesson);
+                                    } else {
+                                        groups.push({ blockName: lesson.blockName, blockOrder: lesson.blockOrder, lessons: [lesson] });
+                                    }
+                                }
+                                groups.sort((a, b) => a.blockOrder - b.blockOrder);
+                                return groups.map(group => (
+                                    <optgroup key={group.blockName} label={`📦 ${group.blockName}`}>
+                                        {group.lessons.map(lesson => (
+                                            <option key={lesson.id} value={lesson.id}>
+                                                {lesson.title}
+                                            </option>
+                                        ))}
+                                    </optgroup>
+                                ));
+                            })()}
                         </select>
                     </div>
 

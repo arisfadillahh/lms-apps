@@ -12,7 +12,6 @@ import {
   exkulCompetenciesDao,
 } from '@/lib/dao';
 import type { ClassLessonRecord } from '@/lib/dao/classLessonsDao';
-import { reassignLessonsToSessions } from '@/lib/services/lessonRebalancer';
 
 import AssignSubstituteForm from './AssignSubstituteForm';
 import EnrollCoderForm from './EnrollCoderForm';
@@ -56,13 +55,7 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  if (klass.type === 'WEEKLY') {
-    try {
-      await reassignLessonsToSessions(classIdParam);
-    } catch (error) {
-      console.error('[AdminClassDetailPage] Failed to rebalance lessons before render', error);
-    }
-  }
+
 
   // Ensure future sessions exist (Rolling 12 sessions)
   await sessionsDao.ensureFutureSessions(classIdParam);
@@ -115,9 +108,21 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
 
   const lessonMap = new Map<string, string>();
   for (const bs of blockSummaries) {
+    // Count duplicate titles within this block to detect multi-part lessons
+    const titleCounts = new Map<string, number>();
+    bs.lessons.forEach(l => titleCounts.set(l.title, (titleCounts.get(l.title) || 0) + 1));
+
+    const titleRunningCounts = new Map<string, number>();
     for (const lesson of bs.lessons) {
+      const total = titleCounts.get(lesson.title) || 1;
+      let displayTitle = lesson.title;
+      if (total > 1) {
+        const current = (titleRunningCounts.get(lesson.title) || 0) + 1;
+        titleRunningCounts.set(lesson.title, current);
+        displayTitle = `${lesson.title} (Part ${current})`;
+      }
       if (lesson.session_id) {
-        lessonMap.set(lesson.session_id, lesson.title);
+        lessonMap.set(lesson.session_id, displayTitle);
       }
     }
   }
@@ -318,7 +323,29 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
         sessions={sessions} 
         coachMap={coachMap} 
         lessonMap={lessonMap} 
-        availableLessons={blockSummaries.flatMap(bs => bs.lessons.map(l => ({ id: l.id, title: l.title, order_index: l.order_index })))}
+        availableLessons={blockSummaries.flatMap((bs, bsIndex) => {
+          const blockName = bs.block.block_name ?? `Block ${bsIndex + 1}`;
+          const blockOrder = bs.block.block_order_index ?? bsIndex;
+          // Count occurrences to label multi-part lessons
+          const titleCounts = new Map<string, number>();
+          bs.lessons.forEach(l => {
+            titleCounts.set(l.title, (titleCounts.get(l.title) || 0) + 1);
+          });
+          
+          const titleRunningCounts = new Map<string, number>();
+          return bs.lessons.map(l => {
+            const total = titleCounts.get(l.title) || 1;
+            let displayTitle = l.title;
+            
+            if (total > 1) {
+              const current = (titleRunningCounts.get(l.title) || 0) + 1;
+              titleRunningCounts.set(l.title, current);
+              displayTitle = `${l.title} (Part ${current})`;
+            }
+            
+            return { id: l.id, title: displayTitle, order_index: l.order_index, blockName, blockOrder };
+          });
+        })}
       />
 
       <AttendanceRecapTable 

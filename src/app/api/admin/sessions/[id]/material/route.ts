@@ -36,7 +36,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const { classLessonId } = parsed.data;
     const supabase = getSupabaseAdmin();
 
-    // 1. Get the target session to find its class_id and chronological position
+    // 1. Get the target session to find its class_id
     const { data: targetSession, error: sessionError } = await supabase
       .from('sessions')
       .select('id, class_id, date_time')
@@ -49,10 +49,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     const classId = targetSession.class_id;
 
-    // 2. Fetch all valid sessions for this class to determine the target index
+    // 2. Fetch all valid sessions for this class (with date_time for unlock_at)
     const { data: validSessions, error: validSessionsError } = await supabase
       .from('sessions')
-      .select('id')
+      .select('id, date_time')
       .eq('class_id', classId)
       .neq('status', 'CANCELLED')
       .order('date_time', { ascending: true });
@@ -66,12 +66,13 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Cannot assign material to a cancelled or invalid session' }, { status: 400 });
     }
 
-    // 3. Fetch all class_lessons for this class, ordered natively
+    // 3. Fetch ALL class_lessons for this class, ordered by curriculum sequence
     const { data: lessons, error: lessonError } = await supabase
       .from('class_lessons')
       .select(`
         id, 
         order_index, 
+        class_block_id,
         class_blocks!inner (
           id,
           class_id,
@@ -84,8 +85,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Failed to fetch class lessons' }, { status: 500 });
     }
 
-    // Sort to get current sequence
-    const sortedLessons = lessons.sort((a: any, b: any) => {
+    // Sort to get current global curriculum sequence
+    const sortedLessons = (lessons as any[]).sort((a, b) => {
       const blockOrderA = a.class_blocks?.blocks?.order_index ?? 0;
       const blockOrderB = b.class_blocks?.blocks?.order_index ?? 0;
       if (blockOrderA !== blockOrderB) return blockOrderA - blockOrderB;
@@ -93,48 +94,55 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return a.id.localeCompare(b.id);
     });
 
-    // 4. Find the lesson we want to insert
-    const lessonToMoveIndex = sortedLessons.findIndex((l) => l.id === classLessonId);
+    // 4. Find the lesson to move
+    const lessonToMoveIndex = sortedLessons.findIndex((l: any) => l.id === classLessonId);
     if (lessonToMoveIndex === -1) {
       return NextResponse.json({ error: 'Lesson not found in this class' }, { status: 404 });
     }
-
     const lessonToMove = sortedLessons[lessonToMoveIndex];
 
-    // Splice it out of its current position
-    sortedLessons.splice(lessonToMoveIndex, 1);
+    // 5. Compute the OFFSET so that lesson[lessonToMoveIndex] aligns with session[targetSessionIndex].
+    // This shifts the ENTIRE lesson sequence, adjusting BOTH previous AND next sessions automatically.
+    // e.g. if Part 5 (lessonToMoveIndex=7) is assigned to session 2 (targetSessionIndex=2),
+    //      offset = 2 - 7 = -5, so Part 4 → session 1, Part 3 → session 0, Part 6 → session 3, etc.
+    const sessionOffset = targetSessionIndex - lessonToMoveIndex;
 
-    // Insert it exactly at the target index (which corresponds to the session's index)
-    // If target index is beyond the length, just push it
-    const insertIndex = Math.min(targetSessionIndex, sortedLessons.length);
-    sortedLessons.splice(insertIndex, 0, lessonToMove);
+    const lessonIds = sortedLessons.map((l: any) => l.id);
 
-    // 5. Build bulk update for order_index
-    // We update the order_index sequentially for the new array so the rebalancer natively reads it properly.
-    // Base the new order on indices (e.g. 1000, 2000, 3000 to keep it clean, or just 10, 20, 30... wait, class_blocks logic expects order_index).
-    // Actually, just linearly resetting order_index across the whole class is risky if there are blocks.
-    // Instead, we just assign the current array elements a sequence from 0 to N.
-    // Wait; blocks have their own order_index. If we shift a lesson across blocks, we technically change its block? 
-    // We shouldn't change its class_block_id to avoid breaking logic, just its order_index.
-    
-    const updatePromises = [];
-    for (let i = 0; i < sortedLessons.length; i++) {
-        // Just enforce strict sequential order within the global map
-        const newOrder = i * 1000;
-        updatePromises.push(
-            supabase.from('class_lessons')
-              .update({ order_index: newOrder })
-              .eq('id', sortedLessons[i].id)
-        );
+    // Phase A: Clear ALL session_ids first to avoid UNIQUE constraint conflicts
+    const { error: clearError } = await supabase
+      .from('class_lessons')
+      .update({ session_id: null, unlock_at: null })
+      .in('id', lessonIds);
+
+    if (clearError) {
+      console.error('[MaterialShift] Failed to clear session ids:', clearError);
+      return NextResponse.json({ error: 'Failed to shift material' }, { status: 500 });
     }
 
-    await Promise.all(updatePromises);
+    // Phase B: Assign sessions sequentially with the offset
+    console.log(`[MaterialShift] Anchoring lesson at index ${lessonToMoveIndex} to session index ${targetSessionIndex} (offset=${sessionOffset})`);
+    for (let i = 0; i < sortedLessons.length; i++) {
+      const sessionIndex = i + sessionOffset;
+      const sess = (sessionIndex >= 0 && sessionIndex < validSessions.length)
+        ? validSessions[sessionIndex]
+        : null;
 
-    // 6. Run Rebalancer automatically!
-    const { reassignLessonsToSessions } = await import('@/lib/services/lessonRebalancer');
-    await reassignLessonsToSessions(classId);
+      const { error: assignError } = await supabase
+        .from('class_lessons')
+        .update({
+          session_id: sess?.id ?? null,
+          unlock_at: sess?.date_time ?? null,
+        })
+        .eq('id', sortedLessons[i].id);
+
+      if (assignError) {
+        console.error(`[MaterialShift] Failed to assign session for lesson ${sortedLessons[i].id}:`, assignError);
+      }
+    }
 
     revalidatePath('/admin/classes/[id]', 'page');
+    revalidatePath('/admin/classes');
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

@@ -123,8 +123,9 @@ export default function CoachSearch() {
                                         <button
                                             key={lesson.id}
                                             onClick={() => {
-                                                // Navigate directly to the lesson detail page
-                                                router.push(`/coach/lesson/${lesson.lesson_id}`);
+                                                // Navigate directly to the lesson detail page with context
+                                                const sessionId = lesson.id.replace('session-', '');
+                                                router.push(`/coach/lesson/${lesson.lesson_id}?classId=${lesson.class_id}&sessionId=${sessionId}`);
                                                 setIsOpen(false);
                                                 setQuery('');
                                             }}

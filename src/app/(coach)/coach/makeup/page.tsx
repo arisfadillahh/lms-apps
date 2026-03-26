@@ -40,7 +40,7 @@ export default async function CoachMakeUpPage() {
             Tugas Susulan
           </h1>
           <p className="text-slate-500 mt-2">
-            Kelola dan tinjau tugas tambahan siswa (Make-up Tasks) dengan mudah dan teratur.
+            Pantau dan nilai tugas susulan yang dikumpulkan siswa setelah mereka absen dari sesi belajar.
           </p>
         </div>
 

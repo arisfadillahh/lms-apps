@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getSessionOrThrow } from '@/lib/auth';
 import { attendanceDao, classesDao, sessionsDao, usersDao } from '@/lib/dao';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
+import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
 import AttendanceWrapper from './AttendanceWrapper';
 import MarkSessionCompleteButton from '@/app/(coach)/coach/classes/[id]/MarkSessionCompleteButton';
@@ -102,6 +103,57 @@ export default async function SessionAttendancePage({ params }: PageProps) {
   const lessonNumber = classRecord.type === 'EKSKUL'
     ? classSessions.findIndex(s => s.id === sessionRecord.id) + 1
     : (lessonScheduleMap.get(sessionRecord.id)?.globalIndex ?? 0) + 1;
+
+  // Detect if this is the LAST session of this block (for evaluation button)
+  const currentSlot = lessonScheduleMap.get(sessionRecord.id);
+  const currentBlockId = currentSlot?.block.id ?? null;
+  let isLastSessionOfBlock = false;
+  if (currentBlockId) {
+    const blockSessions = classSessions.filter(s => {
+      const slot = lessonScheduleMap.get(s.id);
+      return slot?.block.id === currentBlockId;
+    });
+    const sortedBlockSessions = blockSessions.sort((a, b) =>
+      new Date(a.date_time).getTime() - new Date(b.date_time).getTime()
+    );
+    isLastSessionOfBlock = sortedBlockSessions[sortedBlockSessions.length - 1]?.id === sessionRecord.id;
+  }
+
+  // Check if an eval session already exists for this attendance session
+  let existingEvalSessionId: string | null = null;
+  let templateId: string | null = null;
+  if (isLastSessionOfBlock && currentBlockId) {
+    const supabase = getSupabaseAdmin();
+    const { data: existingEval } = await (supabase as any)
+      .from('block_evaluation_sessions')
+      .select('id')
+      .eq('session_id', sessionRecord.id)
+      .maybeSingle();
+    existingEvalSessionId = existingEval?.id ?? null;
+
+    // Get template for this class's level
+    const { data: classLevel } = await supabase
+      .from('classes')
+      .select('level_id')
+      .eq('id', classRecord.id)
+      .single();
+    if (classLevel?.level_id) {
+      const { data: tmpl } = await supabase
+        .from('block_evaluation_templates')
+        .select('id')
+        .eq('level_id', classLevel.level_id)
+        .maybeSingle();
+      templateId = tmpl?.id ?? null;
+    }
+    if (!templateId) {
+      const { data: fallbackTmpl } = await supabase
+        .from('block_evaluation_templates')
+        .select('id')
+        .is('level_id', null)
+        .maybeSingle();
+      templateId = fallbackTmpl?.id ?? null;
+    }
+  }
 
   const sessionStart = new Date(sessionRecord.date_time);
   const sessionEnd = new Date(sessionStart.getTime() + 90 * 60000);
@@ -224,6 +276,11 @@ export default async function SessionAttendancePage({ params }: PageProps) {
           canComplete={sessionRecord.status === 'SCHEDULED'}
           slideUrl={slideUrl}
           slideTitle={slideTitle}
+          isLastSessionOfBlock={isLastSessionOfBlock}
+          classId={classRecord.id}
+          blockId={currentBlockId ?? undefined}
+          templateId={templateId}
+          existingEvalSessionId={existingEvalSessionId}
         />
 
         {/* Monthly Recap Section */}

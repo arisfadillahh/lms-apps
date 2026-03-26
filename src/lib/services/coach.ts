@@ -257,11 +257,17 @@ export async function getPendingLessonEvaluationsForCoach(coachId: string): Prom
 
     const lessonMap = await computeLessonSchedule(klass.id, klass.level_id);
     const activeEnrollments = (await classesDao.listEnrollmentsByClass(klass.id)).filter(e => e.status === 'ACTIVE');
+    const classBlocks = await classesDao.getClassBlocks(klass.id);
+    // ONLY evaluate lessons in the CURRENT active block. Do not leak to UPCOMING or COMPLETED blocks.
+    const activeBlockIds = new Set(classBlocks.filter(b => b.status === 'CURRENT').map(b => b.block_id));
     
     // 3. Check which completed sessions already have evaluations
     for (const session of completedSessions) {
       const slot = lessonMap.get(session.id);
       if (!slot) continue;
+
+      // Only evaluate lessons that belong to an active block (prevent 'bocor' from old completed blocks)
+      if (!activeBlockIds.has(slot.block.id)) continue;
 
       // RULE: Only evaluate a lesson when ALL parts of that lesson are completed.
       // So if a lesson has 3 parts, we only ask for evaluation on Part 3.
@@ -279,12 +285,9 @@ export async function getPendingLessonEvaluationsForCoach(coachId: string): Prom
 
       const evaluatedCoderIds = new Set((existingEvals || []).map(e => e.coder_id));
 
-      // Filter enrollments: only students who were active AT THE TIME of the session should be evaluated.
-      const relevantEnrollments = activeEnrollments.filter(e => {
-        if (!e.enrolled_at) return true;
-        // Compare session date with enrollment date
-        return new Date(e.enrolled_at) <= new Date(session.date_time);
-      });
+      // Include all active enrollments, even if they joined after the session (migrasi late-joiners)
+      // so the coach can evaluate them for past lessons they skipped within the CURRENT block.
+      const relevantEnrollments = activeEnrollments;
 
       if (relevantEnrollments.length === 0) continue;
 

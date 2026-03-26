@@ -2,6 +2,7 @@
 
 import { useTransition, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Undo2 } from 'lucide-react';
 
 interface RejectReportButtonProps {
   reportId: string;
@@ -64,7 +65,7 @@ export default function RejectReportButton({ reportId, disabled }: RejectReportB
           transition: 'all 0.2s'
         }}
       >
-        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>undo</span>
+        <Undo2 size={16} />
         Nilai Ulang
       </button>
 

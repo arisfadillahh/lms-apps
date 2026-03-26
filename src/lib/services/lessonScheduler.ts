@@ -11,6 +11,7 @@ export type LessonSlot = {
     partNumber: number;      // 1 for first part, 2 for second part, etc.
     totalParts: number;      // Total parts for this lesson (based on duration)
     globalIndex: number;     // Position in the full curriculum cycle
+    explicitSessionId?: string | null; // Explicit session mapping from class_lessons override
 };
 
 export type SessionLessonMapping = {
@@ -172,6 +173,7 @@ export async function computeLessonSchedule(
                     partNumber,
                     totalParts,
                     globalIndex,
+                    explicitSessionId: cl.session_id,
                 });
                 globalIndex++;
             }
@@ -191,11 +193,37 @@ export async function computeLessonSchedule(
         .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
 
     const result = new Map<string, LessonSlot>();
+    const unassignedSessions: typeof activeSessions = [];
+    const unassignedSlots: LessonSlot[] = [];
 
-    activeSessions.forEach((session, index) => {
-        // Cycle through lessons using modulo
-        const slotIndex = index % orderedSlots.length;
-        result.set(session.id, orderedSlots[slotIndex]);
+    // 1. Assign explicit overrides first
+    // If a lesson has multiple parts and only 1 session override, 
+    // it overwrites so the mapping points to that slot (usually the last parsed if same ID)
+    orderedSlots.forEach(slot => {
+        if (slot.explicitSessionId && activeSessions.some(s => s.id === slot.explicitSessionId)) {
+            result.set(slot.explicitSessionId, slot);
+        } else {
+            unassignedSlots.push(slot);
+        }
+    });
+
+    // Determine which sessions still need mapping
+    activeSessions.forEach(session => {
+        if (!result.has(session.id)) {
+            unassignedSessions.push(session);
+        }
+    });
+
+    // 2. Sequentially assign the remaining sessions to the unassigned slots
+    unassignedSessions.forEach((session, index) => {
+        if (unassignedSlots.length > 0) {
+            const slotIndex = index % unassignedSlots.length;
+            result.set(session.id, unassignedSlots[slotIndex]);
+        } else if (orderedSlots.length > 0) {
+            // Fallback just in case
+            const slotIndex = index % orderedSlots.length;
+            result.set(session.id, orderedSlots[slotIndex]);
+        }
     });
 
     return result;

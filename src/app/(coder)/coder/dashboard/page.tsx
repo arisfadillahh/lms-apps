@@ -8,6 +8,7 @@ import { BookOpen, Flame, Pencil, ChevronRight, ListChecks, Zap, Play, Dumbbell,
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { getCoderProgress } from '@/lib/services/coder';
+import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
 import JourneyModal from './JourneyModal';
 import UpcomingLessonsModal from './UpcomingLessonsModal';
@@ -15,6 +16,7 @@ import SoftwareDetailModal from './SoftwareDetailModal';
 import BannerCarousel from '@/components/coder/BannerCarousel';
 import { StaggerContainer, StaggerItem } from '../StaggerWrapper';
 import CoderHeader from './CoderHeader';
+import BlockEvaluationCard from './BlockEvaluationCard';
 
 type Banner = {
   id: string;
@@ -78,20 +80,122 @@ export default async function CoderDashboardPage() {
   const totalLessons = activeBlock?.block.lessons?.length || 1;
   const activeProgressPct = Math.round((completedLessons / totalLessons) * 100);
 
-  // Check if class link is active (class time up to 1.5 hours later)
+  // Check if class link is active: query today's sessions DIRECTLY from DB
+  // (lesson.scheduledAt is unreliable — depends on lessonMap template matching)
   let isLinkActive = false;
   let zoomLink = activeBlock?.schedule?.zoomLink || null;
-  const scheduledTime = nextLesson?.scheduledAt?.[0] ? new Date(nextLesson.scheduledAt[0]) : null;
 
-  if (scheduledTime) {
-    const msPerMinute = 60000;
-    const startTime = new Date(scheduledTime.getTime());
-    startTime.setMinutes(startTime.getMinutes() - 30); // 30 mins buffer before class
-    const endTime = new Date(scheduledTime.getTime() + 90 * msPerMinute); // 1.5 hours after start
-    const now = new Date();
+  if (activeBlock) {
+    const supabase = getSupabaseAdmin();
+    const nowMs = Date.now();
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
 
-    if (now >= startTime && now <= endTime) {
-      isLinkActive = true;
+    const { data: todaySessions } = await supabase
+      .from('sessions')
+      .select('date_time, status')
+      .eq('class_id', activeBlock.classId)
+      .neq('status', 'CANCELLED')
+      .gte('date_time', todayStart.toISOString())
+      .lte('date_time', todayEnd.toISOString());
+
+    if (todaySessions && todaySessions.length > 0) {
+      const msPerMinute = 60000;
+      for (const sess of todaySessions) {
+        const sessionTime = new Date(sess.date_time).getTime();
+        const windowStart = sessionTime - 30 * msPerMinute;   // 30 min before
+        const windowEnd   = sessionTime + 120 * msPerMinute;  // 2 hours after
+        if (nowMs >= windowStart && nowMs <= windowEnd) {
+          isLinkActive = true;
+          break;
+        }
+      }
+    }
+  }
+
+  // ── Block Evaluation Card logic ──
+  // For testing: show the card whenever class is active and there's a next lesson and no submission yet.
+  // Production: swap the `isAnyActiveLesson` below back to `isLastLesson` check.
+  let showEvaluationCard = false;
+  let evaluationTemplate: { id: string; questions: { id: string; question: string; placeholder?: string | null }[] } | null = null;
+  let blockForEval: { classId: string; blockId: string; blockName: string; sessionId: string } | null = null;
+
+  if (activeBlock && nextLesson) {
+    const allLessons = activeBlock.block.lessons || [];
+    const nextIdx = allLessons.findIndex((l: any) => l.status === 'NEXT');
+    // isLastLesson: the NEXT lesson is the last one in the block
+    const isLastLesson = nextIdx !== -1 && nextIdx === allLessons.length - 1;
+    
+    // Also check if an evaluation session already exists for this block
+    const supabase = getSupabaseAdmin();
+    let isEvalSessionActive = false;
+    let evalSessionIdForFallback = '';
+    
+    try {
+      const { data: activeEvalSession } = await (supabase as any)
+        .from('block_evaluation_sessions')
+        .select('id, session_id')
+        .eq('class_id', activeBlock.classId)
+        .eq('block_id', activeBlock.block.blockId)
+        .in('status', ['in_progress', 'completed'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+        
+      if (activeEvalSession) {
+        isEvalSessionActive = true;
+        evalSessionIdForFallback = activeEvalSession.session_id;
+      }
+    } catch (e) {
+      console.warn('Failed to check active eval session:', e);
+    }
+
+    const shouldShow = isLastLesson || isEvalSessionActive || true; // TODO: remove `|| true` for production
+
+    if (shouldShow) {
+      try {
+        // Check if already submitted (table may not exist yet if migration not run)
+        const { data: existing } = await supabase
+          .from('block_evaluations')
+          .select('id')
+          .eq('coder_id', session.user.id)
+          .eq('block_id', activeBlock.block.blockId)
+          .maybeSingle();
+
+        if (!existing) {
+          showEvaluationCard = true;
+          blockForEval = {
+            classId: activeBlock.classId,
+            blockId: activeBlock.block.blockId,
+            blockName: activeBlock.block.name,
+            sessionId: (nextLesson as any).scheduledAt?.[0] ?? (nextLesson as any).id ?? evalSessionIdForFallback ?? '',
+          };
+
+          // Try to fetch a template for this level
+          const levelId = (progress.find(p => p.classId === activeBlock.classId) as any)?.levelId ?? null;
+          if (levelId) {
+            const { data: tmpl } = await supabase
+              .from('block_evaluation_templates')
+              .select('id, questions')
+              .eq('level_id', levelId)
+              .maybeSingle();
+            if (tmpl) evaluationTemplate = tmpl as any;
+          }
+        }
+      } catch (e) {
+        // Gracefully ignore — tables may not exist yet (migration not yet applied)
+        console.warn('[BlockEvaluationCard] DB query failed (migration not run?):', e);
+        // Still show card with defaults even without DB
+        showEvaluationCard = true;
+        blockForEval = {
+          classId: activeBlock.classId,
+          blockId: activeBlock.block.blockId,
+          blockName: activeBlock.block.name,
+          sessionId: (nextLesson as any).scheduledAt?.[0] ?? evalSessionIdForFallback ?? '',
+        };
+      }
     }
   }
 
@@ -162,6 +266,13 @@ export default async function CoderDashboardPage() {
 
       {/* ===== CONTENT ===== */}
       <StaggerContainer className="flex-1 p-4 md:p-8 overflow-y-auto overflow-x-hidden">
+
+        {/* ===== BLOCK EVALUATION CARD ===== */}
+        {showEvaluationCard && blockForEval && (
+          <StaggerItem>
+            <BlockEvaluationCard classId={blockForEval.classId} />
+          </StaggerItem>
+        )}
 
         {/* ===== BANNER SECTION ===== */}
         <StaggerItem className="mb-10">
@@ -244,10 +355,16 @@ export default async function CoderDashboardPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 pt-6 md:pt-8 border-t-2 border-dashed border-sky/20">
                           <div className="space-y-4">
                             <h5 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                              <ListChecks className="text-sky" size={18} />
-                              Ringkasan Materi Sebelumnya
+                              <ListChecks className={isLinkActive ? "text-coral" : "text-sky"} size={18} />
+                              {isLinkActive ? 'Pelajaran Hari Ini' : 'Ringkasan Materi Sebelumnya'}
                             </h5>
-                            {lastCompletedLesson?.summary ? (
+                            {isLinkActive ? (
+                              <p className="text-sm font-bold text-slate-600 leading-relaxed">
+                                {nextLesson?.summary
+                                  ? nextLesson.summary
+                                  : 'Kelas sedang berjalan. Ikuti arahan coach dan selamat belajar!'}
+                              </p>
+                            ) : lastCompletedLesson?.summary ? (
                               <p className="text-sm font-bold text-slate-600 leading-relaxed">{lastCompletedLesson.summary}</p>
                             ) : (
                               <p className="text-sm font-bold text-slate-400 italic">Belum ada ringkasan untuk materi sebelumnya.</p>
@@ -256,9 +373,11 @@ export default async function CoderDashboardPage() {
                           <div className="space-y-4">
                             <h5 className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
                               <Zap className="text-orange-600" size={18} />
-                              Akses Slide Sesi Sebelumnya
+                              {isLinkActive ? 'Slide Pertemuan Hari Ini' : 'Akses Slide Sesi Sebelumnya'}
                             </h5>
-                            {lastCompletedLesson?.slideUrl ? (
+                            {isLinkActive ? (
+                              <p className="text-sm font-bold text-slate-400 italic p-4 bg-slate-50 rounded-2xl">Slide belum tersedia untuk materi ini.</p>
+                            ) : lastCompletedLesson?.slideUrl ? (
                               <a
                                 href={lastCompletedLesson.slideUrl}
                                 target="_blank"
@@ -276,6 +395,7 @@ export default async function CoderDashboardPage() {
                             )}
                           </div>
                         </div>
+
 
                         {/* Bottom: Progress + CTA */}
                         <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-6">
@@ -306,7 +426,7 @@ export default async function CoderDashboardPage() {
                                 Masuk Kelas
                               </button>
                               <div className="absolute top-[-40px] left-1/2 -translate-x-1/2 opacity-0 group-hover/btn:opacity-100 transition-opacity bg-slate-800 text-white text-xs font-bold py-1 px-3 rounded-lg whitespace-nowrap z-50 pointer-events-none">
-                                Tombol aktif 30 menit sebelum kelas
+                                Tombol aktif 30 menit sebelum kelas hingga 2 jam setelah
                                 <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
                               </div>
                             </div>

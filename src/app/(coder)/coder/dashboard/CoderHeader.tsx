@@ -24,7 +24,7 @@ export default function CoderHeader({ userName, fullName, todayDate, avatarPath,
     const avatarUrl = avatarPath || `https://ui-avatars.com/api/?name=${userName}&background=FFF0F3&color=1E3A5F`;
 
     return (
-        <header className="flex-shrink-0 sticky top-0 z-[60] bg-white/90 backdrop-blur-md px-4 md:px-8 py-3 md:py-5 flex items-center gap-3 md:gap-4 border-b-4 border-dashed border-pastel-blue/30">
+        <header className="flex-shrink-0 sticky top-0 z-[30] bg-white/90 backdrop-blur-md px-4 md:px-8 py-3 md:py-5 flex items-center gap-3 md:gap-4 border-b-4 border-dashed border-pastel-blue/30">
             {/* Mobile Nav */}
             <MobileNav
                 role={role as 'ADMIN' | 'COACH' | 'CODER'}

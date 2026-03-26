@@ -1195,6 +1195,80 @@ export interface Database {
           }
         ];
       };
+      block_evaluation_templates: {
+        Row: {
+          id: string;
+          level_id: string | null;
+          questions: { id: string; question: string; placeholder?: string | null }[];
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          level_id?: string | null;
+          questions: { id: string; question: string; placeholder?: string | null }[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['block_evaluation_templates']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'block_evaluation_templates_level_id_fkey';
+            columns: ['level_id'];
+            referencedRelation: 'levels';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      block_evaluations: {
+        Row: {
+          id: string;
+          coder_id: string;
+          class_id: string;
+          block_id: string;
+          session_id: string;
+          template_id: string | null;
+          answers: Record<string, string>;
+          submitted_at: string;
+        };
+        Insert: {
+          id?: string;
+          coder_id: string;
+          class_id: string;
+          block_id: string;
+          session_id: string;
+          template_id?: string | null;
+          answers: Record<string, string>;
+          submitted_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['block_evaluations']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'block_evaluations_coder_id_fkey';
+            columns: ['coder_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'block_evaluations_class_id_fkey';
+            columns: ['class_id'];
+            referencedRelation: 'classes';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'block_evaluations_block_id_fkey';
+            columns: ['block_id'];
+            referencedRelation: 'blocks';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'block_evaluations_session_id_fkey';
+            columns: ['session_id'];
+            referencedRelation: 'sessions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: {};
     Functions: {};

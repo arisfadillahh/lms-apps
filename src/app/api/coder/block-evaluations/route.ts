@@ -1,0 +1,86 @@
+import { NextResponse } from 'next/server';
+import { getSessionOrThrow } from '@/lib/auth';
+import { getSupabaseAdmin } from '@/lib/supabaseServer';
+
+export async function POST(req: Request) {
+  try {
+    const session = await getSessionOrThrow();
+    if (session.user.role !== 'CODER') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    const { classId, blockId, sessionId, answers, templateId } = await req.json();
+
+    if (!classId || !blockId || !sessionId || !answers) {
+      return NextResponse.json({ error: 'Data tidak lengkap.' }, { status: 400 });
+    }
+
+    const supabase = getSupabaseAdmin();
+
+    // Check for duplicate
+    const { data: existing } = await supabase
+      .from('block_evaluations')
+      .select('id')
+      .eq('coder_id', session.user.id)
+      .eq('block_id', blockId)
+      .maybeSingle();
+
+    if (existing) {
+      // Already submitted — return success so the UI navigates away cleanly
+      return NextResponse.json({ id: existing.id, alreadySubmitted: true });
+    }
+
+    const { data, error } = await supabase
+      .from('block_evaluations')
+      .insert({
+        coder_id: session.user.id,
+        class_id: classId,
+        block_id: blockId,
+        session_id: sessionId,
+        template_id: templateId ?? null,
+        answers,
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('[block-evaluations POST]', error);
+      return NextResponse.json({ error: 'Gagal menyimpan evaluasi.' }, { status: 500 });
+    }
+
+    return NextResponse.json({ id: data.id });
+  } catch (e) {
+    console.error('[block-evaluations POST] Unexpected:', e);
+    return NextResponse.json({ error: 'Server error.' }, { status: 500 });
+  }
+}
+
+export async function GET(req: Request) {
+  try {
+    const session = await getSessionOrThrow();
+    if (session.user.role !== 'CODER') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const blockId = searchParams.get('blockId');
+
+    if (!blockId) {
+      return NextResponse.json({ submitted: false });
+    }
+
+    const supabase = getSupabaseAdmin();
+
+    const { data } = await supabase
+      .from('block_evaluations')
+      .select('id')
+      .eq('coder_id', session.user.id)
+      .eq('block_id', blockId)
+      .maybeSingle();
+
+    return NextResponse.json({ submitted: !!data, id: data?.id ?? null });
+  } catch (e) {
+    console.error('[block-evaluations GET] Unexpected:', e);
+    return NextResponse.json({ error: 'Server error.' }, { status: 500 });
+  }
+}

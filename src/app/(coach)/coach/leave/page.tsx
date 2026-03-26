@@ -78,7 +78,7 @@ export default async function CoachLeavePage() {
               Pengajuan Izin
             </h1>
             <p className="text-slate-500 mt-2">
-              Kelola dan pantau status riwayat pengajuan izin sesi kelas Anda secara transparan.
+              Ajukan izin jika kamu berhalangan hadir mengajar, dan pantau status persetujuannya di sini.
             </p>
           </div>
           <div className="flex items-center gap-3 mt-1">

@@ -420,7 +420,7 @@ export default function RubricPageClient({ pendingLessons, draftReports }: Rubri
           <div className="space-y-3">
             <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight">Journey Penilaian</h2>
             <p className="text-slate-300 font-normal text-lg md:text-xl max-w-xl">
-              Pantau progres belajar coder hari ini dan lengkapi draf rapor mereka.
+              Nilai sesi mengajar yang sudah kamu selesaikan dan kirim draf rapor perkembangan coder.
             </p>
           </div>
           <div className="flex gap-4">
@@ -573,8 +573,8 @@ export default function RubricPageClient({ pendingLessons, draftReports }: Rubri
                 <PartyPopper className="text-emerald-500" size={24} />
               </div>
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center ml-2 z-10 relative">
-                <h3 className="text-xl font-bold text-slate-800 mb-2">Hore! Journey tuntas.</h3>
-                <p className="text-slate-500 max-w-sm mx-auto">Semua penilaian sudah diselesaikan. Ambil kopi dan bersantai, Coach!</p>
+                <h3 className="text-xl font-bold text-slate-800 mb-2">Semua sesi udah kelar! 🎉</h3>
+                <p className="text-slate-500 max-w-sm mx-auto">Semua penilaian untuk sesi mengajarmu sudah selesai. Mantap, Coach! Terus pertahankan!</p>
               </div>
             </motion.div>
           )}
@@ -586,7 +586,7 @@ export default function RubricPageClient({ pendingLessons, draftReports }: Rubri
                 <Flag className="text-slate-400" size={20} />
               </div>
               <div className="pt-4 z-10 relative">
-                <p className="text-slate-400 font-semibold italic">Akhir antrean hari ini...</p>
+                <p className="text-slate-400 font-semibold italic">Itu semua antrean penilaianmu untuk sekarang.</p>
               </div>
             </motion.div>
           )}

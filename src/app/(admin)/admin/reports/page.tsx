@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { Inbox, History, CheckCircle2, Mail, Eye } from 'lucide-react';
 import SendReportButton from './SendReportButton';
 import RejectReportButton from './RejectReportButton';
 
@@ -57,8 +58,8 @@ export default async function AdminReportsPage() {
       <section style={cardStyle}>
         <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ padding: '0.4rem', borderRadius: '8px', background: '#3b82f6', color: '#fff' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>inbox</span>
+            <div style={{ padding: '0.4rem', borderRadius: '8px', background: '#3b82f6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Inbox size={20} />
             </div>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Inbox Rapor (Perlu Review Admin)</h3>
           </div>
@@ -73,8 +74,8 @@ export default async function AdminReportsPage() {
       <section style={{ ...cardStyle, opacity: 0.85 }}>
         <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ padding: '0.4rem', borderRadius: '8px', background: '#10b981', color: '#fff' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>history</span>
+            <div style={{ padding: '0.4rem', borderRadius: '8px', background: '#10b981', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <History size={20} />
             </div>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Riwayat Rapor Terkirim</h3>
           </div>
@@ -144,16 +145,16 @@ function ReportTable({ reports, isInbox }: { reports: any[], isInbox: boolean })
                     {isPublished ? (
                       <span style={{
                         padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700,
-                        background: '#dcfce7', color: '#15803d', display: 'inline-flex', alignItems: 'center', gap: '0.2rem'
+                        background: '#dcfce7', color: '#15803d', display: 'inline-flex', alignItems: 'center', gap: '0.3rem'
                       }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check_circle</span> Published
+                        <CheckCircle2 size={14} /> Published
                       </span>
                     ) : (
                       <span style={{
                         padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600,
-                        background: '#fef3c7', color: '#92400e', display: 'inline-flex', alignItems: 'center', gap: '0.2rem'
+                        background: '#fef3c7', color: '#92400e', display: 'inline-flex', alignItems: 'center', gap: '0.3rem'
                       }}>
-                         <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>mail</span> Menunggu
+                         <Mail size={14} /> Menunggu
                       </span>
                     )}
                   </td>
@@ -178,7 +179,7 @@ function ReportTable({ reports, isInbox }: { reports: any[], isInbox: boolean })
                           transition: 'all 0.2s'
                         }}
                       >
-                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>visibility</span> Web Preview
+                        <Eye size={16} /> Web Preview
                       </a>
                       <RejectReportButton reportId={report.id} disabled={isPublished} />
                       <SendReportButton reportId={report.id} disabled={isPublished} />

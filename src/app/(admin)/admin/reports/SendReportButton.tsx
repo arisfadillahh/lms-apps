@@ -2,6 +2,7 @@
 
 import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { Send } from 'lucide-react';
 
 interface SendReportButtonProps {
   reportId: string;
@@ -38,9 +39,14 @@ export default function SendReportButton({ reportId, disabled }: SendReportButto
         fontSize: '0.85rem',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled || isPending ? 0.6 : 1,
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.4rem',
+        fontWeight: 600,
+        transition: 'all 0.2s',
       }}
     >
-      {isPending ? 'Mengirim…' : 'Publish & Kirim WA'}
+      <Send size={15} /> {isPending ? 'Mengirim…' : 'Publish & Kirim WA'}
     </button>
   );
 }

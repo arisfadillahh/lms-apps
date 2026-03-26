@@ -4,12 +4,14 @@ import { getSupabaseAdmin } from '@/lib/supabaseServer';
  * Re-assigns lessons to valid sessions for a specific class - GLOBAL SCOPE.
  * This ensures "Rolling" behavior where a lesson spills over to the next block's session if needed.
  * It also handles multi-part lessons by ensuring they are assigned sequentially.
+ *
+ * IMPORTANT: We clear all session_id assignments first, then re-assign sequentially.
+ * This prevents silent failures from UNIQUE constraints when swapping session_ids concurrently.
  */
 export async function reassignLessonsToSessions(classId: string): Promise<void> {
     const supabase = getSupabaseAdmin();
 
     // 1. Get ALL lessons for the class, fetching Block Order Index for correct sorting
-    // We select nested blocks -> order_index to ensure we follow the curriculum sequence, not just dates.
     const { data: lessons, error: lessonError } = await supabase
         .from('class_lessons')
         .select(`
@@ -17,7 +19,7 @@ export async function reassignLessonsToSessions(classId: string): Promise<void> 
             order_index, 
             class_blocks!inner (
                 id,
-                start_date,
+                class_id,
                 blocks (
                     order_index
                 )
@@ -26,12 +28,16 @@ export async function reassignLessonsToSessions(classId: string): Promise<void> 
         .eq('class_blocks.class_id', classId);
 
     if (lessonError || !lessons) {
-        console.error("Failed to fetch lessons for rebalance", lessonError);
+        console.error("[Rebalancer] Failed to fetch lessons for rebalance", lessonError);
+        return;
+    }
+
+    if (lessons.length === 0) {
+        console.log(`[Rebalancer] No lessons found for class ${classId}, skipping.`);
         return;
     }
 
     // Sort In-Memory to guarantee Curriculum Order (Block 1 -> Block 2 -> ...)
-    // This fixes the issue where "Jumping" dates caused lessons to be assigned out of order.
     const sortedLessons = lessons.sort((a: any, b: any) => {
         const blockOrderA = a.class_blocks?.blocks?.order_index ?? 0;
         const blockOrderB = b.class_blocks?.blocks?.order_index ?? 0;
@@ -39,17 +45,13 @@ export async function reassignLessonsToSessions(classId: string): Promise<void> 
         if (blockOrderA !== blockOrderB) {
             return blockOrderA - blockOrderB;
         }
-
-        // Same block? Sort by lesson order index
         if (a.order_index !== b.order_index) {
             return a.order_index - b.order_index;
         }
-
-        // Stable tie-breaker
         return a.id.localeCompare(b.id);
     });
 
-    // 2. Get ALL Valid Sessions (non-cancelled)
+    // 2. Get ALL Valid Sessions (non-cancelled), ordered chronologically
     const { data: validSessions, error: sessionError } = await supabase
         .from('sessions')
         .select('id, date_time')
@@ -58,34 +60,48 @@ export async function reassignLessonsToSessions(classId: string): Promise<void> 
         .order('date_time', { ascending: true });
 
     if (sessionError || !validSessions) {
-        console.error("Failed to fetch sessions for rebalance", sessionError);
+        console.error("[Rebalancer] Failed to fetch sessions for rebalance", sessionError);
         return;
     }
 
-    // 3. Map Lessons to Valid Sessions sequentially
-    const updates = [];
-    const chunkSize = 50;
+    const lessonIds = sortedLessons.map((l) => l.id);
 
-    for (let i = 0; i < sortedLessons.length; i += chunkSize) {
-        const chunk = sortedLessons.slice(i, i + chunkSize);
-        const updatePromises = chunk.map((lesson, index) => {
-            const globalIndex = i + index;
-            const session = validSessions[globalIndex] || null;
+    // 3. STEP 1: Clear ALL session_id assignments first to avoid UNIQUE constraint conflicts
+    // This prevents the issue where two lessons transiently point to the same session during a swap.
+    const { error: clearError } = await supabase
+        .from('class_lessons')
+        .update({ session_id: null, unlock_at: null })
+        .in('id', lessonIds);
 
-            return supabase.from('class_lessons')
-                .update({
-                    session_id: session ? session.id : null,
-                    unlock_at: session ? session.date_time : null
-                })
-                .eq('id', lesson.id);
-        });
-        updates.push(...updatePromises);
+    if (clearError) {
+        console.error("[Rebalancer] Failed to clear session assignments", clearError);
+        return;
     }
 
-    if (updates.length > 0) {
-        await Promise.all(updates);
+    // 4. STEP 2: Re-assign lessons to valid sessions sequentially
+    // We do this sequentially (not Promise.all) to ensure no constraint collisions.
+    console.log(`[Rebalancer] Assigning ${sortedLessons.length} lessons to ${validSessions.length} valid sessions for class ${classId}`);
+
+    for (let i = 0; i < sortedLessons.length; i++) {
+        const lesson = sortedLessons[i];
+        const session = validSessions[i] ?? null;
+
+        const { error: updateError } = await supabase
+            .from('class_lessons')
+            .update({
+                session_id: session ? session.id : null,
+                unlock_at: session ? session.date_time : null,
+            })
+            .eq('id', lesson.id);
+
+        if (updateError) {
+            console.error(`[Rebalancer] Failed to update lesson ${lesson.id}:`, updateError);
+        }
     }
+
+    console.log(`[Rebalancer] Done rebalancing class ${classId}`);
 }
+
 
 /**
  * Syncs the structure of class_lessons (Part 1, Part 2...) with the current lesson_templates.

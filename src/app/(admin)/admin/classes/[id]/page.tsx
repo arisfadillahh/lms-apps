@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import {
+  attendanceDao,
   blocksDao,
   classLessonsDao,
   classesDao,
@@ -11,7 +12,7 @@ import {
   exkulCompetenciesDao,
 } from '@/lib/dao';
 import type { ClassLessonRecord } from '@/lib/dao/classLessonsDao';
-import { autoAssignLessonsForClass } from '@/lib/services/lessonAutoAssign';
+import { reassignLessonsToSessions } from '@/lib/services/lessonRebalancer';
 
 import AssignSubstituteForm from './AssignSubstituteForm';
 import EnrollCoderForm from './EnrollCoderForm';
@@ -22,6 +23,7 @@ import SetCoderStatusButton from './SetCoderStatusButton';
 import SessionRowActions from './SessionRowActions';
 import SessionsTable from './SessionsTable';
 import EditCoachForm from './EditCoachForm';
+import AttendanceRecapTable from './AttendanceRecapTable';
 
 type ClassBlockRow = Awaited<ReturnType<typeof classesDao.getClassBlocks>>[number];
 type BlockSummary = {
@@ -56,9 +58,9 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
 
   if (klass.type === 'WEEKLY') {
     try {
-      await autoAssignLessonsForClass(classIdParam);
+      await reassignLessonsToSessions(classIdParam);
     } catch (error) {
-      console.error('[AdminClassDetailPage] Failed to auto-assign lessons before render', error);
+      console.error('[AdminClassDetailPage] Failed to rebalance lessons before render', error);
     }
   }
 
@@ -111,6 +113,15 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
     .slice()
     .sort((a, b) => new Date(a.block.start_date).getTime() - new Date(b.block.start_date).getTime());
 
+  const lessonMap = new Map<string, string>();
+  for (const bs of blockSummaries) {
+    for (const lesson of bs.lessons) {
+      if (lesson.session_id) {
+        lessonMap.set(lesson.session_id, lesson.title);
+      }
+    }
+  }
+
   const currentBlockSummary =
     sortedBlocks.find((entry) => entry.block.status === 'CURRENT') ??
     sortedBlocks[0] ??
@@ -130,6 +141,8 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
     klass.type === 'EKSKUL'
       ? await exkulCompetenciesDao.listBySessionIds(sessions.map((session) => session.id))
       : {};
+
+  const attendanceRecords = await attendanceDao.listAttendanceForSessions(sessions.map((s) => s.id));
 
   return (
     <div style={pageContainerStyle}>
@@ -224,86 +237,96 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
         </section>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
-        {/* Sessions Table */}
-        <SessionsTable sessions={sessions} coachMap={coachMap} />
-
-        {/* Enrollments Table */}
-        <section style={cardStyle}>
-          <div style={{ ...sectionHeaderStyle, flexWrap: 'wrap' }}>
-            <div>
-              <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Daftar Coder</h2>
-              <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '0.25rem' }}>Siswa yang terdaftar.</p>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
-              <EnrollCoderForm classId={classIdParam} coders={availableCoders} />
-            </div>
+      {/* Enrollments Table */}
+      <section style={cardStyle}>
+        <div style={{ ...sectionHeaderStyle, flexWrap: 'wrap' }}>
+          <div>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Daftar Coder</h2>
+            <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '0.25rem' }}>Siswa yang terdaftar.</p>
           </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead style={{ background: '#f8fafc', textAlign: 'left' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+            <EnrollCoderForm classId={classIdParam} coders={availableCoders} />
+          </div>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead style={{ background: '#f8fafc', textAlign: 'left' }}>
+              <tr>
+                <th style={thStyle}>Nama Coder</th>
+                <th style={thStyle}>Status</th>
+                <th style={thStyle}>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {enrollments.length === 0 ? (
                 <tr>
-                  <th style={thStyle}>Nama Coder</th>
-                  <th style={thStyle}>Status</th>
-                  <th style={thStyle}>Aksi</th>
+                  <td colSpan={3} style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+                    Belum ada siswa terdaftar.
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {enrollments.length === 0 ? (
-                  <tr>
-                    <td colSpan={3} style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
-                      Belum ada siswa terdaftar.
+              ) : (
+                enrollments.map((enrollment) => (
+                  <tr key={enrollment.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={tdStyle}>
+                      <span style={{ fontWeight: 600, color: '#1e293b' }}>{coderMap.get(enrollment.coder_id) ?? 'Unknown'}</span>
+                      <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                        Sejak {enrollment.enrolled_at ? new Date(enrollment.enrolled_at).toLocaleDateString() : '—'}
+                      </div>
+                    </td>
+                    <td style={tdStyle}>
+                      {enrollment.status === 'ACTIVE' ? (
+                        <span style={{ color: '#15803d', fontWeight: 600, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }} /> Active
+                        </span>
+                      ) : (
+                        <span style={{ color: '#b45309', fontWeight: 600, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f59e0b' }} /> Inactive
+                        </span>
+                      )}
+                    </td>
+                    <td style={tdStyle}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <CoderJourneyOverride
+                          classId={classIdParam}
+                          coderId={enrollment.coder_id}
+                          coderName={coderMap.get(enrollment.coder_id) ?? 'Unknown'}
+                        />
+                        {enrollment.status === 'ACTIVE' ? (
+                          <>
+                            <SetCoderStatusButton classId={classIdParam} coderId={enrollment.coder_id} targetStatus="INACTIVE" />
+                            <RemoveCoderButton classId={classIdParam} coderId={enrollment.coder_id} />
+                          </>
+                        ) : (
+                          <>
+                            <SetCoderStatusButton classId={classIdParam} coderId={enrollment.coder_id} targetStatus="ACTIVE" />
+                            <RemoveCoderButton classId={classIdParam} coderId={enrollment.coder_id} />
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
-                ) : (
-                  enrollments.map((enrollment) => (
-                    <tr key={enrollment.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={tdStyle}>
-                        <span style={{ fontWeight: 600, color: '#1e293b' }}>{coderMap.get(enrollment.coder_id) ?? 'Unknown'}</span>
-                        <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                          Sejak {enrollment.enrolled_at ? new Date(enrollment.enrolled_at).toLocaleDateString() : '—'}
-                        </div>
-                      </td>
-                      <td style={tdStyle}>
-                        {enrollment.status === 'ACTIVE' ? (
-                          <span style={{ color: '#15803d', fontWeight: 600, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }} /> Active
-                          </span>
-                        ) : (
-                          <span style={{ color: '#b45309', fontWeight: 600, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f59e0b' }} /> Inactive
-                          </span>
-                        )}
-                      </td>
-                      <td style={tdStyle}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          <CoderJourneyOverride
-                            classId={classIdParam}
-                            coderId={enrollment.coder_id}
-                            coderName={coderMap.get(enrollment.coder_id) ?? 'Unknown'}
-                          />
-                          {enrollment.status === 'ACTIVE' ? (
-                            <>
-                              <SetCoderStatusButton classId={classIdParam} coderId={enrollment.coder_id} targetStatus="INACTIVE" />
-                              <RemoveCoderButton classId={classIdParam} coderId={enrollment.coder_id} />
-                            </>
-                          ) : (
-                            <>
-                              <SetCoderStatusButton classId={classIdParam} coderId={enrollment.coder_id} targetStatus="ACTIVE" />
-                              <RemoveCoderButton classId={classIdParam} coderId={enrollment.coder_id} />
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </div>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
+      {/* Sessions Table — full width */}
+      <SessionsTable 
+        classId={classIdParam}
+        sessions={sessions} 
+        coachMap={coachMap} 
+        lessonMap={lessonMap} 
+        availableLessons={blockSummaries.flatMap(bs => bs.lessons.map(l => ({ id: l.id, title: l.title, order_index: l.order_index })))}
+      />
+
+      <AttendanceRecapTable 
+        sessions={sessions} 
+        enrollments={enrollments} 
+        coderMap={coderMap} 
+        attendanceRecords={attendanceRecords} 
+      />
     </div>
   );
 }

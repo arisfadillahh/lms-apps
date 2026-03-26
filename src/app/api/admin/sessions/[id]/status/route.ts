@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
+import { revalidatePath } from 'next/cache';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { sessionsDao } from '@/lib/dao';
@@ -37,7 +38,20 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   }
 
   try {
+    const sessionRecord = await sessionsDao.getSessionById(sessionId);
+    if (!sessionRecord) {
+      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+    }
+
     await sessionsDao.updateSessionStatus(sessionId, parsed.data.status);
+    
+    // Auto-rebalance lessons since a session's validity changed (e.g. CANCELLED / Holiday)
+    const { reassignLessonsToSessions } = await import('@/lib/services/lessonRebalancer');
+    await reassignLessonsToSessions(sessionRecord.class_id);
+    
+    revalidatePath('/admin/classes/[id]', 'page');
+    revalidatePath('/admin/classes');
+    
   } catch (error) {
     console.error('Failed to update session status', error);
     return NextResponse.json({ error: 'Failed to update session status' }, { status: 500 });

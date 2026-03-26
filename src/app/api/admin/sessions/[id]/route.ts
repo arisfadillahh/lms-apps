@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
+import { revalidatePath } from 'next/cache';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { sessionsDao } from '@/lib/dao';
@@ -41,6 +42,13 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         }
 
         const updated = await sessionsDao.updateSession(sessionId, { date_time: parsed.data.date_time });
+
+        // Auto-rebalance lessons to ensure material syncs to the new date/time
+        const { reassignLessonsToSessions } = await import('@/lib/services/lessonRebalancer');
+        await reassignLessonsToSessions(updated.class_id);
+
+        revalidatePath('/admin/classes/[id]', 'page');
+        revalidatePath('/admin/classes');
 
         return NextResponse.json({ success: true, session: updated });
     } catch (error) {

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import SessionRowActions from './SessionRowActions';
+import AssignMaterialModal from './AssignMaterialModal';
 
 type Session = {
     id: string;
@@ -10,13 +11,23 @@ type Session = {
     substitute_coach_id: string | null;
 };
 
-type SessionsTableProps = {
-    sessions: Session[];
-    coachMap: Map<string, string>;
+type ClassLesson = {
+    id: string;
+    title: string;
+    order_index: number;
 };
 
-export default function SessionsTable({ sessions, coachMap }: SessionsTableProps) {
+type SessionsTableProps = {
+    classId: string;
+    sessions: Session[];
+    coachMap: Map<string, string>;
+    lessonMap: Map<string, string>;
+    availableLessons: ClassLesson[];
+};
+
+export default function SessionsTable({ classId, sessions, coachMap, lessonMap, availableLessons }: SessionsTableProps) {
     const [page, setPage] = useState(1);
+    const [editingMaterialSession, setEditingMaterialSession] = useState<Session | null>(null);
     const pageSize = 10;
 
     const totalPages = Math.ceil(sessions.length / pageSize);
@@ -32,23 +43,32 @@ export default function SessionsTable({ sessions, coachMap }: SessionsTableProps
     };
 
     return (
-        <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem 1.5rem', borderBottom: '1px solid #f1f5f9' }}>
+        <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <AssignMaterialModal
+                classId={classId}
+                sessionId={editingMaterialSession?.id ?? ''}
+                currentDate={editingMaterialSession?.date_time ?? ''}
+                isOpen={!!editingMaterialSession}
+                onClose={() => setEditingMaterialSession(null)}
+                availableLessons={availableLessons}
+            />
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem 1.5rem', borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
                 <div>
                     <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Sesi Pertemuan</h2>
-                    <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '0.25rem' }}>Jadwal sesi kelas.</p>
+                    <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '0.25rem' }}>Jadwal dan materi kelas.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.85rem', color: '#64748b', marginRight: '0.5rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: '#64748b', marginRight: '0.5rem', fontWeight: 500 }}>
                         Halaman {page} dari {totalPages || 1}
                     </span>
                     <button
                         onClick={handlePrev}
                         disabled={page === 1}
                         style={{
-                            padding: '0.4rem 0.8rem', borderRadius: '6px', border: '1px solid #e2e8f0',
-                            background: page === 1 ? '#f1f5f9' : 'white', color: page === 1 ? '#94a3b8' : '#334155',
-                            cursor: page === 1 ? 'not-allowed' : 'pointer', fontSize: '0.85rem'
+                            padding: '0.4rem 0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1',
+                            background: page === 1 ? '#f8fafc' : 'white', color: page === 1 ? '#94a3b8' : '#334155',
+                            cursor: page === 1 ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: 600, transition: 'all 0.2s'
                         }}
                     >
                         Prev
@@ -57,9 +77,9 @@ export default function SessionsTable({ sessions, coachMap }: SessionsTableProps
                         onClick={handleNext}
                         disabled={page >= totalPages}
                         style={{
-                            padding: '0.4rem 0.8rem', borderRadius: '6px', border: '1px solid #e2e8f0',
-                            background: page >= totalPages ? '#f1f5f9' : 'white', color: page >= totalPages ? '#94a3b8' : '#334155',
-                            cursor: page >= totalPages ? 'not-allowed' : 'pointer', fontSize: '0.85rem'
+                            padding: '0.4rem 0.8rem', borderRadius: '8px', border: '1px solid #cbd5e1',
+                            background: page >= totalPages ? '#f8fafc' : 'white', color: page >= totalPages ? '#94a3b8' : '#334155',
+                            cursor: page >= totalPages ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: 600, transition: 'all 0.2s'
                         }}
                     >
                         Next
@@ -68,54 +88,84 @@ export default function SessionsTable({ sessions, coachMap }: SessionsTableProps
             </div>
             <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead style={{ background: '#f8fafc', textAlign: 'left' }}>
+                    <thead style={{ background: 'white', textAlign: 'left' }}>
                         <tr>
-                            <th style={{ padding: '1rem', fontSize: '0.75rem', color: '#64748b', borderBottom: '1px solid #e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Tanggal & Waktu</th>
-                            <th style={{ padding: '1rem', fontSize: '0.75rem', color: '#64748b', borderBottom: '1px solid #e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Status</th>
-                            <th style={{ padding: '1rem', fontSize: '0.75rem', color: '#64748b', borderBottom: '1px solid #e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Coach Pengganti</th>
-                            <th style={{ padding: '1rem', fontSize: '0.75rem', color: '#64748b', borderBottom: '1px solid #e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Aksi</th>
+                            <th style={thStyle}>Tanggal & Waktu</th>
+                            <th style={thStyle}>Materi</th>
+                            <th style={thStyle}>Status</th>
+                            <th style={thStyle}>Coach Substitute</th>
+                            <th style={thStyle}>Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         {sessions.length === 0 ? (
                             <tr>
-                                <td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+                                <td colSpan={5} style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8', fontStyle: 'italic' }}>
                                     Sesi belum digenerate.
                                 </td>
                             </tr>
                         ) : (
                             currentSessions.map((session) => (
-                                <tr key={session.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s', background: 'white' }}>
-                                    <td style={{ padding: '1rem', fontSize: '0.9rem', color: '#334155', borderBottom: '1px solid #f1f5f9', verticalAlign: 'middle' }}>
-                                        <div style={{ fontWeight: 500, color: '#1e293b' }}>
+                                <tr key={session.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s', background: 'white' }} onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'} onMouseLeave={(e) => e.currentTarget.style.background = 'white'}>
+                                    <td style={{ ...tdStyle, whiteSpace: 'nowrap' }}>
+                                        <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.95rem' }}>
                                             {new Date(session.date_time).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Jakarta' })}
                                         </div>
-                                        <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                                            {new Date(session.date_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).replace('.', ':')}
+                                        <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.15rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                            <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#cbd5e1' }} />
+                                            {new Date(session.date_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).replace('.', ':')} WIB
                                         </div>
                                     </td>
-                                    <td style={{ padding: '1rem', fontSize: '0.9rem', color: '#334155', borderBottom: '1px solid #f1f5f9', verticalAlign: 'middle' }}>
+                                    <td style={{ ...tdStyle, maxWidth: '220px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem' }}>
+                                            <span style={{ fontWeight: 600, color: '#334155', fontSize: '0.9rem', lineHeight: '1.4' }}>
+                                                {lessonMap.get(session.id) ?? <span style={{ color: '#94a3b8', fontWeight: 400 }}>Belum dialokasikan</span>}
+                                            </span>
+                                            {session.status !== 'CANCELLED' && (
+                                                <button
+                                                    onClick={() => setEditingMaterialSession(session)}
+                                                    style={{
+                                                        background: 'transparent',
+                                                        border: '1px solid #cbd5e1',
+                                                        borderRadius: '6px',
+                                                        padding: '0.25rem 0.5rem',
+                                                        fontSize: '0.7rem',
+                                                        fontWeight: 600,
+                                                        color: '#475569',
+                                                        cursor: 'pointer',
+                                                        whiteSpace: 'nowrap',
+                                                    }}
+                                                    title="Ubah Materi Sesi"
+                                                >
+                                                    Ubah
+                                                </button>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td style={tdStyle}>
                                         <span style={{
-                                            padding: '0.25rem 0.5rem',
-                                            borderRadius: '6px',
+                                            padding: '0.35rem 0.65rem',
+                                            borderRadius: '999px',
                                             fontSize: '0.75rem',
-                                            fontWeight: 600,
+                                            fontWeight: 700,
                                             background: session.status === 'COMPLETED' ? '#dcfce7' : session.status === 'CANCELLED' ? '#fee2e2' : '#f1f5f9',
-                                            color: session.status === 'COMPLETED' ? '#16a34a' : session.status === 'CANCELLED' ? '#dc2626' : '#475569'
+                                            color: session.status === 'COMPLETED' ? '#16a34a' : session.status === 'CANCELLED' ? '#dc2626' : '#475569',
+                                            display: 'inline-block',
+                                            letterSpacing: '0.02em'
                                         }}>
                                             {session.status}
                                         </span>
                                     </td>
-                                    <td style={{ padding: '1rem', fontSize: '0.9rem', color: '#334155', borderBottom: '1px solid #f1f5f9', verticalAlign: 'middle' }}>
+                                    <td style={tdStyle}>
                                         {session.substitute_coach_id ? (
-                                            <span style={{ color: '#0369a1', fontWeight: 600, background: '#e0f2fe', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.85rem' }}>
+                                            <span style={{ color: '#0369a1', fontWeight: 600, background: '#e0f2fe', padding: '0.35rem 0.65rem', borderRadius: '999px', fontSize: '0.75rem', display: 'inline-block' }}>
                                                 {coachMap.get(session.substitute_coach_id) ?? 'Coach'}
                                             </span>
                                         ) : (
                                             <span style={{ color: '#cbd5e1' }}>—</span>
                                         )}
                                     </td>
-                                    <td style={{ padding: '1rem', fontSize: '0.9rem', color: '#334155', borderBottom: '1px solid #f1f5f9', verticalAlign: 'middle' }}>
+                                    <td style={{ ...tdStyle, textAlign: 'right' }}>
                                         <SessionRowActions
                                             sessionId={session.id}
                                             substituteCoachName={session.substitute_coach_id ? coachMap.get(session.substitute_coach_id) ?? null : null}
@@ -132,3 +182,18 @@ export default function SessionsTable({ sessions, coachMap }: SessionsTableProps
         </div>
     );
 }
+
+const thStyle: React.CSSProperties = {
+    padding: '1.25rem 1.5rem',
+    fontSize: '0.75rem',
+    color: '#64748b',
+    borderBottom: '1px solid #e2e8f0',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    fontWeight: 700,
+};
+
+const tdStyle: React.CSSProperties = {
+    padding: '1.25rem 1.5rem',
+    verticalAlign: 'middle'
+};

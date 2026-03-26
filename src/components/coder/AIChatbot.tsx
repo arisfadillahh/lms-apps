@@ -157,6 +157,8 @@ export default function AIChatbot({ lessonTitle, lessonSummary, lessonMakeUpInst
 
                         {/* Messages Area */}
                         <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50" style={{ scrollbarWidth: 'thin' }}>
+                            {/* Scoped CSS: collapse p margin inside list items to fix loose-list spacing */}
+                            <style>{`.ai-prose li > p { margin: 0; line-height: 1.5; } .ai-prose li { margin-bottom: 0.15rem; } .ai-prose ol, .ai-prose ul { margin-bottom: 0.5rem; } .ai-prose h3, .ai-prose h4 { font-weight: 700; margin-bottom: 0.25rem; }`}</style>
                             {/* Context Banner */}
                             <div className="bg-pastel-blue/30 border border-sky/30 rounded-xl p-3 text-xs text-clevio-navy text-center flex flex-col items-center gap-1.5">
                                 <MessageSquare className="w-4 h-4 text-sky" />
@@ -186,7 +188,7 @@ export default function AIChatbot({ lessonTitle, lessonSummary, lessonMakeUpInst
                                                     <div className="w-1.5 h-1.5 bg-sky rounded-full animate-bounce"></div>
                                                 </div>
                                             ) : (
-                                                <div className={`space-y-1 breaks-word whitespace-pre-wrap flex flex-col ${msg.role === 'user' ? 'text-white' : 'text-slate-700'}`}>
+                                                <div className={`ai-prose space-y-1 break-words flex flex-col ${msg.role === 'user' ? 'text-white' : 'text-slate-700'}`}>
                                                     <ReactMarkdown 
                                                         remarkPlugins={[remarkGfm]}
                                                         components={{
@@ -198,9 +200,9 @@ export default function AIChatbot({ lessonTitle, lessonSummary, lessonMakeUpInst
                                                                     : <div className="my-2 w-full overflow-hidden rounded-xl border border-slate-700/50 bg-[#0d1117]"><div className="flex px-3 py-1.5 bg-slate-800 border-b border-slate-700"><span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">CODE</span></div><pre className="p-3 overflow-x-auto font-mono text-[11px] text-slate-200" {...props}>{children}</pre></div>
                                                             },
                                                             p: ({node, ...props}) => <p className="mb-2 last:mb-0 leading-relaxed" {...props} />,
-                                                            ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-2 space-y-1" {...props} />,
-                                                            ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-2 space-y-1" {...props} />,
-                                                            li: ({node, ...props}) => <li className="" {...props} />,
+                                                            ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-1 space-y-0" {...props} />,
+                                                            ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-1 space-y-0" {...props} />,
+                                                            li: ({node, ...props}) => <li className="leading-snug" {...props} />,
                                                         }}
                                                     >
                                                         {msg.content}

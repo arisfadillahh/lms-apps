@@ -1,31 +1,48 @@
 import { NextResponse } from 'next/server';
-import { autoCompletePastSessions } from '@/lib/dao/sessionsDao';
+import { autoCompletePastSessions, ensureFutureSessions } from '@/lib/dao/sessionsDao';
+import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * Cron endpoint to auto-complete past sessions.
- * Call this endpoint periodically (e.g., every hour) to mark expired sessions as COMPLETED.
- * 
+ * Cron endpoint to auto-complete past sessions AND ensure rolling 12-week schedule.
+ * Call this endpoint periodically (e.g., every hour) to:
+ * 1. Mark expired sessions as COMPLETED
+ * 2. Ensure the next 12 weeks of sessions are generated for affected classes
+ *
  * Example cron setup (Vercel):
  * {
  *   "crons": [{
  *     "path": "/api/cron/session-complete",
- *     "schedule": "0 * * * *"  // Every hour
+ *     "schedule": "0 * * * *"
  *   }]
  * }
  */
-export async function GET(request: Request) {
+export async function GET() {
     try {
-        // Optional: Check for Authorization header if you want to secure it
-        // const authHeader = request.headers.get('authorization');
-        // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        //     return new NextResponse('Unauthorized', { status: 401 });
-        // }
-
         console.log('[Cron] Running session auto-complete job');
 
         const result = await autoCompletePastSessions();
+
+        // After completing sessions, ensure rolling 12-week schedule for affected classes
+        if (result.updated > 0 && result.sessionIds.length > 0) {
+            const supabase = getSupabaseAdmin();
+
+            // Get unique class IDs from the completed sessions
+            const { data: completedSessions } = await supabase
+                .from('sessions')
+                .select('class_id')
+                .in('id', result.sessionIds);
+
+            if (completedSessions) {
+                const uniqueClassIds = [...new Set(completedSessions.map(s => s.class_id))];
+                console.log(`[Cron] Ensuring 12-week schedule for ${uniqueClassIds.length} classes`);
+
+                for (const classId of uniqueClassIds) {
+                    await ensureFutureSessions(classId);
+                }
+            }
+        }
 
         return NextResponse.json({
             success: true,

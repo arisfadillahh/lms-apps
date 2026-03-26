@@ -364,10 +364,9 @@ export async function ensureFutureSessions(classId: string, weeksAhead = 12): Pr
     time: classRecord.schedule_time,
   });
 
-  // 5. Rebalance lessons to ensure continuity (Self-Healing)
-  // We dynamically import to avoid circular dependencies if rebalancer uses sessionsDao
-  const { reassignLessonsToSessions } = await import('@/lib/services/lessonRebalancer');
-  await reassignLessonsToSessions(classId);
+  // NOTE: We intentionally do NOT call reassignLessonsToSessions here.
+  // That call was causing all manual "Ubah Materi" shifts to be reset on every page load.
+  // The rebalancer is still triggered from session cancel/reschedule events when truly needed.
 
   return newSessions.length;
 }

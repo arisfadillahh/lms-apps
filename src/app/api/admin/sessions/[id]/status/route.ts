@@ -48,9 +48,16 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     // Auto-rebalance lessons since a session's validity changed (e.g. CANCELLED / Holiday)
     const { reassignLessonsToSessions } = await import('@/lib/services/lessonRebalancer');
     await reassignLessonsToSessions(sessionRecord.class_id);
+
+    // When a session is COMPLETED, ensure rolling 12-week schedule is maintained
+    if (parsed.data.status === 'COMPLETED') {
+      const { ensureFutureSessions } = await import('@/lib/dao/sessionsDao');
+      await ensureFutureSessions(sessionRecord.class_id);
+    }
     
     revalidatePath('/admin/classes/[id]', 'page');
     revalidatePath('/admin/classes');
+
     
   } catch (error) {
     console.error('Failed to update session status', error);

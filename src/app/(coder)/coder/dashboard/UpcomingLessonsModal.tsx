@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Rocket, Palette, Star, Lock, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -19,19 +20,16 @@ type UpcomingLessonsModalProps = {
 
 export default function UpcomingLessonsModal({ lessons }: UpcomingLessonsModalProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const [mounted, setMounted] = useState(false);
 
-    return (
-        <>
-            <button
-                onClick={() => setIsOpen(true)}
-                className="w-full py-5 rounded-[2.5rem] border-4 border-dashed border-pastel-blue/50 bg-white text-sm font-black text-slate-400 text-center hover:text-sky hover:border-sky/30 hover:bg-pastel-blue/20 transition-all uppercase tracking-widest cursor-pointer"
-            >
-                Lihat Rute Block Saat Ini
-            </button>
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
-            <AnimatePresence>
-                {isOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    const modalContent = (
+        <AnimatePresence>
+            {isOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                         {/* Backdrop */}
                         <motion.div
                             initial={{ opacity: 0 }}
@@ -143,6 +141,18 @@ export default function UpcomingLessonsModal({ lessons }: UpcomingLessonsModalPr
                     </div>
                 )}
             </AnimatePresence>
+    );
+
+    return (
+        <>
+            <button
+                onClick={() => setIsOpen(true)}
+                className="w-full py-5 rounded-[2.5rem] border-4 border-dashed border-pastel-blue/50 bg-white text-sm font-black text-slate-400 text-center hover:text-sky hover:border-sky/30 hover:bg-pastel-blue/20 transition-all uppercase tracking-widest cursor-pointer"
+            >
+                Lihat Rute Block Saat Ini
+            </button>
+
+            {mounted ? createPortal(modalContent, document.body) : null}
         </>
     );
 }

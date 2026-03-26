@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, type CSSProperties } from 'react';
+import { useState, useEffect, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type Software = {
@@ -18,53 +19,22 @@ import type { ReactNode } from 'react';
 
 export default function SoftwareDetailModal({ software, customTrigger }: { software: Software, customTrigger?: ReactNode }) {
     const [isOpen, setIsOpen] = useState(false);
+    const [mounted, setMounted] = useState(false);
 
-    return (
-        <>
-            {customTrigger ? (
-                <div onClick={() => setIsOpen(true)} className="cursor-pointer">
-                    {customTrigger}
-                </div>
-            ) : (
-                <button
-                    onClick={() => setIsOpen(true)}
-                    style={{
-                        background: '#fff',
-                        border: '1px solid #e2e8f0',
-                        padding: '8px 16px',
-                        borderRadius: '8px',
-                        fontSize: '0.85rem',
-                        fontWeight: 600,
-                        color: '#0f172a',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                        transition: 'all 0.2s',
-                    }}
-                    onMouseOver={(e) => {
-                        e.currentTarget.style.borderColor = '#cbd5e1';
-                        e.currentTarget.style.background = '#f8fafc';
-                    }}
-                    onMouseOut={(e) => {
-                        e.currentTarget.style.borderColor = '#e2e8f0';
-                        e.currentTarget.style.background = '#fff';
-                    }}
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    const modalContent = (
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    style={overlayStyle}
+                    onClick={() => setIsOpen(false)}
                 >
-                    Cara Install
-                </button>
-            )}
-
-            <AnimatePresence>
-                {isOpen && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        style={overlayStyle}
-                        onClick={() => setIsOpen(false)}
-                    >
                         <motion.div
                             initial={{ scale: 0.95, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -159,6 +129,46 @@ export default function SoftwareDetailModal({ software, customTrigger }: { softw
                     </motion.div>
                 )}
             </AnimatePresence>
+    );
+
+    return (
+        <>
+            {customTrigger ? (
+                <div onClick={() => setIsOpen(true)} className="cursor-pointer">
+                    {customTrigger}
+                </div>
+            ) : (
+                <button
+                    onClick={() => setIsOpen(true)}
+                    style={{
+                        background: '#fff',
+                        border: '1px solid #e2e8f0',
+                        padding: '8px 16px',
+                        borderRadius: '8px',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        color: '#0f172a',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                        transition: 'all 0.2s',
+                    }}
+                    onMouseOver={(e) => {
+                        e.currentTarget.style.borderColor = '#cbd5e1';
+                        e.currentTarget.style.background = '#f8fafc';
+                    }}
+                    onMouseOut={(e) => {
+                        e.currentTarget.style.borderColor = '#e2e8f0';
+                        e.currentTarget.style.background = '#fff';
+                    }}
+                >
+                    Cara Install
+                </button>
+            )}
+
+            {mounted ? createPortal(modalContent, document.body) : null}
         </>
     );
 }

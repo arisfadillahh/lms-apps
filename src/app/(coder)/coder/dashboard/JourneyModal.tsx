@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import JourneyMap, { JourneyCourse } from './JourneyMap';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Map, X, Sparkles } from 'lucide-react';
@@ -20,26 +21,22 @@ function Cloud({ className = '' }: { className?: string }) {
 
 export default function JourneyModal({ courses }: { courses: JourneyCourse[] }) {
     const [isOpen, setIsOpen] = useState(false);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     if (courses.length === 0) return null;
 
-    return (
-        <>
-            <button
-                onClick={() => setIsOpen(true)}
-                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-pastel-blue text-sky font-black rounded-2xl shadow-sm hover:scale-105 transition-all tracking-wide text-sm border-2 border-sky/20"
-            >
-                <Map size={18} />
-                Learning Journey
-            </button>
-
-            <AnimatePresence>
-                {isOpen && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 md:p-8"
+    const modalContent = (
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 md:p-8"
                         onClick={() => setIsOpen(false)}
                     >
                         <motion.div
@@ -90,6 +87,19 @@ export default function JourneyModal({ courses }: { courses: JourneyCourse[] }) 
                     </motion.div>
                 )}
             </AnimatePresence>
+    );
+
+    return (
+        <>
+            <button
+                onClick={() => setIsOpen(true)}
+                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-pastel-blue text-sky font-black rounded-2xl shadow-sm hover:scale-105 transition-all tracking-wide text-sm border-2 border-sky/20"
+            >
+                <Map size={18} />
+                Learning Journey
+            </button>
+
+            {mounted ? createPortal(modalContent, document.body) : null}
         </>
     );
 }

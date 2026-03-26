@@ -7,6 +7,6 @@ export function verifyCronRequest(request: Request): boolean {
   if (!authHeader) {
     return false;
   }
-  const token = authHeader.replace(/^Bearer\\s+/i, '').trim();
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
   return token === secret;
 }

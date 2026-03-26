@@ -6,6 +6,7 @@ import { reportsDao, usersDao } from '@/lib/dao';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { assertRole } from '@/lib/roles';
 import { sendReportNotification } from '@/lib/services/whatsappClient';
+import { getAppBaseUrl } from '@/lib/env';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -57,7 +58,7 @@ export async function POST(_request: NextRequest, context: RouteContext) {
   }
 
   // Generate the new web view URL instead of a PDF URL
-  const reportUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://lms.clevio.co'}/report/${reportId}`;
+  const reportUrl = `${getAppBaseUrl()}/report/${reportId}`;
 
   // Log to WA events table (using block report fields instead of old rubric submission ids)
   const logEntry = await reportsDao.logWhatsappEvent({

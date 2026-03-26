@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { getAppBaseUrl } from '@/lib/env';
 import { Inbox, History, CheckCircle2, Mail, Eye } from 'lucide-react';
 import SendReportButton from './SendReportButton';
 import RejectReportButton from './RejectReportButton';
@@ -109,7 +110,7 @@ function ReportTable({ reports, isInbox }: { reports: any[], isInbox: boolean })
             </tr>
           ) : (
             reports.map((report: any) => {
-              const reportUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://lms.clevio.co'}/report/${report.id}`;
+              const reportUrl = `${getAppBaseUrl()}/report/${report.id}`;
               const isPublished = report.status === 'PUBLISHED';
 
               return (

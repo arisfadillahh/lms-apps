@@ -4,6 +4,7 @@ import { ArrowLeft, ExternalLink, Calendar, Play } from 'lucide-react';
 import { getSessionOrThrow } from '@/lib/auth';
 import { getLessonDetailForCoder } from '@/lib/services/coder';
 import { assertRole } from '@/lib/roles';
+import AIChatbot from '@/components/coder/AIChatbot';
 
 interface PageProps {
     params: Promise<{ lessonId: string }>;
@@ -21,8 +22,9 @@ export default async function CoderLessonDetailPage(props: PageProps) {
     }
 
     return (
-        <div style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '3rem', paddingTop: '1rem' }}>
-            {/* Navigation */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden w-full relative">
+            <div style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '3rem', paddingTop: '1rem', paddingLeft: '1.5rem', paddingRight: '1.5rem' }}>
+                {/* Navigation */}
             <header style={{ marginBottom: '2rem' }}>
                 <Link
                     href="/coder/materials"
@@ -169,6 +171,12 @@ export default async function CoderLessonDetailPage(props: PageProps) {
                     }
                 `}</style>
             </div>
+            <AIChatbot 
+                lessonTitle={lesson.title || 'Materi Belajar'} 
+                lessonSummary={lesson.summary || ''} 
+                lessonMakeUpInstructions={lesson.make_up_instructions} 
+            />
+        </div>
         </div>
     );
 }

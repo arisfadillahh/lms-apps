@@ -635,6 +635,11 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
           if (new Date(block.end_date) < enrollmentDate) {
             return null;
           }
+
+          // RESTRICTION: Hide block if it is still in the future (UPCOMING)
+          if (block.status === 'UPCOMING' || new Date(block.start_date) > new Date()) {
+            return null;
+          }
           const lessons = await classLessonsDao.listLessonsByClassBlock(block.id);
           const now = new Date();
           

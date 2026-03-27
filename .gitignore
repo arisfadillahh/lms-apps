@@ -50,3 +50,6 @@ baileys_auth_info/
 
 #photoprofile
 /public/uploads/avatars
+
+#deploy script
+deploy.sh

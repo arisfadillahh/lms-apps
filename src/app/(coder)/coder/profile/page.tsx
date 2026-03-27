@@ -2,10 +2,15 @@ import { getSessionOrThrow } from '@/lib/auth';
 import { getUserById } from '@/lib/dao/usersDao';
 import CoderSettingsAccordion from '@/components/profile/CoderSettingsAccordion';
 import { StaggerContainer, StaggerItem } from '../StaggerWrapper';
+import { getCoderProgress } from '@/lib/services/coder';
+import CoderFooter from '../CoderFooter';
 
 export default async function CoderProfilePage() {
   const session = await getSessionOrThrow();
-  const user = await getUserById(session.user.id);
+  const [user, progress] = await Promise.all([
+    getUserById(session.user.id),
+    getCoderProgress(session.user.id),
+  ]);
 
   if (!user) {
     return <div>User not found</div>;
@@ -26,10 +31,25 @@ export default async function CoderProfilePage() {
     address: user.address || null,
   };
 
+  // Pick the first active class (CURRENT block), or just the first enrolled class
+  const activeClass =
+    progress.find((p) => p.upNext?.status === 'CURRENT') ?? progress[0] ?? null;
+
+  const classInfo = activeClass
+    ? {
+        className: activeClass.name,
+        completedBlocks: activeClass.completedBlocks,
+        totalBlocks: activeClass.totalBlocks ?? activeClass.journeyBlocks.length,
+      }
+    : null;
+
   return (
-    <StaggerContainer className="flex-1 flex justify-center py-10 px-4 sm:px-10 overflow-y-auto">
+    <StaggerContainer className="flex-1 flex flex-col items-center py-10 px-4 sm:px-10 overflow-y-auto">
       <StaggerItem className="w-full flex justify-center">
-        <CoderSettingsAccordion profile={unifiedProfile} />
+        <CoderSettingsAccordion profile={unifiedProfile} classInfo={classInfo} />
+      </StaggerItem>
+      <StaggerItem className="w-full mt-auto pt-8">
+        <CoderFooter />
       </StaggerItem>
     </StaggerContainer>
   );

@@ -17,6 +17,7 @@ import BannerCarousel from '@/components/coder/BannerCarousel';
 import { StaggerContainer, StaggerItem } from '../StaggerWrapper';
 import CoderHeader from './CoderHeader';
 import BlockEvaluationCard from './BlockEvaluationCard';
+import CoderFooter from '../CoderFooter';
 
 type Banner = {
   id: string;
@@ -253,17 +254,6 @@ export default async function CoderDashboardPage() {
 
   return (
     <>
-      {/* ===== HEADER (Client Component) ===== */}
-      <CoderHeader
-        userName={userName}
-        fullName={session.user.fullName || 'Coder'}
-        todayDate={todayDate}
-        avatarPath={(session.user as any).avatarPath}
-        role={session.user.role}
-        username={(session.user as any).username}
-        adminPermissions={(session.user as any).adminPermissions}
-      />
-
       {/* ===== CONTENT ===== */}
       <StaggerContainer className="flex-1 p-4 md:p-8 overflow-y-auto overflow-x-hidden">
 
@@ -451,7 +441,7 @@ export default async function CoderDashboardPage() {
                 <section>
                   <h3 className="text-xl font-black text-clevio-navy mb-4 flex items-center gap-3">
                     <span className="bg-amber-100 text-amber-600 p-2 rounded-xl"><Pencil size={20} strokeWidth={3} /></span>
-                    Peralatan Tempur
+                    Tools yang Dibutuhkan
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {softwareList.map((sw, idx) => {
@@ -560,6 +550,10 @@ export default async function CoderDashboardPage() {
           </div>
 
         </div >
+
+        <StaggerItem className="mt-auto pt-8">
+          <CoderFooter />
+        </StaggerItem>
       </StaggerContainer >
     </>
   );

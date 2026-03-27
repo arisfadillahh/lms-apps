@@ -2,7 +2,6 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Settings, UserCircle, Users, Lock, ChevronDown, Camera, Save, KeyRound } from 'lucide-react';
 
 interface CoderProfileData {
     username: string;
@@ -18,16 +17,27 @@ interface CoderProfileData {
     address: string | null;
 }
 
-export default function CoderSettingsAccordion({ profile }: { profile: CoderProfileData }) {
+interface ClassInfo {
+    className: string;
+    completedBlocks: number;
+    totalBlocks: number;
+}
+
+export default function CoderSettingsAccordion({
+    profile,
+    classInfo,
+}: {
+    profile: CoderProfileData;
+    classInfo: ClassInfo | null;
+}) {
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // State
     const [formData, setFormData] = useState<CoderProfileData>(profile);
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
 
-    // Loading & Error States
     const [isUpdatingAccount, setIsUpdatingAccount] = useState(false);
     const [isUpdatingPersonal, setIsUpdatingPersonal] = useState(false);
     const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -41,40 +51,26 @@ export default function CoderSettingsAccordion({ profile }: { profile: CoderProf
         setFormData((prev) => ({ ...prev, [field]: value }));
     };
 
-    // 1. Avatar Upload
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-
         setAccountMsg(null);
-        if (file.size > 2 * 1024 * 1024) {
-            setAccountMsg({ type: 'error', text: 'Ukuran maksimum 2MB' });
-            return;
-        }
-        if (!file.type.startsWith('image/')) {
-            setAccountMsg({ type: 'error', text: 'Harus berupa gambar' });
-            return;
-        }
+        if (file.size > 2 * 1024 * 1024) { setAccountMsg({ type: 'error', text: 'Ukuran maksimum 2MB' }); return; }
+        if (!file.type.startsWith('image/')) { setAccountMsg({ type: 'error', text: 'Harus berupa gambar' }); return; }
 
         setIsUploading(true);
         const submitData = new FormData();
         submitData.append('file', file);
-
         try {
-            const res = await fetch('/api/profile/upload', {
-                method: 'POST',
-                body: submitData,
-            });
+            const res = await fetch('/api/profile/upload', { method: 'POST', body: submitData });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Upload gagal');
-
             const updateRes = await fetch('/api/profile/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ avatarPath: data.filePath })
             });
             if (!updateRes.ok) throw new Error('Gagal simpan path');
-
             setFormData(prev => ({ ...prev, avatarPath: data.filePath }));
             setAccountMsg({ type: 'success', text: 'Foto terbaru berhasil dipasang!' });
             router.refresh();
@@ -85,12 +81,10 @@ export default function CoderSettingsAccordion({ profile }: { profile: CoderProf
         }
     };
 
-    // 2. Update Name only
     const handleUpdateName = async (e: React.FormEvent) => {
         e.preventDefault();
         setAccountMsg(null);
         setIsUpdatingAccount(true);
-
         try {
             const res = await fetch('/api/profile/update', {
                 method: 'POST',
@@ -98,7 +92,6 @@ export default function CoderSettingsAccordion({ profile }: { profile: CoderProf
                 body: JSON.stringify({ fullName: formData.fullName }),
             });
             if (!res.ok) throw new Error('Gagal memperbarui nama');
-
             setAccountMsg({ type: 'success', text: 'Nama berhasil diubah!' });
             router.refresh();
         } catch (err: any) {
@@ -108,12 +101,10 @@ export default function CoderSettingsAccordion({ profile }: { profile: CoderProf
         }
     };
 
-    // 3. Update Personal & Parent
     const handleUpdatePersonal = async (e: React.FormEvent) => {
         e.preventDefault();
         setPersonalMsg(null);
         setIsUpdatingPersonal(true);
-
         try {
             const res = await fetch('/api/profile/update', {
                 method: 'POST',
@@ -130,7 +121,6 @@ export default function CoderSettingsAccordion({ profile }: { profile: CoderProf
                 }),
             });
             if (!res.ok) throw new Error('Gagal memperbarui profil');
-
             setPersonalMsg({ type: 'success', text: 'Data profil berhasil diamankan!' });
             router.refresh();
         } catch (err: any) {
@@ -140,31 +130,22 @@ export default function CoderSettingsAccordion({ profile }: { profile: CoderProf
         }
     };
 
-    // 4. Update Password
     const handleChangePassword = async (e: React.FormEvent) => {
         e.preventDefault();
         setPasswordMsg(null);
-
-        if (newPassword.length < 6) {
-            setPasswordMsg({ type: 'error', text: 'Password minimal 6 karakter' });
-            return;
-        }
-
+        if (newPassword.length < 6) { setPasswordMsg({ type: 'error', text: 'Password minimal 6 karakter' }); return; }
+        if (newPassword !== confirmPassword) { setPasswordMsg({ type: 'error', text: 'Konfirmasi password tidak cocok' }); return; }
         setIsChangingPassword(true);
-
         try {
             const res = await fetch('/api/profile/change-password', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ currentPassword, newPassword }),
             });
-
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Password salah');
-
             setPasswordMsg({ type: 'success', text: 'Password baru sudah aktif!' });
-            setCurrentPassword('');
-            setNewPassword('');
+            setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
         } catch (err: any) {
             setPasswordMsg({ type: 'error', text: err.message });
         } finally {
@@ -172,213 +153,281 @@ export default function CoderSettingsAccordion({ profile }: { profile: CoderProf
         }
     };
 
-    return (
-        <div className="max-w-[960px] w-full flex flex-col gap-4">
+    const inputClass = "w-full px-5 py-3.5 bg-[#f6f7f8] border-none rounded-2xl focus:ring-4 focus:ring-[#3db8eb]/30 font-bold text-[#1e3a5f] outline-none transition-all";
 
-            <div className="flex items-center gap-4 mb-4">
-                <div className="size-16 bg-clevio-sky/20 text-clevio-sky rounded-2xl flex items-center justify-center">
-                    <Settings className="size-9" />
+    return (
+        <div className="w-full max-w-[1100px] flex flex-col gap-8 pb-24">
+
+            {/* Section Header */}
+            <div className="flex items-center gap-5">
+                <div className="size-16 bg-[#3db8eb]/20 flex items-center justify-center rounded-3xl shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="text-[#3db8eb] size-9" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a4 4 0 01-1.414.93l-3.328 1.11 1.11-3.328a4 4 0 01.93-1.414z" />
+                    </svg>
                 </div>
                 <div>
-                    <h1 className="text-4xl font-black text-clevio-navy mb-1">Pengaturan Profil</h1>
-                    <p className="text-slate-500 font-medium text-lg">Atur data diri dan akun Clevio kamu di sini ya!</p>
+                    <h1 className="text-3xl lg:text-4xl font-black text-[#1e3a5f] leading-none">Pengaturan Profil</h1>
+                    <p className="text-[#1e3a5f]/60 font-medium mt-1">Kelola akun belajar seru kamu di sini!</p>
                 </div>
             </div>
 
-            <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-7">
 
-                {/* 1. AKUN CLEVIO KAMU */}
-                <div className="group">
-                    <input defaultChecked className="hidden peer" id="acc-account" name="settings-accordion" type="radio" />
-                    <label className="flex items-center justify-between cursor-pointer bg-white rounded-xl p-6 shadow-sm border-2 border-slate-100 transition-all peer-checked:rounded-b-none peer-checked:border-b-0" htmlFor="acc-account">
-                        <div className="flex items-center gap-3">
-                            <UserCircle className="text-clevio-coral size-8" />
-                            <h2 className="text-2xl font-bold text-clevio-navy">Akun Clevio Kamu</h2>
-                        </div>
-                        <ChevronDown className="text-slate-400 transition-transform duration-300 peer-checked:rotate-180" size={24} />
-                    </label>
+                {/* ── LEFT COLUMN: Avatar Card ── */}
+                <div className="lg:col-span-4 flex flex-col gap-7">
 
-                    <div className="grid grid-rows-[0fr] opacity-0 peer-checked:grid-rows-[1fr] peer-checked:opacity-100 transition-all duration-300 ease-in-out bg-white rounded-b-xl shadow-sm border-x-2 border-slate-100 peer-checked:border-b-2 overflow-hidden">
-                        <div className="min-h-0 px-8">
-                            <form onSubmit={handleUpdateName} className="flex flex-col md:flex-row gap-10 items-start pb-8 pt-6 border-t-2 border-slate-50">
-
-                                <div className="flex flex-col items-center gap-4 w-full md:w-auto">
-                                    <div className="relative cursor-pointer group/avatar" onClick={() => fileInputRef.current?.click()}>
-                                        <div className="size-32 rounded-full border-8 border-slate-50 shadow-md overflow-hidden relative">
-                                            {formData.avatarPath ? (
-                                                <img src={formData.avatarPath} alt="Avatar" className="w-full h-full object-cover" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center bg-clevio-sky text-white text-5xl font-black">
-                                                    {formData.fullName.charAt(0)}
-                                                </div>
-                                            )}
-                                            <div className="absolute inset-0 bg-clevio-navy/50 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center text-white">
-                                                <Camera size={32} />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={handleFileChange} />
-                                    <button type="button" onClick={() => fileInputRef.current?.click()} className="mt-2 text-clevio-coral font-bold bg-clevio-coral/10 hover:bg-clevio-coral/20 px-4 py-2 rounded-full transition-colors text-sm">
-                                        {isUploading ? 'Mengupload...' : 'Ganti Foto Profil'}
-                                    </button>
-                                </div>
-
-                                <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <label className="flex flex-col gap-2">
-                                        <span className="font-bold text-slate-700">Username (Disabled)</span>
-                                        <input className="bg-slate-100 border-2 border-transparent text-slate-500 rounded-xl px-4 py-3 font-medium cursor-not-allowed" disabled value={formData.username} />
-                                    </label>
-                                    <label className="flex flex-col gap-2">
-                                        <span className="font-bold text-clevio-navy">Nama Panggilan</span>
-                                        <input
-                                            className="bg-slate-50 border-2 border-slate-200 focus:border-clevio-sky focus:ring-0 text-clevio-navy rounded-xl px-4 py-3 font-medium transition-colors outline-none"
-                                            value={formData.fullName}
-                                            onChange={e => handleChange('fullName', e.target.value)}
-                                            required
-                                        />
-                                    </label>
-
-                                    {accountMsg && (
-                                        <div className={`md:col-span-2 p-3 text-sm font-bold rounded-xl ${accountMsg.type === 'success' ? 'bg-clevio-green/10 text-clevio-green' : 'bg-clevio-coral/10 text-clevio-coral'}`}>
-                                            {accountMsg.text}
-                                        </div>
-                                    )}
-
-                                    <div className="md:col-span-2 flex justify-end mt-2">
-                                        <button disabled={isUpdatingAccount} className="bg-[#ff6b6b] text-white font-bold rounded-xl px-8 py-3 shadow-[0_4px_0_0_#D94833] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#D94833] active:translate-y-1 active:shadow-none transition-all disabled:opacity-50">
-                                            {isUpdatingAccount ? 'Menyimpan...' : 'Simpan Nama'}
-                                        </button>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-
-                {/* 2. DATA PRIBADI & ORANG TUA */}
-                <div className="group">
-                    <input className="hidden peer" id="acc-personal" name="settings-accordion" type="radio" />
-                    <label className="flex items-center justify-between cursor-pointer bg-white rounded-xl p-6 shadow-sm border-2 border-slate-100 transition-all peer-checked:rounded-b-none peer-checked:border-b-0" htmlFor="acc-personal">
-                        <div className="flex items-center gap-3">
-                            <Users className="text-clevio-green size-8" />
-                            <h2 className="text-2xl font-bold text-clevio-navy">Data Pribadi & Orang Tua</h2>
-                        </div>
-                        <ChevronDown className="text-slate-400 transition-transform duration-300 peer-checked:rotate-180" size={24} />
-                    </label>
-
-                    <div className="grid grid-rows-[0fr] opacity-0 peer-checked:grid-rows-[1fr] peer-checked:opacity-100 transition-all duration-300 ease-in-out bg-white rounded-b-xl shadow-sm border-x-2 border-slate-100 peer-checked:border-b-2 overflow-hidden">
-                        <div className="min-h-0 px-8">
-                            <form onSubmit={handleUpdatePersonal} className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8 pb-8 pt-6 border-t-2 border-slate-50">
-
-                                <div className="flex flex-col gap-5">
-                                    <h3 className="text-lg font-bold text-slate-400 border-b-2 border-slate-100 pb-2 mb-2">Data Pribadi</h3>
-                                    <label className="flex flex-col gap-2">
-                                        <span className="font-bold text-clevio-navy">Tanggal Lahir</span>
-                                        <input type="date" className="bg-slate-50 border-2 border-slate-200 focus:border-clevio-sky focus:ring-0 text-clevio-navy rounded-xl px-4 py-3 font-medium outline-none"
-                                            value={formData.birthDate || ''} onChange={e => handleChange('birthDate', e.target.value)} />
-                                    </label>
-                                    <label className="flex flex-col gap-2">
-                                        <span className="font-bold text-clevio-navy">Jenis Kelamin</span>
-                                        <select className="bg-slate-50 border-2 border-slate-200 focus:border-clevio-sky focus:ring-0 text-clevio-navy rounded-xl px-4 py-3 font-medium outline-none"
-                                            value={formData.gender || ''} onChange={e => handleChange('gender', e.target.value as any)}>
-                                            <option value="">Pilih</option>
-                                            <option value="MALE">Laki-laki</option>
-                                            <option value="FEMALE">Perempuan</option>
-                                        </select>
-                                    </label>
-                                    <label className="flex flex-col gap-2">
-                                        <span className="font-bold text-clevio-navy">Nama Sekolah</span>
-                                        <input type="text" className="bg-slate-50 border-2 border-slate-200 focus:border-clevio-sky focus:ring-0 text-clevio-navy rounded-xl px-4 py-3 font-medium outline-none"
-                                            value={formData.schoolName || ''} onChange={e => handleChange('schoolName', e.target.value)} />
-                                    </label>
-                                    <label className="flex flex-col gap-2">
-                                        <span className="font-bold text-clevio-navy">Kelas</span>
-                                        <input type="text" className="bg-slate-50 border-2 border-slate-200 focus:border-clevio-sky focus:ring-0 text-clevio-navy rounded-xl px-4 py-3 font-medium outline-none"
-                                            value={formData.schoolGrade || ''} onChange={e => handleChange('schoolGrade', e.target.value)} />
-                                    </label>
-                                </div>
-
-                                <div className="flex flex-col gap-5">
-                                    <h3 className="text-lg font-bold text-slate-400 border-b-2 border-slate-100 pb-2 mb-2">Data Orang Tua</h3>
-                                    <label className="flex flex-col gap-2">
-                                        <span className="font-bold text-clevio-navy">Nama Orang Tua</span>
-                                        <input type="text" className="bg-slate-50 border-2 border-slate-200 focus:border-clevio-sky focus:ring-0 text-clevio-navy rounded-xl px-4 py-3 font-medium outline-none"
-                                            value={formData.parentName || ''} onChange={e => handleChange('parentName', e.target.value)} />
-                                    </label>
-                                    <label className="flex flex-col gap-2">
-                                        <span className="font-bold text-clevio-navy">No. HP Orang Tua</span>
-                                        <input type="tel" className="bg-slate-50 border-2 border-slate-200 focus:border-clevio-sky focus:ring-0 text-clevio-navy rounded-xl px-4 py-3 font-medium outline-none"
-                                            value={formData.parentContactPhone || ''} onChange={e => handleChange('parentContactPhone', e.target.value)} />
-                                    </label>
-                                    <label className="flex flex-col gap-2">
-                                        <span className="font-bold text-clevio-navy">Email Orang Tua</span>
-                                        <input type="email" className="bg-slate-50 border-2 border-slate-200 focus:border-clevio-sky focus:ring-0 text-clevio-navy rounded-xl px-4 py-3 font-medium outline-none"
-                                            value={formData.parentEmail || ''} onChange={e => handleChange('parentEmail', e.target.value)} />
-                                    </label>
-                                    <label className="flex flex-col gap-2">
-                                        <span className="font-bold text-clevio-navy">Alamat Lengkap</span>
-                                        <textarea className="bg-slate-50 border-2 border-slate-200 focus:border-clevio-sky focus:ring-0 text-clevio-navy rounded-xl px-4 py-3 font-medium resize-none h-24 outline-none"
-                                            value={formData.address || ''} onChange={e => handleChange('address', e.target.value)} />
-                                    </label>
-                                </div>
-
-                                {personalMsg && (
-                                    <div className={`md:col-span-2 p-3 text-sm font-bold rounded-xl ${personalMsg.type === 'success' ? 'bg-clevio-green/10 text-clevio-green' : 'bg-clevio-coral/10 text-clevio-coral'}`}>
-                                        {personalMsg.text}
+                    {/* Avatar Card */}
+                    <div className="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-[#1e3a5f]/5 flex flex-col items-center text-center border-4 border-[#3db8eb]/10">
+                        <div className="relative">
+                            <div className="size-44 rounded-full overflow-hidden border-8 border-[#3db8eb]/20 bg-[#3db8eb]/10 mb-5">
+                                {formData.avatarPath ? (
+                                    <img src={formData.avatarPath} alt="Avatar" className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-[#3db8eb] text-white text-6xl font-black">
+                                        {formData.fullName.charAt(0)}
                                     </div>
                                 )}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                className="absolute bottom-5 right-0 size-12 bg-[#ff6b6b] text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                            </button>
+                        </div>
 
-                                <div className="md:col-span-2 flex justify-end mt-4 border-t-2 border-slate-100 pt-6">
-                                    <button disabled={isUpdatingPersonal} className="bg-[#4ade80] text-white font-bold rounded-xl px-8 py-3 shadow-[0_4px_0_0_#5A9832] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#5A9832] active:translate-y-1 active:shadow-none transition-all text-lg flex items-center gap-2 disabled:opacity-50">
-                                        <Save size={20} />
-                                        {isUpdatingPersonal ? 'Menyimpan...' : 'Simpan Data Profil'}
-                                    </button>
+                        <h3 className="text-2xl font-black text-[#1e3a5f] mb-0.5">{formData.fullName}</h3>
+                        <p className="text-[#1e3a5f]/40 font-bold text-xs uppercase tracking-widest mb-7">Siswa Clevio</p>
+
+                        <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={handleFileChange} />
+
+                        {accountMsg && (
+                            <div className={`w-full mb-4 p-3 text-sm font-bold rounded-2xl text-center ${accountMsg.type === 'success' ? 'bg-[#4ade80]/15 text-[#16a34a]' : 'bg-[#ff6b6b]/15 text-[#ff6b6b]'}`}>
+                                {accountMsg.text}
+                            </div>
+                        )}
+
+                        <div className="w-full flex flex-col gap-3">
+                            <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={isUploading}
+                                className="w-full py-3.5 bg-[#fce7f3] text-[#db2777] font-black rounded-3xl shadow-[0_4px_0_#f472b6] hover:translate-y-[2px] hover:shadow-[0_2px_0_#f472b6] transition-all disabled:opacity-50"
+                            >
+                                {isUploading ? 'Mengupload...' : 'Ganti Foto Profil'}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Class Progress Stats */}
+                    <div className="bg-[#1e3a5f] p-8 rounded-[2.5rem] text-white">
+                        <div className="flex items-center gap-4 mb-5">
+                            <div className="size-12 bg-[#3db8eb] rounded-2xl flex items-center justify-center shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="size-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                </svg>
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-white/60 text-xs font-bold uppercase tracking-widest">Clevio Program</p>
+                                <p className="text-base font-black text-white truncate">
+                                    {classInfo ? classInfo.className : 'Belum Ada Kelas'}
+                                </p>
+                            </div>
+                        </div>
+                        {classInfo ? (
+                            <>
+                                <div className="w-full bg-white/10 h-3 rounded-full overflow-hidden">
+                                    <div
+                                        className="bg-[#3db8eb] h-full rounded-full transition-all duration-700"
+                                        style={{ width: `${classInfo.totalBlocks > 0 ? Math.round((classInfo.completedBlocks / classInfo.totalBlocks) * 100) : 0}%` }}
+                                    />
                                 </div>
-                            </form>
-                        </div>
+                                <div className="flex justify-between items-center mt-2">
+                                    <p className="text-white/40 text-xs font-bold">{classInfo.completedBlocks} dari {classInfo.totalBlocks} block selesai</p>
+                                    <p className="text-[#3db8eb] text-xs font-black">{classInfo.totalBlocks > 0 ? Math.round((classInfo.completedBlocks / classInfo.totalBlocks) * 100) : 0}%</p>
+                                </div>
+                            </>
+                        ) : (
+                            <p className="text-white/30 text-xs font-bold mt-3">Daftarkan diri ke kelas untuk mulai belajar!</p>
+                        )}
                     </div>
                 </div>
 
-                {/* 3. KEAMANAN PASSWORD */}
-                <div className="group">
-                    <input className="hidden peer" id="acc-password" name="settings-accordion" type="radio" />
-                    <label className="flex items-center justify-between cursor-pointer bg-white rounded-xl p-6 shadow-sm border-2 border-slate-100 transition-all peer-checked:rounded-b-none peer-checked:border-b-0" htmlFor="acc-password">
-                        <div className="flex items-center gap-3">
-                            <Lock className="text-clevio-amber size-8" />
-                            <h2 className="text-2xl font-bold text-clevio-navy">Keamanan Password</h2>
+                {/* ── RIGHT COLUMN ── */}
+                <div className="lg:col-span-8 flex flex-col gap-7">
+
+                    {/* Card: Nama & Avatar — Save Name */}
+                    <form onSubmit={handleUpdateName} className="bg-white p-8 lg:p-10 rounded-[2.5rem] shadow-xl shadow-[#1e3a5f]/5 border-b-8 border-[#3db8eb]">
+                        <div className="flex items-center gap-4 mb-8">
+                            <div className="size-12 bg-[#3db8eb]/20 rounded-2xl flex items-center justify-center shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="size-6 text-[#3db8eb]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                            </div>
+                            <h2 className="text-2xl font-black text-[#1e3a5f]">Akun Clevio Kamu</h2>
                         </div>
-                        <ChevronDown className="text-slate-400 transition-transform duration-300 peer-checked:rotate-180" size={24} />
-                    </label>
 
-                    <div className="grid grid-rows-[0fr] opacity-0 peer-checked:grid-rows-[1fr] peer-checked:opacity-100 transition-all duration-300 ease-in-out bg-white rounded-b-xl shadow-sm border-x-2 border-slate-100 peer-checked:border-b-2 overflow-hidden">
-                        <div className="min-h-0 px-8">
-                            <form onSubmit={handleChangePassword} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end pb-8 pt-6 border-t-2 border-slate-50">
-                                <label className="flex flex-col gap-2">
-                                    <span className="font-bold text-clevio-navy">Password Saat Ini</span>
-                                    <input className="bg-slate-50 border-2 border-slate-200 focus:border-clevio-amber focus:ring-0 text-clevio-navy rounded-xl px-4 py-3 font-medium outline-none"
-                                        placeholder="••••••••" type="password" required value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} />
-                                </label>
-                                <label className="flex flex-col gap-2">
-                                    <span className="font-bold text-clevio-navy">Password Baru</span>
-                                    <input className="bg-slate-50 border-2 border-slate-200 focus:border-clevio-amber focus:ring-0 text-clevio-navy rounded-xl px-4 py-3 font-medium outline-none"
-                                        placeholder="Ketik sandi baru" type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)} />
-                                </label>
-
-                                <button disabled={isChangingPassword} className="bg-[#f59e0b] text-white font-bold rounded-xl px-8 py-3 shadow-[0_4px_0_0_#D97706] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#D97706] active:translate-y-1 active:shadow-none transition-all h-[52px] disabled:opacity-50">
-                                    {isChangingPassword ? 'Diproses...' : 'Ubah Password'}
-                                </button>
-
-                                {passwordMsg && (
-                                    <div className={`md:col-span-3 p-3 text-sm font-bold rounded-xl ${passwordMsg.type === 'success' ? 'bg-clevio-green/10 text-clevio-green' : 'bg-clevio-coral/10 text-clevio-coral'}`}>
-                                        {passwordMsg.text}
-                                    </div>
-                                )}
-                            </form>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-bold text-[#1e3a5f]/40 mb-2 ml-1">Username</label>
+                                <input className={`${inputClass} opacity-60 cursor-not-allowed`} type="text" value={formData.username} disabled />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-[#1e3a5f]/40 mb-2 ml-1">Nama Panggilan</label>
+                                <input
+                                    className={inputClass}
+                                    type="text"
+                                    value={formData.fullName}
+                                    onChange={e => handleChange('fullName', e.target.value)}
+                                    required
+                                />
+                            </div>
                         </div>
-                    </div>
+
+                        <div className="mt-8">
+                            <button
+                                type="submit"
+                                disabled={isUpdatingAccount}
+                                className="w-full md:w-auto px-10 py-3.5 bg-[#ff6b6b] text-white font-black rounded-3xl shadow-[0_6px_0_#e11d48] hover:translate-y-[2px] hover:shadow-[0_3px_0_#e11d48] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                                {isUpdatingAccount ? 'Menyimpan...' : 'Simpan Nama'}
+                            </button>
+                        </div>
+                    </form>
+
+                    {/* Card: Data Pribadi & Orang Tua */}
+                    <form onSubmit={handleUpdatePersonal} className="bg-white p-8 lg:p-10 rounded-[2.5rem] shadow-xl shadow-[#1e3a5f]/5 border-b-8 border-[#4ade80]">
+                        <div className="flex items-center gap-4 mb-8">
+                            <div className="size-12 bg-[#4ade80]/20 rounded-2xl flex items-center justify-center shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="size-6 text-[#4ade80]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                            </div>
+                            <h2 className="text-2xl font-black text-[#1e3a5f]">Data Pribadi &amp; Orang Tua</h2>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            {/* Student column */}
+                            <div className="flex flex-col gap-5">
+                                <p className="text-[#1e3a5f] font-black text-lg border-l-4 border-[#3db8eb] pl-3">Data Siswa</p>
+                                <div>
+                                    <label className="block text-sm font-bold text-[#1e3a5f]/40 mb-2 ml-1">Tanggal Lahir</label>
+                                    <input type="date" className={inputClass} value={formData.birthDate || ''} onChange={e => handleChange('birthDate', e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-[#1e3a5f]/40 mb-2 ml-1">Jenis Kelamin</label>
+                                    <select className={inputClass} value={formData.gender || ''} onChange={e => handleChange('gender', e.target.value as any)}>
+                                        <option value="">Pilih</option>
+                                        <option value="MALE">Laki-laki</option>
+                                        <option value="FEMALE">Perempuan</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-[#1e3a5f]/40 mb-2 ml-1">Nama Sekolah</label>
+                                    <input type="text" className={inputClass} value={formData.schoolName || ''} onChange={e => handleChange('schoolName', e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-[#1e3a5f]/40 mb-2 ml-1">Kelas</label>
+                                    <input type="text" className={inputClass} value={formData.schoolGrade || ''} onChange={e => handleChange('schoolGrade', e.target.value)} />
+                                </div>
+                            </div>
+
+                            {/* Parent column */}
+                            <div className="flex flex-col gap-5">
+                                <p className="text-[#1e3a5f] font-black text-lg border-l-4 border-[#f59e0b] pl-3">Data Orang Tua</p>
+                                <div>
+                                    <label className="block text-sm font-bold text-[#1e3a5f]/40 mb-2 ml-1">Nama Orang Tua</label>
+                                    <input type="text" className={inputClass} placeholder="Masukkan Nama Ayah/Ibu" value={formData.parentName || ''} onChange={e => handleChange('parentName', e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-[#1e3a5f]/40 mb-2 ml-1">No. WhatsApp</label>
+                                    <input type="tel" className={inputClass} placeholder="0812xxxx" value={formData.parentContactPhone || ''} onChange={e => handleChange('parentContactPhone', e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-[#1e3a5f]/40 mb-2 ml-1">Email Orang Tua</label>
+                                    <input type="email" className={inputClass} value={formData.parentEmail || ''} onChange={e => handleChange('parentEmail', e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-[#1e3a5f]/40 mb-2 ml-1">Alamat Lengkap</label>
+                                    <textarea className={`${inputClass} resize-none h-[100px]`} value={formData.address || ''} onChange={e => handleChange('address', e.target.value)} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {personalMsg && (
+                            <div className={`mt-5 p-3 text-sm font-bold rounded-2xl ${personalMsg.type === 'success' ? 'bg-[#4ade80]/15 text-[#16a34a]' : 'bg-[#ff6b6b]/15 text-[#ff6b6b]'}`}>
+                                {personalMsg.text}
+                            </div>
+                        )}
+
+                        <div className="mt-8">
+                            <button
+                                type="submit"
+                                disabled={isUpdatingPersonal}
+                                className="w-full md:w-auto px-10 py-3.5 bg-[#4ade80] text-white font-black rounded-3xl shadow-[0_6px_0_#16a34a] hover:translate-y-[2px] hover:shadow-[0_3px_0_#16a34a] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                                </svg>
+                                {isUpdatingPersonal ? 'Menyimpan...' : 'Simpan Data Profil'}
+                            </button>
+                        </div>
+                    </form>
+
+                    {/* Card: Keamanan Password */}
+                    <form onSubmit={handleChangePassword} className="bg-white p-8 lg:p-10 rounded-[2.5rem] shadow-xl shadow-[#1e3a5f]/5 border-b-8 border-[#f59e0b]">
+                        <div className="flex items-center gap-4 mb-8">
+                            <div className="size-12 bg-[#f59e0b]/20 rounded-2xl flex items-center justify-center shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="size-6 text-[#f59e0b]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
+                            </div>
+                            <h2 className="text-2xl font-black text-[#1e3a5f]">Keamanan Password</h2>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <label className="block text-sm font-bold text-[#1e3a5f]/40 mb-2 ml-1">Password Saat Ini</label>
+                                <input className={inputClass} type="password" placeholder="••••••••" required value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-[#1e3a5f]/40 mb-2 ml-1">Password Baru</label>
+                                <input className={inputClass} type="password" placeholder="••••••••" required value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-[#1e3a5f]/40 mb-2 ml-1">Konfirmasi Password</label>
+                                <input className={inputClass} type="password" placeholder="••••••••" required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+                            </div>
+                        </div>
+
+                        {passwordMsg && (
+                            <div className={`mt-5 p-3 text-sm font-bold rounded-2xl ${passwordMsg.type === 'success' ? 'bg-[#4ade80]/15 text-[#16a34a]' : 'bg-[#ff6b6b]/15 text-[#ff6b6b]'}`}>
+                                {passwordMsg.text}
+                            </div>
+                        )}
+
+                        <div className="mt-8">
+                            <button
+                                type="submit"
+                                disabled={isChangingPassword}
+                                className="w-full md:w-auto px-10 py-3.5 bg-[#f59e0b] text-white font-black rounded-3xl shadow-[0_6px_0_#b45309] hover:translate-y-[2px] hover:shadow-[0_3px_0_#b45309] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                                </svg>
+                                {isChangingPassword ? 'Diproses...' : 'Ubah Password'}
+                            </button>
+                        </div>
+                    </form>
+
                 </div>
-
             </div>
         </div>
     );

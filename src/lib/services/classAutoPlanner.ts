@@ -313,7 +313,7 @@ export async function autoPlanWeeklyClass(classRecord: ClassRow, preferredStartB
 /**
  * Auto-plan ekskul class based on ekskul_lesson_plan
  */
-export async function autoPlanEkskulClass(classRecord: ClassRow): Promise<AutoPlanResult> {
+export async function autoPlanEkskulClass(classRecord: ClassRow, preferredStartLessonId?: string): Promise<AutoPlanResult> {
   if (classRecord.type !== 'EKSKUL') {
     return { skipped: true, reason: 'Not an ekskul class' };
   }
@@ -359,8 +359,20 @@ export async function autoPlanEkskulClass(classRecord: ClassRow): Promise<AutoPl
     return { skipped: true, reason: `Invalid schedule day "${classRecord.schedule_day}"` };
   }
 
+  // --- Compute how many sessions to backdate ---
+  // Count sessions for all lessons BEFORE the chosen starting lesson.
+  let pastSessionCount = 0;
+  if (preferredStartLessonId) {
+    for (const lesson of ekskulLessons) {
+      if (lesson.id === preferredStartLessonId) break; // Stop before the chosen lesson
+      pastSessionCount += (lesson.estimated_meetings || 1);
+    }
+  }
+
   const classStart = new Date(classRecord.start_date ?? new Date().toISOString());
-  let currentDate = alignDateToWeekday(classStart, scheduleInfo.index);
+  // Backdate the actual session generation start by the number of past sessions (weekly)
+  const generationStart = addDays(classStart, -(pastSessionCount * 7));
+  let currentDate = alignDateToWeekday(generationStart, scheduleInfo.index);
   let totalSessionsCreated = 0;
 
   // Create sessions for each ekskul lesson
@@ -404,6 +416,20 @@ export async function autoPlanEkskulClass(classRecord: ClassRow): Promise<AutoPl
     }
   }
 
+  // --- Mark backdated sessions as COMPLETED ---
+  if (pastSessionCount > 0) {
+    // Fetch the inserted sessions sorted chronologically
+    const { data: createdSessions } = await supabase
+      .from('sessions')
+      .select('id, date_time')
+      .eq('class_id', classRecord.id)
+      .order('date_time', { ascending: true });
+
+    if (createdSessions && createdSessions.length > 0) {
+      const toComplete = createdSessions.slice(0, pastSessionCount);
+      await Promise.all(toComplete.map(s => sessionsDao.updateSessionStatus(s.id, 'COMPLETED')));
+    }
+  }
+
   return { skipped: false, blockId: '', sessionsCreated: totalSessionsCreated };
 }
-

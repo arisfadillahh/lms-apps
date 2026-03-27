@@ -8,9 +8,6 @@ import { assertRole } from '@/lib/roles';
 
 import UpdateBlockForm from '../../../UpdateBlockForm';
 import BlockLessonList from '../../../BlockLessonList';
-// import CreateLessonButton from '../../../CreateLessonButton';
-import ImportLessonsButton from '../../../ImportLessonsButton';
-import ExportLessonsButton from '../../../ExportLessonsButton';
 
 import { ChevronRight } from 'lucide-react';
 
@@ -27,6 +24,8 @@ export default async function BlockDetailPage({ params }: { params: Promise<{ le
     if (!level || !block) notFound();
 
     const lessons = await lessonTemplatesDao.listLessonsByBlock(blockId);
+
+    const totalMeetings = lessons.reduce((sum, l) => sum + (l.estimated_meeting_count || 1), 0);
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -49,30 +48,30 @@ export default async function BlockDetailPage({ params }: { params: Promise<{ le
                             {block.summary || 'Tidak ada deskripsi.'}
                         </p>
                     </div>
-                    {/* We can put the Edit Block button here too if we want */}
                     <div style={{ flexShrink: 0 }}>
-                        {/* Reusing UpdateBlockForm might be tricky if it expects to just be a form. 
-                    It currently renders the whole form. 
-                    Maybe we just leave it for now or wrap it in a modal?
-                    The block list page already has the edit button.
-                    Let's just focus on Lessons here.
-                */}
+                        {/* We can put the Edit Block button here too if we want */}
                     </div>
                 </div>
             </header>
 
-            <main style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#334155' }}>Daftar Lesson</h2>
-                    <div style={{ display: 'flex', gap: '0.75rem' }}>
-                        <ExportLessonsButton blockId={blockId} />
-                        {/* TODO: Move Import Button inside BlockLessonList or keep here? 
-                             BlockLessonList handles creation now. 
-                         */}
-                        <ImportLessonsButton blockId={blockId} currentLessonCount={lessons.length} />
-                    </div>
+            <div style={statsRowStyle}>
+                <div style={statCardStyle}>
+                    <span style={statLabelStyle}>Total Lesson</span>
+                    <span style={statValueStyle}>{lessons.length}</span>
                 </div>
+                <div style={statCardStyle}>
+                    <span style={statLabelStyle}>Total Pertemuan</span>
+                    <span style={statValueStyle}>{totalMeetings}</span>
+                </div>
+                <div style={statCardStyle}>
+                    <span style={statLabelStyle}>Status</span>
+                    <span style={{ color: block.is_published ? '#16a34a' : '#dc2626', fontWeight: 600 }}>
+                        {block.is_published ? 'Aktif' : 'Draft'}
+                    </span>
+                </div>
+            </div>
 
+            <main style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <BlockLessonList blockId={blockId} lessons={lessons} />
             </main>
         </div>
@@ -97,3 +96,8 @@ const primaryButtonStyle: CSSProperties = {
     textDecoration: 'none',
     transition: 'color 0.2s',
 };
+
+const statsRowStyle: CSSProperties = { display: 'flex', gap: '1rem' };
+const statCardStyle: CSSProperties = { background: '#fff', padding: '1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.25rem' };
+const statLabelStyle: CSSProperties = { fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 };
+const statValueStyle: CSSProperties = { fontSize: '1.25rem', fontWeight: 700, color: '#0f172a' };

@@ -107,6 +107,8 @@ export async function POST(request: NextRequest) {
 
   let initialBlockId: string | undefined;
   let initialLessonId: string | undefined;
+  let ekskulInitialLessonId: string | undefined;
+
   if (input.initialBlockId) {
     if (input.type !== 'WEEKLY') {
       return NextResponse.json({ error: 'initialBlockId is only valid for weekly classes' }, { status: 400 });
@@ -129,6 +131,28 @@ export async function POST(request: NextRequest) {
       }
       initialLessonId = input.initialLessonId;
     }
+  }
+
+  // Validate ekskulInitialLessonId
+  if (input.ekskulInitialLessonId) {
+    if (input.type !== 'EKSKUL') {
+      return NextResponse.json({ error: 'ekskulInitialLessonId is only valid for ekskul classes' }, { status: 400 });
+    }
+    if (!input.ekskulLessonPlanId) {
+      return NextResponse.json({ error: 'ekskulLessonPlanId is required when specifying initial lesson' }, { status: 400 });
+    }
+    const { getSupabaseAdmin } = await import('@/lib/supabaseServer');
+    const supabase = getSupabaseAdmin();
+    const { data: ekskulLesson } = await (supabase as any)
+      .from('ekskul_lessons')
+      .select('id')
+      .eq('id', input.ekskulInitialLessonId)
+      .eq('plan_id', input.ekskulLessonPlanId)
+      .maybeSingle();
+    if (!ekskulLesson) {
+      return NextResponse.json({ error: 'Initial lesson does not belong to selected ekskul plan' }, { status: 400 });
+    }
+    ekskulInitialLessonId = input.ekskulInitialLessonId;
   }
 
   const created = await classesDao.createClass({
@@ -175,7 +199,7 @@ export async function POST(request: NextRequest) {
   } else if (created.type === 'EKSKUL') {
     try {
       const { autoPlanEkskulClass } = await import('@/lib/services/classAutoPlanner');
-      await autoPlanEkskulClass(created);
+      await autoPlanEkskulClass(created, ekskulInitialLessonId);
     } catch (error) {
       console.error('Auto planning ekskul class failed', error);
     }

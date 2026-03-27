@@ -88,3 +88,45 @@ export async function PATCH(
 
     return NextResponse.json({ lesson: data });
 }
+
+export async function DELETE(
+    _request: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    const session = await getSessionOrThrow();
+    await assertRole(session, 'ADMIN');
+
+    const resolvedParams = await params;
+    const lessonId = resolvedParams.id;
+
+    const supabase = getSupabaseAdmin();
+
+    // Get plan_id before deleting (for total_lessons update)
+    const { data: lesson } = await supabase
+        .from('ekskul_lessons')
+        .select('plan_id')
+        .eq('id', lessonId)
+        .single();
+
+    const { error } = await supabase
+        .from('ekskul_lessons')
+        .delete()
+        .eq('id', lessonId);
+
+    if (error) {
+        return NextResponse.json({ error: `Gagal menghapus lesson: ${error.message}` }, { status: 500 });
+    }
+
+    // Update total_lessons count
+    if (lesson?.plan_id) {
+        const { count } = await supabase
+            .from('ekskul_lessons')
+            .select('*', { count: 'exact', head: true })
+            .eq('plan_id', lesson.plan_id);
+        if (count !== null) {
+            await supabase.from('ekskul_lesson_plans').update({ total_lessons: count }).eq('id', lesson.plan_id);
+        }
+    }
+
+    return NextResponse.json({ success: true });
+}

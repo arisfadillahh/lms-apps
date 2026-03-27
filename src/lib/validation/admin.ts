@@ -54,6 +54,10 @@ export const createClassSchema = z.object({
     .union([z.string().uuid(), z.literal('')])
     .transform((value) => (value === '' ? undefined : value))
     .optional(),
+  ekskulInitialLessonId: z
+    .union([z.string().uuid(), z.literal('')])
+    .transform((value) => (value === '' ? undefined : value))
+    .optional(),
   startDate: z
     .string()
     .refine((value) => !Number.isNaN(Date.parse(value)), { message: 'Invalid start date' }),

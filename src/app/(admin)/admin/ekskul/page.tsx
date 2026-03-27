@@ -6,6 +6,8 @@ import { assertRole } from '@/lib/roles';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import AddEkskulPlanButton from './AddEkskulPlanButton';
 import EditEkskulPlanButton from './EditEkskulPlanButton';
+import DuplicateEkskulPlanButton from './DuplicateEkskulPlanButton';
+import DeleteEkskulPlanButton from './DeleteEkskulPlanButton';
 
 export default async function EkskulPlansPage() {
     const session = await getSessionOrThrow();
@@ -72,6 +74,8 @@ export default async function EkskulPlansPage() {
                             </Link>
                             <div style={cardActionsStyle}>
                                 <EditEkskulPlanButton plan={plan} />
+                                <DuplicateEkskulPlanButton planId={plan.id} planName={plan.name} />
+                                <DeleteEkskulPlanButton planId={plan.id} planName={plan.name} />
                             </div>
                         </div>
                     ))}

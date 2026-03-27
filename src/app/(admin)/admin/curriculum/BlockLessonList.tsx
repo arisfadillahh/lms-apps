@@ -10,6 +10,9 @@ import CreateLessonForm from './CreateLessonForm';
 import LessonSpreadsheet from './LessonSpreadsheet';
 import EditLessonModal from './EditLessonModal';
 import DeleteLessonButton from './DeleteLessonButton';
+import ImportLessonsButton from './ImportLessonsButton';
+import ExportLessonsButton from './ExportLessonsButton';
+
 
 type BlockLessonListProps = {
   blockId: string;
@@ -46,11 +49,13 @@ export default function BlockLessonList({ blockId, lessons }: BlockLessonListPro
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#1e293b', margin: 0 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#1e293b', margin: 0, marginTop: '0.5rem' }}>
           Daftar Lesson
         </h3>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <ExportLessonsButton blockId={blockId} />
+          <ImportLessonsButton blockId={blockId} currentLessonCount={lessons.length} />
           <button
             type="button"
             onClick={() => setIsBulkEditMode(!isBulkEditMode)}

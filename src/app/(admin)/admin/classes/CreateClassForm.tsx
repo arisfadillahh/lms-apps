@@ -41,6 +41,8 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [availableLessons, setAvailableLessons] = useState<Array<{ id: string; title: string; order_index: number }>>([]);
   const [loadingLessons, setLoadingLessons] = useState(false);
+  const [availableEkskulLessons, setAvailableEkskulLessons] = useState<Array<{ id: string; title: string; order_index: number; estimated_meetings?: number }>>([]);
+  const [loadingEkskulLessons, setLoadingEkskulLessons] = useState(false);
 
   const {
     register,
@@ -58,12 +60,14 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
       initialBlockId: '',
       initialLessonId: '',
       ekskulLessonPlanId: '',
+      ekskulInitialLessonId: '',
     } as FormValues,
   });
 
   const selectedType = watch('type');
   const selectedLevelId = watch('levelId');
   const selectedBlockId = watch('initialBlockId');
+  const selectedEkskulPlanId = watch('ekskulLessonPlanId');
 
   const availableBlocks = useMemo(() => {
     if (selectedType !== 'WEEKLY' || !selectedLevelId) {
@@ -98,6 +102,32 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
     fetchLessons();
   }, [selectedBlockId, setValue]);
 
+  // Fetch lessons when ekskul plan changes
+  useEffect(() => {
+    if (!selectedEkskulPlanId || selectedType !== 'EKSKUL') {
+      setAvailableEkskulLessons([]);
+      setValue('ekskulInitialLessonId', '' as any);
+      return;
+    }
+
+    const fetchEkskulLessons = async () => {
+      setLoadingEkskulLessons(true);
+      try {
+        const res = await fetch(`/api/admin/ekskul/plans/${selectedEkskulPlanId}/lessons`);
+        if (res.ok) {
+          const data = await res.json();
+          setAvailableEkskulLessons(data.lessons || []);
+        }
+      } catch (error) {
+        console.error('Error fetching ekskul lessons:', error);
+      } finally {
+        setLoadingEkskulLessons(false);
+      }
+    };
+
+    fetchEkskulLessons();
+  }, [selectedEkskulPlanId, selectedType, setValue]);
+
   useEffect(() => {
     setValue('initialBlockId', '' as FormValues['initialBlockId']);
     setValue('initialLessonId', '' as any);
@@ -127,8 +157,9 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
       }
 
       setSuccessMessage('Kelas berhasil dibuat');
-      reset({ ...values, name: '', zoomLink: '', startDate: '', initialBlockId: '', initialLessonId: '' });
+      reset({ ...values, name: '', zoomLink: '', startDate: '', initialBlockId: '', initialLessonId: '', ekskulInitialLessonId: '' });
       setAvailableLessons([]);
+      setAvailableEkskulLessons([]);
       router.refresh();
       setTimeout(() => {
         setSuccessMessage(null);
@@ -326,6 +357,27 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
               </div>
             ) : (
               <input type="hidden" value="" {...register('ekskulLessonPlanId')} />
+            )}
+
+            {/* Ekskul Starting Lesson Dropdown */}
+            {selectedType === 'EKSKUL' && selectedEkskulPlanId ? (
+              <div style={fieldStyle}>
+                <label style={labelStyle}>Mulai dari Lesson (Opsional)</label>
+                {loadingEkskulLessons ? (
+                  <div style={{ ...inputStyle, color: '#94a3b8' }}>Loading lessons...</div>
+                ) : (
+                  <select style={inputStyle} {...register('ekskulInitialLessonId')}>
+                    <option value="">Gunakan lesson pertama</option>
+                    {availableEkskulLessons.map((lesson) => (
+                      <option key={lesson.id} value={lesson.id}>
+                        {lesson.order_index}. {lesson.title}{lesson.estimated_meetings && lesson.estimated_meetings > 1 ? ` (${lesson.estimated_meetings} pertemuan)` : ''}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            ) : (
+              <input type="hidden" value="" {...register('ekskulInitialLessonId')} />
             )}
 
             <div style={fieldStyle}>

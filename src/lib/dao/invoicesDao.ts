@@ -410,6 +410,83 @@ export async function createInvoiceItems(
     return (data as unknown) as InvoiceItem[];
 }
 
+export async function createSeasonalInvoice(data: {
+    invoice_number: string;
+    student_phone: string;
+    student_name: string;
+    period_month: number;
+    period_year: number;
+    period_start_date: string;
+    period_end_date: string;
+    total_amount: number;
+    due_date: string;
+    items: Array<{
+        class_name: string;
+        level_name: string;
+        description?: string;
+        base_price: number;
+        discount_amount: number;
+        final_price: number;
+    }>;
+}): Promise<{ invoice: Invoice; items: InvoiceItem[] } | null> {
+    const supabase = getSupabaseAdmin();
+
+    // 1. Create Invoice
+    const { data: invoice, error: invoiceError } = await supabase
+        .from('invoices' as any)
+        .insert({
+            invoice_number: data.invoice_number,
+            ccr_id: null,
+            parent_phone: data.student_phone, // Fallback
+            parent_name: data.student_name, // Fallback
+            seasonal_student_name: data.student_name,
+            seasonal_student_phone: data.student_phone,
+            period_month: data.period_month,
+            period_year: data.period_year,
+            period_start_date: data.period_start_date,
+            period_end_date: data.period_end_date,
+            total_amount: data.total_amount,
+            due_date: data.due_date,
+            status: 'PENDING',
+            invoice_type: 'SEASONAL'
+        })
+        .select()
+        .single();
+
+    if (invoiceError || !invoice) {
+        console.error('[InvoicesDao] Error creating seasonal invoice:', invoiceError);
+        return null;
+    }
+
+    // 2. Create Invoice Items
+    const invoiceItemsToInsert = data.items.map(item => ({
+        invoice_id: (invoice as any).id,
+        coder_id: null,
+        coder_name: data.student_name,
+        class_name: item.class_name,
+        level_name: item.level_name || '-',
+        description: item.description || null,
+        base_price: item.base_price,
+        discount_amount: item.discount_amount,
+        final_price: item.final_price,
+        payment_period_id: null
+    }));
+
+    const { data: createdItems, error: itemsError } = await supabase
+        .from('invoice_items' as any)
+        .insert(invoiceItemsToInsert)
+        .select();
+
+    if (itemsError) {
+        console.error('[InvoicesDao] Error creating seasonal invoice items:', itemsError);
+    }
+
+    return {
+        invoice: (invoice as unknown) as Invoice,
+        items: (createdItems as unknown) as InvoiceItem[] || []
+    };
+}
+
 export async function getInvoiceByNumber(invoiceNumber: string): Promise<Invoice | null> {
     const supabase = getSupabaseAdmin();
 

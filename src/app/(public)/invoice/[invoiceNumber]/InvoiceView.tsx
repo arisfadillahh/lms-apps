@@ -154,13 +154,10 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
                                         {invoice.invoice_type === 'SEASONAL' ? invoice.seasonal_student_name : invoice.parent_name}
                                     </div>
                                     <div style={recipientDetailStyle}>
-                                        <strong>No. Telp:</strong> {invoice.parent_phone}
+                                        <strong>No. Telp:</strong> {invoice.invoice_type === 'SEASONAL' && invoice.seasonal_student_phone 
+                                            ? invoice.seasonal_student_phone 
+                                            : invoice.parent_phone}
                                     </div>
-                                    {invoice.invoice_type === 'SEASONAL' && invoice.seasonal_student_phone && (
-                                        <div style={recipientDetailStyle}>
-                                            <strong>No. Telp:</strong> {invoice.seasonal_student_phone}
-                                        </div>
-                                    )}
                                 </div>
 
                                 {/* Dates & Status Section */}
@@ -322,6 +319,11 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
                                                         ? invoice.seasonal_student_name
                                                         : (item.coder_name || invoice.parent_name)}
                                                 </div>
+                                                {item.description && (
+                                                    <div style={{ ...itemSubStyle, marginTop: '4px', fontStyle: 'italic', fontSize: '12px' }}>
+                                                        • {item.description}
+                                                    </div>
+                                                )}
                                             </td>
                                             <td style={{ ...tdStyle, textAlign: 'center' }}>Rp {formatCurrency(item.base_price)}</td>
                                             <td style={{ ...tdStyle, textAlign: 'center' }}>

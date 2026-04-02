@@ -24,8 +24,11 @@ export async function POST(request: NextRequest) {
 
         const body = await request.json();
         const {
+            parent_name,
             student_name,
-            student_phone,
+            phone,
+            parent_phone, // fallback from old payload
+            student_phone, // fallback from old payload
             class_name,
             base_price,
             discount_amount = 0,
@@ -33,10 +36,12 @@ export async function POST(request: NextRequest) {
             description
         } = body;
 
+        const finalPhone = phone || parent_phone || student_phone;
+
         // Validation
-        if (!student_name || !student_phone || !class_name || base_price === undefined) {
+        if (!student_name || !finalPhone || !class_name || base_price === undefined) {
             return NextResponse.json(
-                { error: 'Missing required fields: student_name, student_phone, class_name, base_price' },
+                { error: 'Missing required fields: student_name, phone, class_name, base_price' },
                 { status: 400 }
             );
         }
@@ -63,7 +68,9 @@ export async function POST(request: NextRequest) {
 
         const result = await createSeasonalInvoice({
             invoice_number: invoiceNumber,
-            student_phone: student_phone,
+            parent_name: parent_name || student_name, // Fallback ke student jika kosong
+            parent_phone: finalPhone,
+            student_phone: finalPhone,
             student_name: student_name,
             period_month: periodMonth,
             period_year: periodYear,

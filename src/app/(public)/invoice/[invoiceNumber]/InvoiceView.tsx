@@ -151,12 +151,10 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
                                 {/* Parent Info */}
                                 <div style={{ marginBottom: '20px' }}>
                                     <div style={recipientNameStyle}>
-                                        {invoice.invoice_type === 'SEASONAL' ? invoice.seasonal_student_name : invoice.parent_name}
+                                        {invoice.parent_name || invoice.seasonal_student_name}
                                     </div>
                                     <div style={recipientDetailStyle}>
-                                        <strong>No. Telp:</strong> {invoice.invoice_type === 'SEASONAL' && invoice.seasonal_student_phone 
-                                            ? invoice.seasonal_student_phone 
-                                            : invoice.parent_phone}
+                                        <strong>No. Telp:</strong> {invoice.parent_phone || invoice.seasonal_student_phone}
                                     </div>
                                 </div>
 

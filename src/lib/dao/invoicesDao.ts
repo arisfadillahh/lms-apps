@@ -412,6 +412,8 @@ export async function createInvoiceItems(
 
 export async function createSeasonalInvoice(data: {
     invoice_number: string;
+    parent_name: string;
+    parent_phone: string;
     student_phone: string;
     student_name: string;
     period_month: number;
@@ -437,8 +439,8 @@ export async function createSeasonalInvoice(data: {
         .insert({
             invoice_number: data.invoice_number,
             ccr_id: null,
-            parent_phone: data.student_phone, // Fallback
-            parent_name: data.student_name, // Fallback
+            parent_phone: data.parent_phone,
+            parent_name: data.parent_name,
             seasonal_student_name: data.student_name,
             seasonal_student_phone: data.student_phone,
             period_month: data.period_month,

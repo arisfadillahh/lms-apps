@@ -90,8 +90,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Fetch process.env.NEXT_PUBLIC_BASE_URL to generate the link
-        let baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://lms-clevio.vercel.app';
+        // Generate the URL (use env var or fallback to main domain)
+        let baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://lms.clev.io';
         if (baseUrl.endsWith('/')) {
             baseUrl = baseUrl.slice(0, -1);
         }

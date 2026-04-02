@@ -16,6 +16,9 @@ export async function POST(request: NextRequest) {
         const expectedToken = process.env.N8N_API_SECRET || 'clevio-seasonal-secret-2026';
         
         if (!authHeader || !authHeader.startsWith('Bearer ') || authHeader.split(' ')[1] !== expectedToken) {
+            console.log('\n[DEBUG n8n] Auth Failed!');
+            console.log('- Header yg dikirim n8n:', authHeader);
+            console.log('- Token yg diharapkan:', expectedToken);
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 

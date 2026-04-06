@@ -66,7 +66,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Cannot assign material to a cancelled or invalid session' }, { status: 400 });
     }
 
-    // 3. Fetch ALL class_lessons for this class, ordered by curriculum sequence
+    // 3. Fetch ALL class_lessons for this class, ordered by chronological sequence
+    //    IMPORTANT: Sort by class_blocks.start_date (not blocks.order_index) to match
+    //    lessonRebalancer.ts and lessonAutoAssign.ts behavior. This prevents lesson shifts
+    //    from producing wrong order for classes that start mid-curriculum.
     const { data: lessons, error: lessonError } = await supabase
       .from('class_lessons')
       .select(`
@@ -76,7 +79,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         class_blocks!inner (
           id,
           class_id,
-          blocks ( order_index )
+          start_date
         )
       `)
       .eq('class_blocks.class_id', classId);
@@ -85,11 +88,11 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Failed to fetch class lessons' }, { status: 500 });
     }
 
-    // Sort to get current global curriculum sequence
+    // Sort by class_blocks.start_date (chronological), then by lesson order_index within block.
     const sortedLessons = (lessons as any[]).sort((a, b) => {
-      const blockOrderA = a.class_blocks?.blocks?.order_index ?? 0;
-      const blockOrderB = b.class_blocks?.blocks?.order_index ?? 0;
-      if (blockOrderA !== blockOrderB) return blockOrderA - blockOrderB;
+      const dateA = new Date(a.class_blocks?.start_date ?? 0).getTime();
+      const dateB = new Date(b.class_blocks?.start_date ?? 0).getTime();
+      if (dateA !== dateB) return dateA - dateB;
       if (a.order_index !== b.order_index) return a.order_index - b.order_index;
       return a.id.localeCompare(b.id);
     });

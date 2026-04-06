@@ -11,7 +11,10 @@ import { getSupabaseAdmin } from '@/lib/supabaseServer';
 export async function reassignLessonsToSessions(classId: string): Promise<void> {
     const supabase = getSupabaseAdmin();
 
-    // 1. Get ALL lessons for the class, fetching Block Order Index for correct sorting
+    // 1. Get ALL lessons for the class, fetching start_date for chronological sorting
+    //    IMPORTANT: Sort by class_blocks.start_date (not blocks.order_index) to match
+    //    lessonAutoAssign.ts behavior. This prevents lesson order from jumping/reversing
+    //    when a class starts mid-curriculum (e.g. starting from Block 3).
     const { data: lessons, error: lessonError } = await supabase
         .from('class_lessons')
         .select(`
@@ -20,9 +23,7 @@ export async function reassignLessonsToSessions(classId: string): Promise<void> 
             class_blocks!inner (
                 id,
                 class_id,
-                blocks (
-                    order_index
-                )
+                start_date
             )
         `)
         .eq('class_blocks.class_id', classId);
@@ -37,13 +38,14 @@ export async function reassignLessonsToSessions(classId: string): Promise<void> 
         return;
     }
 
-    // Sort In-Memory to guarantee Curriculum Order (Block 1 -> Block 2 -> ...)
+    // Sort by class_blocks.start_date (chronological), then by lesson order_index within block.
+    // This matches the sort logic in lessonAutoAssign.ts (buildLessonQueue).
     const sortedLessons = lessons.sort((a: any, b: any) => {
-        const blockOrderA = a.class_blocks?.blocks?.order_index ?? 0;
-        const blockOrderB = b.class_blocks?.blocks?.order_index ?? 0;
+        const dateA = new Date(a.class_blocks?.start_date ?? 0).getTime();
+        const dateB = new Date(b.class_blocks?.start_date ?? 0).getTime();
 
-        if (blockOrderA !== blockOrderB) {
-            return blockOrderA - blockOrderB;
+        if (dateA !== dateB) {
+            return dateA - dateB;
         }
         if (a.order_index !== b.order_index) {
             return a.order_index - b.order_index;
@@ -177,9 +179,8 @@ export async function syncClassLessonsStructure(classId: string): Promise<void> 
 
             // B. Shrink if needed (Delete extra parts from the end)
             if (currentLessons.length > targetCount) {
-                // Sort by creation time or id (assuming higher ID = later part)
-                // Actually, relying on title containing "Part X" is risky, ID sort is safer
-                const sorted = currentLessons.sort((a, b) => a.id.localeCompare(b.id));
+                // Safely sort by order_index to always trim trailing parts
+                const sorted = currentLessons.sort((a, b) => a.order_index - b.order_index);
                 const toDelete = sorted.slice(targetCount);
                 const idsToDelete = toDelete.map(l => l.id);
 

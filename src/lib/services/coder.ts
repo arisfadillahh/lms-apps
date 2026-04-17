@@ -51,6 +51,12 @@ export type CoderClassProgress = {
   totalBlocks: number | null;
   lastAttendanceAt?: string | null;
   semesterTag?: string | null;
+  // Fallback: last completed lesson from a previous block (when current block has none yet)
+  lastCompletedLesson?: {
+    title: string;
+    summary: string | null;
+    slideUrl: string | null;
+  } | null;
   pendingBlocks?: Array<{
     blockId: string;
     name: string;
@@ -464,6 +470,31 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
         };
       }
 
+      // Compute lastCompletedLesson fallback: find the last completed lesson
+      // from a previous block if the current block has no COMPLETED lessons.
+      let lastCompletedLesson: CoderClassProgress['lastCompletedLesson'] = null;
+      const currentLessons = upNext?.lessons || [];
+      const hasCompletedInCurrent = currentLessons.some((l: any) => l.status === 'COMPLETED');
+      
+      if (!hasCompletedInCurrent) {
+        // Find the most recent COMPLETED block and get its last lesson via the lessonMap
+        const completedBlks = sortedBlocks.filter(b => b.status === 'COMPLETED');
+        if (completedBlks.length > 0) {
+          const lastCompBlock = completedBlks[completedBlks.length - 1];
+          const lastBlockLessons = await lessonTemplatesDao.listLessonsByBlock(lastCompBlock.block_id);
+          if (lastBlockLessons.length > 0) {
+            // Get the last lesson (by order_index)
+            const sorted = [...lastBlockLessons].sort((a, b) => (a as any).order_index - (b as any).order_index);
+            const last = sorted[sorted.length - 1];
+            lastCompletedLesson = {
+              title: last.title,
+              summary: last.summary ?? null,
+              slideUrl: last.slide_url ?? null,
+            };
+          }
+        }
+      }
+
       return {
         classId: klass.id,
         name: klass.name,
@@ -482,6 +513,7 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
         totalBlocks,
         lastAttendanceAt: lastAttendance?.recorded_at ?? null,
         semesterTag,
+        lastCompletedLesson,
         pendingBlocks,
         journeyBlocks,
       };
@@ -674,11 +706,9 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
                 return session.status === 'COMPLETED' || new Date(session.date_time) <= now;
               }
 
-              // --- Fallback: map by chronological position within block ---
-              if (index < blockSessionsSorted.length) {
-                const mappedSession = blockSessionsSorted[index];
-                return mappedSession.status === 'COMPLETED' || new Date(mappedSession.date_time) <= now;
-              }
+              // --- No explicit session link ---
+              // If lesson has no session_id, it cannot be accessed.
+              // (Fallback date mapping is only used for display, not access control)
 
               // --- unlock_at override ---
               if (lesson.unlock_at && new Date(lesson.unlock_at) <= now) return true;

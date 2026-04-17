@@ -56,7 +56,8 @@ export default async function CoderDashboardPage() {
       block: item.upNext!,
       coach: item.coach,
       schedule: item.schedule,
-      journeyBlocks: item.journeyBlocks
+      journeyBlocks: item.journeyBlocks,
+      lastCompletedLessonFallback: item.lastCompletedLesson ?? null,
     }));
 
   const journeyProgress = progress.filter((item) => item.journeyBlocks.length > 0);
@@ -75,7 +76,10 @@ export default async function CoderDashboardPage() {
 
   // Get the last completed lesson for summary and slides
   const completedLessonsArr = activeBlock?.block.lessons?.filter((l: any) => l.status === 'COMPLETED') || [];
-  const lastCompletedLesson = completedLessonsArr.length > 0 ? completedLessonsArr[completedLessonsArr.length - 1] : null;
+  const lastCompletedLesson = completedLessonsArr.length > 0 
+    ? completedLessonsArr[completedLessonsArr.length - 1] 
+    // Fallback: use the last completed lesson from the previous block
+    : activeBlock?.lastCompletedLessonFallback ?? null;
 
   const completedLessons = completedLessonsArr.length;
   const totalLessons = activeBlock?.block.lessons?.length || 1;

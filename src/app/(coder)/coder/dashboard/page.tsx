@@ -83,7 +83,9 @@ export default async function CoderDashboardPage() {
 
   const completedLessons = completedLessonsArr.length;
   const totalLessons = activeBlock?.block.lessons?.length || 1;
-  const activeProgressPct = Math.round((completedLessons / totalLessons) * 100);
+  // When block hasn't started yet (0 completed lessons), show overall class progress instead
+  const blockProgressPct = Math.round((completedLessons / totalLessons) * 100);
+  const activeProgressPct = blockProgressPct > 0 ? blockProgressPct : progressPercent;
 
   // Check if class link is active: query today's sessions DIRECTLY from DB
   // (lesson.scheduledAt is unreliable — depends on lessonMap template matching)

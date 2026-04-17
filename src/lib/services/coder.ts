@@ -253,7 +253,9 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
       const journeyOrderMap = new Map(journey.map(j => [j.block_id, j.journey_order]));
 
       // Fix: Calculate progress based on Journey Status (supports Manual Override), not just Submissions
-      const completedBlocks = journey.filter(j => j.status === 'COMPLETED').length;
+      // Fallback: if coder_block_progress has no entries, count blocks with COMPLETED status in class_blocks
+      const completedBlocks = journey.filter(j => j.status === 'COMPLETED').length
+        || blocks.filter(b => b.status === 'COMPLETED').length;
       const totalBlocks = blocks.length;
       const now_progress = new Date();
       const currentBlock = blocks.find((block) => block.status === 'CURRENT') 

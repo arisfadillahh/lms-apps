@@ -47,8 +47,25 @@ export default function AttendanceWrapper({
     const [isSlideOpen, setIsSlideOpen] = useState(false);
     const [isStartingEval, setIsStartingEval] = useState(false);
 
-    const handleSave = () => {
-        listRef.current?.save();
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await listRef.current?.save();
+            
+            // Auto complete session if it is not completed yet
+            if (canComplete) {
+                await fetch(`/api/coach/sessions/${sessionId}/status`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'COMPLETED' })
+                });
+                router.refresh();
+            }
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const handleOpenEvaluation = async () => {
@@ -121,20 +138,16 @@ export default function AttendanceWrapper({
                             {existingEvalSessionId ? 'Lanjut Evaluasi' : isStartingEval ? 'Memulai...' : 'Buka Evaluasi'}
                         </button>
                     )}
-                    {canComplete && (
-                        <button type="button" className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 whitespace-nowrap transition-colors">
-                            Tandai Sesi Selesai
-                        </button>
-                    )}
+
                     {slideUrl && (
                         <button type="button" onClick={() => setIsSlideOpen(true)} className="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 whitespace-nowrap transition-colors">
                             <span className="material-symbols-outlined text-base">menu_book</span>
                             Lihat Slide
                         </button>
                     )}
-                    <button type="button" onClick={handleSave} className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center gap-2 whitespace-nowrap shrink-0">
-                        Simpan Presensi
-                        <span className="material-symbols-outlined text-lg">check_circle</span>
+                    <button type="button" onClick={handleSave} disabled={isSaving} className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 disabled:opacity-60">
+                        {isSaving ? 'Menyimpan...' : 'Simpan Presensi'}
+                        {!isSaving && <span className="material-symbols-outlined text-lg">check_circle</span>}
                     </button>
                 </div>
             </div>

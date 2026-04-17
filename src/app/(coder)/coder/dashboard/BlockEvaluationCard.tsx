@@ -7,9 +7,10 @@ import { GraduationCap, Sparkles, ChevronRight } from 'lucide-react';
 
 type BlockEvaluationCardProps = {
   classId: string;
+  userId: string;
 };
 
-export default function BlockEvaluationCard({ classId }: BlockEvaluationCardProps) {
+export default function BlockEvaluationCard({ classId, userId }: BlockEvaluationCardProps) {
   const [activeSession, setActiveSession] = useState<any>(null);
   const supabase = getSupabaseBrowser();
 
@@ -18,9 +19,7 @@ export default function BlockEvaluationCard({ classId }: BlockEvaluationCardProp
 
     // Initial fetch
     const fetchActiveEval = async () => {
-      // Get current user id
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!userId) return;
 
       const { data } = await (supabase as any)
         .from('block_evaluation_sessions')
@@ -32,13 +31,14 @@ export default function BlockEvaluationCard({ classId }: BlockEvaluationCardProp
         .maybeSingle();
 
       if (data) {
-        // Check if the current coder already submitted their answers for this block
-        const { data: alreadySubmitted } = await supabase
-          .from('block_evaluations')
-          .select('id')
-          .eq('coder_id', user.id)
-          .eq('block_id', data.block_id)
-          .maybeSingle();
+        // Use the API endpoint since direct Supabase queries might be blocked by RLS
+        const res = await fetch(`/api/coder/block-evaluations?blockId=${data.block_id}`);
+        let alreadySubmitted = false;
+        
+        if (res.ok) {
+           const json = await res.json();
+           alreadySubmitted = json.submitted;
+        }
 
         if (alreadySubmitted) {
           // Already completed — don't show the card anymore
@@ -66,7 +66,8 @@ export default function BlockEvaluationCard({ classId }: BlockEvaluationCardProp
         },
         (payload: any) => {
           if (payload.new && (payload.new.status === 'in_progress' || payload.new.status === 'completed')) {
-            setActiveSession(payload.new);
+            // Re-fetch to ensure we check 'alreadySubmitted' before showing it
+            fetchActiveEval();
           } else {
             setActiveSession(null);
           }
@@ -77,8 +78,9 @@ export default function BlockEvaluationCard({ classId }: BlockEvaluationCardProp
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [classId, supabase]);
+  }, [classId, userId, supabase]);
 
+  // Remove unused import if we don't need it (supabase is still used. Wait, supabase is used for realtime channel)
   if (!activeSession) return null;
 
   return (

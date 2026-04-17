@@ -8,6 +8,7 @@ type Question = {
   id: string;
   question: string;
   placeholder?: string | null;
+  hint?: string | null;
 };
 
 type Template = {
@@ -38,7 +39,7 @@ export default function QuestionsClient({ initialData, levels }: { initialData: 
 
   const resetForm = () => {
     setFormLevelId('');
-    setFormQuestions([{ id: generateId(), question: '', placeholder: '' }]);
+    setFormQuestions([{ id: generateId(), question: '', placeholder: '', hint: '' }]);
     setEditingId(null);
   };
 
@@ -55,14 +56,14 @@ export default function QuestionsClient({ initialData, levels }: { initialData: 
   };
 
   const addQuestion = () => {
-    setFormQuestions([...formQuestions, { id: generateId(), question: '', placeholder: '' }]);
+    setFormQuestions([...formQuestions, { id: generateId(), question: '', placeholder: '', hint: '' }]);
   };
 
   const removeQuestion = (id: string) => {
     setFormQuestions(formQuestions.filter(q => q.id !== id));
   };
 
-  const updateQuestion = (id: string, field: 'question' | 'placeholder', value: string) => {
+  const updateQuestion = (id: string, field: 'question' | 'placeholder' | 'hint', value: string) => {
     setFormQuestions(formQuestions.map(q => q.id === id ? { ...q, [field]: value } : q));
   };
 
@@ -175,6 +176,7 @@ export default function QuestionsClient({ initialData, levels }: { initialData: 
                           <span className="font-bold text-slate-400">{idx + 1}.</span>
                           <div>
                             <span className="font-medium text-clevio-navy block">{q.question}</span>
+                            {q.hint && <span className="text-xs text-slate-500 italic block mt-1">Hint: {q.hint}</span>}
                             {q.placeholder && <span className="text-xs text-slate-400 italic block mt-0.5">Placeholder: {q.placeholder}</span>}
                           </div>
                         </li>
@@ -254,6 +256,13 @@ export default function QuestionsClient({ initialData, levels }: { initialData: 
                           value={q.placeholder || ''}
                           onChange={(e) => updateQuestion(q.id, 'placeholder', e.target.value)}
                           placeholder="Placeholder opsional (tampil buram di text box coder)"
+                          className="w-full p-2.5 rounded-lg border border-slate-300 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        />
+                        <input 
+                          type="text" 
+                          value={q.hint || ''}
+                          onChange={(e) => updateQuestion(q.id, 'hint', e.target.value)}
+                          placeholder="Hint opsional (Penjelasan tambahan untuk coach/coder)"
                           className="w-full p-2.5 rounded-lg border border-slate-300 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                         />
                       </div>

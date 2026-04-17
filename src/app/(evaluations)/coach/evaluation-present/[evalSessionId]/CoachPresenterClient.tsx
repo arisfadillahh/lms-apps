@@ -223,9 +223,11 @@ export default function CoachPresenterClient({
                    {currentQ?.question}
                  </h2>
                  
-                 <p className="text-clevio-navy/60 text-base md:text-lg mb-8 bg-[#22367b]/5 p-4 rounded-xl border border-[#22367b]/10 italic">
-                   "{currentQ?.hint}"
-                 </p>
+                 {(currentQ?.hint || currentQ?.placeholder) && (
+                   <p className="text-clevio-navy/60 text-base md:text-lg mb-8 bg-[#22367b]/5 p-4 rounded-xl border border-[#22367b]/10 italic">
+                     "{currentQ?.hint || currentQ?.placeholder}"
+                   </p>
+                 )}
   
                  <div className="flex items-center gap-3 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl text-yellow-600 font-medium">
                    <div className={`w-3 h-3 rounded-full ${isFinishedForCurrent ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`}></div>

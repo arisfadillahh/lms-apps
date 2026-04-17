@@ -116,89 +116,7 @@ export default async function CoderDashboardPage() {
     }
   }
 
-  // ── Block Evaluation Card logic ──
-  // For testing: show the card whenever class is active and there's a next lesson and no submission yet.
-  // Production: swap the `isAnyActiveLesson` below back to `isLastLesson` check.
-  let showEvaluationCard = false;
-  let evaluationTemplate: { id: string; questions: { id: string; question: string; placeholder?: string | null }[] } | null = null;
-  let blockForEval: { classId: string; blockId: string; blockName: string; sessionId: string } | null = null;
-
-  if (activeBlock && nextLesson) {
-    const allLessons = activeBlock.block.lessons || [];
-    const nextIdx = allLessons.findIndex((l: any) => l.status === 'NEXT');
-    // isLastLesson: the NEXT lesson is the last one in the block
-    const isLastLesson = nextIdx !== -1 && nextIdx === allLessons.length - 1;
-
-    // Also check if an evaluation session already exists for this block
-    const supabase = getSupabaseAdmin();
-    let isEvalSessionActive = false;
-    let evalSessionIdForFallback = '';
-
-    try {
-      const { data: activeEvalSession } = await (supabase as any)
-        .from('block_evaluation_sessions')
-        .select('id, session_id')
-        .eq('class_id', activeBlock.classId)
-        .eq('block_id', activeBlock.block.blockId)
-        .in('status', ['in_progress', 'completed'])
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (activeEvalSession) {
-        isEvalSessionActive = true;
-        evalSessionIdForFallback = activeEvalSession.session_id;
-      }
-    } catch (e) {
-      console.warn('Failed to check active eval session:', e);
-    }
-
-    const shouldShow = isLastLesson || isEvalSessionActive || true; // TODO: remove `|| true` for production
-
-    if (shouldShow) {
-      try {
-        // Check if already submitted (table may not exist yet if migration not run)
-        const { data: existing } = await supabase
-          .from('block_evaluations')
-          .select('id')
-          .eq('coder_id', session.user.id)
-          .eq('block_id', activeBlock.block.blockId)
-          .maybeSingle();
-
-        if (!existing) {
-          showEvaluationCard = true;
-          blockForEval = {
-            classId: activeBlock.classId,
-            blockId: activeBlock.block.blockId,
-            blockName: activeBlock.block.name,
-            sessionId: (nextLesson as any).scheduledAt?.[0] ?? (nextLesson as any).id ?? evalSessionIdForFallback ?? '',
-          };
-
-          // Try to fetch a template for this level
-          const levelId = (progress.find(p => p.classId === activeBlock.classId) as any)?.levelId ?? null;
-          if (levelId) {
-            const { data: tmpl } = await supabase
-              .from('block_evaluation_templates')
-              .select('id, questions')
-              .eq('level_id', levelId)
-              .maybeSingle();
-            if (tmpl) evaluationTemplate = tmpl as any;
-          }
-        }
-      } catch (e) {
-        // Gracefully ignore — tables may not exist yet (migration not yet applied)
-        console.warn('[BlockEvaluationCard] DB query failed (migration not run?):', e);
-        // Still show card with defaults even without DB
-        showEvaluationCard = true;
-        blockForEval = {
-          classId: activeBlock.classId,
-          blockId: activeBlock.block.blockId,
-          blockName: activeBlock.block.name,
-          sessionId: (nextLesson as any).scheduledAt?.[0] ?? evalSessionIdForFallback ?? '',
-        };
-      }
-    }
-  }
+  // The evaluation logic is now fully handled by BlockEvaluationCard component itself!
 
   // All lessons in current active blocks (for the modal)
   const allLessonsInCurrentBlocks = upcomingBlocks
@@ -258,11 +176,11 @@ export default async function CoderDashboardPage() {
       <StaggerContainer className="flex-1 p-4 md:p-8 overflow-y-auto overflow-x-hidden">
 
         {/* ===== BLOCK EVALUATION CARD ===== */}
-        {showEvaluationCard && blockForEval && (
-          <StaggerItem>
-            <BlockEvaluationCard classId={blockForEval.classId} />
+        {progress.map((p) => (
+          <StaggerItem key={`eval-${p.classId}`}>
+            <BlockEvaluationCard classId={p.classId} userId={session.user.id} />
           </StaggerItem>
-        )}
+        ))}
 
         {/* ===== BANNER SECTION ===== */}
         <StaggerItem className="mb-10">

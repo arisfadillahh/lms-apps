@@ -249,8 +249,11 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
       // Fix: Calculate progress based on Journey Status (supports Manual Override), not just Submissions
       const completedBlocks = journey.filter(j => j.status === 'COMPLETED').length;
       const totalBlocks = blocks.length;
-      const currentBlock = blocks.find((block) => block.status === 'CURRENT');
-      const upcomingBlock = blocks.find((block) => block.status === 'UPCOMING');
+      const now_progress = new Date();
+      const currentBlock = blocks.find((block) => block.status === 'CURRENT') 
+        // Fallback: treat as CURRENT if start_date is in the past but status is stuck at UPCOMING
+        ?? blocks.find((block) => block.status === 'UPCOMING' && new Date(block.start_date) <= now_progress && new Date(block.end_date) >= now_progress);
+      const upcomingBlock = blocks.find((block) => block.status === 'UPCOMING' && new Date(block.start_date) > now_progress);
 
       // Sort blocks by journey_order if available, else standard order
       const sortedBlocks = [...blocks].sort((a, b) => {
@@ -312,6 +315,8 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
 
       const currentOrUpcoming =
         sortedBlocks.find((block) => block.status === 'CURRENT') ??
+        // Fallback: a block that should be CURRENT but is stuck at UPCOMING in DB
+        sortedBlocks.find((block) => block.status === 'UPCOMING' && new Date(block.start_date) <= new Date() && new Date(block.end_date) >= new Date()) ??
         sortedBlocks.find((block) => block.status === 'UPCOMING');
 
       if (currentOrUpcoming) {
@@ -644,72 +649,53 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
           }
           const lessons = await classLessonsDao.listLessonsByClassBlock(block.id);
           const now = new Date();
-          
-          // Fallback map: sessions that chronologically fall into this block as a safety net
-          // if explicit lesson.session_id is missing from class_lessons.
-          const blockSessionsFallback = sessions
-            .filter(s => new Date(s.date_time) >= new Date(block.start_date) && new Date(s.date_time) < new Date(new Date(block.end_date).getTime() + 86400000))
+
+          // Sort lessons by order_index for consistent position-based fallback mapping
+          const lessonsSorted = [...lessons].sort((a, b) => a.order_index - b.order_index);
+
+          // Fallback: sessions within this block's date range, sorted chronologically.
+          // Used when lesson does NOT have an explicit session_id link in the DB.
+          const blockSessionsSorted = sessions
+            .filter(s =>
+              new Date(s.date_time) >= new Date(block.start_date) &&
+              new Date(s.date_time) <= new Date(new Date(block.end_date).getTime() + 86400000)
+            )
             .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
 
-          
-          let firstFutureOrActiveLessonIndex = lessons.length;
-          for (let i = 0; i < lessons.length; i++) {
-             const lesson = lessons[i];
-             let isFutureOrActive = false;
-             
-             let mappedSessionDate: string | null = null;
-             let mappedSessionStatus: string | null = null;
-
-             if (lesson.session_id && sessionMap.has(lesson.session_id)) {
-                const session = sessionMap.get(lesson.session_id)!;
-                mappedSessionDate = session.date_time;
-                mappedSessionStatus = session.status;
-             } else if (i < blockSessionsFallback.length) {
-                mappedSessionDate = blockSessionsFallback[i].date_time;
-                mappedSessionStatus = blockSessionsFallback[i].status;
-             }
-
-             if (mappedSessionDate) {
-                if (mappedSessionStatus !== 'COMPLETED' && new Date(mappedSessionDate) > now) {
-                   isFutureOrActive = true;
-                }
-             }
-
-             if (isFutureOrActive) {
-                firstFutureOrActiveLessonIndex = i;
-                break;
-             }
-          }
-
-          const accessibleLessons = lessons
+          const accessibleLessons = lessonsSorted
             .filter((lesson, index) => {
+              // If the block is fully done, all its lessons are accessible.
               if (block.status === 'COMPLETED') return true;
-              
-              let mappedSessionDate: string | null = null;
-              let mappedSessionStatus: string | null = null;
+
+              // --- Explicit session link ---
               if (lesson.session_id && sessionMap.has(lesson.session_id)) {
-                 const session = sessionMap.get(lesson.session_id)!;
-                 mappedSessionDate = session.date_time;
-                 mappedSessionStatus = session.status;
-              } else if (index < blockSessionsFallback.length) {
-                 mappedSessionDate = blockSessionsFallback[index].date_time;
-                 mappedSessionStatus = blockSessionsFallback[index].status;
+                const session = sessionMap.get(lesson.session_id)!;
+                // Accessible if the session already happened or is completed.
+                return session.status === 'COMPLETED' || new Date(session.date_time) <= now;
               }
 
-              if (mappedSessionDate) {
-                 if (mappedSessionStatus === 'COMPLETED' || new Date(mappedSessionDate) <= now) return true;
+              // --- Fallback: map by chronological position within block ---
+              if (index < blockSessionsSorted.length) {
+                const mappedSession = blockSessionsSorted[index];
+                return mappedSession.status === 'COMPLETED' || new Date(mappedSession.date_time) <= now;
               }
 
+              // --- unlock_at override ---
               if (lesson.unlock_at && new Date(lesson.unlock_at) <= now) return true;
-              
-              // Include skipped past lessons (strictly past, excluding the current future/active one)
-              if (index < firstFutureOrActiveLessonIndex) return true;
-              
+
+              // No session data at all — hide it to avoid leaking future lessons.
               return false;
             })
-            .sort((a, b) => a.order_index - b.order_index)
-            .map((lesson) => {
-              const originalIndex = lessons.findIndex(l => l.id === lesson.id);
+            .map((lesson, _, filteredArr) => {
+              const originalIndex = lessonsSorted.findIndex(l => l.id === lesson.id);
+              let sessionDate: string | null = null;
+
+              if (lesson.session_id && sessionMap.has(lesson.session_id)) {
+                sessionDate = sessionMap.get(lesson.session_id)!.date_time;
+              } else if (originalIndex >= 0 && originalIndex < blockSessionsSorted.length) {
+                sessionDate = blockSessionsSorted[originalIndex].date_time;
+              }
+
               return {
                 id: lesson.id,
                 title: lesson.title,
@@ -717,9 +703,7 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
                 orderIndex: lesson.order_index,
                 slideUrl: lesson.slide_url ?? null,
                 exampleUrl: (lesson as any).example_url ?? (lesson as any).coach_example_url ?? null,
-                sessionDate: lesson.session_id && sessionMap.has(lesson.session_id)
-                  ? sessionMap.get(lesson.session_id)!.date_time
-                  : (originalIndex >= 0 && originalIndex < blockSessionsFallback.length ? blockSessionsFallback[originalIndex].date_time : null),
+                sessionDate,
               };
             });
 

@@ -636,8 +636,10 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
             return null;
           }
 
-          // RESTRICTION: Hide block if it is still in the future (UPCOMING)
-          if (block.status === 'UPCOMING' || new Date(block.start_date) > new Date()) {
+          // RESTRICTION: Hide block if it is strictly in the future
+          // We check date instead of strictly trusting block.status, because if the DB cron fails
+          // or a coach forgets to update the block, the status might be stuck at 'UPCOMING'.
+          if (new Date(block.start_date) > new Date()) {
             return null;
           }
           const lessons = await classLessonsDao.listLessonsByClassBlock(block.id);

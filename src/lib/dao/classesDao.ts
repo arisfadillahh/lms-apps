@@ -379,13 +379,26 @@ export async function listClassesWhereCoachIsSubstitute(coachId: string): Promis
   return classes ?? [];
 }
 
-export async function listClassesForCoder(coderId: string): Promise<ClassRecord[]> {
+type ListCoderClassesOptions = {
+  includeInactive?: boolean;
+};
+
+export async function listClassesForCoder(
+  coderId: string,
+  options: ListCoderClassesOptions = {},
+): Promise<ClassRecord[]> {
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
+  let query = supabase
     .from('enrollments')
     .select('classes(*)')
     .eq('coder_id', coderId)
     .order('enrolled_at', { ascending: true });
+
+  if (!options.includeInactive) {
+    query = query.eq('status', 'ACTIVE');
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`Failed to list classes for coder: ${error.message}`);

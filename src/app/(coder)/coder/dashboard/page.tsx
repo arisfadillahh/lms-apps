@@ -70,22 +70,43 @@ export default async function CoderDashboardPage() {
   const totalBlocks = progress.reduce((acc, p) => acc + (p.totalBlocks || p.journeyBlocks.length), 0);
   const progressPercent = totalBlocks > 0 ? Math.round((totalCompleted / totalBlocks) * 100) : 0;
 
-  // Get the first active block
-  const activeBlock = upcomingBlocks[0] || null;
+  // Prefer the class block that is actually running now, then fall back to the first available item.
+  const activeBlock =
+    upcomingBlocks.find((item) => item.block.status === 'CURRENT') ??
+    upcomingBlocks[0] ??
+    null;
   const nextLesson = activeBlock?.block.lessons?.find((l: any) => l.status === 'NEXT');
 
-  // Get the last completed lesson for summary and slides
+  // Get the latest completed lesson, plus content-aware fallbacks for summary/slide.
   const completedLessonsArr = activeBlock?.block.lessons?.filter((l: any) => l.status === 'COMPLETED') || [];
   const lastCompletedLesson = completedLessonsArr.length > 0 
     ? completedLessonsArr[completedLessonsArr.length - 1] 
     // Fallback: use the last completed lesson from the previous block
     : activeBlock?.lastCompletedLessonFallback ?? null;
+  const lastCompletedLessonWithSummary =
+    [...completedLessonsArr].reverse().find((lesson: any) => typeof lesson.summary === 'string' && lesson.summary.trim().length > 0) ??
+    (
+      activeBlock?.lastCompletedLessonFallback?.summary &&
+      activeBlock.lastCompletedLessonFallback.summary.trim().length > 0
+        ? activeBlock.lastCompletedLessonFallback
+        : null
+    );
+  const lastCompletedLessonWithSlide =
+    [...completedLessonsArr].reverse().find((lesson: any) => typeof lesson.slideUrl === 'string' && lesson.slideUrl.trim().length > 0) ??
+    (
+      activeBlock?.lastCompletedLessonFallback?.slideUrl &&
+      activeBlock.lastCompletedLessonFallback.slideUrl.trim().length > 0
+        ? activeBlock.lastCompletedLessonFallback
+        : null
+    );
 
   const completedLessons = completedLessonsArr.length;
-  const totalLessons = activeBlock?.block.lessons?.length || 1;
-  // When block hasn't started yet (0 completed lessons), show overall class progress instead
-  const blockProgressPct = Math.round((completedLessons / totalLessons) * 100);
-  const activeProgressPct = blockProgressPct > 0 ? blockProgressPct : progressPercent;
+  // Hanya hitung lessons yang sudah/sedang berjalan di kelas (bukan LOCKED = belum ada sesinya)
+  const lessonsRunningInClass = (activeBlock?.block.lessons || []).filter(
+    (l: any) => l.status !== 'LOCKED'
+  );
+  const totalActiveInClass = Math.max(lessonsRunningInClass.length, 1);
+  const activeProgressPct = Math.round((completedLessons / totalActiveInClass) * 100);
 
   // Check if class link is active: query today's sessions DIRECTLY from DB
   // (lesson.scheduledAt is unreliable — depends on lessonMap template matching)
@@ -278,8 +299,8 @@ export default async function CoderDashboardPage() {
                                   ? nextLesson.summary
                                   : 'Kelas sedang berjalan. Ikuti arahan coach dan selamat belajar!'}
                               </p>
-                            ) : lastCompletedLesson?.summary ? (
-                              <p className="text-sm font-bold text-slate-600 leading-relaxed">{lastCompletedLesson.summary}</p>
+                            ) : lastCompletedLessonWithSummary?.summary ? (
+                              <p className="text-sm font-bold text-slate-600 leading-relaxed">{lastCompletedLessonWithSummary.summary}</p>
                             ) : (
                               <p className="text-sm font-bold text-slate-400 italic">Belum ada ringkasan untuk materi sebelumnya.</p>
                             )}
@@ -291,9 +312,9 @@ export default async function CoderDashboardPage() {
                             </h5>
                             {isLinkActive ? (
                               <p className="text-sm font-bold text-slate-400 italic p-4 bg-slate-50 rounded-2xl">Slide belum tersedia untuk materi ini.</p>
-                            ) : lastCompletedLesson?.slideUrl ? (
+                            ) : lastCompletedLessonWithSlide?.slideUrl ? (
                               <a
-                                href={lastCompletedLesson.slideUrl}
+                                href={lastCompletedLessonWithSlide.slideUrl}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="flex items-center justify-between p-4 bg-pastel-blue hover:bg-sky hover:text-white rounded-2xl border-2 border-sky/20 transition-all group/link"

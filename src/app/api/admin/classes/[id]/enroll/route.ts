@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 import { getSessionOrThrow } from '@/lib/auth';
-import { blocksDao, classesDao, coderProgressDao, usersDao } from '@/lib/dao';
+import { blocksDao, classesDao, coderProgressDao, coderSessionAccessDao, usersDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
 import { enrollCoderSchema, updateEnrollmentStatusSchema } from '@/lib/validation/admin';
+import { computeLessonSchedule } from '@/lib/services/lessonScheduler';
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -67,14 +68,27 @@ export async function POST(request: NextRequest, context: RouteContext) {
         coderId: parsed.data.coderId,
       });
 
-      // Find the current block for this class - use class_blocks, not level_blocks
-      // Sort class_blocks by start_date to find the first scheduled block
       const sortedClassBlocks = [...classBlocks].sort(
         (a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
       );
+      const [sessions, lessonMap] = await Promise.all([
+        import('@/lib/dao/sessionsDao').then((m) => m.listSessionsByClass(classIdParam)),
+        computeLessonSchedule(classIdParam, klass.level_id),
+      ]);
+      const scheduledSessions = sessions
+        .filter((sessionRow) => sessionRow.status !== 'CANCELLED')
+        .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
+      const nextScheduledEntry = scheduledSessions.find(
+        (sessionRow) => sessionRow.status !== 'COMPLETED' && lessonMap.has(sessionRow.id),
+      );
+      const lastCompletedEntry = [...scheduledSessions]
+        .filter((sessionRow) => sessionRow.status === 'COMPLETED' && lessonMap.has(sessionRow.id))
+        .pop();
       const currentBlockId =
+        (nextScheduledEntry ? lessonMap.get(nextScheduledEntry.id)?.block.id : null) ??
+        (lastCompletedEntry ? lessonMap.get(lastCompletedEntry.id)?.block.id : null) ??
         classBlocks.find((block) => block.status === 'CURRENT')?.block_id ??
-        sortedClassBlocks[0]?.block_id ??  // Use first class_block by date, not first level block
+        sortedClassBlocks[0]?.block_id ??
         null;
 
       await coderProgressDao.ensureJourneyForCoder({
@@ -83,6 +97,45 @@ export async function POST(request: NextRequest, context: RouteContext) {
         blocks: levelBlocks,
         entryBlockId: currentBlockId,
       });
+
+      const enrollmentAt = new Date(enrollment.enrolled_at);
+      const lastSeenEntry = [...scheduledSessions]
+        .filter(
+          (sessionRow) =>
+            new Date(sessionRow.date_time).getTime() <= enrollmentAt.getTime() && lessonMap.has(sessionRow.id),
+        )
+        .pop();
+      const firstUpcomingEntry = scheduledSessions.find(
+        (sessionRow) =>
+          new Date(sessionRow.date_time).getTime() > enrollmentAt.getTime() && lessonMap.has(sessionRow.id),
+      );
+      const entryBlockId =
+        (lastSeenEntry ? lessonMap.get(lastSeenEntry.id)?.block.id : null) ??
+        (firstUpcomingEntry ? lessonMap.get(firstUpcomingEntry.id)?.block.id : null) ??
+        currentBlockId;
+      const entryBlock =
+        classBlocks.find((block) => block.block_id === entryBlockId) ??
+        classBlocks.find((block) => block.status === 'CURRENT') ??
+        sortedClassBlocks[0] ??
+        null;
+
+      if (entryBlock?.block_id) {
+        const catchUpSessionIds = sessions
+          .filter((sessionRow) => sessionRow.status !== 'CANCELLED')
+          .filter((sessionRow) => new Date(sessionRow.date_time).getTime() <= enrollmentAt.getTime())
+          .filter((sessionRow) => lessonMap.get(sessionRow.id)?.block.id === entryBlock.block_id)
+          .map((sessionRow) => sessionRow.id);
+
+        await coderSessionAccessDao.grantSessionAccesses(
+          catchUpSessionIds.map((sessionId) => ({
+            coderId: parsed.data.coderId,
+            classId: classIdParam,
+            sessionId,
+            grantedReason: 'MID_BLOCK_CATCH_UP' as const,
+            sourceEnrollmentId: enrollment.id,
+          })),
+        );
+      }
 
       return NextResponse.json({ enrollment }, { status: 201 });
     } catch (error: any) {

@@ -49,8 +49,13 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const { reassignLessonsToSessions } = await import('@/lib/services/lessonRebalancer');
     await reassignLessonsToSessions(sessionRecord.class_id);
 
+    const { syncBlockStatusesForClass } = await import('@/lib/services/lessonAutoAssign');
+    await syncBlockStatusesForClass(sessionRecord.class_id);
+
     // When a session is COMPLETED, ensure rolling 12-week schedule is maintained
     if (parsed.data.status === 'COMPLETED') {
+      const { coderSessionAccessDao } = await import('@/lib/dao');
+      await coderSessionAccessDao.grantSessionAccessForCompletedSession(sessionId);
       const { ensureFutureSessions } = await import('@/lib/dao/sessionsDao');
       await ensureFutureSessions(sessionRecord.class_id);
     }

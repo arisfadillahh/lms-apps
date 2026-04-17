@@ -203,14 +203,35 @@ export default function ClassDetailTrigger({ classInfo, customTrigger }: ClassDe
 
                             {/* Actions */}
                             <div className="flex flex-col sm:flex-row gap-2 mt-4 flex-none">
-                                <Link
-                                    href={`/coder/materials`} // Could route specifically if lesson ID available
-                                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-500/25 group"
-                                    onClick={() => setIsOpen(false)}
-                                >
-                                    <span>Mulai Belajar</span>
-                                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" strokeWidth={3} />
-                                </Link>
+                                {(() => {
+                                    let activeLesson = block?.lessons.find((l: any) => l.status === 'NEXT');
+                                    if (!activeLesson) activeLesson = block?.lessons.slice().reverse().find((l: any) => l.status === 'COMPLETED');
+                                    if (!activeLesson) activeLesson = block?.lessons.find((l: any) => l.status === 'UPCOMING');
+                                    if (!activeLesson) activeLesson = block?.lessons[(block?.lessons.length || 1) - 1];
+                                    
+                                    if (activeLesson) {
+                                        return (
+                                            <Link
+                                                href={`/coder/materials/${activeLesson.id}`}
+                                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-500/25 group"
+                                                onClick={() => setIsOpen(false)}
+                                            >
+                                                <span>{block?.lessons.find((l: any) => l.status === 'NEXT') ? 'Mulai Belajar' : 'Lanjutkan Belajar'}</span>
+                                                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" strokeWidth={3} />
+                                            </Link>
+                                        );
+                                    }
+                                    return (
+                                        <Link
+                                            href={`/coder/materials`}
+                                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-500/25 group"
+                                            onClick={() => setIsOpen(false)}
+                                        >
+                                            <span>Mulai Belajar</span>
+                                            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" strokeWidth={3} />
+                                        </Link>
+                                    );
+                                })()}
                             </div>
                         </div>
                     </motion.div>

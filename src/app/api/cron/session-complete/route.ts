@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { autoCompletePastSessions, ensureFutureSessions } from '@/lib/dao/sessionsDao';
+import { coderSessionAccessDao } from '@/lib/dao';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { verifyCronRequest } from '@/lib/cron';
 
@@ -45,7 +46,13 @@ export async function GET(request: Request) {
                 const uniqueClassIds = [...new Set(completedSessions.map(s => s.class_id))];
                 console.log(`[Cron] Ensuring 12-week schedule for ${uniqueClassIds.length} classes`);
 
+                for (const sessionId of result.sessionIds) {
+                    await coderSessionAccessDao.grantSessionAccessForCompletedSession(sessionId);
+                }
+
                 for (const classId of uniqueClassIds) {
+                    const { syncBlockStatusesForClass } = await import('@/lib/services/lessonAutoAssign');
+                    await syncBlockStatusesForClass(classId);
                     await ensureFutureSessions(classId);
                 }
             }

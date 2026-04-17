@@ -95,7 +95,19 @@ export async function listVisibleMaterialsForCoder({
         ? lastAccessibleSessionIds.has(visibleFromSessionId)
         : true;
 
-      return releasedByDate || releasedByProgress;
+      if (sessionDate && visibleFromSessionId) {
+        return releasedByDate && releasedByProgress;
+      }
+
+      if (sessionDate) {
+        return releasedByDate;
+      }
+
+      if (visibleFromSessionId) {
+        return releasedByProgress;
+      }
+
+      return true;
     })
     .map((material) => ({
       id: material.id,

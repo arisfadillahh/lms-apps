@@ -1,6 +1,6 @@
-import { attendanceDao, classLessonsDao, classesDao, coderProgressDao, lessonTemplatesDao, materialsDao, rubricsDao, sessionsDao } from '@/lib/dao';
+import { attendanceDao, classLessonsDao, classesDao, coderProgressDao, coderSessionAccessDao, lessonTemplatesDao, materialsDao, rubricsDao, sessionsDao } from '@/lib/dao';
 import { getSoftwareByBlockId } from '@/lib/dao/blockSoftwareDao';
-import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
+import { computeLessonSchedule } from '@/lib/services/lessonScheduler';
 
 export type CoderClassProgress = {
   classId: string;
@@ -73,6 +73,180 @@ export type CoderClassProgress = {
     orderIndex: number | null;
   }>;
 };
+
+export type CoderStoredLessonOverview = {
+  classId: string;
+  name: string;
+  blocks: Array<{
+    id: string;
+    name: string;
+    status: 'COMPLETED' | 'CURRENT';
+    startDate: string;
+    endDate: string;
+    lessons: Array<{
+      id: string;
+      title: string;
+      summary: string | null;
+      orderIndex: number;
+      slideUrl: string | null;
+      exampleUrl: string | null;
+      sessionDate: string | null;
+      isAccessible: true;
+    }>;
+  }>;
+};
+
+type LessonSessionMap = Map<string, Awaited<ReturnType<typeof sessionsDao.listSessionsByClass>>[number]>;
+type WeeklySession = Awaited<ReturnType<typeof sessionsDao.listSessionsByClass>>[number];
+type WeeklyBlock = Awaited<ReturnType<typeof classesDao.getClassBlocks>>[number];
+type LessonSlotRecord = Awaited<ReturnType<typeof computeLessonSchedule>> extends Map<string, infer TValue>
+  ? TValue
+  : never;
+type RuntimeBlockStatus = CoderClassProgress['journeyBlocks'][number]['status'];
+type RuntimeBlockInfo = WeeklyBlock & {
+  runtimeStatus: RuntimeBlockStatus;
+  mappedSessions: WeeklySession[];
+  firstSessionAt: string | null;
+  lastSessionAt: string | null;
+};
+type MappedSessionEntry = {
+  session: WeeklySession;
+  slot: LessonSlotRecord;
+  classBlock: WeeklyBlock;
+};
+
+function buildLessonToSessionMap(
+  lessonMap: Awaited<ReturnType<typeof computeLessonSchedule>>,
+  sessions: Awaited<ReturnType<typeof sessionsDao.listSessionsByClass>>,
+): LessonSessionMap {
+  const sessionMapDb = new Map(sessions.map((session) => [session.id, session]));
+  const lessonToSessionMap = new Map<string, typeof sessions[0]>();
+
+  for (const [sessionId, slot] of lessonMap.entries()) {
+    const matchedSession = sessionMapDb.get(sessionId);
+    if (!matchedSession) {
+      continue;
+    }
+    if (slot.classLessonId) {
+      lessonToSessionMap.set(slot.classLessonId, matchedSession);
+    } else {
+      lessonToSessionMap.set(slot.lessonTemplate.id, matchedSession);
+    }
+  }
+
+  return lessonToSessionMap;
+}
+
+function buildJourneyStatusMap(journey: Awaited<ReturnType<typeof coderProgressDao.getCoderJourney>>) {
+  return new Map(journey.map((row) => [row.block_id, row.status]));
+}
+
+function buildMappedSessionEntries(
+  blocks: WeeklyBlock[],
+  sessions: WeeklySession[],
+  lessonMap: Awaited<ReturnType<typeof computeLessonSchedule>>,
+): MappedSessionEntry[] {
+  const classBlockByBlockId = new Map(
+    blocks
+      .filter((block) => Boolean(block.block_id))
+      .map((block) => [block.block_id, block] as const),
+  );
+
+  return sessions
+    .filter((session) => session.status !== 'CANCELLED')
+    .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime())
+    .map((session) => {
+      const slot = lessonMap.get(session.id);
+      if (!slot) {
+        return null;
+      }
+
+      const classBlock = classBlockByBlockId.get(slot.block.id);
+      if (!classBlock) {
+        return null;
+      }
+
+      return {
+        session,
+        slot,
+        classBlock,
+      };
+    })
+    .filter((entry): entry is MappedSessionEntry => entry !== null);
+}
+
+function buildRuntimeBlocks(
+  blocks: WeeklyBlock[],
+  mappedEntries: MappedSessionEntry[],
+  now: Date,
+): RuntimeBlockInfo[] {
+  const entriesByClassBlockId = mappedEntries.reduce((map, entry) => {
+    if (!map.has(entry.classBlock.id)) {
+      map.set(entry.classBlock.id, []);
+    }
+    map.get(entry.classBlock.id)!.push(entry.session);
+    return map;
+  }, new Map<string, WeeklySession[]>());
+
+  return blocks.map((block) => {
+    const mappedSessions = [...(entriesByClassBlockId.get(block.id) ?? [])].sort(
+      (a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime(),
+    );
+    const firstSessionAt = mappedSessions[0]?.date_time ?? null;
+    const lastSessionAt = mappedSessions[mappedSessions.length - 1]?.date_time ?? null;
+    const allCompleted = mappedSessions.length > 0 && mappedSessions.every((session) => session.status === 'COMPLETED');
+
+    let runtimeStatus: RuntimeBlockStatus = 'UPCOMING';
+    if (allCompleted) {
+      runtimeStatus = 'COMPLETED';
+    } else if (firstSessionAt && new Date(firstSessionAt).getTime() <= now.getTime()) {
+      runtimeStatus = 'CURRENT';
+    } else if (block.status === 'COMPLETED' && mappedSessions.length === 0) {
+      runtimeStatus = 'COMPLETED';
+    }
+
+    return {
+      ...block,
+      runtimeStatus,
+      mappedSessions,
+      firstSessionAt,
+      lastSessionAt,
+    };
+  });
+}
+
+function findEntryBlockBySchedule(
+  runtimeBlocks: RuntimeBlockInfo[],
+  enrollmentAt: Date,
+): RuntimeBlockInfo | null {
+  const enrollmentMs = enrollmentAt.getTime();
+  const blocksWithSessions = runtimeBlocks.filter((block) => block.firstSessionAt && block.lastSessionAt);
+
+  const spanningBlock = blocksWithSessions.find((block) => {
+    const firstMs = new Date(block.firstSessionAt!).getTime();
+    const lastMs = new Date(block.lastSessionAt!).getTime();
+    return firstMs <= enrollmentMs && lastMs >= enrollmentMs;
+  });
+  if (spanningBlock) {
+    return spanningBlock;
+  }
+
+  const latestStartedBlock = [...blocksWithSessions]
+    .filter((block) => new Date(block.firstSessionAt!).getTime() <= enrollmentMs)
+    .sort((a, b) => new Date(a.firstSessionAt!).getTime() - new Date(b.firstSessionAt!).getTime())
+    .pop();
+  if (latestStartedBlock) {
+    return latestStartedBlock;
+  }
+
+  return (
+    [...blocksWithSessions]
+      .filter((block) => new Date(block.firstSessionAt!).getTime() > enrollmentMs)
+      .sort((a, b) => new Date(a.firstSessionAt!).getTime() - new Date(b.firstSessionAt!).getTime())[0] ??
+    runtimeBlocks[0] ??
+    null
+  );
+}
 
 export async function getCoderProgress(coderId: string): Promise<CoderClassProgress[]> {
   const [classes, attendance, supabase] = await Promise.all([
@@ -247,6 +421,27 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
       // --- WEEKLY HANDLING (Existing Logic) ---
       const blocks = await classesDao.getClassBlocks(klass.id);
       const lessonMap = klass.level_id ? await computeLessonSchedule(klass.id, klass.level_id) : new Map();
+      const nowProgress = new Date();
+      const mappedEntries = buildMappedSessionEntries(blocks, sessions, lessonMap);
+      const runtimeBlocks = buildRuntimeBlocks(blocks, mappedEntries, nowProgress);
+      const runtimeBlockById = new Map(runtimeBlocks.map((block) => [block.id, block]));
+      const currentScheduledBlock =
+        runtimeBlocks.find((block) => block.runtimeStatus === 'CURRENT') ??
+        runtimeBlocks.find((block) => block.runtimeStatus === 'UPCOMING') ??
+        null;
+      const upcomingScheduledBlock =
+        currentScheduledBlock
+          ? runtimeBlocks.find(
+              (block) =>
+                block.id !== currentScheduledBlock.id &&
+                block.runtimeStatus !== 'COMPLETED' &&
+                (
+                  !currentScheduledBlock.firstSessionAt ||
+                  !block.firstSessionAt ||
+                  new Date(block.firstSessionAt).getTime() >= new Date(currentScheduledBlock.firstSessionAt).getTime()
+                ),
+            ) ?? null
+          : runtimeBlocks.find((block) => block.runtimeStatus === 'UPCOMING') ?? null;
 
       // Fetch personalized journey order
       const journey = klass.level_id ? await coderProgressDao.getCoderJourney(coderId, klass.level_id) : [];
@@ -255,13 +450,15 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
       // Fix: Calculate progress based on Journey Status (supports Manual Override), not just Submissions
       // Fallback: if coder_block_progress has no entries, count blocks with COMPLETED status in class_blocks
       const completedBlocks = journey.filter(j => j.status === 'COMPLETED').length
-        || blocks.filter(b => b.status === 'COMPLETED').length;
+        || runtimeBlocks.filter((block) => block.runtimeStatus === 'COMPLETED').length;
       const totalBlocks = blocks.length;
-      const now_progress = new Date();
-      const currentBlock = blocks.find((block) => block.status === 'CURRENT') 
-        // Fallback: treat as CURRENT if start_date is in the past but status is stuck at UPCOMING
-        ?? blocks.find((block) => block.status === 'UPCOMING' && new Date(block.start_date) <= now_progress && new Date(block.end_date) >= now_progress);
-      const upcomingBlock = blocks.find((block) => block.status === 'UPCOMING' && new Date(block.start_date) > now_progress);
+      const currentBlock =
+        currentScheduledBlock ??
+        blocks.find((block) => block.status === 'CURRENT') ??
+        blocks.find((block) => block.status === 'UPCOMING' && new Date(block.start_date) <= nowProgress && new Date(block.end_date) >= nowProgress);
+      const upcomingBlock =
+        upcomingScheduledBlock ??
+        blocks.find((block) => block.status === 'UPCOMING' && new Date(block.start_date) > nowProgress);
 
       // Sort blocks by journey_order if available, else standard order
       const sortedBlocks = [...blocks].sort((a, b) => {
@@ -289,10 +486,10 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
       });
 
       const pendingBlocks =
-        sortedBlocks.filter((block) => block.status !== 'COMPLETED').map((block) => ({
+        sortedBlocks.filter((block) => (runtimeBlockById.get(block.id)?.runtimeStatus ?? block.status) !== 'COMPLETED').map((block) => ({
           blockId: block.block_id,
           name: block.block_name ?? 'Block',
-          status: block.status,
+          status: runtimeBlockById.get(block.id)?.runtimeStatus ?? block.status,
           startDate: block.start_date,
           endDate: block.end_date,
         }));
@@ -301,7 +498,7 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
       const journeyBlocks = sortedBlocks.map((block, index) => {
         // Find personal status override
         const personal = journey.find(j => j.block_id === block.block_id);
-        let displayStatus = block.status; // Default to class schedule status
+        let displayStatus = runtimeBlockById.get(block.id)?.runtimeStatus ?? block.status;
 
         if (personal) {
           if (personal.status === 'COMPLETED') displayStatus = 'COMPLETED';
@@ -321,106 +518,68 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
 
       let upNext: CoderClassProgress['upNext'] = null;
 
-      const currentOrUpcoming =
+      let currentOrUpcoming =
+        currentScheduledBlock ??
+        upcomingScheduledBlock ??
         sortedBlocks.find((block) => block.status === 'CURRENT') ??
-        // Fallback: a block that should be CURRENT but is stuck at UPCOMING in DB
-        sortedBlocks.find((block) => block.status === 'UPCOMING' && new Date(block.start_date) <= new Date() && new Date(block.end_date) >= new Date()) ??
         sortedBlocks.find((block) => block.status === 'UPCOMING');
 
       if (currentOrUpcoming) {
         const software = await getSoftwareByBlockId(currentOrUpcoming.block_id);
 
+        // Use class_lessons (actual class data) instead of lesson_templates for accurate progress.
+        // This matches the same logic used in getAccessibleLessonsForCoder.
+        const classLessons = await classLessonsDao.listLessonsByClassBlock(currentOrUpcoming.id);
+        const classLessonsSorted = [...classLessons].sort((a, b) => a.order_index - b.order_index);
 
-        const blockLessons = await lessonTemplatesDao.listLessonsByBlock(currentOrUpcoming.block_id);
-        const sessionDateMap = new Map(sessions.map(s => [s.id, { date: s.date_time, status: s.status }]));
-
-        const now = new Date();
-
-        // 1. Get the actual block sessions based on computeLessonSchedule
-        const blockSessions: { sessionId: string; date: string; status: string; orderIndex: number }[] = [];
-        for (const lesson of blockLessons) {
-            const sIds = [...lessonMap.entries()].filter(([_, mapping]) => mapping.lessonTemplate.id === lesson.id).map(([sId]) => sId);
-            for (const sId of sIds) {
-                const sInfo = sessionDateMap.get(sId);
-                if (sInfo && sInfo.status !== 'CANCELLED') {
-                     blockSessions.push({ sessionId: sId, date: sInfo.date, status: sInfo.status, orderIndex: (lesson as any).order_index ?? 0 });
-                }
-            }
-        }
-
-        // 2. Find the index where the block is currently active (first uncompleted session or future session)
-        let firstFutureOrActiveLessonIndex = blockLessons.length;
-        for (let i = 0; i < blockLessons.length; i++) {
-          const lesson = blockLessons[i];
-          let isFutureOrActive = false;
-          
-          const sIds = [...lessonMap.entries()].filter(([_, mapping]) => mapping.lessonTemplate.id === lesson.id).map(([sId]) => sId);
-          for (const sId of sIds) {
-            const sInfo = sessionDateMap.get(sId);
-            if (sInfo && sInfo.status !== 'COMPLETED' && new Date(sInfo.date) > now) {
-              isFutureOrActive = true;
-              break;
-            } else if (sInfo && sInfo.status === 'SCHEDULED' && new Date(sInfo.date) <= now) {
-              isFutureOrActive = true; // Still active right now
-              break;
-            }
-          }
-          
-          if (isFutureOrActive) {
-            firstFutureOrActiveLessonIndex = i;
-            break;
-          }
-        }
+        const lessonToSessionMap = buildLessonToSessionMap(lessonMap, sessions);
 
         let hasMarkedNext = false;
-        const allLessonsList = blockLessons.map((lesson, index) => {
-          const sessionIdsForLesson = [...lessonMap.entries()].filter(([_, mapping]) => mapping.lessonTemplate.id === lesson.id).map(([sId, _]) => sId);
-          let isCompleted = false;
-          let completedAtDates: string[] = [];
-          let scheduledAtDates: string[] = [];
+        const allLessonsList = classLessonsSorted.map((lesson, index) => {
+          const sessionForLesson = lessonToSessionMap.get(lesson.id) || null;
 
-          for (const sId of sessionIdsForLesson) {
-             if (sessionDateMap.has(sId)) {
-                const sessionInfo = sessionDateMap.get(sId)!;
-                scheduledAtDates.push(sessionInfo.date);
-                if (sessionInfo.status === 'COMPLETED') {
-                   isCompleted = true;
-                   completedAtDates.push(sessionInfo.date);
-                }
-             }
+
+          // Determine status
+          let isCompleted = false;
+          let scheduledAtDates: string[] = [];
+          let completedAtDates: string[] = [];
+
+          if (sessionForLesson) {
+            scheduledAtDates.push(sessionForLesson.date_time);
+            if (sessionForLesson.status === 'COMPLETED') {
+              isCompleted = true;
+              completedAtDates.push(sessionForLesson.date_time);
+            }
           }
 
           let lessonStatus: 'COMPLETED' | 'NEXT' | 'UPCOMING' | 'LOCKED' = 'UPCOMING';
-          
+
           if (isCompleted) {
             lessonStatus = 'COMPLETED';
-          } else if (scheduledAtDates.length > 0 && !hasMarkedNext) {
-            lessonStatus = 'NEXT';
-            hasMarkedNext = true;
-          } else if (scheduledAtDates.length > 0) {
-             lessonStatus = 'UPCOMING';
+          } else if (sessionForLesson) {
+            if (!hasMarkedNext) {
+              lessonStatus = 'NEXT';
+              hasMarkedNext = true;
+            } else {
+              lessonStatus = 'UPCOMING';
+            }
           } else {
-             lessonStatus = 'LOCKED';
-          }
-          
-          // Override: If it's *before* the first future session, it's skipped -> COMPLETED
-          if (lessonStatus === 'LOCKED' || lessonStatus === 'UPCOMING') {
-             if (index < firstFutureOrActiveLessonIndex) {
-               lessonStatus = 'COMPLETED';
-             } else if (index === firstFutureOrActiveLessonIndex && !hasMarkedNext) {
-               lessonStatus = 'NEXT';
-               hasMarkedNext = true;
-             } else if (index > firstFutureOrActiveLessonIndex) {
-               lessonStatus = 'LOCKED';
-             }
+            // NO SESSION FOR LESSON: but since it's the active block, we at least show it as UPCOMING 
+            // instead of LOCKED. This prevents the "empty syllabus" bug when sessions run out.
+            if (!hasMarkedNext) {
+              lessonStatus = 'NEXT'; // Promote the very first unscheduled lesson to NEXT to keep the UI active
+              hasMarkedNext = true;
+            } else {
+              lessonStatus = 'UPCOMING';
+            }
           }
 
           return {
             id: lesson.id,
             title: lesson.title,
-            summary: lesson.summary ?? null,
-            orderIndex: (lesson as any).order_index ?? index,
-            slideUrl: lesson.slide_url,
+            summary: lesson.template_summary ?? lesson.summary ?? null,
+            orderIndex: lesson.order_index ?? index,
+            slideUrl: lesson.template_slide_url ?? lesson.slide_url,
             status: lessonStatus,
             completedAt: completedAtDates.length > 0 ? completedAtDates : undefined,
             scheduledAt: scheduledAtDates.length > 0 ? scheduledAtDates : undefined
@@ -428,9 +587,9 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
         });
 
         upNext = {
-          blockId: currentOrUpcoming.block_id,
+          blockId: currentOrUpcoming.block_id ?? currentOrUpcoming.id,
           name: currentOrUpcoming.block_name ?? 'Block',
-          status: currentOrUpcoming.status,
+          status: (runtimeBlockById.get(currentOrUpcoming.id)?.runtimeStatus ?? currentOrUpcoming.status) as 'UPCOMING' | 'CURRENT' | 'COMPLETED',
           startDate: currentOrUpcoming.start_date,
           endDate: currentOrUpcoming.end_date,
           estimatedSessions: (await lessonTemplatesDao.listLessonsByBlock(currentOrUpcoming.block_id))
@@ -448,12 +607,45 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
           lessons: allLessonsList,
         };
       } else if (sortedBlocks.length > 0) {
-        const wrapAround = sortedBlocks[0];
+        // If they have no current or upcoming, it means they finished everything.
+        // Let's show the final block's content so it doesn't look empty.
+        const wrapAround = sortedBlocks[sortedBlocks.length - 1]; // Use last block instead of first
         const software = await getSoftwareByBlockId(wrapAround.block_id);
+        
+        const classLessons = await classLessonsDao.listLessonsByClassBlock(wrapAround.id);
+        const classLessonsSorted = [...classLessons].sort((a, b) => a.order_index - b.order_index);
+
+        const lessonToSessionMap = buildLessonToSessionMap(lessonMap, sessions);
+
+        const allLessonsList = classLessonsSorted.map((lesson, index) => {
+          const sessionForLesson = lessonToSessionMap.get(lesson.id) || null;
+          let isCompleted = false;
+          let scheduledAtDates: string[] = [];
+          let completedAtDates: string[] = [];
+          if (sessionForLesson) {
+            scheduledAtDates.push(sessionForLesson.date_time);
+            if (sessionForLesson.status === 'COMPLETED') {
+              isCompleted = true;
+              completedAtDates.push(sessionForLesson.date_time);
+            }
+          }
+
+          return {
+            id: lesson.id,
+            title: lesson.title,
+            summary: lesson.template_summary ?? lesson.summary ?? null,
+            orderIndex: lesson.order_index ?? index,
+            slideUrl: lesson.template_slide_url ?? lesson.slide_url,
+            status: isCompleted ? 'COMPLETED' : 'LOCKED' as any,
+            completedAt: completedAtDates.length > 0 ? completedAtDates : undefined,
+            scheduledAt: scheduledAtDates.length > 0 ? scheduledAtDates : undefined
+          };
+        });
+
         upNext = {
-          blockId: wrapAround.block_id,
+          blockId: wrapAround.block_id ?? wrapAround.id,
           name: wrapAround.block_name ?? 'Block',
-          status: wrapAround.status,
+          status: (runtimeBlockById.get(wrapAround.id)?.runtimeStatus ?? wrapAround.status) as 'UPCOMING' | 'CURRENT' | 'COMPLETED',
           startDate: wrapAround.start_date,
           endDate: wrapAround.end_date,
           estimatedSessions: (await lessonTemplatesDao.listLessonsByBlock(wrapAround.block_id))
@@ -468,7 +660,7 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
             minimum_specs: s.minimum_specs as Record<string, string> | null,
             access_info: s.access_info,
           })),
-          lessons: [],
+          lessons: allLessonsList,
         };
       }
 
@@ -479,21 +671,16 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
       const hasCompletedInCurrent = currentLessons.some((l: any) => l.status === 'COMPLETED');
       
       if (!hasCompletedInCurrent) {
-        // Find the most recent COMPLETED block and get its last lesson via the lessonMap
-        const completedBlks = sortedBlocks.filter(b => b.status === 'COMPLETED');
-        if (completedBlks.length > 0) {
-          const lastCompBlock = completedBlks[completedBlks.length - 1];
-          const lastBlockLessons = await lessonTemplatesDao.listLessonsByBlock(lastCompBlock.block_id);
-          if (lastBlockLessons.length > 0) {
-            // Get the last lesson (by order_index)
-            const sorted = [...lastBlockLessons].sort((a, b) => (a as any).order_index - (b as any).order_index);
-            const last = sorted[sorted.length - 1];
-            lastCompletedLesson = {
-              title: last.title,
-              summary: last.summary ?? null,
-              slideUrl: last.slide_url ?? null,
-            };
-          }
+        const lastCompletedEntry = [...mappedEntries]
+          .filter((entry) => entry.session.status === 'COMPLETED')
+          .pop();
+
+        if (lastCompletedEntry) {
+          lastCompletedLesson = {
+            title: lastCompletedEntry.slot.lessonTemplate.title,
+            summary: lastCompletedEntry.slot.lessonTemplate.summary ?? null,
+            slideUrl: lastCompletedEntry.slot.lessonTemplate.slide_url ?? null,
+          };
         }
       }
 
@@ -540,12 +727,16 @@ export type CoderLessonOverview = {
       slideUrl: string | null;
       exampleUrl: string | null;
       sessionDate: string | null;
+      isAccessible?: boolean;
     }>;
   }>;
 };
 
 export async function getAccessibleLessonsForCoder(coderId: string): Promise<CoderLessonOverview[]> {
-  const classes = await classesDao.listClassesForCoder(coderId);
+  const [classes, grantedSessionIds] = await Promise.all([
+    classesDao.listClassesForCoder(coderId),
+    coderSessionAccessDao.listGrantedSessionIdsByCoder(coderId),
+  ]);
   const now = new Date();
 
   return Promise.all(
@@ -576,39 +767,6 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
         // Logic: Lesson is accessible if index < completedSessions OR if it's the current one (index == completedSessions)
         const accessibleLessons = plan.ekskul_lessons
           .sort((a, b) => a.order_index - b.order_index)
-          .filter((lesson, index) => {
-            // Determine if lesson is accessible
-            // For Ekskul, we assume sequential access based on sessions
-            // If we have N completed sessions, then lessons 0..N are accessible (N is current/upcoming)
-            // Or maybe only completed ones? User said "Materi yang sudah dipelajari".
-            // But regular logic includes "upcoming session <= now".
-
-            // Let's mimic strict logic:
-            // Any lesson that "corresponds" to a session that is PAST or COMPLETED is accessible.
-
-            // If there are more lessons than sessions, those far future lessons are not accessible?
-            // Simple proxy: if index <= completedSessions + 1?
-
-            // Let's stick to: ALL lessons in the plan are visible but their STATUS differs?
-            // getAccessibleLessonsForCoder usually filters strictly. 
-
-            // Let's show all lessons that "have happened" or "are happening".
-            if (index < completedSessions) return true; // Past
-
-            // Current session?
-            const currentSession = sessions
-              .filter(s => new Date(s.date_time) >= now && s.status !== 'COMPLETED' && s.status !== 'CANCELLED')
-              .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime())[0];
-
-            if (index === completedSessions && currentSession && new Date(currentSession.date_time) <= now) {
-              return true;
-            }
-
-            return false;
-            // Actually user said "Materi yang sudah dipelajari". 
-            // So maybe strict past?
-            // But in regular logic (lines 391-395), it shows if session date <= now.
-          })
           .map((lesson, index) => {
             // Try to find matching session date?
             // We assume 1-to-1 mapping based on order
@@ -662,72 +820,46 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
         sessionsDao.listSessionsByClass(klass.id),
         classesDao.getEnrollment(klass.id, coderId),
       ]);
-      const sessionMap = new Map(sessions.map((session) => [session.id, session]));
+
+      const lessonMap = klass.level_id ? await computeLessonSchedule(klass.id, klass.level_id) : new Map();
+      const lessonToSessionMap = buildLessonToSessionMap(lessonMap, sessions);
+      const mappedEntries = buildMappedSessionEntries(blocks, sessions, lessonMap);
+      const runtimeBlocks = buildRuntimeBlocks(blocks, mappedEntries, now);
+      const runtimeBlockById = new Map(runtimeBlocks.map((block) => [block.id, block]));
 
       const enrollmentDate = enrollment ? new Date(enrollment.enrolled_at) : new Date(0); // Default to epoch if no date (shouldn't happen)
+      const entryBlock = enrollment ? findEntryBlockBySchedule(runtimeBlocks, enrollmentDate) : null;
+      const activeBlock =
+        runtimeBlocks.find((block) => block.runtimeStatus === 'CURRENT') ??
+        runtimeBlocks.find((block) => block.runtimeStatus === 'UPCOMING') ??
+        null;
 
       const blockEntries = await Promise.all(
         blocks.map(async (block) => {
-          // RESTRICTION: Hide block if it strictly ended BEFORE the user enrolled.
-          // Example: Block ends Jan 31. User joins Feb 1. Block is hidden.
-          // If Block ends Feb 28. User joins Feb 1. Block is visible.
-          if (new Date(block.end_date) < enrollmentDate) {
-            return null;
-          }
-
-          // RESTRICTION: Hide block if it is strictly in the future
-          // We check date instead of strictly trusting block.status, because if the DB cron fails
-          // or a coach forgets to update the block, the status might be stuck at 'UPCOMING'.
-          if (new Date(block.start_date) > new Date()) {
-            return null;
-          }
           const lessons = await classLessonsDao.listLessonsByClassBlock(block.id);
-          const now = new Date();
 
-          // Sort lessons by order_index for consistent position-based fallback mapping
           const lessonsSorted = [...lessons].sort((a, b) => a.order_index - b.order_index);
 
-          // Fallback: sessions within this block's date range, sorted chronologically.
-          // Used when lesson does NOT have an explicit session_id link in the DB.
-          const blockSessionsSorted = sessions
-            .filter(s =>
-              new Date(s.date_time) >= new Date(block.start_date) &&
-              new Date(s.date_time) <= new Date(new Date(block.end_date).getTime() + 86400000)
-            )
-            .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
-
           const accessibleLessons = lessonsSorted
-            .filter((lesson, index) => {
-              // If the block is fully done, all its lessons are accessible.
-              if (block.status === 'COMPLETED') return true;
-
-              // --- Explicit session link ---
-              if (lesson.session_id && sessionMap.has(lesson.session_id)) {
-                const session = sessionMap.get(lesson.session_id)!;
-                // Accessible if the session already happened or is completed.
-                return session.status === 'COMPLETED' || new Date(session.date_time) <= now;
-              }
-
-              // --- No explicit session link ---
-              // If lesson has no session_id, it cannot be accessed.
-              // (Fallback date mapping is only used for display, not access control)
-
-              // --- unlock_at override ---
-              if (lesson.unlock_at && new Date(lesson.unlock_at) <= now) return true;
-
-              // No session data at all — hide it to avoid leaking future lessons.
-              return false;
-            })
-            .map((lesson, _, filteredArr) => {
-              const originalIndex = lessonsSorted.findIndex(l => l.id === lesson.id);
-              let sessionDate: string | null = null;
-
-              if (lesson.session_id && sessionMap.has(lesson.session_id)) {
-                sessionDate = sessionMap.get(lesson.session_id)!.date_time;
-              } else if (originalIndex >= 0 && originalIndex < blockSessionsSorted.length) {
-                sessionDate = blockSessionsSorted[originalIndex].date_time;
-              }
-
+            .map((lesson) => {
+              const sessionMapped = lessonToSessionMap.get(lesson.id) || null;
+              const isArchived = sessionMapped ? grantedSessionIds.has(sessionMapped.id) : false;
+              const isCatchUpInEntryBlock = Boolean(
+                entryBlock &&
+                  entryBlock.id === block.id &&
+                  sessionMapped &&
+                  new Date(sessionMapped.date_time).getTime() <= enrollmentDate.getTime(),
+              );
+              const isCompletedSinceEnrollment = Boolean(
+                sessionMapped &&
+                  sessionMapped.status === 'COMPLETED' &&
+                  new Date(sessionMapped.date_time).getTime() >= enrollmentDate.getTime(),
+              );
+              const isAccessible =
+                isArchived ||
+                isCatchUpInEntryBlock ||
+                isCompletedSinceEnrollment;
+              
               return {
                 id: lesson.id,
                 title: lesson.title,
@@ -735,14 +867,23 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
                 orderIndex: lesson.order_index,
                 slideUrl: lesson.slide_url ?? null,
                 exampleUrl: (lesson as any).example_url ?? (lesson as any).coach_example_url ?? null,
-                sessionDate,
+                sessionDate: sessionMapped?.date_time ?? null,
+                isAccessible,
               };
             });
+
+          const hasAccessibleLesson = accessibleLessons.some((lesson) => lesson.isAccessible);
+          const isCurrentScheduleBlock = activeBlock?.id === block.id;
+          const isEntryBlock = entryBlock?.id === block.id;
+
+          if (!hasAccessibleLesson && !isCurrentScheduleBlock && !isEntryBlock) {
+            return null;
+          }
 
           return {
             id: block.id,
             name: block.block_name ?? 'Block',
-            status: block.status,
+            status: runtimeBlockById.get(block.id)?.runtimeStatus ?? block.status,
             startDate: block.start_date,
             endDate: block.end_date,
             lessons: accessibleLessons,
@@ -759,18 +900,186 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
   );
 }
 
-export async function getVisibleMaterialsForCoder(coderId: string) {
-  const classes = await classesDao.listClassesForCoder(coderId);
-  const nowIso = new Date().toISOString();
+export async function getStoredLessonsForCoder(coderId: string): Promise<CoderStoredLessonOverview[]> {
+  const [sessionAccessRows, supabase] = await Promise.all([
+    coderSessionAccessDao.listSessionAccessByCoder(coderId),
+    import('@/lib/supabaseServer').then((m) => m.getSupabaseAdmin()),
+  ]);
+
+  if (sessionAccessRows.length === 0) {
+    return [];
+  }
+
+  const classIds = Array.from(new Set(sessionAccessRows.map((row) => row.class_id)));
+  const { data: classRows, error: classError } = await supabase
+    .from('classes')
+    .select('*')
+    .in('id', classIds)
+    .order('start_date', { ascending: true });
+
+  if (classError) {
+    throw new Error(`Failed to load stored lesson classes: ${classError.message}`);
+  }
+
+  const classes = (classRows ?? []) as Awaited<ReturnType<typeof classesDao.listClassesForCoder>>;
+  const sessionAccessByClass = sessionAccessRows.reduce((map, row) => {
+    if (!map.has(row.class_id)) {
+      map.set(row.class_id, new Set<string>());
+    }
+    map.get(row.class_id)!.add(row.session_id);
+    return map;
+  }, new Map<string, Set<string>>());
+
   const results = await Promise.all(
-    classes.map(async (klass) => {
+    classes
+      .filter((klass) => klass.type === 'WEEKLY')
+      .map(async (klass) => {
+        const grantedSessionIds = sessionAccessByClass.get(klass.id) ?? new Set<string>();
+        if (grantedSessionIds.size === 0) {
+          return null;
+        }
+
+        const [blocks, sessions] = await Promise.all([
+          classesDao.getClassBlocks(klass.id),
+          sessionsDao.listSessionsByClass(klass.id),
+        ]);
+
+        const lessonMap = klass.level_id ? await computeLessonSchedule(klass.id, klass.level_id) : new Map();
+        const lessonToSessionMap = buildLessonToSessionMap(lessonMap, sessions);
+
+        const blockEntries = await Promise.all(
+          blocks.map(async (block) => {
+            const lessons = await classLessonsDao.listLessonsByClassBlock(block.id);
+            const storedLessons = lessons
+              .slice()
+              .sort((a, b) => a.order_index - b.order_index)
+              .map((lesson) => {
+                const sessionMapped = lessonToSessionMap.get(lesson.id) || null;
+                if (!sessionMapped || !grantedSessionIds.has(sessionMapped.id)) {
+                  return null;
+                }
+
+                return {
+                  id: lesson.id,
+                  title: lesson.title,
+                  summary: lesson.template_summary ?? lesson.summary ?? null,
+                  orderIndex: lesson.order_index,
+                  slideUrl: lesson.template_slide_url ?? lesson.slide_url,
+                  exampleUrl: (lesson as any).example_url ?? (lesson as any).coach_example_url ?? null,
+                  sessionDate: sessionMapped.date_time,
+                  isAccessible: true as const,
+                };
+              })
+              .filter((lesson): lesson is NonNullable<typeof lesson> => lesson !== null);
+
+            if (storedLessons.length === 0) {
+              return null;
+            }
+
+            return {
+              id: block.id,
+              name: block.block_name ?? 'Block',
+              status: block.status === 'UPCOMING' ? 'CURRENT' as const : 'COMPLETED' as const,
+              startDate: block.start_date,
+              endDate: block.end_date,
+              lessons: storedLessons,
+            };
+          }),
+        );
+
+        const visibleBlocks = blockEntries.filter((block): block is NonNullable<typeof block> => block !== null);
+        if (visibleBlocks.length === 0) {
+          return null;
+        }
+
+        return {
+          classId: klass.id,
+          name: klass.name,
+          blocks: visibleBlocks,
+        };
+      }),
+  );
+
+  return results.filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+}
+
+export async function getVisibleMaterialsForCoder(coderId: string) {
+  const [activeClasses, sessionAccessRows, supabase] = await Promise.all([
+    classesDao.listClassesForCoder(coderId),
+    coderSessionAccessDao.listSessionAccessByCoder(coderId),
+    import('@/lib/supabaseServer').then((m) => m.getSupabaseAdmin()),
+  ]);
+  const nowIso = new Date().toISOString();
+  const activeClassMap = new Map(activeClasses.map((klass) => [klass.id, klass]));
+  const archivedClassIds = Array.from(
+    new Set(sessionAccessRows.map((row) => row.class_id).filter((classId) => !activeClassMap.has(classId))),
+  );
+  let archivedClasses: typeof activeClasses = [];
+
+  if (archivedClassIds.length > 0) {
+    const { data: archivedRows, error: archivedError } = await supabase
+      .from('classes')
+      .select('*')
+      .in('id', archivedClassIds);
+
+    if (archivedError) {
+      throw new Error(`Failed to load archived material classes: ${archivedError.message}`);
+    }
+
+    archivedClasses = (archivedRows ?? []) as typeof activeClasses;
+  }
+
+  const allClasses = [...activeClasses, ...archivedClasses];
+  const accessByClass = sessionAccessRows.reduce((map, row) => {
+    if (!map.has(row.class_id)) {
+      map.set(row.class_id, new Set<string>());
+    }
+    map.get(row.class_id)!.add(row.session_id);
+    return map;
+  }, new Map<string, Set<string>>());
+
+  const results = await Promise.all(
+    allClasses.map(async (klass) => {
       const sessions = await sessionsDao.listSessionsByClass(klass.id);
-      const now = new Date();
-      const accessibleSessions = new Set(
-        sessions
-          .filter((session) => new Date(session.date_time) <= now)
-          .map((session) => session.id),
-      );
+      const accessibleSessions = new Set<string>();
+
+      if (klass.type === 'WEEKLY' && klass.level_id) {
+        const [enrollment, blocks, lessonMap] = await Promise.all([
+          classesDao.getEnrollment(klass.id, coderId),
+          classesDao.getClassBlocks(klass.id),
+          computeLessonSchedule(klass.id, klass.level_id),
+        ]);
+        const mappedEntries = buildMappedSessionEntries(blocks, sessions, lessonMap);
+        const runtimeBlocks = buildRuntimeBlocks(blocks, mappedEntries, new Date(nowIso));
+        const enrollmentDate = enrollment ? new Date(enrollment.enrolled_at) : null;
+        const entryBlock = enrollmentDate ? findEntryBlockBySchedule(runtimeBlocks, enrollmentDate) : null;
+
+        for (const session of sessions) {
+          if (session.status !== 'COMPLETED') {
+            continue;
+          }
+
+          const mappedEntry = mappedEntries.find((entry) => entry.session.id === session.id);
+          const happenedAfterEnrollment =
+            !enrollmentDate || new Date(session.date_time).getTime() >= enrollmentDate.getTime();
+          const isCatchUpInEntryBlock =
+            Boolean(
+              enrollmentDate &&
+                entryBlock &&
+                mappedEntry &&
+                mappedEntry.classBlock.id === entryBlock.id &&
+                new Date(session.date_time).getTime() <= enrollmentDate.getTime(),
+            );
+
+          if (happenedAfterEnrollment || isCatchUpInEntryBlock) {
+            accessibleSessions.add(session.id);
+          }
+        }
+      }
+
+      for (const sessionId of accessByClass.get(klass.id) ?? []) {
+        accessibleSessions.add(sessionId);
+      }
 
       const materials = await materialsDao.listVisibleMaterialsForCoder({
         classId: klass.id,
@@ -786,7 +1095,7 @@ export async function getVisibleMaterialsForCoder(coderId: string) {
     }),
   );
 
-  return results;
+  return results.filter((entry) => entry.materials.length > 0);
 }
 
 export async function getLessonDetailForCoder(coderId: string, lessonId: string) {
@@ -859,45 +1168,71 @@ export async function getLessonDetailForCoder(coderId: string, lessonId: string)
   const block = await classesDao.getClassBlockById(lesson.class_block_id);
   if (!block) return null;
 
-  // Check enrollment
-  const enrollment = await classesDao.getEnrollment(block.class_id, coderId);
-  if (!enrollment || enrollment.status !== 'ACTIVE') return null;
+  const now = new Date();
 
-  // RESTRICTION: Block Ended Before Enrollment?
-  const enrollmentDate = new Date(enrollment.enrolled_at);
-  if (new Date(block.end_date) < enrollmentDate) {
+  const klass = await classesDao.getClassById(block.class_id);
+  if (!klass) {
     return null;
   }
 
-  const session = lesson.session_id ? await sessionsDao.getSessionById(lesson.session_id) : null;
-  const now = new Date();
+  const [enrollment, classSessions] = await Promise.all([
+    classesDao.getEnrollment(block.class_id, coderId),
+    sessionsDao.listSessionsByClass(block.class_id),
+  ]);
 
-  const isAccessible = await (async () => {
-    if (block.status === 'COMPLETED') return true;
-    if (session?.status === 'COMPLETED') return true;
-    if (session && new Date(session.date_time) <= now) return true;
-    if (lesson.unlock_at && new Date(lesson.unlock_at) <= now) return true;
-    
-    // Check if it's a skipped lesson that comes before the currently active/future session
-    const classSessions = await sessionsDao.listSessionsByClass(block.class_id);
-    const sessionMap = new Map(classSessions.map((s) => [s.id, s]));
-    const blockLessons = await classLessonsDao.listLessonsByClassBlock(block.id);
-    
-    let firstFutureOrActiveLessonIndex = blockLessons.length;
-    for (let i = 0; i < blockLessons.length; i++) {
-        const bl = blockLessons[i];
-        if (bl.session_id && sessionMap.has(bl.session_id)) {
-            const s = sessionMap.get(bl.session_id)!;
-            if (s.status !== 'COMPLETED' && new Date(s.date_time) > now) {
-                firstFutureOrActiveLessonIndex = i;
-                break;
-            }
-        }
+  const classBlocks = await classesDao.getClassBlocks(block.class_id);
+  const lessonMap = klass.level_id ? await computeLessonSchedule(klass.id, klass.level_id) : new Map();
+  const lessonToSessionMap = buildLessonToSessionMap(lessonMap, classSessions);
+  const runtimeBlocks = buildRuntimeBlocks(
+    classBlocks,
+    buildMappedSessionEntries(classBlocks, classSessions, lessonMap),
+    now,
+  );
+  const blockIndexById = new Map(runtimeBlocks.map((runtimeBlock, index) => [runtimeBlock.id, index]));
+  const enrollmentDate = enrollment ? new Date(enrollment.enrolled_at) : null;
+  const entryBlock = enrollmentDate ? findEntryBlockBySchedule(runtimeBlocks, enrollmentDate) : null;
+  const effectiveSession = lessonToSessionMap.get(lesson.id) || null;
+  const sessionGrantId = effectiveSession?.id ?? lesson.session_id ?? null;
+  const hasSessionGrant = sessionGrantId
+    ? await coderSessionAccessDao.hasCoderSessionAccess(coderId, sessionGrantId)
+    : false;
+
+  if ((!enrollment || enrollment.status !== 'ACTIVE') && !hasSessionGrant) {
+    return null;
+  }
+
+  if (enrollment?.status === 'ACTIVE' && entryBlock && !hasSessionGrant) {
+    const blockIndex = blockIndexById.get(block.id);
+    const entryIndex = blockIndexById.get(entryBlock.id);
+    if (
+      blockIndex !== undefined &&
+      entryIndex !== undefined &&
+      blockIndex < entryIndex
+    ) {
+      return null;
     }
-    
-    const targetLessonIndex = blockLessons.findIndex(bl => bl.id === lesson.id);
-    if (targetLessonIndex !== -1 && targetLessonIndex <= firstFutureOrActiveLessonIndex) {
-        return true;
+  }
+
+  const isAccessible = (() => {
+    if (hasSessionGrant) return true;
+    if (lesson.unlock_at && new Date(lesson.unlock_at) <= now) return true;
+    if (
+      enrollmentDate &&
+      entryBlock?.id === block.id &&
+      effectiveSession &&
+      new Date(effectiveSession.date_time).getTime() <= enrollmentDate.getTime()
+    ) {
+      return true;
+    }
+
+    if (effectiveSession) {
+      return (
+        effectiveSession.status === 'COMPLETED' &&
+        (
+          !enrollmentDate ||
+          new Date(effectiveSession.date_time).getTime() >= enrollmentDate.getTime()
+        )
+      );
     }
 
     return false;
@@ -907,6 +1242,6 @@ export async function getLessonDetailForCoder(coderId: string, lessonId: string)
 
   return {
     ...lesson,
-    sessionDate: session?.date_time ?? null,
+    sessionDate: effectiveSession?.date_time ?? null,
   };
 }

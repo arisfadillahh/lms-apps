@@ -12,6 +12,7 @@ export type LessonSlot = {
     totalParts: number;      // Total parts for this lesson (based on duration)
     globalIndex: number;     // Position in the full curriculum cycle
     explicitSessionId?: string | null; // Explicit session mapping from class_lessons override
+    classLessonId?: string;  // ID from class_lessons to allow reverse mapping
 };
 
 export type SessionLessonMapping = {
@@ -174,6 +175,7 @@ export async function computeLessonSchedule(
                     totalParts,
                     globalIndex,
                     explicitSessionId: cl.session_id,
+                    classLessonId: cl.id,
                 });
                 globalIndex++;
             }

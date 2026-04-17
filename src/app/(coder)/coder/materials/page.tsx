@@ -1,13 +1,14 @@
-import { BookOpen, Video, ChevronRight, FileText, Download, Lightbulb } from 'lucide-react';
+import { BookOpen, Video, ChevronRight, FileText, Download, Lightbulb, Lock } from 'lucide-react';
 
 import { getSessionOrThrow } from '@/lib/auth';
-import { getAccessibleLessonsForCoder, getVisibleMaterialsForCoder } from '@/lib/services/coder';
+import { getAccessibleLessonsForCoder, getStoredLessonsForCoder, getVisibleMaterialsForCoder } from '@/lib/services/coder';
 import { StaggerContainer, StaggerItem } from '../StaggerWrapper';
 
 export default async function CoderMaterialsPage() {
   const session = await getSessionOrThrow();
-  const [lessonPlans, materialsByClass] = await Promise.all([
+  const [lessonPlans, storedLessons, materialsByClass] = await Promise.all([
     getAccessibleLessonsForCoder(session.user.id),
+    getStoredLessonsForCoder(session.user.id),
     getVisibleMaterialsForCoder(session.user.id),
   ]);
 
@@ -108,9 +109,15 @@ export default async function CoderMaterialsPage() {
                                   </div>
 
                                   {/* Arrow */}
-                                  <a href={`/coder/materials/${lesson.id}`} className="size-10 rounded-xl bg-sky text-white flex items-center justify-center shadow-md hover:scale-110 transition-transform self-center">
-                                    <ChevronRight size={20} strokeWidth={3} />
-                                  </a>
+                                  {lesson.isAccessible ? (
+                                    <a href={`/coder/materials/${lesson.id}`} className="size-10 rounded-xl bg-sky text-white flex items-center justify-center shadow-md hover:scale-110 transition-transform self-center">
+                                      <ChevronRight size={20} strokeWidth={3} />
+                                    </a>
+                                  ) : (
+                                    <div className="size-10 rounded-xl bg-slate-100 text-slate-300 flex items-center justify-center self-center">
+                                      <Lock size={16} strokeWidth={2.5} />
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -130,6 +137,92 @@ export default async function CoderMaterialsPage() {
       <StaggerItem>
         <div className="h-1 bg-pastel-blue/30 rounded-full" />
       </StaggerItem>
+
+      {storedLessons.length > 0 && (
+        <StaggerItem>
+          <section>
+            <div className="flex items-center gap-4 mb-8">
+              <div className="p-3 bg-pastel-green rounded-2xl text-clevio-green">
+                <BookOpen size={22} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-clevio-navy">Materi Tersimpan</h2>
+                <p className="text-sm font-bold text-slate-400">Materi dari sesi yang sudah pernah kamu dapatkan tetap aman di sini.</p>
+              </div>
+            </div>
+
+            <div className="space-y-12">
+              {storedLessons.map((entry) => (
+                <div key={`stored-${entry.classId}`}>
+                  <div className="flex items-center gap-4 mb-8">
+                    <div className="size-12 rounded-2xl bg-clevio-green flex items-center justify-center text-white shadow-lg">
+                      <BookOpen size={24} />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-black text-clevio-navy">{entry.name}</h2>
+                      <p className="text-sm font-bold text-slate-400">Arsip sesi yang sudah terbuka</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-8">
+                    {entry.blocks.map((block) => (
+                      <div key={`stored-block-${block.id}`}>
+                        <div className="inline-block px-5 py-3 bg-pastel-green rounded-2xl border-2 border-clevio-green/10 mb-6">
+                          <p className="text-[10px] font-black text-clevio-green uppercase tracking-widest">Stored Block</p>
+                          <h3 className="text-lg font-black text-clevio-navy">{block.name}</h3>
+                        </div>
+
+                        <div className="relative pl-10 border-l-4 border-dashed border-pastel-green/60 ml-4 space-y-6">
+                          {block.lessons.map((lesson, index) => {
+                            const dateObj = lesson.sessionDate ? new Date(lesson.sessionDate) : null;
+
+                            return (
+                              <div key={`stored-lesson-${lesson.id}`} className="relative">
+                                <div className="absolute -left-[54px] top-4 size-10 bg-white border-4 border-clevio-green rounded-2xl z-10 flex items-center justify-center shadow-md font-black text-sm text-clevio-green">
+                                  {index + 1}
+                                </div>
+
+                                <div className="bg-white rounded-3xl border-2 border-slate-50 shadow-sm p-5 hover:shadow-md transition-shadow">
+                                  <div className="flex gap-5 items-start">
+                                    <div className="flex flex-col items-center min-w-[60px] px-3 py-2 bg-pastel-green rounded-xl border border-clevio-green/20">
+                                      {dateObj ? (
+                                        <>
+                                          <span className="text-xl font-black text-clevio-green">{dateObj.getDate()}</span>
+                                          <span className="text-[10px] uppercase font-black text-clevio-green">{dateObj.toLocaleDateString('id-ID', { month: 'short' })}</span>
+                                        </>
+                                      ) : (
+                                        <span className="text-2xl text-slate-300">?</span>
+                                      )}
+                                    </div>
+
+                                    <div className="flex-1">
+                                      <h4 className="text-lg font-black text-clevio-navy mb-1">{lesson.title}</h4>
+                                      {lesson.summary && (
+                                        <p className="text-sm font-bold text-slate-400 leading-relaxed mb-2">{lesson.summary}</p>
+                                      )}
+                                      <span className="inline-flex items-center gap-1 text-[10px] font-black text-clevio-green bg-pastel-green px-2 py-1 rounded-lg uppercase">
+                                        <Video size={12} /> {lesson.sessionDate ? new Date(lesson.sessionDate).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : 'Tersimpan'}
+                                      </span>
+                                    </div>
+
+                                    <a href={`/coder/materials/${lesson.id}`} className="size-10 rounded-xl bg-clevio-green text-white flex items-center justify-center shadow-md hover:scale-110 transition-transform self-center">
+                                      <ChevronRight size={20} strokeWidth={3} />
+                                    </a>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </StaggerItem>
+      )}
 
       {/* Additional Materials */}
       <StaggerItem>

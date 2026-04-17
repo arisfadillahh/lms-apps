@@ -27,47 +27,37 @@ export async function ensureJourneyForCoder({ coderId, levelId, blocks, entryBlo
     throw new Error(`Failed to check coder progress: ${error.message}`);
   }
 
+  if (existing && existing.length > 0) {
+    const knownBlockIds = new Set(existing.map((row) => row.block_id));
+    const missingBlockIds = computeJourneyOrder(blocks).filter((blockId) => !knownBlockIds.has(blockId));
+
+    if (missingBlockIds.length === 0) {
+      return;
+    }
+
+    const lastJourneyOrder = existing.reduce((max, row) => Math.max(max, row.journey_order), -1);
+    const payload = missingBlockIds.map((blockId, index) => ({
+      coder_id: coderId,
+      level_id: levelId,
+      block_id: blockId,
+      journey_order: lastJourneyOrder + index + 1,
+      status: 'PENDING' as const,
+    }));
+
+    const insertResult = await supabase.from('coder_block_progress').insert(payload);
+    if (insertResult.error) {
+      throw new Error(`Failed to extend coder block journey: ${insertResult.error.message}`);
+    }
+    return;
+  }
+
   const orderedBlockIds = computeJourneyOrder(blocks);
   const entryIndex = entryBlockId ? orderedBlockIds.indexOf(entryBlockId) : 0;
   const startIndex = entryIndex >= 0 ? entryIndex : 0;
-
-  // Calculate intended order
   const wrappedBlockIds = [
     ...orderedBlockIds.slice(startIndex),
     ...orderedBlockIds.slice(0, startIndex),
   ];
-
-  // Self-Correction Logic:
-  // If progress exists but order START is different from requested entryBlockId, we re-shuffle
-  if (existing && existing.length > 0) {
-    if (!entryBlockId) return; // No specific request, keep existing
-
-    const currentStartBlockId = existing[0].block_id;
-    if (currentStartBlockId === entryBlockId) {
-      return; // Already correct
-    }
-
-    console.log(`[Journey] Detected order mismatch for coder ${coderId}. Resetting order to start from ${entryBlockId}.`);
-
-    // Force Reset: Delete all and re-create to ensure clean state
-    await supabase
-      .from('coder_block_progress')
-      .delete()
-      .eq('coder_id', coderId)
-      .eq('level_id', levelId);
-  }
-
-  // If we just deleted, existing is now "considered empty" effectively for our purpose
-  // We just proceed to insert the fresh wrappedBlockIds payload.
-
-  // Note: If we didn't delete (existing mismatch), we continue to insert.
-  // But wait! If existing was correct, we returned above.
-  // If existing was incorrect, we deleted it.
-  // What if existing matched but incomplete? Or something else?
-  // Our logic above: if existing > 0 and correct -> return.
-  // if existing > 0 and incorrect -> delete -> now we need to insert.
-
-  // So we just need to proceed to insert payload normally here.
 
   const payload = wrappedBlockIds.map((blockId, index) => ({
     coder_id: coderId,

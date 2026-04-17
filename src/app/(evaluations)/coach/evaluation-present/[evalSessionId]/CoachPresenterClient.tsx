@@ -13,7 +13,8 @@ interface Coder {
 interface Question {
   id: string;
   question: string;
-  hint: string;
+  hint?: string | null;
+  placeholder?: string | null;
 }
 
 interface CoachPresenterClientProps {

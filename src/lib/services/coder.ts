@@ -702,8 +702,8 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
 
               if (lesson.unlock_at && new Date(lesson.unlock_at) <= now) return true;
               
-              // Include skipped past lessons
-              if (index <= firstFutureOrActiveLessonIndex) return true;
+              // Include skipped past lessons (strictly past, excluding the current future/active one)
+              if (index < firstFutureOrActiveLessonIndex) return true;
               
               return false;
             })

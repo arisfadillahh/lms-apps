@@ -59,14 +59,12 @@ export async function createClassLessons(
   }
   const supabase = getSupabaseAdmin();
 
-  // Use onConflict to skip duplicates instead of throwing error
-  // This handles cases where class_lessons with same (class_block_id, order_index) already exist
+  // Plain insert — if a (class_block_id, order_index) collision occurs, it will throw
+  // a visible error rather than silently dropping the lesson (ignoreDuplicates:true behaviour).
+  // Callers should ensure order_index values are unique within the block before inserting.
   const { data, error } = await supabase
     .from('class_lessons')
-    .upsert(inputs, {
-      onConflict: 'class_block_id,order_index',
-      ignoreDuplicates: true
-    })
+    .insert(inputs)
     .select('*');
 
   if (error) {

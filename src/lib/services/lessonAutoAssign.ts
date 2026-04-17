@@ -392,9 +392,11 @@ function computeNextBlockStartDate(blocks: ClassBlockRow[], klass: ClassRecord):
   if (blocks.length === 0) {
     return klass.start_date;
   }
+  // Sort chronologically (by start_date) to find the last block in time,
+  // not by curriculum order_index which may differ for mid-curriculum classes.
   const sorted = blocks
     .slice()
-    .sort((a, b) => (a.block_order_index ?? 0) - (b.block_order_index ?? 0));
+    .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
   const last = sorted[sorted.length - 1];
   const base = last.end_date ?? last.start_date ?? klass.start_date;
   const baseDate = base ? new Date(base) : new Date(klass.start_date);
@@ -468,6 +470,28 @@ async function syncBlockStatuses(
       completedBlocks.map((block) => coderProgressDao.markBlockCompletedForClass(block.class_id, block.block_id ?? null)),
     );
   }
+}
+
+/**
+ * Standalone exported function to sync class_blocks.status (CURRENT/UPCOMING/COMPLETED)
+ * for a given class WITHOUT triggering a full lesson reassignment.
+ *
+ * Use this after a manual lesson-session swap (e.g. admin "Ubah Materi") so that
+ * the block status card in the admin UI reflects the actual current lesson position.
+ */
+export async function syncBlockStatusesForClass(classId: string): Promise<void> {
+  const [blocks, sessions] = await Promise.all([
+    classesDao.getClassBlocks(classId),
+    sessionsDao.listSessionsByClass(classId),
+  ]);
+
+  if (blocks.length === 0) return;
+
+  // Load lessons per block
+  const lessonsByBlock = await loadLessons(blocks);
+
+  // Re-use existing private syncBlockStatuses logic
+  await syncBlockStatuses(blocks, lessonsByBlock, sessions);
 }
 
 function formatDateOnly(date: Date): string {

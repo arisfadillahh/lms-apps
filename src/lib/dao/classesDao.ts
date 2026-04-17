@@ -143,14 +143,17 @@ export async function getClassBlocks(
 
   const rows: ClassBlockQueryRow[] = (data ?? []) as ClassBlockQueryRow[];
 
-  return rows
-    .map(({ blocks, ...rest }) => ({
-      ...rest,
-      block_name: blocks?.name ?? undefined,
-      block_order_index: blocks?.order_index ?? null,
-      block_estimated_sessions: blocks?.estimated_sessions ?? null,
-    }))
-    .sort((a, b) => (a.block_order_index ?? 0) - (b.block_order_index ?? 0));
+  // NOTE: DB query already orders by start_date (ascending).
+  // Do NOT re-sort by block_order_index here — all scheduler services
+  // (buildLessonQueue, syncBlockStatuses, reassignLessonsToSessions) depend on
+  // chronological (start_date) order. Sorting by curriculum order_index would
+  // break classes that start mid-curriculum (e.g. starting from Block 3).
+  return rows.map(({ blocks, ...rest }) => ({
+    ...rest,
+    block_name: blocks?.name ?? undefined,
+    block_order_index: blocks?.order_index ?? null,
+    block_estimated_sessions: blocks?.estimated_sessions ?? null,
+  }));
 }
 
 export async function getClassBlockById(id: string): Promise<ClassBlockRecord | null> {

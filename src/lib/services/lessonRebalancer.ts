@@ -221,6 +221,19 @@ export async function syncClassLessonsStructure(classId: string): Promise<void> 
                 }
             }
         }
+
+        // 5. Delete orphaned class_lessons whose lesson_template_id no longer exists
+        //    in this block's templates (i.e. the template was deleted from the curriculum).
+        const validTemplateIds = new Set(templates.map(t => t.id));
+        const orphaned = existingLessons?.filter(
+            l => l.lesson_template_id && !validTemplateIds.has(l.lesson_template_id)
+        ) ?? [];
+
+        if (orphaned.length > 0) {
+            const orphanIds = orphaned.map(l => l.id);
+            console.log(`[syncClassLessonsStructure] Deleting ${orphanIds.length} orphaned class_lessons for block ${block.id}`);
+            await supabase.from('class_lessons').delete().in('id', orphanIds);
+        }
     }
 }
 

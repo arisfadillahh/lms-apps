@@ -1,10 +1,18 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { reassignLessonsToSessions } from '@/lib/services/lessonRebalancer';
+import { getSessionOrThrow } from '@/lib/auth';
+import { assertRole } from '@/lib/roles';
 
 export async function GET() {
+    try {
+        const session = await getSessionOrThrow();
+        await assertRole(session, 'ADMIN');
+    } catch {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const supabase = getSupabaseAdmin();
-    // Fetch all classes
     const { data: classes, error } = await supabase
         .from('classes')
         .select('id');

@@ -5,7 +5,6 @@ import { z } from 'zod';
 import { getSessionOrThrow } from '@/lib/auth';
 import { assertRole } from '@/lib/roles';
 import { classLessonsDao, classesDao, sessionsDao } from '@/lib/dao';
-import { autoAssignLessonsForClass } from '@/lib/services/lessonAutoAssign';
 
 const assignSchema = z.object({
   lessonId: z.string().uuid(),
@@ -63,10 +62,14 @@ export async function POST(request: NextRequest) {
 
   await classLessonsDao.assignLessonToSession(lesson.id, sessionId, targetSession.date_time);
 
+  // Only sync block statuses — do NOT call autoAssignLessonsForClass here.
+  // autoAssignLessonsForClass force-unassigns all future sessions which would
+  // immediately override the manual pairing we just saved above.
   try {
-    await autoAssignLessonsForClass(classBlock.class_id);
+    const { syncBlockStatusesForClass } = await import('@/lib/services/lessonAutoAssign');
+    await syncBlockStatusesForClass(classBlock.class_id);
   } catch (error) {
-    console.error('[class-lessons/assign] Failed to re-run auto-assign after manual pairing', error);
+    console.error('[class-lessons/assign] Failed to sync block statuses after manual pairing', error);
   }
 
   return NextResponse.json({ success: true });

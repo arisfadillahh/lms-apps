@@ -214,16 +214,17 @@ export async function computeLessonSchedule(
         }
     });
 
-    // 2. Sequentially assign the remaining sessions to the unassigned slots
+    // 2. Sequentially assign the remaining sessions to the unassigned slots (no wrap-around).
+    // Using modulo would cause lessons to loop back to the beginning when sessions > slots,
+    // making it appear as if the curriculum jumps back to Lesson 1 mid-series.
     unassignedSessions.forEach((session, index) => {
-        if (unassignedSlots.length > 0) {
-            const slotIndex = index % unassignedSlots.length;
-            result.set(session.id, unassignedSlots[slotIndex]);
-        } else if (orderedSlots.length > 0) {
-            // Fallback just in case
-            const slotIndex = index % orderedSlots.length;
-            result.set(session.id, orderedSlots[slotIndex]);
+        if (unassignedSlots.length > 0 && index < unassignedSlots.length) {
+            result.set(session.id, unassignedSlots[index]);
+        } else if (unassignedSlots.length === 0 && orderedSlots.length > 0 && index < orderedSlots.length) {
+            // Fallback: all slots were explicitly assigned, use orderedSlots for any remaining
+            result.set(session.id, orderedSlots[index]);
         }
+        // If index >= slot count: session has no lesson mapping — intentionally left unmapped.
     });
 
     return result;

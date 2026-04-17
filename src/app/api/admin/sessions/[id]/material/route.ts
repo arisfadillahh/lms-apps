@@ -144,6 +144,16 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       }
     }
 
+    // Sync block statuses (CURRENT/UPCOMING/COMPLETED) so the admin block card
+    // reflects the new lesson position immediately after the material shift.
+    try {
+      const { syncBlockStatusesForClass } = await import('@/lib/services/lessonAutoAssign');
+      await syncBlockStatusesForClass(classId);
+    } catch (err) {
+      console.error('[MaterialShift] Failed to sync block statuses:', err);
+      // Non-fatal — lesson assignments are correct, only the block badge might be stale.
+    }
+
     revalidatePath('/admin/classes/[id]', 'page');
     revalidatePath('/admin/classes');
 

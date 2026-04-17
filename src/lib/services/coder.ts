@@ -645,16 +645,36 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
           const lessons = await classLessonsDao.listLessonsByClassBlock(block.id);
           const now = new Date();
           
+          // Fallback map: sessions that chronologically fall into this block as a safety net
+          // if explicit lesson.session_id is missing from class_lessons.
+          const blockSessionsFallback = sessions
+            .filter(s => new Date(s.date_time) >= new Date(block.start_date) && new Date(s.date_time) < new Date(new Date(block.end_date).getTime() + 86400000))
+            .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
+
+          
           let firstFutureOrActiveLessonIndex = lessons.length;
           for (let i = 0; i < lessons.length; i++) {
              const lesson = lessons[i];
              let isFutureOrActive = false;
+             
+             let mappedSessionDate: string | null = null;
+             let mappedSessionStatus: string | null = null;
+
              if (lesson.session_id && sessionMap.has(lesson.session_id)) {
                 const session = sessionMap.get(lesson.session_id)!;
-                if (session.status !== 'COMPLETED' && new Date(session.date_time) > now) {
+                mappedSessionDate = session.date_time;
+                mappedSessionStatus = session.status;
+             } else if (i < blockSessionsFallback.length) {
+                mappedSessionDate = blockSessionsFallback[i].date_time;
+                mappedSessionStatus = blockSessionsFallback[i].status;
+             }
+
+             if (mappedSessionDate) {
+                if (mappedSessionStatus !== 'COMPLETED' && new Date(mappedSessionDate) > now) {
                    isFutureOrActive = true;
                 }
              }
+
              if (isFutureOrActive) {
                 firstFutureOrActiveLessonIndex = i;
                 break;
@@ -665,10 +685,21 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
             .filter((lesson, index) => {
               if (block.status === 'COMPLETED') return true;
               
+              let mappedSessionDate: string | null = null;
+              let mappedSessionStatus: string | null = null;
               if (lesson.session_id && sessionMap.has(lesson.session_id)) {
                  const session = sessionMap.get(lesson.session_id)!;
-                 if (session.status === 'COMPLETED' || new Date(session.date_time) <= now) return true;
+                 mappedSessionDate = session.date_time;
+                 mappedSessionStatus = session.status;
+              } else if (index < blockSessionsFallback.length) {
+                 mappedSessionDate = blockSessionsFallback[index].date_time;
+                 mappedSessionStatus = blockSessionsFallback[index].status;
               }
+
+              if (mappedSessionDate) {
+                 if (mappedSessionStatus === 'COMPLETED' || new Date(mappedSessionDate) <= now) return true;
+              }
+
               if (lesson.unlock_at && new Date(lesson.unlock_at) <= now) return true;
               
               // Include skipped past lessons
@@ -686,7 +717,7 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
               exampleUrl: (lesson as any).example_url ?? (lesson as any).coach_example_url ?? null,
               sessionDate: lesson.session_id && sessionMap.has(lesson.session_id)
                 ? sessionMap.get(lesson.session_id)!.date_time
-                : null,
+                : (index < blockSessionsFallback.length ? blockSessionsFallback[index].date_time : null),
             }));
 
           return {

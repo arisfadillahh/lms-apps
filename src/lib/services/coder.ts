@@ -708,16 +708,19 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
               return false;
             })
             .sort((a, b) => a.order_index - b.order_index)
-            .map((lesson) => ({
-              id: lesson.id,
-              title: lesson.title,
-              summary: lesson.template_summary ?? null,
-              orderIndex: lesson.order_index,
-              slideUrl: lesson.slide_url ?? null,
-              exampleUrl: (lesson as any).example_url ?? (lesson as any).coach_example_url ?? null,
-              sessionDate: lesson.session_id && sessionMap.has(lesson.session_id)
-                ? sessionMap.get(lesson.session_id)!.date_time
-                : (index < blockSessionsFallback.length ? blockSessionsFallback[index].date_time : null),
+            .map((lesson) => {
+              const originalIndex = lessons.findIndex(l => l.id === lesson.id);
+              return {
+                id: lesson.id,
+                title: lesson.title,
+                summary: lesson.template_summary ?? null,
+                orderIndex: lesson.order_index,
+                slideUrl: lesson.slide_url ?? null,
+                exampleUrl: (lesson as any).example_url ?? (lesson as any).coach_example_url ?? null,
+                sessionDate: lesson.session_id && sessionMap.has(lesson.session_id)
+                  ? sessionMap.get(lesson.session_id)!.date_time
+                  : (originalIndex >= 0 && originalIndex < blockSessionsFallback.length ? blockSessionsFallback[originalIndex].date_time : null),
+              };
             }));
 
           return {

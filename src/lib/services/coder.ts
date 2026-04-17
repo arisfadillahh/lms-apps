@@ -721,7 +721,7 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
                   ? sessionMap.get(lesson.session_id)!.date_time
                   : (originalIndex >= 0 && originalIndex < blockSessionsFallback.length ? blockSessionsFallback[originalIndex].date_time : null),
               };
-            }));
+            });
 
           return {
             id: block.id,

@@ -1,5 +1,3 @@
-"use server";
-
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import type { TablesInsert, TablesRow, TablesUpdate } from '@/types/supabase';
 

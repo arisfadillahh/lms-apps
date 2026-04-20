@@ -232,6 +232,17 @@ function buildDisplayedJourneyBlocks(
   ];
 }
 
+function hasCompletedBlockAccess(
+  journeyStatusMap: Map<string, PersonalJourneyStatus>,
+  blockId: string | null | undefined,
+): boolean {
+  if (!blockId) {
+    return false;
+  }
+
+  return journeyStatusMap.get(blockId) === 'COMPLETED';
+}
+
 function buildMappedSessionEntries(
   blocks: WeeklyBlock[],
   sessions: WeeklySession[],
@@ -941,6 +952,8 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
       const mappedEntries = buildMappedSessionEntries(blocks, sessions, lessonMap);
       const runtimeBlocks = buildRuntimeBlocks(blocks, mappedEntries, now);
       const runtimeBlockById = new Map(runtimeBlocks.map((block) => [block.id, block]));
+      const journey = klass.level_id ? await coderProgressDao.getCoderJourney(coderId, klass.level_id) : [];
+      const journeyStatusMap = new Map(journey.map((row) => [row.block_id, row.status]));
 
       const enrollmentDate = enrollment ? new Date(enrollment.enrolled_at) : new Date(0); // Default to epoch if no date (shouldn't happen)
       const entryBlock = enrollment ? findEntryBlockBySchedule(runtimeBlocks, enrollmentDate) : null;
@@ -958,6 +971,7 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
           const accessibleLessons = lessonsSorted
             .map((lesson) => {
               const sessionMapped = lessonToSessionMap.get(lesson.id) || null;
+              const isCompletedBlock = hasCompletedBlockAccess(journeyStatusMap, block.block_id);
               const isArchived = sessionMapped ? grantedSessionIds.has(sessionMapped.id) : false;
               const isCatchUpInEntryBlock = Boolean(
                 entryBlock &&
@@ -971,6 +985,7 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
                   new Date(sessionMapped.date_time).getTime() >= enrollmentDate.getTime(),
               );
               const isAccessible =
+                isCompletedBlock ||
                 isArchived ||
                 isCatchUpInEntryBlock ||
                 isCompletedSinceEnrollment;
@@ -1303,6 +1318,8 @@ export async function getLessonDetailForCoder(coderId: string, lessonId: string)
     buildMappedSessionEntries(classBlocks, classSessions, lessonMap),
     now,
   );
+  const journey = klass.level_id ? await coderProgressDao.getCoderJourney(coderId, klass.level_id) : [];
+  const journeyStatusMap = new Map(journey.map((row) => [row.block_id, row.status]));
   const blockIndexById = new Map(runtimeBlocks.map((runtimeBlock, index) => [runtimeBlock.id, index]));
   const enrollmentDate = enrollment ? new Date(enrollment.enrolled_at) : null;
   const entryBlock = enrollmentDate ? findEntryBlockBySchedule(runtimeBlocks, enrollmentDate) : null;
@@ -1311,12 +1328,13 @@ export async function getLessonDetailForCoder(coderId: string, lessonId: string)
   const hasSessionGrant = sessionGrantId
     ? await coderSessionAccessDao.hasCoderSessionAccess(coderId, sessionGrantId)
     : false;
+  const isCompletedBlock = hasCompletedBlockAccess(journeyStatusMap, block.block_id);
 
-  if ((!enrollment || enrollment.status !== 'ACTIVE') && !hasSessionGrant) {
+  if ((!enrollment || enrollment.status !== 'ACTIVE') && !hasSessionGrant && !isCompletedBlock) {
     return null;
   }
 
-  if (enrollment?.status === 'ACTIVE' && entryBlock && !hasSessionGrant) {
+  if (enrollment?.status === 'ACTIVE' && entryBlock && !hasSessionGrant && !isCompletedBlock) {
     const blockIndex = blockIndexById.get(block.id);
     const entryIndex = blockIndexById.get(entryBlock.id);
     if (
@@ -1329,6 +1347,7 @@ export async function getLessonDetailForCoder(coderId: string, lessonId: string)
   }
 
   const isAccessible = (() => {
+    if (isCompletedBlock) return true;
     if (hasSessionGrant) return true;
     if (lesson.unlock_at && new Date(lesson.unlock_at) <= now) return true;
     if (

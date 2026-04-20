@@ -1,4 +1,6 @@
 import { redirect } from 'next/navigation';
+import Image from 'next/image';
+import Link from 'next/link';
 
 import { getServerAuthSession } from '@/lib/auth';
 import { getRoleDashboardPath } from '@/lib/routing';
@@ -9,84 +11,78 @@ export const metadata = {
   title: 'Login | Clevio LMS',
 };
 
-export default async function LoginPage() {
+export default async function LoginPage(props: any) {
+  const searchParams = props.searchParams ? await Promise.resolve(props.searchParams) : {};
+  const lang = searchParams.lang === 'en' ? 'en' : 'id';
+  const isEng = lang === 'en';
+
   const session = await getServerAuthSession();
   if (session) {
     redirect(getRoleDashboardPath(session.user.role));
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#ffffff', overflow: 'hidden' }}>
+    <div className="flex min-h-screen items-center justify-center p-4 md:p-8 bg-[#ECEFF4] font-display">
+      {/* Card Container */}
+      <div className="relative w-full max-w-[1400px] h-[95vh] md:h-[88vh] md:min-h-[700px] bg-[#F7F9FE] rounded-[24px] md:rounded-[32px] overflow-hidden shadow-2xl flex flex-col md:flex-row">
 
-      {/* Left Side - Branding & Illustration */}
-      <div style={{
-        flex: '1',
-        display: 'none', // Hidden on mobile
-        background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', // Clevio Blue Gradient
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: '#ffffff',
-        position: 'relative',
-        padding: '3rem'
-      }}>
-        {/* Background Patterns (Optional decoration) */}
-        <div style={{
-          position: 'absolute', top: '-10%', left: '-10%', width: '50%', height: '50%',
-          background: 'rgba(255,255,255,0.05)', borderRadius: '50%'
-        }}></div>
-        <div style={{
-          position: 'absolute', bottom: '-5%', right: '-5%', width: '40%', height: '40%',
-          background: 'rgba(255,255,255,0.05)', borderRadius: '50%'
-        }}></div>
+        {/* Background Image Area */}
+        <div className="absolute md:top-0 right-0 bottom-0 w-full md:w-[75%] h-[45%] md:h-full z-0 opacity-20 md:opacity-100 pointer-events-none">
+          <Image
+            src="/images/lms_coding_gaming_3d_lightblue.png"
+            alt="LMS Coding and Gaming 3D Objects on Light Blue Background"
+            fill
+            style={{ objectFit: 'cover', objectPosition: 'right 90%' }}
+            priority
+          />
 
-        {/* Content */}
-        <div style={{ position: 'relative', zIndex: 10, textAlign: 'center' }}>
-          {/* Mock Illustration */}
-          <div style={{
-            margin: '0 auto 2.5rem auto',
-            width: '320px',
-            height: '240px',
-            background: 'rgba(255,255,255,0.1)',
-            backdropFilter: 'blur(10px)',
-            borderRadius: '24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: '1px solid rgba(255,255,255,0.2)'
-          }}>
-            <span style={{ fontSize: '4rem' }}>🎓</span>
-          </div>
-
-          <h2 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '1rem', lineHeight: 1.2 }}>
-            Learning Management<br />System
-          </h2>
-          <p style={{ fontSize: '1.1rem', opacity: 0.9, maxWidth: '80%', margin: '0 auto' }}>
-            Clevio Coder Camp - Future Skills for Future Leaders
-          </p>
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(45deg, #F7F9FE 0%, #F7F9FE 50%, rgba(247,249,254,0.75) 65%, rgba(247,249,254,0.25) 80%, transparent 95%)' }} />
         </div>
 
-        {/* Responsive CSS Injection */}
-        <style dangerouslySetInnerHTML={{
-          __html: `
-            @media (min-width: 1024px) {
-                div[style*="linear-gradient"] {
-                    display: flex !important;
-                }
-            }
-          `}} />
-      </div>
+        {/* Independent Dashed Line overlapping the background */}
+        <div className="absolute inset-0 z-5 pointer-events-none hidden md:block">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full">
+            <path d="M45,0 C65,35 35,65 55,100" fill="none" stroke="rgba(34, 54, 123, 0.2)" strokeWidth="0.15" strokeDasharray="1.5, 2.5" />
+          </svg>
+        </div>
 
-      {/* Right Side - Login Form */}
-      <div style={{
-        flex: '1',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '2rem',
-        background: '#ffffff'
-      }}>
-        <LoginForm />
+        {/* Main Content Area overlapping everything */}
+        <div className="relative w-full h-full flex flex-col md:flex-row z-10 overflow-y-auto md:overflow-hidden">
+
+          {/* Left Side Container for Form */}
+          <div className="flex-1 w-full md:max-w-[55%] relative flex flex-col p-6 md:p-12 lg:p-16 z-10 bg-transparent">
+
+            {/* Header / Logos */}
+            <div className="flex flex-row items-center mb-8 md:mb-16">
+              <div className="flex items-center gap-3 mr-auto">
+                <Image src="/logo/innovator-camp-logo-dark.png" alt="Innovator Camp" width={160} height={44} className="object-contain" />
+              </div>
+              <div className="flex items-center gap-12 pr-24">
+                <span className="cursor-pointer text-sm text-slate-500 font-semibold hover:text-slate-800 transition-colors hidden md:block">{isEng ? 'Main Website' : 'Website Utama'}</span>
+
+                {/* Language Toggle */}
+                <div className="flex items-center bg-slate-200/60 rounded-full p-1 border border-slate-200 transition-colors">
+                  <Link href="?lang=id" scroll={false} replace className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${!isEng ? 'bg-white text-slate-800 shadow-sm pointer-events-none' : 'text-slate-500 hover:text-slate-700'}`}>
+                    IND
+                  </Link>
+                  <Link href="?lang=en" scroll={false} replace className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${isEng ? 'bg-white text-slate-800 shadow-sm pointer-events-none' : 'text-slate-500 hover:text-slate-700'}`}>
+                    ENG
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {/* Login Form Container */}
+            <div className="flex-1 flex flex-col justify-start pt-4 w-full md:max-w-md mx-auto md:mx-0">
+              <LoginForm lang={lang} />
+            </div>
+          </div>
+
+          {/* Right Side Empty Area to show image on desktop */}
+          <div className="hidden md:block flex-[0.8] relative pointer-events-none">
+          </div>
+
+        </div>
       </div>
     </div>
   );

@@ -951,13 +951,14 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
       const lessonToSessionMap = buildLessonToSessionMap(lessonMap, sessions);
       const mappedEntries = buildMappedSessionEntries(blocks, sessions, lessonMap);
       const runtimeBlocks = buildRuntimeBlocks(blocks, mappedEntries, now);
-      const runtimeBlockById = new Map(runtimeBlocks.map((block) => [block.id, block]));
       const journey = klass.level_id ? await coderProgressDao.getCoderJourney(coderId, klass.level_id) : [];
       const journeyStatusMap = new Map(journey.map((row) => [row.block_id, row.status]));
 
       const enrollmentDate = enrollment ? new Date(enrollment.enrolled_at) : new Date(0); // Default to epoch if no date (shouldn't happen)
       const entryBlock = enrollment ? findEntryBlockBySchedule(runtimeBlocks, enrollmentDate) : null;
       const activeBlock =
+        blocks.find((block) => block.status === 'CURRENT') ??
+        blocks.find((block) => block.status === 'UPCOMING') ??
         runtimeBlocks.find((block) => block.runtimeStatus === 'CURRENT') ??
         runtimeBlocks.find((block) => block.runtimeStatus === 'UPCOMING') ??
         null;
@@ -967,10 +968,15 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
           const lessons = await classLessonsDao.listLessonsByClassBlock(block.id);
 
           const lessonsSorted = [...lessons].sort((a, b) => a.order_index - b.order_index);
+          const classLessonToSessionMap = buildClassLessonSessionMap(
+            lessonToSessionMap,
+            lessonsSorted,
+            sessions,
+          );
 
           const accessibleLessons = lessonsSorted
             .map((lesson) => {
-              const sessionMapped = lessonToSessionMap.get(lesson.id) || null;
+              const sessionMapped = classLessonToSessionMap.get(lesson.id) || null;
               const isCompletedBlock = hasCompletedBlockAccess(journeyStatusMap, block.block_id);
               const isArchived = sessionMapped ? grantedSessionIds.has(sessionMapped.id) : false;
               const isCatchUpInEntryBlock = Boolean(
@@ -1013,7 +1019,7 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
           return {
             id: block.id,
             name: block.block_name ?? 'Block',
-            status: runtimeBlockById.get(block.id)?.runtimeStatus ?? block.status,
+            status: block.status,
             startDate: block.start_date,
             endDate: block.end_date,
             lessons: accessibleLessons,

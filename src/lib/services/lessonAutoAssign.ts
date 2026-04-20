@@ -188,8 +188,7 @@ function buildLessonQueue(
 ): ClassLessonRecord[] {
   return blocks
     .slice()
-    // Changed sort logic to use DATE instead of ORDER INDEX
-    .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())
+    .sort(compareBlocksByScheduleOrder)
     .flatMap((block) => {
       const lessons = lessonsByBlock.get(block.id) ?? [];
       return lessons.slice().sort((a, b) => a.order_index - b.order_index);
@@ -427,11 +426,9 @@ function computeNextBlockStartDate(blocks: ClassBlockRow[], klass: ClassRecord):
   if (blocks.length === 0) {
     return klass.start_date;
   }
-  // Sort chronologically (by start_date) to find the last block in time,
-  // not by curriculum order_index which may differ for mid-curriculum classes.
   const sorted = blocks
     .slice()
-    .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
+    .sort(compareBlocksByScheduleOrder);
   const last = sorted[sorted.length - 1];
   const base = last.end_date ?? last.start_date ?? klass.start_date;
   const baseDate = base ? new Date(base) : new Date(klass.start_date);
@@ -450,11 +447,9 @@ async function syncBlockStatuses(
   const sessionMap = new Map(sessions.map((session) => [session.id, session]));
   const now = Date.now();
 
-  // Update: Sort by start_date to respect the class schedule (e.g. starting at Block 3)
   const sortedBlocks = blocks
     .slice()
-    // Changed sort logic to use DATE instead of ORDER INDEX
-    .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
+    .sort(compareBlocksByScheduleOrder);
 
 
   const blockStates = sortedBlocks.map((block) => {
@@ -546,6 +541,20 @@ export async function syncBlockStatusesForClass(classId: string): Promise<void> 
 
 function formatDateOnly(date: Date): string {
   return date.toISOString().slice(0, 10);
+}
+
+function compareBlocksByScheduleOrder(a: ClassBlockRow, b: ClassBlockRow): number {
+  const createdAtDiff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+  if (createdAtDiff !== 0) {
+    return createdAtDiff;
+  }
+
+  const startDateDiff = new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
+  if (startDateDiff !== 0) {
+    return startDateDiff;
+  }
+
+  return a.id.localeCompare(b.id);
 }
 
 function resolveBlockRuntimeDates(

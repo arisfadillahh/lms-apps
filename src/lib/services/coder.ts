@@ -99,6 +99,7 @@ export type CoderStoredLessonOverview = {
 type LessonSessionMap = Map<string, Awaited<ReturnType<typeof sessionsDao.listSessionsByClass>>[number]>;
 type WeeklySession = Awaited<ReturnType<typeof sessionsDao.listSessionsByClass>>[number];
 type WeeklyBlock = Awaited<ReturnType<typeof classesDao.getClassBlocks>>[number];
+type ClassLesson = Awaited<ReturnType<typeof classLessonsDao.listLessonsByClassBlock>>[number];
 type LessonSlotRecord = Awaited<ReturnType<typeof computeLessonSchedule>> extends Map<string, infer TValue>
   ? TValue
   : never;
@@ -135,6 +136,28 @@ function buildLessonToSessionMap(
   }
 
   return lessonToSessionMap;
+}
+
+function buildClassLessonSessionMap(
+  lessonToSessionMap: LessonSessionMap,
+  classLessons: ClassLesson[],
+  sessions: Awaited<ReturnType<typeof sessionsDao.listSessionsByClass>>,
+): LessonSessionMap {
+  const sessionMapDb = new Map(sessions.map((session) => [session.id, session]));
+  const result = new Map(lessonToSessionMap);
+
+  for (const lesson of classLessons) {
+    if (!lesson.session_id) {
+      continue;
+    }
+
+    const matchedSession = sessionMapDb.get(lesson.session_id);
+    if (matchedSession) {
+      result.set(lesson.id, matchedSession);
+    }
+  }
+
+  return result;
 }
 
 type PersonalJourneyStatus = Awaited<ReturnType<typeof coderProgressDao.getCoderJourney>>[number]['status'];
@@ -529,12 +552,12 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
 
       const totalBlocks = blocks.length;
       const currentBlock =
-        currentScheduledBlock ??
         blocks.find((block) => block.status === 'CURRENT') ??
+        currentScheduledBlock ??
         blocks.find((block) => block.status === 'UPCOMING' && new Date(block.start_date) <= nowProgress && new Date(block.end_date) >= nowProgress);
       const upcomingBlock =
-        upcomingScheduledBlock ??
-        blocks.find((block) => block.status === 'UPCOMING' && new Date(block.start_date) > nowProgress);
+        blocks.find((block) => block.status === 'UPCOMING' && new Date(block.start_date) > nowProgress) ??
+        upcomingScheduledBlock;
 
       // Sort blocks by journey_order if available, else standard order
       const journeyOrderedBlocks = [...blocks].sort((a, b) => {
@@ -599,6 +622,8 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
       let upNext: CoderClassProgress['upNext'] = null;
 
       let currentOrUpcoming =
+        currentBlock ??
+        upcomingBlock ??
         currentScheduledBlock ??
         upcomingScheduledBlock ??
         sortedBlocks.find((block) => block.status === 'CURRENT') ??
@@ -614,7 +639,11 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
         const classLessons = await classLessonsDao.listLessonsByClassBlock(currentOrUpcoming.id);
         const classLessonsSorted = [...classLessons].sort((a, b) => a.order_index - b.order_index);
 
-        const lessonToSessionMap = buildLessonToSessionMap(lessonMap, sessions);
+        const lessonToSessionMap = buildClassLessonSessionMap(
+          buildLessonToSessionMap(lessonMap, sessions),
+          classLessonsSorted,
+          sessions,
+        );
 
         let hasMarkedNext = false;
         const allLessonsList = classLessonsSorted.map((lesson, index) => {
@@ -671,7 +700,7 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
         upNext = {
           blockId: currentOrUpcoming.block_id ?? currentOrUpcoming.id,
           name: currentOrUpcoming.block_name ?? 'Block',
-          status: (runtimeCurrentBlock?.runtimeStatus ?? currentOrUpcoming.status) as 'UPCOMING' | 'CURRENT' | 'COMPLETED',
+          status: currentOrUpcoming.status as 'UPCOMING' | 'CURRENT' | 'COMPLETED',
           startDate: currentBlockDates.startDate,
           endDate: currentBlockDates.endDate,
           estimatedSessions: (await lessonTemplatesDao.listLessonsByBlock(currentOrUpcoming.block_id))
@@ -697,7 +726,11 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
         const classLessons = await classLessonsDao.listLessonsByClassBlock(wrapAround.id);
         const classLessonsSorted = [...classLessons].sort((a, b) => a.order_index - b.order_index);
 
-        const lessonToSessionMap = buildLessonToSessionMap(lessonMap, sessions);
+        const lessonToSessionMap = buildClassLessonSessionMap(
+          buildLessonToSessionMap(lessonMap, sessions),
+          classLessonsSorted,
+          sessions,
+        );
 
         const allLessonsList = classLessonsSorted.map((lesson, index) => {
           const sessionForLesson = lessonToSessionMap.get(lesson.id) || null;

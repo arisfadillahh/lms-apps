@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { revalidatePath } from 'next/cache';
 
 import { getSessionOrThrow } from '@/lib/auth';
-import { classesDao, sessionsDao } from '@/lib/dao';
+import { classLessonsDao, classesDao, sessionsDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
 
 const updateStatusSchema = z.object({
@@ -56,6 +57,33 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     await sessionsDao.updateSessionStatus(sessionId, parsed.data.status);
+
+    if (parsed.data.status === 'COMPLETED') {
+      const { coderSessionAccessDao } = await import('@/lib/dao');
+      await coderSessionAccessDao.grantSessionAccessForCompletedSession(sessionId);
+      const { ensureFutureSessions } = await import('@/lib/dao/sessionsDao');
+      await ensureFutureSessions(sessionRecord.class_id);
+    }
+
+    if (parsed.data.status === 'CANCELLED') {
+      await classLessonsDao.unassignLessonsFromSessions([sessionId]);
+    }
+
+    const { autoAssignLessonsForClass, syncBlockStatusesForClass } = await import('@/lib/services/lessonAutoAssign');
+    const autoAssignMode =
+      parsed.data.status === 'CANCELLED' || sessionRecord.status === 'CANCELLED'
+        ? 'rebuild_future'
+        : 'preserve';
+    await autoAssignLessonsForClass(sessionRecord.class_id, { mode: autoAssignMode });
+    await syncBlockStatusesForClass(sessionRecord.class_id);
+
+    if (parsed.data.status === 'COMPLETED') {
+      const { generateDraftReportsForClasses } = await import('@/lib/services/aiReports');
+      await generateDraftReportsForClasses([sessionRecord.class_id]);
+    }
+
+    revalidatePath('/coach/classes/[id]', 'page');
+    revalidatePath('/coach/classes');
 
     return NextResponse.json({ success: true });
   } catch (error) {

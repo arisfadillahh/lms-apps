@@ -57,7 +57,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
   let lessonsAssigned = 0;
   try {
-    const result = await autoAssignLessonsForClass(classIdParam);
+    const result = await autoAssignLessonsForClass(classIdParam, { mode: 'rebuild_future' });
     lessonsAssigned = result.assigned;
   } catch (error) {
     console.error('[sessions/generate] Failed to auto-assign lessons to sessions', error);

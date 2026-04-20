@@ -13,6 +13,17 @@ export type ClassLessonWithTemplate = ClassLessonRecord & {
   template_estimated_meeting_count: number | null;
 };
 
+export function buildClassLessonOrderIndex(templateOrderIndex: number, partNumber = 1): number {
+  return (templateOrderIndex * 1000) + partNumber;
+}
+
+export function buildClassLessonTitle(title: string, totalParts: number, partNumber: number): string {
+  if (totalParts > 1) {
+    return `${title} (Part ${partNumber})`;
+  }
+  return title;
+}
+
 export async function listLessonsByClassBlock(classBlockId: string): Promise<ClassLessonWithTemplate[]> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
@@ -160,6 +171,22 @@ export async function clearLessonSession(classLessonId: string): Promise<void> {
     throw new Error(`Failed to clear session from lesson: ${error.message}`);
   }
 }
+
+export async function updateClassLesson(
+  lessonId: string,
+  updates: TablesUpdate<'class_lessons'>,
+): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from('class_lessons')
+    .update(updates)
+    .eq('id', lessonId);
+
+  if (error) {
+    throw new Error(`Failed to update class lesson: ${error.message}`);
+  }
+}
+
 export async function updateLessonExample(lessonId: string, url: string | null, storagePath: string | null): Promise<void> {
   const supabase = getSupabaseAdmin();
   const payload: TablesUpdate<'class_lessons'> = {

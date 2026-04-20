@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { getSessionOrThrow } from '@/lib/auth';
 import { assertRole } from '@/lib/roles';
 import { classLessonsDao, classesDao, lessonTemplatesDao } from '@/lib/dao';
+import { buildClassLessonOrderIndex, buildClassLessonTitle } from '@/lib/dao/classLessonsDao';
 import { autoAssignLessonsForClass } from '@/lib/services/lessonAutoAssign';
 
 const bodySchema = z.object({
@@ -66,29 +67,34 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: 'Lesson already exists in this class block' }, { status: 409 });
   }
 
-  if (existingLessons.some((lesson) => lesson.order_index === template.order_index)) {
+  const partCount = Math.max(1, template.estimated_meeting_count ?? 1);
+  const requestedOrderIndexes = Array.from(
+    { length: partCount },
+    (_, index) => buildClassLessonOrderIndex(template.order_index, index + 1),
+  );
+  if (existingLessons.some((lesson) => requestedOrderIndexes.includes(lesson.order_index))) {
     return NextResponse.json(
       { error: 'Another lesson already uses this order index in the class block' },
       { status: 409 },
     );
   }
 
-  const created = await classLessonsDao.createClassLessons([
-    {
+  const created = await classLessonsDao.createClassLessons(
+    Array.from({ length: partCount }, (_, index) => ({
       class_block_id: classBlockId,
       lesson_template_id: template.id,
-      title: template.title,
+      title: buildClassLessonTitle(template.title, partCount, index + 1),
       summary: template.summary ?? null,
-      order_index: template.order_index,
+      order_index: buildClassLessonOrderIndex(template.order_index, index + 1),
       make_up_instructions: template.make_up_instructions ?? null,
       slide_url: template.slide_url ?? null,
       coach_example_url: template.example_url ?? null,
       coach_example_storage_path: template.example_storage_path ?? null,
-    },
-  ]);
+    })),
+  );
 
   try {
-    await autoAssignLessonsForClass(classId);
+    await autoAssignLessonsForClass(classId, { mode: 'rebuild_future' });
   } catch (error) {
     console.error('[class-block-lessons] Failed to auto-assign lessons after adding lesson', error);
   }

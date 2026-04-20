@@ -5,8 +5,17 @@
 import OpenAI from 'openai';
 
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
-import { reportsDao, classesDao } from '@/lib/dao';
+import { reportsDao, sessionsDao } from '@/lib/dao';
 import { computeLessonSchedule } from '@/lib/services/lessonScheduler';
+
+type ClassBlockWithRelations = {
+  id: string;
+  class_id: string;
+  block_id: string;
+  start_date: string;
+  classes: { id: string; name: string; level_id: string | null } | { id: string; name: string; level_id: string | null }[] | null;
+  blocks: { id: string; name: string | null } | { id: string; name: string | null }[] | null;
+};
 
 /**
  * AI Description Generator using openrouter
@@ -18,6 +27,13 @@ async function generateBlockReportDescriptions(
   lessonTitlesText: string,
   criteriaInput: { criteriaId: string, criteriaName: string, score: number }[]
 ): Promise<{ criteriaId: string, description: string }[]> {
+  type ParsedAiResponse = {
+    descriptions?: Array<{
+      criteriaId?: string;
+      description?: string;
+    }>;
+  };
+
   // Initialize OpenAI client lazily to avoid build errors if env var is missing
   const openai = new OpenAI({
     baseURL: 'https://openrouter.ai/api/v1',
@@ -63,12 +79,12 @@ Keluarkan HANYA output berformat JSON yang ketat (tanpa markdown), dengan strukt
     });
 
     const content = response.choices[0]?.message?.content?.trim() || '{}';
-    const parsed = JSON.parse(content);
+    const parsed = JSON.parse(content) as ParsedAiResponse;
     const aiDescriptions = parsed.descriptions || [];
 
     // Map safely back to the known good criteria IDs to prevent AI hallucinating invalid UUIDs
     return criteriaInput.map((c, index) => {
-      const matchedDesc = aiDescriptions.find((d: any) => d.criteriaId === c.criteriaId) || aiDescriptions[index];
+      const matchedDesc = aiDescriptions.find((d) => d.criteriaId === c.criteriaId) || aiDescriptions[index];
       return {
         criteriaId: c.criteriaId,
         description: matchedDesc?.description || "Gagal men-generate deskripsi secara otomatis."
@@ -87,6 +103,161 @@ function calculateGrade(average: number): string {
   return 'D';
 }
 
+async function generateDraftReportsFromClassBlocks(
+  classBlocks: ClassBlockWithRelations[],
+  logPrefix: string,
+): Promise<number> {
+  const supabase = getSupabaseAdmin();
+  const now = new Date();
+  const allCriteria = await reportsDao.getEvaluationCriteria();
+  const criteriaMap = new Map(allCriteria.map(c => [c.id, c.name]));
+
+  let generatedCount = 0;
+
+  for (const cb of classBlocks) {
+    const klass = Array.isArray(cb.classes) ? cb.classes[0] : cb.classes;
+    const block = Array.isArray(cb.blocks) ? cb.blocks[0] : cb.blocks;
+
+    if (!klass || !block) continue;
+
+    const classId = klass.id;
+    const blockId = block.id;
+
+    const [lessonMap, classSessions, classLessons] = await Promise.all([
+      computeLessonSchedule(classId, klass.level_id),
+      sessionsDao.listSessionsByClass(classId),
+      supabase
+        .from('class_lessons')
+        .select('lesson:lesson_templates(title)')
+        .eq('class_id', classId)
+        .eq('block_id', blockId),
+    ]);
+
+    const blockSessionIds: string[] = [];
+    const classSessionMap = new Map(classSessions.map(session => [session.id, session]));
+
+    lessonMap.forEach((slot, sessionId) => {
+      if (slot.block.id === blockId) {
+        blockSessionIds.push(sessionId);
+      }
+    });
+
+    if (blockSessionIds.length === 0) {
+      console.log(`[${logPrefix}] Block ${block.name} (ID: ${blockId}) skipped: No sessions mapped to it.`);
+      continue;
+    }
+
+    const blockSessions = blockSessionIds
+      .map(sessionId => classSessionMap.get(sessionId))
+      .filter((session): session is (typeof classSessions)[number] => session !== undefined && session.status !== 'CANCELLED');
+
+    const lastBlockSession = blockSessions
+      .sort((a, b) => new Date(b.date_time).getTime() - new Date(a.date_time).getTime())[0];
+
+    if (!lastBlockSession) {
+      console.log(`[${logPrefix}] Block ${block.name} (ID: ${blockId}) skipped: No active sessions found.`);
+      continue;
+    }
+
+    if (new Date(lastBlockSession.date_time).getTime() > now.getTime()) {
+      console.log(
+        `[${logPrefix}] Block ${block.name} (ID: ${blockId}) skipped: Last session ${lastBlockSession.id} has not passed yet (${lastBlockSession.date_time}).`,
+      );
+      continue;
+    }
+
+    const { data: evaluations } = await supabase
+      .from('lesson_evaluations')
+      .select('*')
+      .in('session_id', blockSessionIds);
+
+    if (!evaluations || evaluations.length === 0) {
+      console.log(`[${logPrefix}] Block ${block.name} (ID: ${blockId}) skipped: No evaluations exist yet.`);
+      continue;
+    }
+
+    const coderScores: Record<string, Record<string, number[]>> = {};
+
+    for (const ev of evaluations) {
+      if (!coderScores[ev.coder_id]) coderScores[ev.coder_id] = {};
+      if (!coderScores[ev.coder_id][ev.criteria_id]) coderScores[ev.coder_id][ev.criteria_id] = [];
+      coderScores[ev.coder_id][ev.criteria_id].push(ev.score);
+    }
+
+    let lessonTitlesText = 'Materi Umum';
+    if (classLessons.data && classLessons.data.length > 0) {
+      const titles = classLessons.data
+        .map(cl => Array.isArray(cl.lesson) ? cl.lesson[0]?.title : cl.lesson?.title)
+        .filter(t => t);
+      if (titles.length > 0) {
+        lessonTitlesText = titles.join(', ');
+      }
+    }
+
+    for (const coderId of Object.keys(coderScores)) {
+      const existingReport = await reportsDao.getBlockReport(classId, blockId, coderId);
+      if (existingReport && existingReport.is_ai_generated) {
+        console.log(`[${logPrefix}] Skipping Coder ${coderId} in block ${blockId} because AI report already generated.`);
+        continue;
+      }
+
+      if (existingReport && existingReport.status === 'PUBLISHED') {
+        console.log(`[${logPrefix}] Skipping Coder ${coderId} in block ${blockId} because the report is already manually PUBLISHED.`);
+        continue;
+      }
+
+      let totalSum = 0;
+      let criteriaCount = 0;
+      const criteriaInput: { criteriaId: string, criteriaName: string, score: number }[] = [];
+
+      for (const [criteriaId, scores] of Object.entries(coderScores[coderId])) {
+        const criteriaName = criteriaMap.get(criteriaId) || 'Kriteria Umum';
+        const avgCriteriaScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+
+        totalSum += avgCriteriaScore;
+        criteriaCount++;
+        criteriaInput.push({ criteriaId, criteriaName, score: avgCriteriaScore });
+      }
+
+      const globalAverage = criteriaCount > 0 ? (totalSum / criteriaCount) : 0;
+      const finalGrade = calculateGrade(globalAverage);
+
+      const { data: coderUser } = await supabase.from('users').select('full_name').eq('id', coderId).single();
+      const coderName = coderUser?.full_name || 'Siswa';
+
+      const aiDescriptions = await generateBlockReportDescriptions(
+        coderName,
+        klass.name,
+        block.name || 'Coding',
+        lessonTitlesText,
+        criteriaInput,
+      );
+
+      const newReport = await reportsDao.upsertBlockReport({
+        classId,
+        blockId,
+        coderId,
+        status: 'DRAFT',
+        averageScore: Number(globalAverage.toFixed(2)),
+        grade: finalGrade,
+        isAiGenerated: true,
+      });
+
+      const descPayload = aiDescriptions.map(d => ({
+        reportId: newReport.id,
+        criteriaId: d.criteriaId,
+        score: criteriaInput.find(c => c.criteriaId === d.criteriaId)?.score || 0,
+        description: d.description,
+      }));
+      await reportsDao.upsertBlockReportDescriptions(descPayload);
+
+      generatedCount++;
+    }
+  }
+
+  return generatedCount;
+}
+
 /**
  * Cron Job Logic to scan and generate draft block reports.
  * Finds blocks that have completed all their scheduled sessions, 
@@ -95,10 +266,6 @@ function calculateGrade(average: number): string {
  */
 export async function generateDraftReportsTask() {
   const supabase = getSupabaseAdmin();
-
-  // 1. Get all evaluation criteria (to map id -> name)
-  const allCriteria = await reportsDao.getEvaluationCriteria();
-  const criteriaMap = new Map(allCriteria.map(c => [c.id, c.name]));
 
   // Actually, a block is completed if its endDate has passed or its status is COMPLETED.
   // BUT for testing/realistic scenarios, coaches often evaluate the final lesson while the block is still ACTIVE.
@@ -117,148 +284,36 @@ export async function generateDraftReportsTask() {
 
   console.log(`[AI Cron] Found ${classBlocks?.length || 0} class_blocks mapping.`);
   
-  if (!classBlocks || classBlocks.length === 0) return { success: true, message: 'No blocks found to process.' };
+  if (!classBlocks || classBlocks.length === 0) return { success: true, count: 0 };
 
-  let generatedCount = 0;
+  const generatedCount = await generateDraftReportsFromClassBlocks(classBlocks as ClassBlockWithRelations[], 'AI Cron');
 
-  for (const cb of classBlocks) {
-    const klass = Array.isArray(cb.classes) ? cb.classes[0] : cb.classes;
-    const block = Array.isArray(cb.blocks) ? cb.blocks[0] : cb.blocks;
-    
-    if (!klass || !block) continue;
+  return { success: true, count: generatedCount };
+}
 
-    const classId = klass.id;
-    const blockId = block.id;
-
-    // Get all sessions for this block
-    const lessonMap = await computeLessonSchedule(classId, klass.level_id);
-    const blockSessionIds: string[] = [];
-    
-    // We only care about sessions mapped to this block
-    lessonMap.forEach((slot, sessionId) => {
-      if (slot.block.id === blockId) {
-        blockSessionIds.push(sessionId);
-      }
-    });
-
-    if (blockSessionIds.length === 0) {
-      console.log(`[AI Cron] Block ${block.name} (ID: ${blockId}) skipped: No sessions mapped to it.`);
-      continue;
-    }
-
-    // Get all lesson_evaluations for these sessions
-    const { data: evaluations } = await supabase
-      .from('lesson_evaluations')
-      .select('*')
-      .in('session_id', blockSessionIds);
-
-    if (!evaluations || evaluations.length === 0) {
-      console.log(`[AI Cron] Block ${block.name} (ID: ${blockId}) skipped: No evaluations exist yet.`);
-      continue;
-    }
-
-    console.log(`[AI Cron] Block ${block.name} has ${evaluations.length} evaluations! Grouping for coders...`);
-
-    // Group evaluations by coderId -> criteriaId -> array of scores
-    const coderScores: Record<string, Record<string, number[]>> = {};
-
-    for (const ev of evaluations) {
-      if (!coderScores[ev.coder_id]) coderScores[ev.coder_id] = {};
-      if (!coderScores[ev.coder_id][ev.criteria_id]) coderScores[ev.coder_id][ev.criteria_id] = [];
-      coderScores[ev.coder_id][ev.criteria_id].push(ev.score);
-    }
-
-    // Now, for each coder, calculate average scores and generate the block report
-    for (const coderId of Object.keys(coderScores)) {
-      // Check if a block report already exists for this block & coder
-      const existingReport = await reportsDao.getBlockReport(classId, blockId, coderId);
-      
-      // Prevent double generation. If it exists, skip. 
-      // is_ai_generated ensures we only auto-generate once.
-      if (existingReport && existingReport.is_ai_generated) {
-        console.log(`[AI Cron] Skipping Coder ${coderId} in block ${blockId} because AI report already generated.`);
-        continue;
-      }
-      
-      // If it exists but is NOT AI generated, maybe coach manually created it. We shouldn't overwrite unless empty.
-      // We will skip if the report is already PUBLISHED manually.
-      if (existingReport && existingReport.status === 'PUBLISHED') {
-         console.log(`[AI Cron] Skipping Coder ${coderId} in block ${blockId} because the report is already manually PUBLISHED.`);
-         continue;
-      }
-
-      console.log(`[AI Cron] Proceeding to generate AI Report for Coder ${coderId} in Block ${blockId}...`);
-
-      // Calculate averages and global average
-      let totalSum = 0;
-      let criteriaCount = 0;
-      const criteriaInput: { criteriaId: string, criteriaName: string, score: number }[] = [];
-
-      for (const [criteriaId, scores] of Object.entries(coderScores[coderId])) {
-        const criteriaName = criteriaMap.get(criteriaId) || 'Kriteria Umum';
-        const avgCriteriaScore = scores.reduce((a, b) => a + b, 0) / scores.length;
-        
-        totalSum += avgCriteriaScore;
-        criteriaCount++;
-        criteriaInput.push({ criteriaId, criteriaName, score: avgCriteriaScore });
-      }
-
-      const globalAverage = criteriaCount > 0 ? (totalSum / criteriaCount) : 0;
-      const finalGrade = calculateGrade(globalAverage);
-
-      // Fetch Coder name for context
-      const { data: coderUser } = await supabase.from('users').select('full_name').eq('id', coderId).single();
-      const coderName = coderUser?.full_name || 'Siswa';
-
-      // 2A. Get lesson titles for richer AI context
-      const { data: classLessons } = await supabase
-        .from('class_lessons')
-        .select('lesson:lesson_templates(title)')
-        .eq('class_id', classId)
-        .eq('block_id', blockId);
-      
-      let lessonTitlesText = 'Materi Umum';
-      if (classLessons && classLessons.length > 0) {
-        const titles = classLessons
-          .map(cl => Array.isArray(cl.lesson) ? cl.lesson[0]?.title : cl.lesson?.title)
-          .filter(t => t);
-        if (titles.length > 0) {
-          lessonTitlesText = titles.join(', ');
-        }
-      }
-
-      // 3. Call OpenRouter AI
-      const aiDescriptions = await generateBlockReportDescriptions(
-        coderName, 
-        klass.name, 
-        block.name || 'Coding', 
-        lessonTitlesText,
-        criteriaInput
-      );
-
-      // 4. Save to Database
-      const newReport = await reportsDao.upsertBlockReport({
-        classId,
-        blockId,
-        coderId,
-        status: 'DRAFT',
-        averageScore: Number(globalAverage.toFixed(2)),
-        grade: finalGrade,
-        isAiGenerated: true // Mark as auto-generated so we don't recreate it
-      });
-
-      // 5. Save the generated criteria descriptions
-      const descPayload = aiDescriptions.map(d => ({
-         reportId: newReport.id,
-         criteriaId: d.criteriaId,
-         score: criteriaInput.find(c => c.criteriaId === d.criteriaId)?.score || 0,
-         description: d.description
-      }));
-      await reportsDao.upsertBlockReportDescriptions(descPayload);
-
-      generatedCount++;
-    }
+export async function generateDraftReportsForClasses(classIds: string[]): Promise<{ success: true; count: number }> {
+  const normalizedClassIds = Array.from(new Set(classIds.filter(Boolean)));
+  if (normalizedClassIds.length === 0) {
+    return { success: true, count: 0 };
   }
+
+  const supabase = getSupabaseAdmin();
+
+  const { data: classBlocks, error: blocksError } = await supabase
+    .from('class_blocks')
+    .select('id, class_id, block_id, start_date, classes!inner(id, name, level_id), blocks!inner(id, name)')
+    .in('class_id', normalizedClassIds)
+    .order('start_date', { ascending: false });
+
+  if (blocksError) {
+    console.error(`[AI Trigger] Error fetching class_blocks:`, blocksError.message);
+  }
+
+  if (!classBlocks || classBlocks.length === 0) {
+    return { success: true, count: 0 };
+  }
+
+  const generatedCount = await generateDraftReportsFromClassBlocks(classBlocks as ClassBlockWithRelations[], 'AI Trigger');
 
   return { success: true, count: generatedCount };
 }

@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { buildClassLessonOrderIndex, buildClassLessonTitle } from '@/lib/dao/classLessonsDao';
 
 /**
  * Re-assigns lessons to valid sessions for a specific class - GLOBAL SCOPE.
@@ -149,7 +150,8 @@ export async function syncClassLessonsStructure(classId: string): Promise<void> 
         // 4. Compare and Fix
         for (const template of templates) {
             const targetCount = Math.max(1, template.estimated_meeting_count || 1);
-            const currentLessons = existingMap.get(template.id) || [];
+            const currentLessons = (existingMap.get(template.id) || []).slice().sort((a, b) => a.order_index - b.order_index);
+            let activeLessons = currentLessons;
 
             // A. Expand if needed
             if (currentLessons.length < targetCount) {
@@ -157,15 +159,13 @@ export async function syncClassLessonsStructure(classId: string): Promise<void> 
                 const newPayloads = [];
                 for (let i = 0; i < needed; i++) {
                     const partNum = currentLessons.length + i + 1;
-                    let title = template.title;
-                    if (targetCount > 1) title = `${template.title} (Part ${partNum})`;
 
                     newPayloads.push({
                         class_block_id: block.id,
                         lesson_template_id: template.id,
-                        title: title,
+                        title: buildClassLessonTitle(template.title, targetCount, partNum),
                         summary: template.summary,
-                        order_index: (template.order_index * 1000) + partNum,
+                        order_index: buildClassLessonOrderIndex(template.order_index, partNum),
                         slide_url: template.slide_url,
                         coach_example_url: template.example_url,
                         coach_example_storage_path: template.example_storage_path,
@@ -179,14 +179,14 @@ export async function syncClassLessonsStructure(classId: string): Promise<void> 
 
             // B. Shrink if needed (Delete extra parts from the end)
             if (currentLessons.length > targetCount) {
-                // Safely sort by order_index to always trim trailing parts
-                const sorted = currentLessons.sort((a, b) => a.order_index - b.order_index);
-                const toDelete = sorted.slice(targetCount);
+                const toDelete = currentLessons.slice(targetCount);
                 const idsToDelete = toDelete.map(l => l.id);
 
                 if (idsToDelete.length > 0) {
                     await supabase.from('class_lessons').delete().in('id', idsToDelete);
                 }
+
+                activeLessons = currentLessons.slice(0, targetCount);
             }
 
             // C. Rename params if duration changed from 1 to >1
@@ -194,25 +194,27 @@ export async function syncClassLessonsStructure(classId: string): Promise<void> 
                 const first = currentLessons[0];
                 if (!first.title.includes('(Part 1)')) {
                     await supabase.from('class_lessons')
-                        .update({ title: `${template.title} (Part 1)` })
+                        .update({ title: buildClassLessonTitle(template.title, targetCount, 1) })
                         .eq('id', first.id);
                 }
             }
 
             // D. Sync Metadata (Order, Title, Summary, Slides) for ALL existing lessons
-            for (let i = 0; i < currentLessons.length; i++) {
-                const lesson = currentLessons[i];
+            for (let i = 0; i < activeLessons.length; i++) {
+                const lesson = activeLessons[i];
                 const partNum = i + 1;
-                const expectedOrder = (template.order_index * 1000) + partNum;
+                const expectedOrder = buildClassLessonOrderIndex(template.order_index, partNum);
 
                 const updates: any = {};
                 // Check and update fields
                 if (lesson.order_index !== expectedOrder) updates.order_index = expectedOrder;
                 if (lesson.summary !== template.summary) updates.summary = template.summary;
+                if (lesson.make_up_instructions !== template.make_up_instructions) updates.make_up_instructions = template.make_up_instructions;
                 if (lesson.slide_url !== template.slide_url) updates.slide_url = template.slide_url;
+                if (lesson.coach_example_url !== template.example_url) updates.coach_example_url = template.example_url;
+                if (lesson.coach_example_storage_path !== template.example_storage_path) updates.coach_example_storage_path = template.example_storage_path;
 
-                let expectedTitle = template.title;
-                if (targetCount > 1) expectedTitle = `${template.title} (Part ${partNum})`;
+                const expectedTitle = buildClassLessonTitle(template.title, targetCount, partNum);
 
                 if (lesson.title !== expectedTitle) updates.title = expectedTitle;
 
@@ -259,8 +261,7 @@ export async function syncClassesForBlockTemplate(blockTemplateId: string): Prom
     // Sync each class (Promise.all might be heavy, iterate for safety)
     for (const classId of classIds) {
         await syncClassLessonsStructure(classId);
-        // Explicitly rebalance after structure sync
-        const { reassignLessonsToSessions } = await import('@/lib/services/lessonRebalancer');
-        await reassignLessonsToSessions(classId);
+        const { autoAssignLessonsForClass } = await import('@/lib/services/lessonAutoAssign');
+        await autoAssignLessonsForClass(classId, { mode: 'rebuild_future' });
     }
 }

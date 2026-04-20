@@ -3,6 +3,7 @@ import { addDays } from 'date-fns';
 import type { TablesRow } from '@/types/supabase';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { classLessonsDao, lessonTemplatesDao, sessionsDao } from '@/lib/dao';
+import { buildClassLessonOrderIndex, buildClassLessonTitle } from '@/lib/dao/classLessonsDao';
 import { createClassBlock, updateClass } from '@/lib/dao/classesDao';
 
 import { DAY_CODE_MAP } from '@/lib/constants/scheduleConstants';
@@ -206,23 +207,16 @@ export async function autoPlanWeeklyClass(classRecord: ClassRow, preferredStartB
         // 5. sessionsDao.ensureFutureSessions() <--- THIS creates the sessions!
       }> = [];
 
-      let orderIndex = 1;
-
       for (const lesson of lessonTemplates) {
         const meetingCount = Math.max(1, lesson.estimated_meeting_count ?? 1);
 
         for (let part = 1; part <= meetingCount; part++) {
-          let title = lesson.title;
-          if (meetingCount > 1) {
-            title = `${lesson.title} (Part ${part})`;
-          }
-
           expandedLessons.push({
             class_block_id: classBlock.id,
             lesson_template_id: lesson.id,
-            title,
+            title: buildClassLessonTitle(lesson.title, meetingCount, part),
             summary: lesson.summary ?? null,
-            order_index: orderIndex++,
+            order_index: buildClassLessonOrderIndex(lesson.order_index, part),
             make_up_instructions: lesson.make_up_instructions ?? null,
             slide_url: lesson.slide_url ?? null,
             coach_example_url: lesson.example_url ?? null,

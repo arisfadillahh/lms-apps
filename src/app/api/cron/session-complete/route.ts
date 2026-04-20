@@ -55,6 +55,9 @@ export async function GET(request: Request) {
                     await syncBlockStatusesForClass(classId);
                     await ensureFutureSessions(classId);
                 }
+
+                const { generateDraftReportsForClasses } = await import('@/lib/services/aiReports');
+                await generateDraftReportsForClasses(uniqueClassIds);
             }
         }
 

@@ -26,7 +26,7 @@ export async function POST(_request: Request, context: RouteContext) {
   }
 
   try {
-    const result = await autoAssignLessonsForClass(classId);
+    const result = await autoAssignLessonsForClass(classId, { mode: 'rebuild_future' });
     return NextResponse.json({ lessonsAssigned: result.assigned });
   } catch (error) {
     console.error('[lessons/auto-assign] Failed to auto-assign lessons', error);

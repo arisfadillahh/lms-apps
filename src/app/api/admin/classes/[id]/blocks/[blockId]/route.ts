@@ -50,7 +50,7 @@ export async function DELETE(request: Request, context: RouteContext) {
   await classesDao.deleteClassBlock(classBlockId);
 
   try {
-    await autoAssignLessonsForClass(classId);
+    await autoAssignLessonsForClass(classId, { mode: 'rebuild_future' });
   } catch (error) {
     console.error('[class-blocks/delete] Failed to auto-assign lessons after deleting block', error);
   }

@@ -7,10 +7,11 @@
 
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import {
+    getWhatsAppSession,
     getInvoiceSettings,
     getUnpaidInvoicesForMonth
 } from '@/lib/dao/invoicesDao';
-import type { Invoice, SendRemindersResponse, WhatsAppStatus } from '@/lib/types/invoice';
+import type { Invoice, SendRemindersResponse, WhatsAppSession, WhatsAppStatus } from '@/lib/types/invoice';
 import makeWASocket, {
     useMultiFileAuthState,
     DisconnectReason,
@@ -227,11 +228,32 @@ export async function getWhatsAppStatus(tryReconnect = false): Promise<WhatsAppS
         await initializeWhatsApp();
     }
 
+    let resolvedConnectedPhone = connectedPhone;
+    let resolvedIsConnected = isConnected;
+    let resolvedLastActivity: string | null = new Date().toISOString();
+
+    if (!resolvedConnectedPhone || !resolvedIsConnected) {
+        try {
+            const persistedSession = await getWhatsAppSession(CLIENT_ID) as WhatsAppSession | null;
+            if (persistedSession) {
+                if (!resolvedIsConnected && persistedSession.is_connected) {
+                    resolvedIsConnected = true;
+                    resolvedConnectedPhone = persistedSession.connected_phone || null;
+                } else if (!resolvedConnectedPhone) {
+                    resolvedConnectedPhone = persistedSession.connected_phone || null;
+                }
+                resolvedLastActivity = persistedSession.last_activity_at || resolvedLastActivity;
+            }
+        } catch (error) {
+            console.warn('[WhatsApp] Failed to read persisted session status:', error);
+        }
+    }
+
     return {
-        isConnected,
-        connectedPhone,
+        isConnected: resolvedIsConnected,
+        connectedPhone: resolvedConnectedPhone,
         qrCode: currentQRCode,
-        lastActivity: new Date().toISOString()
+        lastActivity: resolvedLastActivity
     };
 }
 

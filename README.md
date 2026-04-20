@@ -55,3 +55,24 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Linux Cron Jobs
+
+This app also supports running scheduled jobs from a Linux server `crontab`.
+
+Required environment:
+
+- `CRON_SECRET` must be set on the app server.
+- The cron runner must call the app URL with `Authorization: Bearer <CRON_SECRET>`.
+
+Example `crontab` entries:
+
+```cron
+# Auto-complete past sessions every hour at minute 5
+5 * * * * curl -fsS -H "Authorization: Bearer YOUR_CRON_SECRET" https://your-domain.com/api/cron/session-complete >/dev/null 2>&1
+
+# Daily safety-net report generation at 00:35 server local time
+35 0 * * * curl -fsS -H "Authorization: Bearer YOUR_CRON_SECRET" https://your-domain.com/api/cron/generate-reports >/dev/null 2>&1
+```
+
+If the server timezone is not the intended business timezone, adjust the schedule accordingly.

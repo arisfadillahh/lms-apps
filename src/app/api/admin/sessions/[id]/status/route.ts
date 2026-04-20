@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 
 import { getSessionOrThrow } from '@/lib/auth';
-import { sessionsDao } from '@/lib/dao';
+import { classLessonsDao, sessionsDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
 
 type RouteParams = { id: string };
@@ -44,13 +44,6 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     }
 
     await sessionsDao.updateSessionStatus(sessionId, parsed.data.status);
-    
-    // Auto-rebalance lessons since a session's validity changed (e.g. CANCELLED / Holiday)
-    const { reassignLessonsToSessions } = await import('@/lib/services/lessonRebalancer');
-    await reassignLessonsToSessions(sessionRecord.class_id);
-
-    const { syncBlockStatusesForClass } = await import('@/lib/services/lessonAutoAssign');
-    await syncBlockStatusesForClass(sessionRecord.class_id);
 
     // When a session is COMPLETED, ensure rolling 12-week schedule is maintained
     if (parsed.data.status === 'COMPLETED') {
@@ -58,6 +51,23 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       await coderSessionAccessDao.grantSessionAccessForCompletedSession(sessionId);
       const { ensureFutureSessions } = await import('@/lib/dao/sessionsDao');
       await ensureFutureSessions(sessionRecord.class_id);
+    }
+
+    if (parsed.data.status === 'CANCELLED') {
+      await classLessonsDao.unassignLessonsFromSessions([sessionId]);
+    }
+
+    const { autoAssignLessonsForClass, syncBlockStatusesForClass } = await import('@/lib/services/lessonAutoAssign');
+    const autoAssignMode =
+      parsed.data.status === 'CANCELLED' || sessionRecord.status === 'CANCELLED'
+        ? 'rebuild_future'
+        : 'preserve';
+    await autoAssignLessonsForClass(sessionRecord.class_id, { mode: autoAssignMode });
+    await syncBlockStatusesForClass(sessionRecord.class_id);
+
+    if (parsed.data.status === 'COMPLETED') {
+      const { generateDraftReportsForClasses } = await import('@/lib/services/aiReports');
+      await generateDraftReportsForClasses([sessionRecord.class_id]);
     }
     
     revalidatePath('/admin/classes/[id]', 'page');

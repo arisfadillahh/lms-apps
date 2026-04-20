@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { blocksDao, classLessonsDao, classesDao, lessonTemplatesDao } from '@/lib/dao';
+import { buildClassLessonOrderIndex, buildClassLessonTitle } from '@/lib/dao/classLessonsDao';
 import { assertRole } from '@/lib/roles';
 import { instantiateClassBlockSchema } from '@/lib/validation/admin';
 import { autoAssignLessonsForClass } from '@/lib/services/lessonAutoAssign';
@@ -51,7 +52,10 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   const lessons = await lessonTemplatesDao.listLessonsByBlock(block.id);
-  const sessionSpan = Math.max(lessons.length, 1);
+  const sessionSpan = Math.max(
+    lessons.reduce((total, lesson) => total + Math.max(1, lesson.estimated_meeting_count ?? 1), 0),
+    1,
+  );
   const startDate = new Date(parsed.data.startDate);
   const endDate = new Date(startDate);
   endDate.setDate(endDate.getDate() + (sessionSpan - 1) * 7);
@@ -65,21 +69,24 @@ export async function POST(request: Request, context: RouteContext) {
     status: 'UPCOMING',
   });
   await classLessonsDao.createClassLessons(
-    lessons.map((lesson) => ({
-      class_block_id: classBlock.id,
-      lesson_template_id: lesson.id,
-      title: lesson.title,
-      summary: lesson.summary ?? null,
-      order_index: lesson.order_index,
-      make_up_instructions: lesson.make_up_instructions ?? null,
-      slide_url: lesson.slide_url ?? null,
-      coach_example_url: lesson.example_url ?? null,
-      coach_example_storage_path: lesson.example_storage_path ?? null,
-    })),
+    lessons.flatMap((lesson) => {
+      const partCount = Math.max(1, lesson.estimated_meeting_count ?? 1);
+      return Array.from({ length: partCount }, (_, index) => ({
+        class_block_id: classBlock.id,
+        lesson_template_id: lesson.id,
+        title: buildClassLessonTitle(lesson.title, partCount, index + 1),
+        summary: lesson.summary ?? null,
+        order_index: buildClassLessonOrderIndex(lesson.order_index, index + 1),
+        make_up_instructions: lesson.make_up_instructions ?? null,
+        slide_url: lesson.slide_url ?? null,
+        coach_example_url: lesson.example_url ?? null,
+        coach_example_storage_path: lesson.example_storage_path ?? null,
+      }));
+    }),
   );
 
   try {
-    await autoAssignLessonsForClass(classId);
+    await autoAssignLessonsForClass(classId, { mode: 'rebuild_future' });
   } catch (error) {
     console.error('[class-blocks] Failed to auto-assign lessons to sessions', error);
   }

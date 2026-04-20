@@ -43,7 +43,7 @@ export async function DELETE(request: Request, context: RouteContext) {
 
   if (classBlock) {
     try {
-      await autoAssignLessonsForClass(classBlock.class_id);
+      await autoAssignLessonsForClass(classBlock.class_id, { mode: 'rebuild_future' });
     } catch (error) {
       console.error('[class-lessons/delete] Failed to auto-assign lessons after deletion', error);
     }

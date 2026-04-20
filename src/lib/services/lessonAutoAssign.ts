@@ -3,6 +3,7 @@
 import { addDays } from 'date-fns';
 
 import { blocksDao, classLessonsDao, classesDao, coderProgressDao, lessonTemplatesDao, sessionsDao } from '@/lib/dao';
+import { buildClassLessonOrderIndex, buildClassLessonTitle } from '@/lib/dao/classLessonsDao';
 import type { ClassLessonRecord } from '@/lib/dao/classLessonsDao';
 import type { ClassRecord } from '@/lib/dao/classesDao';
 import type { LessonTemplateRecord } from '@/lib/dao/lessonTemplatesDao';
@@ -10,12 +11,19 @@ import type { SessionRecord } from '@/lib/dao/sessionsDao';
 
 type ClassBlockRow = Awaited<ReturnType<typeof classesDao.getClassBlocks>>[number];
 type BlockTemplate = Awaited<ReturnType<typeof blocksDao.listBlocksByLevel>>[number];
+type AutoAssignOptions = {
+  mode?: 'preserve' | 'rebuild_future';
+};
 
-export async function autoAssignLessonsForClass(classId: string): Promise<{ assigned: number }> {
+export async function autoAssignLessonsForClass(
+  classId: string,
+  options: AutoAssignOptions = {},
+): Promise<{ assigned: number }> {
   const klass = await classesDao.getClassById(classId);
   if (!klass || klass.type !== 'WEEKLY' || !klass.level_id) {
     return { assigned: 0 };
   }
+  const mode = options.mode ?? 'preserve';
 
   const [allSessions, blockTemplates] = await Promise.all([
     sessionsDao.listSessionsByClass(classId),
@@ -30,14 +38,16 @@ export async function autoAssignLessonsForClass(classId: string): Promise<{ assi
   // This ensures when a session is cancelled (holiday), lessons shift to the next available session
   const sessions = allSessions.filter(s => s.status !== 'CANCELLED');
 
-  // FORCE RESCHEDULE: Unassign all FUTURE scheduled sessions to ensure strict curriculum order
-  const now = new Date();
-  const futureSessions = sessions.filter(
-    (s) => new Date(s.date_time) > now && s.status === 'SCHEDULED'
-  );
+  if (mode === 'rebuild_future') {
+    // Explicit rebuild: free only future scheduled sessions so completed history stays intact.
+    const now = new Date();
+    const futureSessions = sessions.filter(
+      (s) => new Date(s.date_time) > now && s.status === 'SCHEDULED'
+    );
 
-  if (futureSessions.length > 0) {
-    await classLessonsDao.unassignLessonsFromSessions(futureSessions.map(s => s.id));
+    if (futureSessions.length > 0) {
+      await classLessonsDao.unassignLessonsFromSessions(futureSessions.map(s => s.id));
+    }
   }
 
   const { blocks, lessonsByBlock, unassignedSessions } = await ensureLessonCapacity(
@@ -53,7 +63,7 @@ export async function autoAssignLessonsForClass(classId: string): Promise<{ assi
   }
 
   const lessonQueue = buildLessonQueue(blocks, lessonsByBlock);
-  console.log(`Debug Queue: ${lessonQueue.length} lessons. Unassigned Sessions: ${unassignedSessions.length}`);
+  console.log(`[AutoAssign:${mode}] Queue=${lessonQueue.length}, UnassignedSessions=${unassignedSessions.length}`);
 
   let assigned = 0;
 
@@ -63,7 +73,7 @@ export async function autoAssignLessonsForClass(classId: string): Promise<{ assi
       console.log("Queue exhausted.");
       break;
     }
-    console.log(`Assigning lesson ${lesson.title} to session ${session.id}`);
+    console.log(`[AutoAssign:${mode}] Assigning lesson ${lesson.title} to session ${session.id}`);
     await classLessonsDao.assignLessonToSession(lesson.id, session.id, session.date_time);
     lesson.session_id = session.id;
     lesson.unlock_at = session.date_time;
@@ -214,13 +224,17 @@ async function instantiateBlockFromTemplate({
   fallbackStartDate,
 }: InstantiateInput): Promise<void> {
   const templateLessons = await getLessonTemplates(template.id, lessonTemplateCache);
+  const totalSessionCount = templateLessons.reduce(
+    (sum, lesson) => sum + Math.max(1, lesson.estimated_meeting_count || 1),
+    0,
+  );
   const firstSession =
     targetSessions[desiredSessionIndex] ??
     targetSessions[targetSessions.length - 1] ??
     allSessions[allSessions.length - 1] ??
     null;
   const lastSession =
-    targetSessions[Math.min(desiredSessionIndex + templateLessons.length - 1, targetSessions.length - 1)] ??
+    targetSessions[Math.min(desiredSessionIndex + Math.max(totalSessionCount, 1) - 1, targetSessions.length - 1)] ??
     firstSession;
 
   const startDate = firstSession
@@ -228,7 +242,7 @@ async function instantiateBlockFromTemplate({
     : fallbackStartDate ?? klass.start_date;
   const endDate = lastSession
     ? formatDateOnly(new Date(lastSession.date_time))
-    : formatDateOnly(addDays(new Date(startDate), Math.max(templateLessons.length - 1, 0) * 7));
+    : formatDateOnly(addDays(new Date(startDate), Math.max(totalSessionCount - 1, 0) * 7));
 
   const block = await classesDao.createClassBlock({
     classId: klass.id,
@@ -252,23 +266,17 @@ async function instantiateBlockFromTemplate({
   }
 
   const createdLessonsPayload: any[] = [];
-  let orderIndex = 1;  // Start with sequential order_index
 
   for (const lesson of templateLessons) {
     const sessionCount = Math.max(1, lesson.estimated_meeting_count || 1);
 
     for (let i = 1; i <= sessionCount; i++) {
-      let title = lesson.title;
-      if (sessionCount > 1) {
-        title = `${lesson.title} (Part ${i})`;
-      }
-
       createdLessonsPayload.push({
         class_block_id: block.id,
         lesson_template_id: lesson.id,
-        title: title,
+        title: buildClassLessonTitle(lesson.title, sessionCount, i),
         summary: lesson.summary ?? null,
-        order_index: orderIndex++,  // Sequential order_index
+        order_index: buildClassLessonOrderIndex(lesson.order_index, i),
         make_up_instructions: lesson.make_up_instructions ?? null,
         slide_url: lesson.slide_url ?? null,
         coach_example_url: lesson.example_url ?? null,
@@ -311,12 +319,6 @@ async function syncLessonsWithTemplates(
       // This respects filtered lessons when a starting lesson was set
       const existingTemplateIds = new Set(existing.map(l => l.lesson_template_id));
 
-      // Calculate max order_index to avoid conflicts
-      const maxExistingOrderIndex = existing.length > 0
-        ? Math.max(...existing.map(l => l.order_index))
-        : 0;
-      let nextOrderIndex = maxExistingOrderIndex + 1;
-
       const newLessonsPayload: any[] = [];
 
       for (const lesson of templateLessons) {
@@ -327,22 +329,55 @@ async function syncLessonsWithTemplates(
         }
 
         const expectedCount = Math.max(1, lesson.estimated_meeting_count || 1);
-        const existingMatches = existing.filter((l) => l.lesson_template_id === lesson.id);
+        const existingMatches = existing
+          .filter((l) => l.lesson_template_id === lesson.id)
+          .slice()
+          .sort((a, b) => a.order_index - b.order_index);
+
+        for (let i = 0; i < existingMatches.length; i++) {
+          const currentLesson = existingMatches[i];
+          const partNumber = i + 1;
+          const expectedOrderIndex = buildClassLessonOrderIndex(lesson.order_index, partNumber);
+          const expectedTitle = buildClassLessonTitle(lesson.title, expectedCount, partNumber);
+          const updates: Partial<ClassLessonRecord> = {};
+
+          if (currentLesson.order_index !== expectedOrderIndex) {
+            updates.order_index = expectedOrderIndex;
+          }
+          if (currentLesson.title !== expectedTitle) {
+            updates.title = expectedTitle;
+          }
+          if (currentLesson.summary !== (lesson.summary ?? null)) {
+            updates.summary = lesson.summary ?? null;
+          }
+          if (currentLesson.make_up_instructions !== (lesson.make_up_instructions ?? null)) {
+            updates.make_up_instructions = lesson.make_up_instructions ?? null;
+          }
+          if (currentLesson.slide_url !== (lesson.slide_url ?? null)) {
+            updates.slide_url = lesson.slide_url ?? null;
+          }
+          if (currentLesson.coach_example_url !== (lesson.example_url ?? null)) {
+            updates.coach_example_url = lesson.example_url ?? null;
+          }
+          if (currentLesson.coach_example_storage_path !== (lesson.example_storage_path ?? null)) {
+            updates.coach_example_storage_path = lesson.example_storage_path ?? null;
+          }
+
+          if (Object.keys(updates).length > 0) {
+            await classLessonsDao.updateClassLesson(currentLesson.id, updates);
+            Object.assign(currentLesson, updates);
+          }
+        }
 
         if (existingMatches.length < expectedCount) {
           // We need to create the missing parts
           for (let i = existingMatches.length + 1; i <= expectedCount; i++) {
-            let title = lesson.title;
-            if (expectedCount > 1) {
-              title = `${lesson.title} (Part ${i})`;
-            }
-
             newLessonsPayload.push({
               class_block_id: block.id,
               lesson_template_id: lesson.id,
-              title: title,
+              title: buildClassLessonTitle(lesson.title, expectedCount, i),
               summary: lesson.summary ?? null,
-              order_index: nextOrderIndex++,  // Use sequential order_index to avoid conflicts
+              order_index: buildClassLessonOrderIndex(lesson.order_index, i),
               make_up_instructions: lesson.make_up_instructions ?? null,
               slide_url: lesson.slide_url ?? null,
               coach_example_url: lesson.example_url ?? null,

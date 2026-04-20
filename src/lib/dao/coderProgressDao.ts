@@ -107,18 +107,24 @@ export async function markBlockCompletedForClass(classId: string, blockId: strin
   const progressUpdate = await supabase
     .from('coder_block_progress')
     .update({ status: 'COMPLETED', completed_at: nowIso })
+    .select('coder_id')
     .in('coder_id', coderIds)
     .eq('block_id', blockId)
-    .neq('status', 'COMPLETED');
+    .eq('status', 'IN_PROGRESS');
 
   if (progressUpdate.error) {
     throw new Error(`Failed to mark block completed: ${progressUpdate.error.message}`);
   }
 
+  const progressedCoderIds = [...new Set((progressUpdate.data ?? []).map((row) => row.coder_id))];
+  if (progressedCoderIds.length === 0) {
+    return;
+  }
+
   const progressQuery = await supabase
     .from('coder_block_progress')
     .select('id, coder_id, level_id, block_id, status, journey_order')
-    .in('coder_id', coderIds)
+    .in('coder_id', progressedCoderIds)
     .eq('level_id', levelId)
     .order('journey_order', { ascending: true });
 

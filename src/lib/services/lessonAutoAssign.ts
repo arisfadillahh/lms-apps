@@ -478,7 +478,6 @@ async function syncBlockStatuses(
   }
 
   const updates: Promise<void>[] = [];
-  const completedBlocks: ClassBlockRow[] = [];
   blockStates.forEach((state, index) => {
     let desired: ClassBlockRow['status'];
     if (index < currentIndex) {
@@ -489,16 +488,32 @@ async function syncBlockStatuses(
       desired = 'UPCOMING';
     }
 
-    if (state.block.status !== desired) {
-      updates.push(classesDao.updateClassBlock(state.block.id, { status: desired }));
-      if (desired === 'COMPLETED') {
-        completedBlocks.push(state.block);
-      }
+    const lessons = lessonsByBlock.get(state.block.id) ?? [];
+    const runtimeDates = resolveBlockRuntimeDates(state.block, lessons, sessionMap);
+    const needsDateSync =
+      state.block.start_date !== runtimeDates.startDate ||
+      state.block.end_date !== runtimeDates.endDate ||
+      (state.block.pitching_day_date ?? null) !== runtimeDates.pitchingDayDate;
+
+    if (state.block.status !== desired || needsDateSync) {
+      updates.push(classesDao.updateClassBlock(state.block.id, {
+        status: desired,
+        startDate: runtimeDates.startDate,
+        endDate: runtimeDates.endDate,
+        pitchingDayDate: runtimeDates.pitchingDayDate,
+      }));
       state.block.status = desired;
+      state.block.start_date = runtimeDates.startDate;
+      state.block.end_date = runtimeDates.endDate;
+      state.block.pitching_day_date = runtimeDates.pitchingDayDate;
     }
   });
 
   await Promise.all(updates);
+
+  const completedBlocks = blockStates
+    .filter((_, index) => index < currentIndex)
+    .map((state) => state.block);
 
   if (completedBlocks.length > 0) {
     await Promise.all(
@@ -531,4 +546,31 @@ export async function syncBlockStatusesForClass(classId: string): Promise<void> 
 
 function formatDateOnly(date: Date): string {
   return date.toISOString().slice(0, 10);
+}
+
+function resolveBlockRuntimeDates(
+  block: ClassBlockRow,
+  lessons: ClassLessonRecord[],
+  sessionMap: Map<string, SessionRecord>,
+) {
+  const mappedSessionDates = lessons
+    .map((lesson) => (lesson.session_id ? sessionMap.get(lesson.session_id)?.date_time ?? null : null))
+    .filter((value): value is string => value !== null)
+    .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+  if (mappedSessionDates.length === 0) {
+    return {
+      startDate: block.start_date,
+      endDate: block.end_date,
+      pitchingDayDate: block.pitching_day_date,
+    };
+  }
+
+  const lastDate = formatDateOnly(new Date(mappedSessionDates[mappedSessionDates.length - 1]));
+
+  return {
+    startDate: formatDateOnly(new Date(mappedSessionDates[0])),
+    endDate: lastDate,
+    pitchingDayDate: lastDate,
+  };
 }

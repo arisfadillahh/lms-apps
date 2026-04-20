@@ -137,8 +137,40 @@ function buildLessonToSessionMap(
   return lessonToSessionMap;
 }
 
-function buildJourneyStatusMap(journey: Awaited<ReturnType<typeof coderProgressDao.getCoderJourney>>) {
-  return new Map(journey.map((row) => [row.block_id, row.status]));
+type PersonalJourneyStatus = Awaited<ReturnType<typeof coderProgressDao.getCoderJourney>>[number]['status'];
+
+function mapPersonalJourneyStatus(status: PersonalJourneyStatus): RuntimeBlockStatus {
+  if (status === 'COMPLETED') {
+    return 'COMPLETED';
+  }
+  if (status === 'IN_PROGRESS') {
+    return 'CURRENT';
+  }
+  return 'UPCOMING';
+}
+
+function getJourneyStatusRank(status: RuntimeBlockStatus): number {
+  if (status === 'COMPLETED') {
+    return 2;
+  }
+  if (status === 'CURRENT') {
+    return 1;
+  }
+  return 0;
+}
+
+function mergeJourneyStatus(
+  runtimeStatus: RuntimeBlockStatus,
+  personalStatus?: PersonalJourneyStatus,
+): RuntimeBlockStatus {
+  if (!personalStatus) {
+    return runtimeStatus;
+  }
+
+  const personalDisplayStatus = mapPersonalJourneyStatus(personalStatus);
+  return getJourneyStatusRank(personalDisplayStatus) > getJourneyStatusRank(runtimeStatus)
+    ? personalDisplayStatus
+    : runtimeStatus;
 }
 
 function buildMappedSessionEntries(
@@ -213,6 +245,16 @@ function buildRuntimeBlocks(
       lastSessionAt,
     };
   });
+}
+
+function resolveBlockDisplayDates(
+  block: Pick<WeeklyBlock, 'start_date' | 'end_date'>,
+  runtimeBlock?: Pick<RuntimeBlockInfo, 'firstSessionAt' | 'lastSessionAt'> | null,
+) {
+  return {
+    startDate: runtimeBlock?.firstSessionAt ?? block.start_date,
+    endDate: runtimeBlock?.lastSessionAt ?? block.end_date,
+  };
 }
 
 function findEntryBlockBySchedule(
@@ -445,12 +487,9 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
 
       // Fetch personalized journey order
       const journey = klass.level_id ? await coderProgressDao.getCoderJourney(coderId, klass.level_id) : [];
+      const journeyStatusMap = new Map(journey.map((row) => [row.block_id, row.status]));
       const journeyOrderMap = new Map(journey.map(j => [j.block_id, j.journey_order]));
 
-      // Fix: Calculate progress based on Journey Status (supports Manual Override), not just Submissions
-      // Fallback: if coder_block_progress has no entries, count blocks with COMPLETED status in class_blocks
-      const completedBlocks = journey.filter(j => j.status === 'COMPLETED').length
-        || runtimeBlocks.filter((block) => block.runtimeStatus === 'COMPLETED').length;
       const totalBlocks = blocks.length;
       const currentBlock =
         currentScheduledBlock ??
@@ -485,36 +524,35 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
         return 0;
       });
 
-      const pendingBlocks =
-        sortedBlocks.filter((block) => (runtimeBlockById.get(block.id)?.runtimeStatus ?? block.status) !== 'COMPLETED').map((block) => ({
-          blockId: block.block_id,
-          name: block.block_name ?? 'Block',
-          status: runtimeBlockById.get(block.id)?.runtimeStatus ?? block.status,
-          startDate: block.start_date,
-          endDate: block.end_date,
-        }));
-
       // Use the sorted index as the display order
       const journeyBlocks = sortedBlocks.map((block, index) => {
-        // Find personal status override
-        const personal = journey.find(j => j.block_id === block.block_id);
-        let displayStatus = runtimeBlockById.get(block.id)?.runtimeStatus ?? block.status;
-
-        if (personal) {
-          if (personal.status === 'COMPLETED') displayStatus = 'COMPLETED';
-          else if (personal.status === 'IN_PROGRESS') displayStatus = 'CURRENT';
-          else displayStatus = 'UPCOMING'; // PENDING -> UPCOMING
-        }
+        const runtimeBlock = runtimeBlockById.get(block.id);
+        const displayStatus = mergeJourneyStatus(
+          runtimeBlock?.runtimeStatus ?? block.status,
+          journeyStatusMap.get(block.block_id),
+        );
+        const displayDates = resolveBlockDisplayDates(block, runtimeBlock);
 
         return {
           blockId: block.block_id,
           name: block.block_name ?? 'Block',
           status: displayStatus,
-          startDate: block.start_date,
-          endDate: block.end_date,
+          startDate: displayDates.startDate,
+          endDate: displayDates.endDate,
           orderIndex: index,
         };
       });
+
+      const completedBlocks = journeyBlocks.filter((block) => block.status === 'COMPLETED').length;
+      const pendingBlocks = journeyBlocks
+        .filter((block) => block.status !== 'COMPLETED')
+        .map((block) => ({
+          blockId: block.blockId,
+          name: block.name,
+          status: block.status,
+          startDate: block.startDate,
+          endDate: block.endDate,
+        }));
 
       let upNext: CoderClassProgress['upNext'] = null;
 
@@ -526,6 +564,8 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
 
       if (currentOrUpcoming) {
         const software = await getSoftwareByBlockId(currentOrUpcoming.block_id);
+        const runtimeCurrentBlock = runtimeBlockById.get(currentOrUpcoming.id);
+        const currentBlockDates = resolveBlockDisplayDates(currentOrUpcoming, runtimeCurrentBlock);
 
         // Use class_lessons (actual class data) instead of lesson_templates for accurate progress.
         // This matches the same logic used in getAccessibleLessonsForCoder.
@@ -589,9 +629,9 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
         upNext = {
           blockId: currentOrUpcoming.block_id ?? currentOrUpcoming.id,
           name: currentOrUpcoming.block_name ?? 'Block',
-          status: (runtimeBlockById.get(currentOrUpcoming.id)?.runtimeStatus ?? currentOrUpcoming.status) as 'UPCOMING' | 'CURRENT' | 'COMPLETED',
-          startDate: currentOrUpcoming.start_date,
-          endDate: currentOrUpcoming.end_date,
+          status: (runtimeCurrentBlock?.runtimeStatus ?? currentOrUpcoming.status) as 'UPCOMING' | 'CURRENT' | 'COMPLETED',
+          startDate: currentBlockDates.startDate,
+          endDate: currentBlockDates.endDate,
           estimatedSessions: (await lessonTemplatesDao.listLessonsByBlock(currentOrUpcoming.block_id))
             .reduce((acc, l) => acc + (l.estimated_meeting_count || 1), 0),
           software: software.map(s => ({

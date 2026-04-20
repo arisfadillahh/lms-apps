@@ -1,6 +1,6 @@
 
 > lms-app@0.1.0 dev
-> next dev -p 3005
+> next dev -p 3005 --port 3005
 
 ▲ Next.js 16.1.1 (Turbopack)
 - Local:         http://localhost:3005
@@ -10,300 +10,54 @@
   · staleTimes
 
 ✓ Starting...
-✓ Ready in 2.1s
-[Cron] Running session auto-complete job
-[AutoComplete] Checking for expired sessions before 2026-04-20T13:14:00+07:00
-[AutoComplete] Found 7 expired sessions to complete
-[AutoComplete] Successfully completed 7 sessions
-[Cron] Ensuring 12-week schedule for 7 classes
-[AI Trigger] Block Game Development with GDevelop (ID: 69813433-5d9d-429a-a3a4-26faa76dbb70) skipped: No sessions mapped to it.
-[AI Trigger] Block Game Development with GDevelop (ID: 69813433-5d9d-429a-a3a4-26faa76dbb70) skipped: No sessions mapped to it.
-[AI Trigger] Block Advance Game Development (ID: 20ee5336-57ed-4c08-b177-45f231dab869) skipped: No sessions mapped to it.
-[AI Trigger] Block Advanced Coding Development (ID: d84d02ae-ccd6-4f67-8f95-70a479cbccd0) skipped: No sessions mapped to it.
-[AI Trigger] Block Advanced Coding Development (ID: d84d02ae-ccd6-4f67-8f95-70a479cbccd0) skipped: No sessions mapped to it.
-[AI Trigger] Block Game Design & Development (ID: df6dd238-b2ca-495c-b963-876eee3a22fc) skipped: No sessions mapped to it.
-[AI Trigger] Block App & Game Development Explorations (ID: 21d7ac49-3d87-43ee-a21e-51cf54452049) skipped: No sessions mapped to it.
-[AI Trigger] Block App & Game Development Explorations (ID: 21d7ac49-3d87-43ee-a21e-51cf54452049) skipped: No sessions mapped to it.
-[AI Trigger] Block Advance Game Development (ID: 20ee5336-57ed-4c08-b177-45f231dab869) skipped: No sessions mapped to it.
-[AI Trigger] Block Code, Create & Explore (ID: 8bfdfaf9-9757-4cdd-90ee-d189816702b2) skipped: No sessions mapped to it.
-[AI Trigger] Block Advance Apps Development (ID: 53dbcc97-7581-4885-8c9f-39b9f8612b94) skipped: No sessions mapped to it.
-[AI Trigger] Block Digital Storytelling & Visual Creations (ID: 8b16970a-a20f-4b4a-82fd-764b69b8134b) skipped: No sessions mapped to it.
-[AI Trigger] Block Game Design & Development (ID: df6dd238-b2ca-495c-b963-876eee3a22fc) skipped: No sessions mapped to it.
-[AI Trigger] Block Digital Storytelling & Visual Creations (ID: 8b16970a-a20f-4b4a-82fd-764b69b8134b) skipped: No sessions mapped to it.
-[AI Trigger] Block Interactive Animations & Game Basics (ID: 78b67a1b-fe88-4a4a-a2b6-5ad0b1e9bff2) skipped: No evaluations exist yet.
-[AI Trigger] Block Interactive Storytelling & 3D Game (ID: 3b6c06a4-da43-40d6-af9b-e6243ddd4511) skipped: No sessions mapped to it.
-[AI Trigger] Block Beginner Apps Development (ID: 64867df6-b1e3-415c-89a5-07940c368633) skipped: Last session 879e9f0d-abed-48f8-9a5f-b3364a5dceea has not passed yet (2026-07-11T03:30:00+00:00).
-[AI Trigger] Block Advance Game Development (ID: 20ee5336-57ed-4c08-b177-45f231dab869) skipped: No sessions mapped to it.
-[AI Trigger] Block Interactive Animations & Game Basics (ID: 78b67a1b-fe88-4a4a-a2b6-5ad0b1e9bff2) skipped: Last session 488a1b54-6014-460b-8df6-e3015d975cea has not passed yet (2026-07-11T03:30:00+00:00).
-[AI Trigger] Block Interactive Animations & Game Basics (ID: 78b67a1b-fe88-4a4a-a2b6-5ad0b1e9bff2) skipped: Last session 95f59fa3-9a1d-4df6-8725-ab7ba8c01cb8 has not passed yet (2026-07-11T03:30:00+00:00).
-[AI Trigger] Block Code & Design (ID: 14223e78-c7a9-4467-a561-58b4d104d347) skipped: Last session c2e7b785-0414-4576-91b6-be81cd28de18 has not passed yet (2026-07-11T02:00:00+00:00).
-[AI Trigger] Block Animations (ID: 03a35338-e201-4da8-8172-cbacfb979dbe) skipped: Last session da673ec2-2dc6-4546-afdc-74637da91cef has not passed yet (2026-05-09T03:30:00+00:00).
-[AI Trigger] Block Advance Apps Development (ID: 53dbcc97-7581-4885-8c9f-39b9f8612b94) skipped: Last session 00ac9e10-20d0-4454-872b-1559c5e3dce1 has not passed yet (2026-07-11T03:30:00+00:00).
-[AI Trigger] Block Game Design & Development (ID: df6dd238-b2ca-495c-b963-876eee3a22fc) skipped: Last session 8a98f6b0-19c7-4d68-b9bd-e92e3c4eb262 has not passed yet (2026-07-11T06:00:00+00:00).
-Failed to call OpenRouter: Error: 403 Key limit exceeded (monthly limit). Manage it using https://openrouter.ai/settings/keys
-    at async generateBlockReportDescriptions (src\lib\services\aiReports.ts:73:22)
-    at async generateDraftReportsFromClassBlocks (src\lib\services\aiReports.ts:228:30)
-    at async generateDraftReportsForClasses (src\lib\services\aiReports.ts:316:26)
-    at async GET (src\app\api\cron\session-complete\route.ts:60:17)
-  71 | `;
-  72 |   try {
-> 73 |     const response = await openai.chat.completions.create({
-     |                      ^
-  74 |       model: 'openai/gpt-4o-mini',
-  75 |       messages: [{ role: 'user', content: prompt }],
-  76 |       temperature: 0.7, {
-  status: 403,
-  headers: Headers {
-    date: 'Mon, 20 Apr 2026 06:14:22 GMT',
-    'content-type': 'application/json',
-    'transfer-encoding': 'chunked',
-    connection: 'keep-alive',
-    'access-control-allow-origin': '*',
-    'access-control-expose-headers': 'X-Generation-Id,cf-ray',
-    'permissions-policy': 'payment=(self "https://checkout.stripe.com" "https://connect-js.stripe.com" "https://js.stripe.com" "https://*.js.stripe.com" "https://hooks.stripe.com")',
-    'referrer-policy': 'no-referrer, strict-origin-when-cross-origin',
-    'x-content-type-options': 'nosniff',
-    'content-encoding': 'gzip',
-    server: 'cloudflare',
-    'cf-ray': '9ef20225cde5d8da-CGK'
-  },
-  requestID: null,
-  error: [Object],
-  code: 403,
-  param: undefined,
-  type: undefined
+✓ Ready in 1412ms
+ GET /coder/dashboard 200 in 3.7s (compile: 1548ms, render: 2.2s)
+ GET /api/notifications 200 in 302ms (compile: 167ms, render: 135ms)
+ GET /api/coder/block-evaluations?blockId=a908b4ae-5c3e-45a2-a8b3-d6d19b19168d 200 in 174ms (compile: 89ms, render: 85ms)
+ GET /api/coder/block-evaluations?blockId=a908b4ae-5c3e-45a2-a8b3-d6d19b19168d 200 in 35ms (compile: 3ms, render: 32ms)
+ GET /api/coder/block-evaluations?blockId=a908b4ae-5c3e-45a2-a8b3-d6d19b19168d 200 in 30ms (compile: 1963µs, render: 28ms)
+ GET /api/auth/session 200 in 765ms (compile: 750ms, render: 14ms)
+⨯ Error: Unauthorized
+    at getSessionOrThrow (src\lib\auth.ts:45:11)
+    at async CoderDashboardPage (src\app\(coder)\coder\dashboard\page.tsx:43:19)
+  43 |   const session = await getServerAuthSession();
+  44 |   if (!session) {
+> 45 |     throw new Error('Unauthorized');
+     |           ^
+  46 |   }
+  47 |   if (!session.user.isActive) {
+  48 |     throw new Error('Inactive account'); {
+  digest: '1094533777'
 }
-Failed to call OpenRouter: Error: 403 Key limit exceeded (monthly limit). Manage it using https://openrouter.ai/settings/keys
-    at async generateBlockReportDescriptions (src\lib\services\aiReports.ts:73:22)
-    at async generateDraftReportsFromClassBlocks (src\lib\services\aiReports.ts:228:30)
-    at async generateDraftReportsForClasses (src\lib\services\aiReports.ts:316:26)
-    at async GET (src\app\api\cron\session-complete\route.ts:60:17)
-  71 | `;
-  72 |   try {
-> 73 |     const response = await openai.chat.completions.create({
-     |                      ^
-  74 |       model: 'openai/gpt-4o-mini',
-  75 |       messages: [{ role: 'user', content: prompt }],
-  76 |       temperature: 0.7, {
-  status: 403,
-  headers: Headers {
-    date: 'Mon, 20 Apr 2026 06:14:22 GMT',
-    'content-type': 'application/json',
-    'transfer-encoding': 'chunked',
-    connection: 'keep-alive',
-    'access-control-allow-origin': '*',
-    'access-control-expose-headers': 'X-Generation-Id,cf-ray',
-    'permissions-policy': 'payment=(self "https://checkout.stripe.com" "https://connect-js.stripe.com" "https://js.stripe.com" "https://*.js.stripe.com" "https://hooks.stripe.com")',
-    'referrer-policy': 'no-referrer, strict-origin-when-cross-origin',
-    'x-content-type-options': 'nosniff',
-    'content-encoding': 'gzip',
-    server: 'cloudflare',
-    'cf-ray': '9ef202296ad8d8da-CGK'
-  },
-  requestID: null,
-  error: [Object],
-  code: 403,
-  param: undefined,
-  type: undefined
-}
-Failed to call OpenRouter: Error: 403 Key limit exceeded (monthly limit). Manage it using https://openrouter.ai/settings/keys
-    at async generateBlockReportDescriptions (src\lib\services\aiReports.ts:73:22)
-    at async generateDraftReportsFromClassBlocks (src\lib\services\aiReports.ts:228:30)
-    at async generateDraftReportsForClasses (src\lib\services\aiReports.ts:316:26)
-    at async GET (src\app\api\cron\session-complete\route.ts:60:17)
-  71 | `;
-  72 |   try {
-> 73 |     const response = await openai.chat.completions.create({
-     |                      ^
-  74 |       model: 'openai/gpt-4o-mini',
-  75 |       messages: [{ role: 'user', content: prompt }],
-  76 |       temperature: 0.7, {
-  status: 403,
-  headers: Headers {
-    date: 'Mon, 20 Apr 2026 06:14:23 GMT',
-    'content-type': 'application/json',
-    'transfer-encoding': 'chunked',
-    connection: 'keep-alive',
-    'access-control-allow-origin': '*',
-    'access-control-expose-headers': 'X-Generation-Id,cf-ray',
-    'permissions-policy': 'payment=(self "https://checkout.stripe.com" "https://connect-js.stripe.com" "https://js.stripe.com" "https://*.js.stripe.com" "https://hooks.stripe.com")',
-    'referrer-policy': 'no-referrer, strict-origin-when-cross-origin',
-    'x-content-type-options': 'nosniff',
-    'content-encoding': 'gzip',
-    server: 'cloudflare',
-    'cf-ray': '9ef2022a3bf8d8da-CGK'
-  },
-  requestID: null,
-  error: [Object],
-  code: 403,
-  param: undefined,
-  type: undefined
-}
-Failed to call OpenRouter: Error: 403 Key limit exceeded (monthly limit). Manage it using https://openrouter.ai/settings/keys
-    at async generateBlockReportDescriptions (src\lib\services\aiReports.ts:73:22)
-    at async generateDraftReportsFromClassBlocks (src\lib\services\aiReports.ts:228:30)
-    at async generateDraftReportsForClasses (src\lib\services\aiReports.ts:316:26)
-    at async GET (src\app\api\cron\session-complete\route.ts:60:17)
-  71 | `;
-  72 |   try {
-> 73 |     const response = await openai.chat.completions.create({
-     |                      ^
-  74 |       model: 'openai/gpt-4o-mini',
-  75 |       messages: [{ role: 'user', content: prompt }],
-  76 |       temperature: 0.7, {
-  status: 403,
-  headers: Headers {
-    date: 'Mon, 20 Apr 2026 06:14:23 GMT',
-    'content-type': 'application/json',
-    'transfer-encoding': 'chunked',
-    connection: 'keep-alive',
-    'access-control-allow-origin': '*',
-    'access-control-expose-headers': 'X-Generation-Id,cf-ray',
-    'permissions-policy': 'payment=(self "https://checkout.stripe.com" "https://connect-js.stripe.com" "https://js.stripe.com" "https://*.js.stripe.com" "https://hooks.stripe.com")',
-    'referrer-policy': 'no-referrer, strict-origin-when-cross-origin',
-    'x-content-type-options': 'nosniff',
-    'content-encoding': 'gzip',
-    server: 'cloudflare',
-    'cf-ray': '9ef2022afc9ad8da-CGK'
-  },
-  requestID: null,
-  error: [Object],
-  code: 403,
-  param: undefined,
-  type: undefined
-}
-[AI Trigger] Block Beginner Apps Development (ID: 64867df6-b1e3-415c-89a5-07940c368633) skipped: Last session cc40e216-4897-4b56-9c19-5c0d31eebdb7 has not passed yet (2026-05-09T03:30:00+00:00).
-[AI Trigger] Block Game Development with GDevelop (ID: 69813433-5d9d-429a-a3a4-26faa76dbb70) skipped: Last session f160ccf8-9cef-4e6e-9619-0d8226a00cf9 has not passed yet (2026-07-11T01:30:00+00:00).
-[AI Trigger] Block Advance Apps Development (ID: 53dbcc97-7581-4885-8c9f-39b9f8612b94) skipped: Last session 9500212b-c3e3-405d-94ca-fde4caad2df6 has not passed yet (2026-07-04T06:00:00+00:00).
-[AI Trigger] Block Animations (ID: 03a35338-e201-4da8-8172-cbacfb979dbe) skipped: No evaluations exist yet.
-[AI Trigger] Block Creative Tech Explorers (ID: 6d8e67d0-07a8-4e7b-97d6-9d7ef1d8c7c3) skipped: No evaluations exist yet.
-Failed to call OpenRouter: Error: 403 Key limit exceeded (monthly limit). Manage it using https://openrouter.ai/settings/keys
-    at async generateBlockReportDescriptions (src\lib\services\aiReports.ts:73:22)
-    at async generateDraftReportsFromClassBlocks (src\lib\services\aiReports.ts:228:30)
-    at async generateDraftReportsForClasses (src\lib\services\aiReports.ts:316:26)
-    at async GET (src\app\api\cron\session-complete\route.ts:60:17)
-  71 | `;
-  72 |   try {
-> 73 |     const response = await openai.chat.completions.create({
-     |                      ^
-  74 |       model: 'openai/gpt-4o-mini',
-  75 |       messages: [{ role: 'user', content: prompt }],
-  76 |       temperature: 0.7, {
-  status: 403,
-  headers: Headers {
-    date: 'Mon, 20 Apr 2026 06:14:23 GMT',
-    'content-type': 'application/json',
-    'transfer-encoding': 'chunked',
-    connection: 'keep-alive',
-    'access-control-allow-origin': '*',
-    'access-control-expose-headers': 'X-Generation-Id,cf-ray',
-    'permissions-policy': 'payment=(self "https://checkout.stripe.com" "https://connect-js.stripe.com" "https://js.stripe.com" "https://*.js.stripe.com" "https://hooks.stripe.com")',
-    'referrer-policy': 'no-referrer, strict-origin-when-cross-origin',
-    'x-content-type-options': 'nosniff',
-    'content-encoding': 'gzip',
-    server: 'cloudflare',
-    'cf-ray': '9ef2022c6e85d8da-CGK'
-  },
-  requestID: null,
-  error: [Object],
-  code: 403,
-  param: undefined,
-  type: undefined
-}
-Failed to call OpenRouter: Error: 403 Key limit exceeded (monthly limit). Manage it using https://openrouter.ai/settings/keys
-    at async generateBlockReportDescriptions (src\lib\services\aiReports.ts:73:22)
-    at async generateDraftReportsFromClassBlocks (src\lib\services\aiReports.ts:228:30)
-    at async generateDraftReportsForClasses (src\lib\services\aiReports.ts:316:26)
-    at async GET (src\app\api\cron\session-complete\route.ts:60:17)
-  71 | `;
-  72 |   try {
-> 73 |     const response = await openai.chat.completions.create({
-     |                      ^
-  74 |       model: 'openai/gpt-4o-mini',
-  75 |       messages: [{ role: 'user', content: prompt }],
-  76 |       temperature: 0.7, {
-  status: 403,
-  headers: Headers {
-    date: 'Mon, 20 Apr 2026 06:14:23 GMT',
-    'content-type': 'application/json',
-    'transfer-encoding': 'chunked',
-    connection: 'keep-alive',
-    'access-control-allow-origin': '*',
-    'access-control-expose-headers': 'X-Generation-Id,cf-ray',
-    'permissions-policy': 'payment=(self "https://checkout.stripe.com" "https://connect-js.stripe.com" "https://js.stripe.com" "https://*.js.stripe.com" "https://hooks.stripe.com")',
-    'referrer-policy': 'no-referrer, strict-origin-when-cross-origin',
-    'x-content-type-options': 'nosniff',
-    'content-encoding': 'gzip',
-    server: 'cloudflare',
-    'cf-ray': '9ef2022d1f47d8da-CGK'
-  },
-  requestID: null,
-  error: [Object],
-  code: 403,
-  param: undefined,
-  type: undefined
-}
-Failed to call OpenRouter: Error: 403 Key limit exceeded (monthly limit). Manage it using https://openrouter.ai/settings/keys
-    at async generateBlockReportDescriptions (src\lib\services\aiReports.ts:73:22)
-    at async generateDraftReportsFromClassBlocks (src\lib\services\aiReports.ts:228:30)
-    at async generateDraftReportsForClasses (src\lib\services\aiReports.ts:316:26)
-    at async GET (src\app\api\cron\session-complete\route.ts:60:17)
-  71 | `;
-  72 |   try {
-> 73 |     const response = await openai.chat.completions.create({
-     |                      ^
-  74 |       model: 'openai/gpt-4o-mini',
-  75 |       messages: [{ role: 'user', content: prompt }],
-  76 |       temperature: 0.7, {
-  status: 403,
-  headers: Headers {
-    date: 'Mon, 20 Apr 2026 06:14:23 GMT',
-    'content-type': 'application/json',
-    'transfer-encoding': 'chunked',
-    connection: 'keep-alive',
-    'access-control-allow-origin': '*',
-    'access-control-expose-headers': 'X-Generation-Id,cf-ray',
-    'permissions-policy': 'payment=(self "https://checkout.stripe.com" "https://connect-js.stripe.com" "https://js.stripe.com" "https://*.js.stripe.com" "https://hooks.stripe.com")',
-    'referrer-policy': 'no-referrer, strict-origin-when-cross-origin',
-    'x-content-type-options': 'nosniff',
-    'content-encoding': 'gzip',
-    server: 'cloudflare',
-    'cf-ray': '9ef2022dc813d8da-CGK'
-  },
-  requestID: null,
-  error: [Object],
-  code: 403,
-  param: undefined,
-  type: undefined
-}
-[AI Trigger] Block Beginner Apps Development (ID: 64867df6-b1e3-415c-89a5-07940c368633) skipped: No evaluations exist yet.
-[AI Trigger] Block App & Game Development Explorations (ID: 21d7ac49-3d87-43ee-a21e-51cf54452049) skipped: No evaluations exist yet.
-[AI Trigger] Block Animations (ID: 03a35338-e201-4da8-8172-cbacfb979dbe) skipped: No evaluations exist yet.
-[AI Trigger] Block Digital Storytelling & Visual Creations (ID: 8b16970a-a20f-4b4a-82fd-764b69b8134b) skipped: No evaluations exist yet.
-[AI Trigger] Block Interactive Animations & Game Basics (ID: 78b67a1b-fe88-4a4a-a2b6-5ad0b1e9bff2) skipped: No evaluations exist yet.
- GET /api/cron/session-complete 200 in 3.5s (compile: 733ms, render: 2.8s)
- GET / 307 in 2.0s (compile: 1743ms, render: 281ms)
- GET /coder/dashboard 200 in 1933ms (compile: 620ms, render: 1313ms)
- GET /api/notifications 200 in 209ms (compile: 85ms, render: 124ms)
- GET /api/coder/block-evaluations?blockId=a908b4ae-5c3e-45a2-a8b3-d6d19b19168d 200 in 100ms (compile: 65ms, render: 35ms)
- GET /api/coder/block-evaluations?blockId=a908b4ae-5c3e-45a2-a8b3-d6d19b19168d 200 in 36ms (compile: 2ms, render: 33ms)
- GET /api/coder/block-evaluations?blockId=a908b4ae-5c3e-45a2-a8b3-d6d19b19168d 200 in 43ms (compile: 3ms, render: 40ms)
- GET /api/auth/session 200 in 978ms (compile: 962ms, render: 16ms)
- GET /api/notifications 200 in 87ms (compile: 4ms, render: 83ms)
- GET /coder/dashboard 200 in 416ms (compile: 124ms, render: 292ms)
- GET /api/notifications 200 in 69ms (compile: 4ms, render: 65ms)
- GET /coder/dashboard 200 in 287ms (compile: 96ms, render: 191ms)
- GET /api/notifications 200 in 189ms (compile: 121ms, render: 68ms)
- GET /api/notifications 200 in 44ms (compile: 2ms, render: 41ms)
- GET /api/auth/session 200 in 48ms (compile: 15ms, render: 33ms)
- GET /api/notifications 200 in 69ms (compile: 2ms, render: 66ms)
+ GET /coder/dashboard 307 in 110ms (compile: 4ms, render: 106ms)
+ GET /api/auth/session 200 in 56ms (compile: 12ms, render: 44ms)
+ GET /api/notifications 200 in 88ms (compile: 7ms, render: 81ms)
+ GET /api/notifications 200 in 56ms (compile: 4ms, render: 52ms)
+ GET /api/notifications 200 in 54ms (compile: 4ms, render: 51ms)
+ GET /api/notifications 200 in 74ms (compile: 3ms, render: 71ms)
+ GET /api/notifications 200 in 69ms (compile: 3ms, render: 66ms)
+ GET /api/notifications 200 in 71ms (compile: 3ms, render: 68ms)
+ GET /api/notifications 200 in 59ms (compile: 3ms, render: 56ms)
+ GET /api/notifications 200 in 72ms (compile: 3ms, render: 69ms)
+ GET /api/notifications 200 in 74ms (compile: 3ms, render: 72ms)
+ GET /api/notifications 200 in 56ms (compile: 1749µs, render: 54ms)
+ GET /api/notifications 200 in 59ms (compile: 3ms, render: 57ms)
+ GET /api/notifications 200 in 70ms (compile: 3ms, render: 67ms)
+ GET /api/notifications 200 in 54ms (compile: 3ms, render: 51ms)
+ GET /api/notifications 200 in 72ms (compile: 3ms, render: 69ms)
+ GET /api/notifications 200 in 73ms (compile: 3ms, render: 71ms)
+ GET /api/notifications 200 in 51ms (compile: 4ms, render: 47ms)
  GET /api/notifications 200 in 64ms (compile: 3ms, render: 61ms)
- GET /api/notifications 200 in 75ms (compile: 4ms, render: 71ms)
- GET /api/notifications 200 in 80ms (compile: 4ms, render: 76ms)
- GET /api/auth/session 200 in 33ms (compile: 14ms, render: 20ms)
- GET /api/notifications 200 in 84ms (compile: 3ms, render: 82ms)
- GET /api/notifications 200 in 62ms (compile: 2ms, render: 60ms)
- GET /api/notifications 200 in 52ms (compile: 3ms, render: 48ms)
- GET /api/notifications 200 in 75ms (compile: 4ms, render: 71ms)
- GET /coder/dashboard 200 in 369ms (compile: 101ms, render: 268ms)
- GET /api/notifications 200 in 186ms (compile: 123ms, render: 63ms)
+ GET /api/notifications 200 in 74ms (compile: 3ms, render: 71ms)
+ GET /api/notifications 200 in 104ms (compile: 2ms, render: 102ms)
+ GET /api/notifications 200 in 70ms (compile: 2ms, render: 68ms)
+ GET /api/notifications 200 in 56ms (compile: 3ms, render: 53ms)
+ GET /api/notifications 200 in 51ms (compile: 3ms, render: 49ms)
+ GET /api/notifications 200 in 73ms (compile: 3ms, render: 70ms)
+ GET /api/notifications 200 in 60ms (compile: 3ms, render: 57ms)
+ GET /api/notifications 200 in 50ms (compile: 2ms, render: 47ms)
+ GET /api/notifications 200 in 45ms (compile: 3ms, render: 42ms)
+ GET /api/notifications 200 in 59ms (compile: 4ms, render: 56ms)
+ GET /api/notifications 200 in 76ms (compile: 3ms, render: 73ms)
+ GET /api/notifications 200 in 58ms (compile: 3ms, render: 55ms)
+ GET /api/notifications 200 in 76ms (compile: 3ms, render: 74ms)

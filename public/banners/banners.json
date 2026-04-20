@@ -15,7 +15,8 @@
       "linkUrl": "https://clev.io/chat",
       "title": "a",
       "order": 1,
-      "isActive": true
+      "isActive": true,
+      "clicks": 1
     }
   ]
 }

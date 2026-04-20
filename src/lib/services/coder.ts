@@ -139,26 +139,6 @@ function buildLessonToSessionMap(
 
 type PersonalJourneyStatus = Awaited<ReturnType<typeof coderProgressDao.getCoderJourney>>[number]['status'];
 
-function mapPersonalJourneyStatus(status: PersonalJourneyStatus): RuntimeBlockStatus {
-  if (status === 'COMPLETED') {
-    return 'COMPLETED';
-  }
-  if (status === 'IN_PROGRESS') {
-    return 'CURRENT';
-  }
-  return 'UPCOMING';
-}
-
-function getJourneyStatusRank(status: RuntimeBlockStatus): number {
-  if (status === 'COMPLETED') {
-    return 2;
-  }
-  if (status === 'CURRENT') {
-    return 1;
-  }
-  return 0;
-}
-
 function mergeJourneyStatus(
   runtimeStatus: RuntimeBlockStatus,
   personalStatus?: PersonalJourneyStatus,
@@ -167,10 +147,66 @@ function mergeJourneyStatus(
     return runtimeStatus;
   }
 
-  const personalDisplayStatus = mapPersonalJourneyStatus(personalStatus);
-  return getJourneyStatusRank(personalDisplayStatus) > getJourneyStatusRank(runtimeStatus)
-    ? personalDisplayStatus
-    : runtimeStatus;
+  if (personalStatus === 'COMPLETED') {
+    return 'COMPLETED';
+  }
+
+  if (personalStatus === 'IN_PROGRESS') {
+    return runtimeStatus === 'COMPLETED' ? 'COMPLETED' : 'CURRENT';
+  }
+
+  return runtimeStatus === 'CURRENT' ? 'CURRENT' : 'UPCOMING';
+}
+
+function compareBlocksByCurriculumOrder(a: WeeklyBlock, b: WeeklyBlock): number {
+  if (a.block_order_index != null && b.block_order_index != null && a.block_order_index !== b.block_order_index) {
+    return a.block_order_index - b.block_order_index;
+  }
+
+  const dateDiff = new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
+  if (dateDiff !== 0) {
+    return dateDiff;
+  }
+
+  return a.id.localeCompare(b.id);
+}
+
+function buildDisplayedJourneyBlocks(
+  curriculumBlocks: WeeklyBlock[],
+  journeyOrderedBlocks: WeeklyBlock[],
+  journeyStatusMap: Map<string, PersonalJourneyStatus>,
+): WeeklyBlock[] {
+  if (curriculumBlocks.length === 0) {
+    return journeyOrderedBlocks;
+  }
+
+  const currentIndex = curriculumBlocks.findIndex(
+    (block) => journeyStatusMap.get(block.block_id) === 'IN_PROGRESS',
+  );
+
+  if (currentIndex < 0) {
+    const allCompleted = curriculumBlocks.every(
+      (block) => journeyStatusMap.get(block.block_id) === 'COMPLETED',
+    );
+    return allCompleted ? curriculumBlocks : journeyOrderedBlocks;
+  }
+
+  let startIndex = currentIndex;
+  while (true) {
+    const previousIndex = (startIndex - 1 + curriculumBlocks.length) % curriculumBlocks.length;
+    if (previousIndex === currentIndex) {
+      break;
+    }
+    if (journeyStatusMap.get(curriculumBlocks[previousIndex].block_id) !== 'COMPLETED') {
+      break;
+    }
+    startIndex = previousIndex;
+  }
+
+  return [
+    ...curriculumBlocks.slice(startIndex),
+    ...curriculumBlocks.slice(0, startIndex),
+  ];
 }
 
 function buildMappedSessionEntries(
@@ -489,6 +525,7 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
       const journey = klass.level_id ? await coderProgressDao.getCoderJourney(coderId, klass.level_id) : [];
       const journeyStatusMap = new Map(journey.map((row) => [row.block_id, row.status]));
       const journeyOrderMap = new Map(journey.map(j => [j.block_id, j.journey_order]));
+      const curriculumBlocks = [...blocks].sort(compareBlocksByCurriculumOrder);
 
       const totalBlocks = blocks.length;
       const currentBlock =
@@ -500,7 +537,7 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
         blocks.find((block) => block.status === 'UPCOMING' && new Date(block.start_date) > nowProgress);
 
       // Sort blocks by journey_order if available, else standard order
-      const sortedBlocks = [...blocks].sort((a, b) => {
+      const journeyOrderedBlocks = [...blocks].sort((a, b) => {
         const orderA = journeyOrderMap.get(a.block_id);
         const orderB = journeyOrderMap.get(b.block_id);
 
@@ -523,6 +560,11 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
         }
         return 0;
       });
+      const sortedBlocks = buildDisplayedJourneyBlocks(
+        curriculumBlocks,
+        journeyOrderedBlocks,
+        journeyStatusMap,
+      );
 
       // Use the sorted index as the display order
       const journeyBlocks = sortedBlocks.map((block, index) => {

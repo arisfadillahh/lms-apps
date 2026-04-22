@@ -114,44 +114,22 @@ export default function LoginForm({ lang = 'id' }: { lang?: 'id' | 'en' }) {
   return (
     <div style={{ width: '100%', maxWidth: '420px' }}>
         {/* Title Area */}
-        <div style={{ marginBottom: '2.5rem' }}>
-            <p style={{
-                fontSize: '0.75rem',
-                fontWeight: 800,
-                color: '#64748B', // slate-500
-                letterSpacing: '1px',
-                textTransform: 'uppercase',
-                marginBottom: '0.5rem'
-            }}>
+        <div className="mb-4 lg:mb-6">
+            <p className="text-[10px] md:text-[11px] lg:text-xs font-extrabold text-slate-500 tracking-widest uppercase mb-1 text-left">
                 {t.welcome}
             </p>
-            <h1 style={{
-                fontSize: '3rem',
-                fontWeight: 800,
-                color: 'var(--color-clevio-navy, #22367b)',
-                letterSpacing: '-1.5px',
-                marginBottom: '1rem',
-                lineHeight: 1.1
-            }}>
-                {t.title}<span style={{ color: '#00b0d7'}}>.</span>
+            <h1 className="text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-extrabold text-[#22367b] tracking-tighter mb-1 lg:mb-2 leading-tight text-left">
+                {t.title}<span className="text-[#00b0d7]">.</span>
             </h1>
-            <p style={{
-                color: '#64748B',
-                fontSize: '1rem',
-                fontWeight: 600
-            }}>
+            <p className="text-sm md:text-sm lg:text-base font-semibold text-slate-500 text-left">
                 {t.subtitle}
             </p>
         </div>
 
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1.2rem',
-        }}
-      >
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="flex flex-col gap-3 lg:gap-4"
+        >
         {errorMessage && (
           <div style={{
             background: 'rgba(239, 68, 68, 0.1)',
@@ -167,73 +145,61 @@ export default function LoginForm({ lang = 'id' }: { lang?: 'id' | 'en' }) {
           </div>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+        <div className="flex flex-col gap-3 lg:gap-4">
           {/* Username Input */}
           <div 
-             style={{ position: 'relative', background: '#ffffff', borderRadius: '16px', padding: '0.7rem 1.2rem', border: '2px solid #e2e8f0', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', justifyContent: 'center', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.02)' }}
+             className="relative bg-white rounded-xl md:rounded-2xl py-1.5 md:py-2 lg:py-3 px-3 md:px-4 lg:px-5 border-2 border-slate-200 transition-all flex flex-col justify-center shadow-sm"
              onFocus={(e) => { e.currentTarget.style.borderColor = '#00b0d7'; }}
              onBlur={(e) => { e.currentTarget.style.borderColor = '#e2e8f0'; }}
           >
-             <p style={{ fontSize: '0.7rem', color: '#64748B', margin: '0 0 0.2rem 0', fontWeight: 700 }}>
+             <p className="text-[10px] md:text-[11px] lg:text-xs text-slate-500 mb-0 md:mb-1 font-bold text-left">
                 {t.username}
              </p>
-             <div style={{ display: 'flex', alignItems: 'center' }}>
+             <div className="flex items-center">
                 <input
                   type="text"
                   autoComplete="username"
                   placeholder="cleviocoder"
                   {...register('username')}
-                  style={{
-                    width: '100%', padding: '0', border: 'none', fontSize: '1.05rem', background: 'transparent',
-                    outline: 'none', color: '#1e293b', fontWeight: 700
-                  }}
+                  className="w-full p-0 border-none text-sm md:text-sm lg:text-base bg-transparent outline-none text-slate-800 font-bold"
                 />
              </div>
-             <div style={{ position: 'absolute', right: '1.2rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }}>
-                <AtSign size={18} strokeWidth={3} />
+             <div className="absolute right-3 md:right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <AtSign size={16} strokeWidth={3} className="md:w-[18px] md:h-[18px]" />
              </div>
-             {errors.username && <span style={{ color: '#ef4444', fontSize: '0.85rem', margin: '0.25rem 0 0 0', display: 'block' }}>{errors.username.message}</span>}
+             {errors.username && <span className="text-red-500 text-xs mt-1 block text-left">{errors.username.message}</span>}
           </div>
 
           {/* Password Input */}
           <div 
-            style={{ position: 'relative', background: '#FAFAFD', borderRadius: '16px', padding: '0.7rem 1.2rem', border: '2px solid #00b0d7', boxShadow: '0 0 0 2px rgba(0, 176, 215, 0.1)', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
-            // Active state
+             className="relative bg-[#FAFAFD] rounded-xl md:rounded-2xl py-1.5 md:py-2 lg:py-3 px-3 md:px-4 lg:px-5 border-2 border-[#00b0d7] transition-all flex flex-col justify-center"
+             style={{ boxShadow: '0 0 0 2px rgba(0, 176, 215, 0.1)' }}
           >
-             <p style={{ fontSize: '0.7rem', color: '#00b0d7', margin: '0 0 0.2rem 0', fontWeight: 700 }}>
+             <p className="text-[10px] md:text-[11px] lg:text-xs text-[#00b0d7] mb-0 md:mb-1 font-bold text-left">
                 {t.password}
              </p>
-             <div style={{ display: 'flex', alignItems: 'center' }}>
+             <div className="flex items-center">
                 <input
                   type="password"
                   autoComplete="current-password"
                   placeholder="........"
                   {...register('password')}
-                  style={{
-                    width: '100%', padding: '0', border: 'none', fontSize: '1.2rem', background: 'transparent',
-                    outline: 'none', color: '#1e293b', fontWeight: 800, letterSpacing: '4px'
-                  }}
+                  className="w-full p-0 border-none text-base md:text-lg lg:text-xl bg-transparent outline-none text-slate-800 font-extrabold tracking-widest"
                 />
              </div>
-             <div style={{ position: 'absolute', right: '1.2rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+             <div className="absolute right-3 md:right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-[16px] h-[16px] md:w-[18px] md:h-[18px]"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
              </div>
-             {errors.password && <span style={{ color: '#ef4444', fontSize: '0.85rem', margin: '0.25rem 0 0 0', display: 'block' }}>{errors.password.message}</span>}
+             {errors.password && <span className="text-red-500 text-xs mt-1 block text-left">{errors.password.message}</span>}
           </div>
         </div>
 
         {/* Buttons Row exactly like screenshot */}
-        <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1.5rem' }}>
+        <div className="flex gap-2 md:gap-3 lg:gap-4 mt-2 lg:mt-4">
             <button
                 type="button"
                 onClick={() => setShowForgotModal(true)}
-                style={{
-                    flex: '1', padding: '1.2rem', borderRadius: '24px',
-                    background: '#f1f5f9', color: '#475569', fontSize: '1.05rem', fontWeight: 800, border: 'none',
-                    cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
-                }}
-                onMouseOver={(e) => e.currentTarget.style.background = '#e2e8f0'}
-                onMouseOut={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                className="flex-1 py-3 md:py-3 lg:py-4 rounded-xl md:rounded-2xl lg:rounded-[24px] bg-slate-100 text-slate-600 text-xs md:text-sm lg:text-base font-extrabold transition-all text-center shadow-sm hover:bg-slate-200 border-none cursor-pointer"
             >
                 {t.forgot}
             </button>
@@ -241,14 +207,7 @@ export default function LoginForm({ lang = 'id' }: { lang?: 'id' | 'en' }) {
             <button
               type="submit"
               disabled={submitting}
-              style={{
-                flex: '1.2', padding: '1.2rem', borderRadius: '24px',
-                background: '#00b0d7', color: '#ffffff', fontSize: '1.05rem', fontWeight: 600, border: 'none',
-                cursor: submitting ? 'not-allowed' : 'pointer', transition: 'all 0.2s',
-                opacity: submitting ? 0.7 : 1, boxShadow: '0 8px 24px rgba(0, 176, 215, 0.25)'
-              }}
-              onMouseOver={(e) => { if(!submitting) e.currentTarget.style.filter = 'brightness(1.1)'; }}
-              onMouseOut={(e) => e.currentTarget.style.filter = 'brightness(1)'}
+              className={`flex-[1.2] py-3 md:py-3 lg:py-4 rounded-xl md:rounded-2xl lg:rounded-[24px] bg-[#00b0d7] text-white text-xs md:text-sm lg:text-base font-bold transition-all border-none shadow-[0_8px_24px_rgba(0,176,215,0.25)] ${submitting ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer hover:brightness-110'}`}
             >
               {submitting ? t.auth : t.login}
             </button>

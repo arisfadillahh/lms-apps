@@ -54,7 +54,7 @@ export default async function AdminClassesPage() {
   const levelMap = new Map(levels.map((level) => [level.id, level.name]));
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <div className="admin-page-stack">
       <AdminClassesPageWrapper
         coaches={coaches}
         levels={levels}

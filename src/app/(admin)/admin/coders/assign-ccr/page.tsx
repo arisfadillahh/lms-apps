@@ -1,31 +1,21 @@
 /**
  * Assign ID Invoice
  * Route: /admin/coders/assign-ccr
- * 
- * Assign CCR (ID Invoice) numbers to new coders/families.
  */
 
 import CCRAssignment from './CCRAssignment';
+import PageHead from '@/components/admin/PageHead';
 
 export const dynamic = 'force-dynamic';
 
 export default function AssignCCRPage() {
-    return (
-        <div style={{ padding: '2rem' }}>
-            <div style={{ marginBottom: '1.5rem' }}>
-                <h1 style={{
-                    fontSize: '1.5rem',
-                    fontWeight: 700,
-                    color: '#1e293b',
-                    marginBottom: '0.5rem'
-                }}>
-                    Assign ID Invoice
-                </h1>
-                <p style={{ color: '#64748b', fontSize: '0.95rem' }}>
-                    Tetapkan nomor ID Invoice (CCR) untuk coder/keluarga baru
-                </p>
-            </div>
-            <CCRAssignment />
-        </div>
-    );
+  return (
+    <div className="col gap-4">
+      <PageHead
+        title="Assign ID Invoice"
+        desc="Tetapkan nomor ID Invoice (CCR) untuk coder atau keluarga baru yang mendaftar."
+      />
+      <CCRAssignment />
+    </div>
+  );
 }

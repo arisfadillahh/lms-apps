@@ -2,6 +2,7 @@ export const revalidate = 0;
 
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import QuestionsClient from './QuestionsClient';
+import PageHead from '@/components/admin/PageHead';
 
 export default async function AdminEvaluationQuestionsPage() {
   const supabase = getSupabaseAdmin();
@@ -23,12 +24,10 @@ export default async function AdminEvaluationQuestionsPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <header>
-        <h1 className="text-3xl font-extrabold text-slate-800 mb-2 tracking-tight">Pertanyaan Refleksi</h1>
-        <p className="text-slate-500 max-w-3xl text-base leading-relaxed">
-          Kelola pertanyaan refleksi evaluasi pada rapor kompetensi, disesuaikan berdasarkan Level / Kelas.
-        </p>
-      </header>
+      <PageHead
+        title="Pertanyaan Refleksi"
+        desc="Kurasi pertanyaan refleksi yang muncul di rapor agar konsisten lintas level."
+      />
 
       <QuestionsClient initialData={templates || []} levels={levels || []} />
     </div>

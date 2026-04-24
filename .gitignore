@@ -53,3 +53,8 @@ baileys_auth_info/
 
 #deploy script
 deploy.sh
+
+# design admin reference folder (outside repo, not tracked)
+# located at ../design admin — already outside git scope
+# design admin reference folder (UI mockups, not for production)
+/design admin/

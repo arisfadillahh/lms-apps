@@ -2,6 +2,7 @@
 
 import { useState, type CSSProperties, type FormEvent, useRef, useCallback } from 'react';
 import { Megaphone, Send, CheckCircle, AlertCircle, Bold, Italic, Link, Image as ImageIcon, List, Undo, Redo } from 'lucide-react';
+import PageHead from '@/components/admin/PageHead';
 
 type Target = 'ALL' | 'COACHES' | 'CODERS';
 
@@ -78,16 +79,10 @@ export default function BroadcastPage() {
 
     return (
         <div style={{ width: '100%' }}>
-            {/* Header */}
-            <div style={{ marginBottom: '2rem' }}>
-                <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <Megaphone size={28} style={{ color: '#1e3a5f' }} />
-                    Broadcast Notifikasi
-                </h1>
-                <p style={{ color: '#64748b', marginTop: '0.25rem' }}>
-                    Kirim notifikasi ke semua Coach, Coder, atau keduanya
-                </p>
-            </div>
+            <PageHead
+                title="Broadcast"
+                desc="Kirim pesan massal ke segmen orang tua, coder, atau coach dengan kontrol delivery."
+            />
 
             {/* Result Banner */}
             {result && (

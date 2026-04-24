@@ -6,6 +6,7 @@ import { assertRole } from '@/lib/roles';
 
 import LeaveApprovalTable from './LeaveApprovalTable';
 import EmergencyLeaveForm from './EmergencyLeaveForm';
+import PageHead from '@/components/admin/PageHead';
 
 export default async function AdminLeavePage() {
   const session = await getSessionOrThrow();
@@ -41,18 +42,16 @@ export default async function AdminLeavePage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 style={{ fontSize: '1.6rem', fontWeight: 600, marginBottom: '0.5rem' }}>Coach Leave Management</h1>
-          <p style={{ color: '#64748b', maxWidth: '52rem' }}>
-            Tinjau dan setujui permohonan cuti coach. Ketika disetujui, pilih coach pengganti agar sesi tetap berjalan.
-          </p>
-        </div>
-        <EmergencyLeaveForm
-          sessions={upcomingSessions}
-          coaches={coaches.map((coach) => ({ id: coach.id, name: coach.full_name }))}
-        />
-      </header>
+      <PageHead
+        title="Izin Coach"
+        desc="Review permintaan izin, pengganti coach, dan follow up operasional pengajaran."
+        actions={
+          <EmergencyLeaveForm
+            sessions={upcomingSessions}
+            coaches={coaches.map((coach) => ({ id: coach.id, name: coach.full_name }))}
+          />
+        }
+      />
 
       <LeaveApprovalTable
         requests={requests}

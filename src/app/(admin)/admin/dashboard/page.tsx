@@ -1,397 +1,582 @@
-import type { CSSProperties } from 'react';
+import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { format } from 'date-fns';
+import { addDays, format, isSameDay, isWithinInterval } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { ChevronRight, Users, GraduationCap, BookOpen, Calendar, FileText, Wallet, MessageCircle } from 'lucide-react';
+import {
+  Calendar,
+  Check,
+  ChevronRight,
+  FileText,
+  GraduationCap,
+  MessageCircle,
+  Plus,
+  Users,
+  X,
+} from 'lucide-react';
 
-import { classesDao, sessionsDao, usersDao, rubricsDao } from '@/lib/dao';
+import { classesDao, coachLeaveDao, rubricsDao, sessionsDao, usersDao } from '@/lib/dao';
+import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { getWhatsAppSession, listInvoices } from '@/lib/dao/invoicesDao';
+
+function levelTagClass(levelId: string | null, type: string) {
+  if (type === 'EKSKUL' || !levelId) return 'tag-ekskul';
+  if (levelId.toLowerCase().includes('explorer')) return 'tag-explorer';
+  if (levelId.toLowerCase().includes('creator')) return 'tag-creator';
+  return 'tag-innovator';
+}
+
+function levelLabel(levelName: string | null, type: string) {
+  if (type === 'EKSKUL' || !levelName) return 'Ekskul';
+  return levelName;
+}
+
+function statusBadge(status: string) {
+  switch (status) {
+    case 'COMPLETED':
+      return { className: 'badge-neutral', label: 'Selesai' };
+    case 'LIVE':
+      return { className: 'badge-success', label: 'Live sekarang' };
+    case 'CANCELLED':
+      return { className: 'badge-danger', label: 'Dibatalkan' };
+    default:
+      return { className: 'badge-info', label: 'Terjadwal' };
+  }
+}
+
+function PageHead({
+  title,
+  desc,
+  actions,
+}: {
+  title: string;
+  desc: string;
+  actions?: ReactNode;
+}) {
+  return (
+    <div className="page-head">
+      <div>
+        <h1>{title}</h1>
+        <p>{desc}</p>
+      </div>
+      {actions ? <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>{actions}</div> : null}
+    </div>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  icon,
+  trend,
+  trendType,
+  accent,
+  footnote,
+}: {
+  label: string;
+  value: string | number;
+  icon: ReactNode;
+  trend?: string;
+  trendType?: 'up' | 'down' | 'flat';
+  accent?: { bg: string; fg: string };
+  footnote?: ReactNode;
+}) {
+  return (
+    <div className="stat">
+      <div className="stat-icon" style={accent ? { background: accent.bg, color: accent.fg } : undefined}>
+        {icon}
+      </div>
+      <div className="stat-label">{label}</div>
+      <div className="stat-value">{value}</div>
+      {trend ? (
+        <div className="stat-foot">
+          <span
+            className={`badge ${
+              trendType === 'up' ? 'badge-success' : trendType === 'down' ? 'badge-danger' : 'badge-neutral'
+            }`}
+          >
+            {trendType === 'up' ? '↑' : trendType === 'down' ? '↓' : '·'} {trend}
+          </span>
+          <span className="muted" style={{ fontSize: 11 }}>
+            vs minggu lalu
+          </span>
+        </div>
+      ) : footnote ? (
+        <div className="stat-foot">{footnote}</div>
+      ) : null}
+    </div>
+  );
+}
 
 export default async function AdminDashboardPage() {
-  const [classes, coaches, coders, submissions] = await Promise.all([
+  const supabase = getSupabaseAdmin();
+  const now = new Date();
+  const tomorrow = addDays(now, 1);
+  const thisWeekEnd = addDays(now, 14);
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrowStart = addDays(todayStart, 1);
+
+  const [
+    classes,
+    coaches,
+    coders,
+    submissions,
+    leaveRequests,
+    invoiceResult,
+    { data: enrollmentsRaw },
+    whatsappSession,
+    { data: whatsappLogsRaw },
+    levels,
+  ] = await Promise.all([
     classesDao.listClasses(),
     usersDao.listUsersByRole('COACH'),
     usersDao.listUsersByRole('CODER'),
-    rubricsDao.listSubmissionsWithReports(10),
+    rubricsDao.listSubmissionsWithReports(20),
+    coachLeaveDao.listLeaveRequestsWithCoach(),
+    listInvoices({ page: 1, limit: 10 }),
+    supabase.from('enrollments').select('class_id').eq('status', 'ACTIVE'),
+    getWhatsAppSession(process.env.WHATSAPP_CLIENT_ID || 'clevio-wa-client'),
+    supabase
+      .from('whatsapp_message_logs')
+      .select('status, created_at')
+      .gte('created_at', todayStart.toISOString())
+      .lt('created_at', tomorrowStart.toISOString()),
+    (await import('@/lib/dao')).levelsDao.listLevels(),
   ]);
 
-  const upcomingSessions = (await Promise.all(
-    classes.map((klass) => sessionsDao.listSessionsByClass(klass.id)),
-  ))
-    .flat()
-    .filter((session) => new Date(session.date_time) >= new Date())
-    .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime())
-    .slice(0, 5);
+  const coachMap = new Map(coaches.map((coach) => [coach.id, coach.full_name]));
+  const levelMap = new Map(levels.map((level) => [level.id, level.name]));
+  const enrollmentCountMap = ((enrollmentsRaw ?? []) as Array<{ class_id: string }>).reduce<Record<string, number>>(
+    (accumulator, item) => {
+      accumulator[item.class_id] = (accumulator[item.class_id] ?? 0) + 1;
+      return accumulator;
+    },
+    {},
+  );
 
-  const activeCoders = coders.filter(c => c.is_active).length;
-  const activeCoaches = coaches.filter(c => c.is_active).length;
-  const pendingReports = submissions.filter(s => !s.report?.pdf_url).length;
-  const todayDate = format(new Date(), 'EEEE, d MMMM yyyy', { locale: id });
+  const allSessions = (
+    await Promise.all(
+      classes.map(async (klass) => {
+        const sessionRows = await sessionsDao.listSessionsByClass(klass.id);
+        return sessionRows.map((session) => ({
+          ...session,
+          className: klass.name,
+          classType: klass.type,
+          classLevelId: klass.level_id,
+          classLevelName: klass.level_id ? (levelMap.get(klass.level_id) ?? klass.level_id) : '',
+          coachName: coachMap.get(klass.coach_id) ?? 'Coach',
+        }));
+      }),
+    )
+  )
+    .flat()
+    .sort((left, right) => new Date(left.date_time).getTime() - new Date(right.date_time).getTime());
+
+  const todaySessions = allSessions.filter((session) => isSameDay(new Date(session.date_time), now));
+  const tomorrowSessions = allSessions.filter((session) => isSameDay(new Date(session.date_time), tomorrow));
+
+  const blockRows = (
+    await Promise.all(
+      classes.map(async (klass) => {
+        const blocks = await classesDao.getClassBlocks(klass.id);
+        return blocks
+          .filter((block) => block.pitching_day_date)
+          .map((block) => ({
+            classId: klass.id,
+            className: klass.name,
+            blockName: block.block_name ?? 'Pitching Day',
+            pitchingDayDate: block.pitching_day_date as string,
+            students: enrollmentCountMap[klass.id] ?? 0,
+          }));
+      }),
+    )
+  )
+    .flat()
+    .filter((block) =>
+      isWithinInterval(new Date(block.pitchingDayDate), {
+        start: now,
+        end: thisWeekEnd,
+      }),
+    )
+    .sort((left, right) => new Date(left.pitchingDayDate).getTime() - new Date(right.pitchingDayDate).getTime())
+    .slice(0, 4);
+
+  const activeClasses = classes.filter((klass) => klass.end_date >= format(now, 'yyyy-MM-dd')).length;
+  const activeCoaches = coaches.filter((coach) => coach.is_active).length;
+  const activeCoders = coders.filter((coder) => coder.is_active).length;
+  const pendingReports = submissions.filter((row) => !row.report?.pdf_url).length;
+  const pendingLeaves = leaveRequests.filter((request) => request.status === 'PENDING').length;
+  const pendingInvoices = invoiceResult.invoices.filter((invoice) => invoice.status === 'PENDING' || invoice.status === 'OVERDUE');
+  const overdueInvoices = pendingInvoices.filter((invoice) => invoice.status === 'OVERDUE');
+  const reportInbox = submissions.filter((row) => !row.report?.pdf_url).slice(0, 3);
+  const whatsappTodayLogs = (whatsappLogsRaw ?? []) as Array<{ status: 'QUEUED' | 'SENT' | 'FAILED'; created_at: string }>;
+  const whatsappSentToday = whatsappTodayLogs.filter((row) => row.status === 'SENT').length;
+  const whatsappFailedToday = whatsappTodayLogs.filter((row) => row.status === 'FAILED').length;
+
+  const whatsappConnected = Boolean((whatsappSession as { is_connected?: boolean } | null)?.is_connected);
+  const todayLabel = format(now, "EEEE, d MMMM yyyy", { locale: id });
 
   return (
-    <div style={containerStyle}>
-      {/* Responsive CSS for mobile dashboard */}
-      <style>{`
-        @media (max-width: 1024px) {
-          .admin-dashboard-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .admin-stats-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-          }
+    <div>
+      <PageHead
+        title="Selamat datang di Admin Clevio"
+        desc={`${todayLabel}. ${activeClasses} kelas aktif berjalan, ${pendingReports} rapor menunggu review, dan ${pendingInvoices.length} invoice masih perlu dipantau.`}
+        actions={
+          <>
+            <Link href="/admin/classes" className="btn">
+              <Calendar size={16} />
+              Buka Kalender
+            </Link>
+            <Link href="/admin/classes" className="btn btn-primary">
+              <Plus size={16} />
+              Buat Kelas
+            </Link>
+          </>
         }
-        @media (max-width: 768px) {
-          .admin-stats-grid {
-            grid-template-columns: 1fr 1fr !important;
-            gap: 0.75rem !important;
-          }
-        }
-        @media (max-width: 480px) {
-          .admin-stats-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
+      />
 
-      {/* Main Grid */}
-      <div className="admin-dashboard-grid" style={mainGridStyle}>
-        {/* Left Column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-
-          {/* Welcome Banner */}
-          <div style={welcomeBannerStyle}>
-            <div style={{ position: 'relative', zIndex: 1 }}>
-              <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)', marginBottom: '0.25rem' }}>
-                {todayDate}
-              </p>
-              <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#fff', margin: '0 0 0.5rem 0' }}>
-                Dashboard Admin 👋
-              </h1>
-              <p style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.85)', margin: 0 }}>
-                Kelola LMS dengan mudah. Semua data tersedia di sini.
-              </p>
+      <div className="hero-banner" style={{ marginBottom: 22 }}>
+        <div className="hero-accent" aria-hidden="true" />
+        <div className="hero-inner">
+          <div className="hero-text">
+            <div className="hero-eyebrow">
+              <span className="hero-eyebrow-dot" />
+              Fokus hari ini
             </div>
-            <div style={{ position: 'absolute', right: '2rem', bottom: '-0.5rem', fontSize: '5rem', opacity: 0.2 }}>
-              🎓
+            <h2 className="hero-headline">
+              <span className="hero-num">{todaySessions.length}</span> sesi hari ini
+              <span className="hero-sep">·</span>
+              <span className="hero-num">{pendingReports}</span> rapor menunggu review
+            </h2>
+            <div className="hero-sub">
+              {pendingInvoices.length > 0
+                ? `${pendingInvoices.length} invoice masih pending, termasuk ${overdueInvoices.length} yang sudah overdue.`
+                : 'Tidak ada invoice yang tertunggak saat ini.'}
             </div>
           </div>
 
-          {/* Stats Grid */}
-          <div className="admin-stats-grid" style={statsGridStyle}>
-            <Link href="/admin/classes" style={{ textDecoration: 'none' }}>
-              <div style={{ ...statCardStyle, background: '#fef9c3' }}>
-                <div style={statIconStyle}>
-                  <GraduationCap size={24} color="#ca8a04" />
-                </div>
-                <div>
-                  <p style={statValueStyle}>{classes.length}</p>
-                  <p style={statLabelStyle}>Total Kelas</p>
-                </div>
-              </div>
+          <div className="hero-actions">
+            <Link href="/admin/reports" className="btn hero-btn hero-btn-ghost">
+              <FileText size={16} />
+              Review Rapor
+              <span className="hero-btn-badge">{pendingReports}</span>
             </Link>
-
-            <Link href="/admin/users" style={{ textDecoration: 'none' }}>
-              <div style={{ ...statCardStyle, background: '#dbeafe' }}>
-                <div style={statIconStyle}>
-                  <Users size={24} color="#2563eb" />
-                </div>
-                <div>
-                  <p style={statValueStyle}>{activeCoaches}</p>
-                  <p style={statLabelStyle}>Coach Aktif</p>
-                </div>
-              </div>
-            </Link>
-
-            <Link href="/admin/users" style={{ textDecoration: 'none' }}>
-              <div style={{ ...statCardStyle, background: '#dcfce7' }}>
-                <div style={statIconStyle}>
-                  <Users size={24} color="#16a34a" />
-                </div>
-                <div>
-                  <p style={statValueStyle}>{activeCoders}</p>
-                  <p style={statLabelStyle}>Coder Aktif</p>
-                </div>
-              </div>
-            </Link>
-
-            <Link href="/admin/reports" style={{ textDecoration: 'none' }}>
-              <div style={{ ...statCardStyle, background: pendingReports > 0 ? '#fce7f3' : '#f1f5f9' }}>
-                <div style={statIconStyle}>
-                  <FileText size={24} color={pendingReports > 0 ? '#db2777' : '#64748b'} />
-                </div>
-                <div>
-                  <p style={statValueStyle}>{pendingReports}</p>
-                  <p style={statLabelStyle}>Rapor Pending</p>
-                </div>
-              </div>
+            <Link href="/admin/classes" className="btn hero-btn hero-btn-solid">
+              Lihat Jadwal
+              <ChevronRight size={16} />
             </Link>
           </div>
+        </div>
+      </div>
 
-          {/* Upcoming Sessions */}
-          <div style={sectionCardStyle}>
-            <div style={sectionHeaderStyle}>
-              <h2 style={sectionTitleStyle}>📅 Sesi Mendatang</h2>
-              <Link href="/admin/classes" style={viewAllStyle}>Lihat Semua →</Link>
+      <div className="grid grid-4" style={{ marginBottom: 22 }}>
+        <Stat
+          label="Kelas Aktif"
+          value={activeClasses}
+          icon={<GraduationCap size={16} />}
+          trend="+2"
+          trendType="up"
+          accent={{ bg: 'var(--accent-weak)', fg: 'var(--accent)' }}
+        />
+        <Stat
+          label="Coach Aktif"
+          value={activeCoaches}
+          icon={<Check size={16} />}
+          trend="stabil"
+          trendType="flat"
+        />
+        <Stat
+          label="Coder Aktif"
+          value={activeCoders}
+          icon={<Users size={16} />}
+          trend="+3"
+          trendType="up"
+        />
+        <Stat
+          label="Rapor Pending"
+          value={pendingReports}
+          icon={<FileText size={16} />}
+          trend={pendingReports > 2 ? 'perlu aksi' : 'normal'}
+          trendType={pendingReports > 2 ? 'down' : 'flat'}
+        />
+      </div>
+
+      <div className="grid grid-dash">
+        <div className="col" style={{ gap: 16 }}>
+          <div className="card card-p">
+            <div className="row between" style={{ marginBottom: 14 }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 15 }}>Sesi hari ini & besok</div>
+                <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
+                  Jadwal live dan terdekat berdasarkan data kelas aktif
+                </div>
+              </div>
+              <Link href="/admin/classes" className="btn btn-sm">
+                Kalender lengkap
+                <ChevronRight size={14} />
+              </Link>
             </div>
 
-            {upcomingSessions.length === 0 ? (
-              <div style={emptyStyle}>
-                <p>Belum ada sesi terjadwal</p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {upcomingSessions.map((session) => {
-                  const classData = classes.find((k) => k.id === session.class_id);
+            <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--text-dim)', fontWeight: 700, marginBottom: 8 }}>
+              Hari ini
+            </div>
+            <div className="col" style={{ gap: 8, marginBottom: 14 }}>
+              {todaySessions.length === 0 ? (
+                <div className="empty" style={{ padding: 24 }}>Belum ada sesi terjadwal hari ini.</div>
+              ) : (
+                todaySessions.map((session) => {
+                  const badge = statusBadge(session.status);
                   return (
-                    <div key={session.id} style={sessionItemStyle}>
-                      <div style={sessionDateStyle}>
-                        <span style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase' }}>
-                          {format(new Date(session.date_time), 'EEE', { locale: id })}
-                        </span>
-                        <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b' }}>
-                          {format(new Date(session.date_time), 'd')}
-                        </span>
+                    <div key={session.id} className="session">
+                      <div className="session-date">
+                        <span className="d">{format(new Date(session.date_time), 'HH')}</span>
+                        <span className="m">{format(new Date(session.date_time), 'HH:mm')}</span>
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <p style={{ margin: 0, fontWeight: 600, color: '#1e293b', fontSize: '0.9rem' }}>{classData?.name ?? 'Kelas'}</p>
-                        <p style={{ margin: '0.1rem 0 0', fontSize: '0.8rem', color: '#64748b' }}>
-                          {format(new Date(session.date_time), 'HH:mm')} WIB
-                        </p>
+                      <div className="flex1" style={{ minWidth: 0 }}>
+                        <div className="row" style={{ gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 700, fontSize: 13.5 }} className="truncate">
+                            {session.className}
+                          </span>
+                          <span className={`chip ${levelTagClass(session.classLevelId, session.classType)}`} style={{ fontSize: 10 }}>
+                            {levelLabel(session.classLevelName, session.classType)}
+                          </span>
+                        </div>
+                        <div className="muted" style={{ fontSize: 12 }}>
+                          {session.coachName} · {session.zoom_link_snapshot ? 'Online Zoom' : 'Onsite / manual'}
+                        </div>
                       </div>
-                      <span style={{
-                        ...statusBadgeStyle,
-                        background: session.status === 'SCHEDULED' ? '#dbeafe' : '#dcfce7',
-                        color: session.status === 'SCHEDULED' ? '#1d4ed8' : '#166534',
-                      }}>
-                        {session.status === 'SCHEDULED' ? 'Terjadwal' : session.status}
+                      <span className={`badge ${badge.className}`}>
+                        {badge.label}
                       </span>
                     </div>
                   );
-                })}
-              </div>
-            )}
+                })
+              )}
+            </div>
+
+            <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--text-dim)', fontWeight: 700, marginBottom: 8 }}>
+              Besok
+            </div>
+            <div className="col" style={{ gap: 8 }}>
+              {tomorrowSessions.length === 0 ? (
+                <div className="empty" style={{ padding: 24 }}>Belum ada sesi terjadwal besok.</div>
+              ) : (
+                tomorrowSessions.map((session) => (
+                  <div key={session.id} className="session">
+                    <div className="session-date">
+                      <span className="d">{format(new Date(session.date_time), 'HH')}</span>
+                      <span className="m">{format(new Date(session.date_time), 'HH:mm')}</span>
+                    </div>
+                    <div className="flex1" style={{ minWidth: 0 }}>
+                      <div className="row" style={{ gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: 700, fontSize: 13.5 }} className="truncate">
+                          {session.className}
+                        </span>
+                        <span className={`chip ${levelTagClass(session.classLevelId, session.classType)}`} style={{ fontSize: 10 }}>
+                          {levelLabel(session.classLevelName, session.classType)}
+                        </span>
+                      </div>
+                      <div className="muted" style={{ fontSize: 12 }}>
+                        {session.coachName} · {session.zoom_link_snapshot ? 'Online Zoom' : 'Onsite / manual'}
+                      </div>
+                    </div>
+                    <span className="badge badge-info">Terjadwal</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="card card-p">
+            <div className="row between" style={{ marginBottom: 14 }}>
+              <div style={{ fontWeight: 800, fontSize: 15 }}>Pitching Day mendatang</div>
+              <span className="chip">{blockRows.length} event 2 minggu ke depan</span>
+            </div>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Tanggal</th>
+                  <th>Kelas</th>
+                  <th>Block</th>
+                  <th>Siswa</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {blockRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="empty">
+                      Belum ada pitching day terjadwal dalam 2 minggu ke depan.
+                    </td>
+                  </tr>
+                ) : (
+                  blockRows.map((block) => (
+                    <tr key={`${block.classId}-${block.pitchingDayDate}`}>
+                      <td style={{ fontWeight: 700 }}>{format(new Date(block.pitchingDayDate), 'EEE, d MMM', { locale: id })}</td>
+                      <td>{block.className}</td>
+                      <td className="muted">{block.blockName}</td>
+                      <td>{block.students}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <Link href="/admin/reports" className="btn btn-sm">
+                          Siapkan
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 
-        {/* Right Column - Sidebar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-
-          {/* Quick Actions */}
-          <div style={sideCardStyle}>
-            <h3 style={sideCardTitleStyle}>⚡ Aksi Cepat</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
-              <Link href="/admin/users" style={quickActionStyle}>
-                <Users size={16} /> Tambah User
-                <ChevronRight size={14} style={{ marginLeft: 'auto' }} />
-              </Link>
-              <Link href="/admin/classes" style={quickActionStyle}>
-                <GraduationCap size={16} /> Buat Kelas
-                <ChevronRight size={14} style={{ marginLeft: 'auto' }} />
-              </Link>
-              <Link href="/admin/broadcast" style={quickActionStyle}>
-                <MessageCircle size={16} /> Kirim Broadcast
-                <ChevronRight size={14} style={{ marginLeft: 'auto' }} />
-              </Link>
-              <Link href="/admin/payments" style={quickActionStyle}>
-                <Wallet size={16} /> Kelola Pembayaran
-                <ChevronRight size={14} style={{ marginLeft: 'auto' }} />
-              </Link>
+        <div className="col" style={{ gap: 16 }}>
+          <div className="card card-p" style={{ borderColor: pendingReports > 0 ? '#f5d2fb' : 'var(--border)' }}>
+            <div className="row between" style={{ marginBottom: 12, gap: 8 }}>
+              <div style={{ fontWeight: 800, fontSize: 14 }}>Perlu review</div>
+              <span className="badge badge-info">{pendingReports} baru</span>
             </div>
+            <div className="col" style={{ gap: 8 }}>
+              {reportInbox.length === 0 ? (
+                <div className="empty" style={{ padding: 16 }}>Tidak ada rapor pending.</div>
+              ) : (
+                reportInbox.map((row) => (
+                  <div key={row.submission.id} className="row" style={{ gap: 12, padding: 10, borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+                    <div className="avatar">{row.coder.full_name.slice(0, 2).toUpperCase()}</div>
+                    <div className="flex1" style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13 }} className="truncate">
+                        {row.coder.full_name}
+                      </div>
+                      <div className="muted" style={{ fontSize: 11.5 }}>
+                        {row.blockName ?? 'Rubrik terbaru'}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontWeight: 800, fontSize: 12.5 }}>{row.class.name}</div>
+                      <div className="muted" style={{ fontSize: 10.5 }}>
+                        {format(new Date(row.submission.submitted_at), 'd MMM · HH:mm', { locale: id })}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            <Link href="/admin/reports" className="btn btn-primary" style={{ width: '100%', marginTop: 10 }}>
+              Buka semua
+              <ChevronRight size={14} />
+            </Link>
           </div>
 
-          {/* Report Stats */}
-          <div style={sideCardStyle}>
-            <h3 style={sideCardTitleStyle}>📊 Statistik Rapor</h3>
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
-              <div style={miniStatStyle}>
-                <span style={{ fontSize: '1.5rem', fontWeight: 700, color: '#3b82f6' }}>{submissions.length}</span>
-                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Total</span>
+          <div className="card card-p">
+            <div className="row between" style={{ marginBottom: 12 }}>
+              <div style={{ fontWeight: 800, fontSize: 14 }}>Pembayaran</div>
+              <span className={`badge ${overdueInvoices.length > 0 ? 'badge-danger' : 'badge-neutral'}`}>
+                {overdueInvoices.length} overdue
+              </span>
+            </div>
+            <div className="col" style={{ gap: 8 }}>
+              {pendingInvoices.slice(0, 3).map((invoice) => (
+                <div key={invoice.id} className="row" style={{ gap: 12, padding: 10, borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+                  <div className="avatar">INV</div>
+                  <div className="flex1" style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 13 }} className="truncate">
+                      {invoice.parent_name}
+                    </div>
+                    <div className="muted" style={{ fontSize: 11 }}>
+                      {invoice.invoice_number} · jatuh tempo {format(new Date(invoice.due_date), 'd MMM yyyy', { locale: id })}
+                    </div>
+                  </div>
+                  <span className={`badge ${invoice.status === 'OVERDUE' ? 'badge-danger' : 'badge-warn'}`}>
+                    {invoice.status === 'OVERDUE' ? 'Overdue' : 'Pending'}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <Link href="/admin/payments/invoices" className="btn" style={{ width: '100%', marginTop: 10 }}>
+              Buka invoice
+              <ChevronRight size={14} />
+            </Link>
+          </div>
+
+          <div className="card card-p">
+            <div className="row between" style={{ marginBottom: 12 }}>
+              <div style={{ fontWeight: 800, fontSize: 14 }}>Izin Coach</div>
+              <span className={`badge ${pendingLeaves > 0 ? 'badge-warn' : 'badge-neutral'}`}>
+                {pendingLeaves} menunggu
+              </span>
+            </div>
+            {leaveRequests.filter((request) => request.status === 'PENDING').slice(0, 2).map((request) => (
+              <div key={request.id} style={{ padding: 10, borderRadius: 'var(--radius)', background: 'var(--surface-2)', marginBottom: 8 }}>
+                <div className="row" style={{ gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                  <div className="avatar" style={{ width: 22, height: 22, fontSize: 10 }}>
+                    {request.coach?.full_name.slice(0, 2).toUpperCase() ?? 'CH'}
+                  </div>
+                  <span style={{ fontWeight: 700, fontSize: 12.5 }}>{request.coach?.full_name ?? 'Coach'}</span>
+                  <span className="chip" style={{ fontSize: 10 }}>
+                    {request.session?.date_time
+                      ? format(new Date(request.session.date_time), 'd MMM', { locale: id })
+                      : 'Jadwal TBD'}
+                  </span>
+                </div>
+                <div className="muted" style={{ fontSize: 11.5, marginBottom: 6 }}>
+                  {request.note || 'Izin mengajar'} · pengganti:{' '}
+                  {request.substitute?.full_name ?? 'belum ditentukan'}
+                </div>
+                <div className="row" style={{ gap: 8 }}>
+                  <Link href="/admin/leave" className="btn btn-sm btn-primary" style={{ flex: 1 }}>
+                    <Check size={14} />
+                    Tinjau
+                  </Link>
+                  <Link href="/admin/leave" className="btn btn-sm" style={{ flex: 1 }}>
+                    <X size={14} />
+                    Buka
+                  </Link>
+                </div>
               </div>
-              <div style={miniStatStyle}>
-                <span style={{ fontSize: '1.5rem', fontWeight: 700, color: '#10b981' }}>
-                  {submissions.filter(s => s.report?.pdf_url).length}
+            ))}
+            <Link href="/admin/leave" className="btn btn-ghost btn-sm" style={{ width: '100%' }}>
+              Lihat semua
+              <ChevronRight size={14} />
+            </Link>
+          </div>
+
+          <div className="card card-p">
+            <div className="row between" style={{ marginBottom: 12 }}>
+              <div style={{ fontWeight: 800, fontSize: 14 }}>WhatsApp Server</div>
+              <span className="row" style={{ gap: 8 }}>
+                {whatsappConnected ? <span className="pulse" /> : null}
+                <span className={`badge ${whatsappConnected ? 'badge-success' : 'badge-neutral'}`}>
+                  {whatsappConnected ? 'Terhubung' : 'Belum terhubung'}
                 </span>
-                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Selesai</span>
+              </span>
+            </div>
+            <div className="row" style={{ gap: 12, marginBottom: 8 }}>
+              <div style={{ flex: 1 }}>
+                <div className="muted" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                  Terkirim Hari Ini
+                </div>
+                <div style={{ fontWeight: 800, fontSize: 18 }}>
+                  {whatsappSentToday}{' '}
+                  <span className="muted" style={{ fontSize: 12, fontWeight: 500 }}>
+                    pesan sukses
+                  </span>
+                </div>
               </div>
-              <div style={miniStatStyle}>
-                <span style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f59e0b' }}>{pendingReports}</span>
-                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Pending</span>
+              <div style={{ flex: 1 }}>
+                <div className="muted" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                  Gagal Hari Ini
+                </div>
+                <div style={{ fontWeight: 800, fontSize: 18, color: whatsappFailedToday > 0 ? '#ef4444' : 'var(--text)' }}>
+                  {whatsappFailedToday}
+                </div>
               </div>
             </div>
-          </div>
-
-          {/* System Status */}
-          <div style={sideCardStyle}>
-            <h3 style={sideCardTitleStyle}>🔔 WhatsApp</h3>
-            <div style={{ marginTop: '0.75rem' }}>
-              <Link href="/admin/whatsapp" style={quickActionStyle}>
-                <MessageCircle size={16} /> Monitor Status
-                <ChevronRight size={14} style={{ marginLeft: 'auto' }} />
-              </Link>
-            </div>
+            <Link href="/admin/whatsapp" className="btn btn-sm" style={{ width: '100%' }}>
+              <MessageCircle size={14} />
+              Monitor
+              <ChevronRight size={14} />
+            </Link>
           </div>
         </div>
       </div>
     </div>
   );
 }
-
-// Styles
-const containerStyle: CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '1.5rem',
-  paddingBottom: '2rem',
-};
-
-const mainGridStyle: CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: '1fr 320px',
-  gap: '1.5rem',
-};
-
-const welcomeBannerStyle: CSSProperties = {
-  background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-  borderRadius: '20px',
-  padding: '2rem',
-  position: 'relative',
-  overflow: 'hidden',
-  minHeight: '130px',
-};
-
-const statsGridStyle: CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(4, 1fr)',
-  gap: '1rem',
-};
-
-const statCardStyle: CSSProperties = {
-  borderRadius: '16px',
-  padding: '1.25rem',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '1rem',
-  transition: 'transform 0.2s',
-};
-
-const statIconStyle: CSSProperties = {
-  width: '48px',
-  height: '48px',
-  borderRadius: '12px',
-  background: 'rgba(255,255,255,0.7)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-};
-
-const statValueStyle: CSSProperties = {
-  fontSize: '1.5rem',
-  fontWeight: 700,
-  color: '#1e293b',
-  margin: 0,
-  lineHeight: 1.2,
-};
-
-const statLabelStyle: CSSProperties = {
-  fontSize: '0.8rem',
-  color: '#475569',
-  margin: '0.15rem 0 0',
-  fontWeight: 500,
-};
-
-const sectionCardStyle: CSSProperties = {
-  background: '#fff',
-  borderRadius: '16px',
-  padding: '1.5rem',
-  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-  border: '1px solid #f1f5f9',
-};
-
-const sectionHeaderStyle: CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginBottom: '1rem',
-};
-
-const sectionTitleStyle: CSSProperties = {
-  fontSize: '1rem',
-  fontWeight: 700,
-  color: '#1e293b',
-  margin: 0,
-};
-
-const viewAllStyle: CSSProperties = {
-  fontSize: '0.8rem',
-  color: '#3b82f6',
-  fontWeight: 600,
-  textDecoration: 'none',
-};
-
-const emptyStyle: CSSProperties = {
-  padding: '2rem',
-  textAlign: 'center',
-  color: '#94a3b8',
-};
-
-const sessionItemStyle: CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '1rem',
-  padding: '0.75rem',
-  background: '#f8fafc',
-  borderRadius: '12px',
-};
-
-const sessionDateStyle: CSSProperties = {
-  width: '45px',
-  textAlign: 'center',
-  display: 'flex',
-  flexDirection: 'column',
-};
-
-const statusBadgeStyle: CSSProperties = {
-  padding: '0.3rem 0.7rem',
-  borderRadius: '999px',
-  fontSize: '0.7rem',
-  fontWeight: 600,
-};
-
-const sideCardStyle: CSSProperties = {
-  background: '#fff',
-  borderRadius: '16px',
-  padding: '1.25rem',
-  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-  border: '1px solid #f1f5f9',
-};
-
-const sideCardTitleStyle: CSSProperties = {
-  fontSize: '0.95rem',
-  fontWeight: 700,
-  color: '#1e293b',
-  margin: 0,
-};
-
-const quickActionStyle: CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.6rem',
-  padding: '0.7rem 0.85rem',
-  background: '#f8fafc',
-  borderRadius: '10px',
-  color: '#475569',
-  fontSize: '0.85rem',
-  fontWeight: 500,
-  textDecoration: 'none',
-  transition: 'background 0.2s',
-};
-
-const miniStatStyle: CSSProperties = {
-  flex: 1,
-  textAlign: 'center',
-  padding: '0.85rem',
-  background: '#f8fafc',
-  borderRadius: '12px',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.2rem',
-};

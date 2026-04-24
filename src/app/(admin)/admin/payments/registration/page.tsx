@@ -2,6 +2,7 @@
 
 import { useState, useEffect, type CSSProperties } from 'react';
 import { UserPlus, Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import PageHead from '@/components/admin/PageHead';
 
 type NewCoder = {
     id: string;
@@ -153,45 +154,27 @@ export default function RegistrationInvoicePage() {
     }
 
     return (
-        <div style={{ maxWidth: '1000px' }}>
-            {/* Header */}
-            <div style={headerStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <div style={iconBoxStyle}>
-                        <UserPlus size={22} />
-                    </div>
-                    <div>
-                        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
-                            Invoice Pendaftaran
-                        </h1>
-                        <p style={{ color: '#64748b', margin: '0.25rem 0 0', fontSize: '0.9rem' }}>
-                            Generate invoice biaya pendaftaran untuk coder baru
-                        </p>
-                    </div>
-                </div>
-            </div>
+        <div className="col gap-4">
+            <PageHead
+                title="Registrasi Weekly"
+                desc="Generate invoice biaya pendaftaran untuk coder baru yang belum memiliki invoice."
+            />
 
             {/* Fee Info Card */}
             {settings && (
-                <div style={feeCardStyle}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                <div className="card card-p">
+                    <div className="row" style={{ gap: 24, flexWrap: 'wrap' }}>
                         <div>
-                            <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Biaya Pendaftaran</span>
-                            <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b' }}>
-                                {formatCurrency(settings.registration_fee)}
-                            </div>
+                            <div className="muted" style={{ fontSize: 12 }}>Biaya Pendaftaran</div>
+                            <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>{formatCurrency(settings.registration_fee)}</div>
                         </div>
                         <div>
-                            <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Diskon</span>
-                            <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f59e0b' }}>
-                                {settings.registration_fee_discount_percent}%
-                            </div>
+                            <div className="muted" style={{ fontSize: 12 }}>Diskon</div>
+                            <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>{settings.registration_fee_discount_percent}%</div>
                         </div>
                         <div>
-                            <span style={{ color: '#64748b', fontSize: '0.85rem' }}>Total Bayar</span>
-                            <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#16a34a' }}>
-                                {formatCurrency(calculateFinalFee())}
-                            </div>
+                            <div className="muted" style={{ fontSize: 12 }}>Total Bayar</div>
+                            <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--success)' }}>{formatCurrency(calculateFinalFee())}</div>
                         </div>
                     </div>
                 </div>
@@ -199,85 +182,67 @@ export default function RegistrationInvoicePage() {
 
             {/* Message */}
             {message && (
-                <div style={message.type === 'success' ? successBoxStyle : errorBoxStyle}>
+                <div className={`badge ${message.type === 'success' ? 'badge-success' : 'badge-danger'}`} style={{ padding: '10px 14px', fontSize: 13 }}>
                     {message.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
                     {message.text}
                 </div>
             )}
 
-            {/* Actions */}
-            <div style={actionsStyle}>
-                <span style={{ color: '#64748b', fontSize: '0.9rem' }}>
-                    {coders.length} coder belum memiliki invoice pendaftaran
-                </span>
+            <div className="row between" style={{ marginBottom: 8 }}>
+                <span className="muted">{coders.length} coder belum memiliki invoice pendaftaran</span>
                 {coders.length > 0 && (
-                    <button
-                        style={generateAllButtonStyle}
-                        onClick={handleGenerateAll}
-                        disabled={generating === 'all'}
-                    >
+                    <button className="btn btn-primary" onClick={handleGenerateAll} disabled={generating === 'all'}>
                         {generating === 'all' ? 'Generating...' : 'Generate Semua'}
                     </button>
                 )}
             </div>
 
-            {/* Coders Table */}
-            <div style={tableContainerStyle}>
-                <table style={tableStyle}>
-                    <thead>
-                        <tr>
-                            <th style={thStyle}>Nama Coder</th>
-                            <th style={thStyle}>Orang Tua</th>
-                            <th style={thStyle}>No. HP</th>
-                            <th style={thStyle}>Terdaftar</th>
-                            <th style={thStyle}>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {coders.length === 0 ? (
+            <div className="card" style={{ overflow: 'hidden' }}>
+                <div style={{ overflowX: 'auto' }}>
+                    <table className="table">
+                        <thead>
                             <tr>
-                                <td colSpan={5} style={emptyStyle}>
-                                    Semua coder sudah memiliki invoice pendaftaran
-                                </td>
+                                <th>Nama Coder</th>
+                                <th>Orang Tua</th>
+                                <th>No. HP</th>
+                                <th>Terdaftar</th>
+                                <th />
                             </tr>
-                        ) : (
-                            coders.map((coder) => (
-                                <tr key={coder.id} style={trStyle}>
-                                    <td style={tdStyle}>
-                                        <span style={{ fontWeight: 600, color: '#1e293b' }}>{coder.full_name}</span>
-                                    </td>
-                                    <td style={tdStyle}>{coder.parent_name || '-'}</td>
-                                    <td style={tdStyle}>
-                                        {coder.parent_contact_phone || (
-                                            <span style={{ color: '#ef4444', fontSize: '0.85rem' }}>Tidak ada</span>
-                                        )}
-                                    </td>
-                                    <td style={tdStyle}>{formatDate(coder.created_at)}</td>
-                                    <td style={tdStyle}>
-                                        {coder.parent_contact_phone ? (
-                                            <button
-                                                style={generateButtonStyle}
-                                                onClick={() => handleGenerate(coder.id)}
-                                                disabled={generating === coder.id}
-                                            >
-                                                {generating === coder.id ? (
-                                                    <Loader2 size={14} className="animate-spin" />
-                                                ) : (
-                                                    <Send size={14} />
-                                                )}
-                                                {generating === coder.id ? 'Processing...' : 'Generate'}
-                                            </button>
-                                        ) : (
-                                            <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
-                                                Perlu no. HP
-                                            </span>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {coders.length === 0 ? (
+                                <tr><td colSpan={5} className="empty">Semua coder sudah memiliki invoice pendaftaran</td></tr>
+                            ) : (
+                                coders.map((coder) => (
+                                    <tr key={coder.id}>
+                                        <td><span style={{ fontWeight: 600 }}>{coder.full_name}</span></td>
+                                        <td>{coder.parent_name || '—'}</td>
+                                        <td>
+                                            {coder.parent_contact_phone || (
+                                                <span className="badge badge-danger">Tidak ada</span>
+                                            )}
+                                        </td>
+                                        <td className="muted" style={{ fontSize: 12.5 }}>{formatDate(coder.created_at)}</td>
+                                        <td style={{ textAlign: 'right' }}>
+                                            {coder.parent_contact_phone ? (
+                                                <button
+                                                    className="btn btn-sm btn-primary"
+                                                    onClick={() => handleGenerate(coder.id)}
+                                                    disabled={generating === coder.id}
+                                                >
+                                                    {generating === coder.id ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                                                    {generating === coder.id ? 'Processing...' : 'Generate'}
+                                                </button>
+                                            ) : (
+                                                <span className="muted" style={{ fontSize: 12 }}>Perlu no. HP</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );

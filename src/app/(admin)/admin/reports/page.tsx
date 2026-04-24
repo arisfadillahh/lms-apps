@@ -1,24 +1,15 @@
-import type { CSSProperties } from 'react';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { getAppBaseUrl } from '@/lib/env';
-import { Inbox, History, CheckCircle2, Mail, Eye } from 'lucide-react';
+import { Eye, Check, X, Mail, Send } from 'lucide-react';
 import SendReportButton from './SendReportButton';
 import RejectReportButton from './RejectReportButton';
+import PageHead from '@/components/admin/PageHead';
 
 export const revalidate = 0;
-
-/*
-- [x] WhatsApp Client: Sistem kini menggunakan Baileys secara eksklusif (tidak lagi butuh `WA_WORKER_URL`).
-- [x] Migrasi SQL: `migrations/20260312_report_add_sent_status.sql` (Add SENT & SUBMITTED values to Enum).
-- [x] API Update: `POST /api/admin/reports/[id]/send-whatsapp` kini mengubah status ke `PUBLISHED`.
-- [x] Filter Coder: `/coder/reports` hanya me-listing status `PUBLISHED`.
-- [x] Filter Preview: `/report/[id]` mengecek session untuk status non-PUBLISHED.
-*/
 
 export default async function AdminReportsPage() {
   const supabase = getSupabaseAdmin();
 
-  // Fetch all reports that are NOT DRAFT
   const { data: reports, error } = await supabase
     .from('block_reports')
     .select(`
@@ -42,70 +33,91 @@ export default async function AdminReportsPage() {
   }
 
   const allReports = reports || [];
-  const submittedReports = allReports.filter(r => r.status === 'SUBMITTED');
-  const publishedReports = allReports.filter(r => r.status === 'PUBLISHED');
+  const submittedReports = allReports.filter((r) => r.status === 'SUBMITTED');
+  const publishedReports = allReports.filter((r) => r.status === 'PUBLISHED');
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <header>
-        <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#1e293b', marginBottom: '0.5rem', letterSpacing: '-0.02em' }}>Clevio Digital Reports</h1>
-        <p style={{ color: '#64748b', maxWidth: '56rem', fontSize: '1rem', lineHeight: '1.6' }}>
-          Kelola alur persetujuan rapor. Rapor yang sudah di-publish Coach akan masuk ke <b>Inbox</b>. 
-          Pencet tombol "Publish & Kirim" untuk mengirim ke Orang Tua dan memunculkannya di dashboard Coder.
-        </p>
-      </header>
+    <div className="col gap-4">
+      <PageHead
+        title="Status Rapor"
+        desc="Kelola inbox rapor, approval admin, dan distribusi laporan ke orang tua."
+      />
 
-      {/* INBOX SECTION */}
-      <section style={cardStyle}>
-        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ padding: '0.4rem', borderRadius: '8px', background: '#3b82f6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Inbox size={20} />
-            </div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Inbox Rapor (Perlu Review Admin)</h3>
-          </div>
-          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1d4ed8', background: '#dbeafe', padding: '0.2rem 0.8rem', borderRadius: '20px' }}>
-            {submittedReports.length} Menunggu
-          </span>
+      {/* Stat Strip */}
+      <div className="grid grid-4">
+        <div className="stat">
+          <div className="stat-icon"><Mail size={16} /></div>
+          <div className="stat-label">Menunggu Review</div>
+          <div className="stat-value">{submittedReports.length}</div>
         </div>
-        <ReportTable reports={submittedReports} isInbox={true} />
-      </section>
+        <div className="stat">
+          <div className="stat-icon"><Check size={16} /></div>
+          <div className="stat-label">Terkirim Bulan Ini</div>
+          <div className="stat-value">{publishedReports.length}</div>
+        </div>
+        <div className="stat">
+          <div className="stat-icon"><Send size={16} /></div>
+          <div className="stat-label">Via WhatsApp</div>
+          <div className="stat-value">{allReports.filter((r) => r.sent_via_whatsapp).length}</div>
+        </div>
+        <div className="stat">
+          <div className="stat-icon"><Eye size={16} /></div>
+          <div className="stat-label">Total Rapor</div>
+          <div className="stat-value">{allReports.length}</div>
+        </div>
+      </div>
 
-      {/* HISTORY SECTION */}
-      <section style={{ ...cardStyle, opacity: 0.85 }}>
-        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ padding: '0.4rem', borderRadius: '8px', background: '#10b981', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <History size={20} />
+      {/* Inbox — Perlu Review Admin */}
+      <div className="card">
+        <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', background: 'var(--surface-2)' }}>
+          <div className="row between">
+            <div className="row gap-2">
+              <div style={{ width: 28, height: 28, borderRadius: 'var(--radius-sm)', background: 'var(--accent)', color: 'var(--accent-contrast)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Mail size={15} />
+              </div>
+              <div style={{ fontWeight: 800, fontSize: 14.5 }}>Inbox Rapor — perlu review Admin</div>
             </div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Riwayat Rapor Terkirim</h3>
+            <span className="badge badge-info">{submittedReports.length} menunggu</span>
+          </div>
+        </div>
+        <ReportTable reports={submittedReports} isInbox />
+      </div>
+
+      {/* History */}
+      <div className="card">
+        <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
+          <div className="row gap-2">
+            <div style={{ width: 28, height: 28, borderRadius: 'var(--radius-sm)', background: '#e9f7ed', color: '#117a3a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Check size={15} />
+            </div>
+            <div style={{ fontWeight: 800, fontSize: 14.5 }}>Riwayat Rapor Terkirim</div>
           </div>
         </div>
         <ReportTable reports={publishedReports} isInbox={false} />
-      </section>
+      </div>
     </div>
   );
 }
 
-function ReportTable({ reports, isInbox }: { reports: any[], isInbox: boolean }) {
+function ReportTable({ reports, isInbox }: { reports: any[]; isInbox: boolean }) {
   return (
     <div style={{ overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead style={{ background: '#f8fafc', textAlign: 'left' }}>
+      <table className="table">
+        <thead>
           <tr>
-            <th style={thStyle}>Coder</th>
-            <th style={thStyle}>Kelas & Block</th>
-            <th style={thStyle}>Nilai</th>
-            <th style={thStyle}>{isInbox ? 'Dipublish Coach Pada' : 'Dikirim Admin Pada'}</th>
-            <th style={thStyle}>Kirim WA</th>
-            <th style={thStyle}>Aksi</th>
+            <th>Coder</th>
+            <th>Kelas & Block</th>
+            <th>Nilai</th>
+            <th>{isInbox ? 'Dipublish Coach Pada' : 'Dikirim Admin Pada'}</th>
+            <th>Status WA</th>
+            <th />
           </tr>
         </thead>
         <tbody>
           {reports.length === 0 ? (
             <tr>
-              <td colSpan={6} style={{ padding: '3rem 2rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.9rem' }}>
-                {isInbox ? 'Yah! Belum ada rapor baru dari Coach.' : 'Belum ada riwayat pengiriman.'}
+              <td colSpan={6} className="empty">
+                {isInbox ? 'Belum ada rapor baru dari Coach.' : 'Belum ada riwayat pengiriman.'}
               </td>
             </tr>
           ) : (
@@ -114,73 +126,49 @@ function ReportTable({ reports, isInbox }: { reports: any[], isInbox: boolean })
               const isPublished = report.status === 'PUBLISHED';
 
               return (
-                <tr key={report.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}>
-                  <td style={tdStyle}>
-                    <span style={{ fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <div style={{ width: '28px', height: '28px', background: isPublished ? '#d1fae5' : '#dbeafe', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isPublished ? '#059669' : '#1d4ed8', fontSize: '0.8rem' }}>
-                        {report.coder?.full_name?.charAt(0) || 'C'}
-                      </div>
-                      {report.coder?.full_name || 'Coder'}
-                    </span>
-                  </td>
-                  <td style={tdStyle}>
-                    <span style={{ display: 'block', fontWeight: 600, color: '#334155' }}>{(report.class as any)?.name}</span>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.2rem', fontWeight: 500 }}>
-                      {(report.class as any)?.type === 'EKSKUL' ? 'Ekskul' : 'Reguler'} • {(report.block as any)?.name}
+                <tr key={report.id}>
+                  <td>
+                    <div className="row gap-2">
+                      <div className="avatar">{report.coder?.full_name?.charAt(0) || 'C'}</div>
+                      <span style={{ fontWeight: 700 }}>{report.coder?.full_name || 'Coder'}</span>
                     </div>
                   </td>
-                  <td style={tdStyle}>
-                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: '#f0fdf4', padding: '0.2rem 0.6rem', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
-                       <span style={{ fontWeight: 800, color: '#16a34a', fontSize: '1.1rem' }}>{report.grade}</span>
-                       <span style={{ fontWeight: 600, color: '#22c55e', fontSize: '0.8rem' }}>({report.average_score})</span>
-                     </div>
+                  <td>
+                    <div style={{ fontWeight: 600 }}>{(report.class as any)?.name}</div>
+                    <div className="muted" style={{ fontSize: 11.5, marginTop: 2 }}>
+                      {(report.class as any)?.type === 'EKSKUL' ? 'Ekskul' : 'Reguler'} · {(report.block as any)?.name}
+                    </div>
                   </td>
-                  <td style={tdStyle}>
-                    <span style={{ color: '#475569', fontWeight: 500, fontSize: '0.85rem' }}>
-                      {(isInbox ? report.updated_at : report.sent_at)
-                        ? new Date(isInbox ? report.updated_at : report.sent_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-                        : '—'}
-                    </span>
+                  <td>
+                    <div className="row gap-1">
+                      <span style={{ fontSize: 18, fontWeight: 900 }}>{report.grade}</span>
+                      <span className="muted" style={{ fontSize: 12, fontWeight: 600 }}>({report.average_score})</span>
+                    </div>
                   </td>
-                  <td style={tdStyle}>
+                  <td className="muted" style={{ fontSize: 12.5 }}>
+                    {(isInbox ? report.updated_at : report.sent_at)
+                      ? new Date(isInbox ? report.updated_at : report.sent_at).toLocaleDateString('id-ID', {
+                          day: 'numeric', month: 'short', year: 'numeric',
+                          hour: '2-digit', minute: '2-digit',
+                        })
+                      : '—'}
+                  </td>
+                  <td>
                     {isPublished ? (
-                      <span style={{
-                        padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700,
-                        background: '#dcfce7', color: '#15803d', display: 'inline-flex', alignItems: 'center', gap: '0.3rem'
-                      }}>
-                        <CheckCircle2 size={14} /> Published
-                      </span>
+                      <span className="badge badge-success"><Check size={12} /> Published</span>
                     ) : (
-                      <span style={{
-                        padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600,
-                        background: '#fef3c7', color: '#92400e', display: 'inline-flex', alignItems: 'center', gap: '0.3rem'
-                      }}>
-                         <Mail size={14} /> Menunggu
-                      </span>
+                      <span className="badge badge-warn"><Mail size={12} /> Menunggu</span>
                     )}
                   </td>
-                  <td style={{ ...tdStyle, minWidth: '220px' }}>
-                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                      <a 
-                        href={reportUrl} 
-                        target="_blank" 
+                  <td style={{ textAlign: 'right' }}>
+                    <div className="row gap-1" style={{ justifyContent: 'flex-end' }}>
+                      <a
+                        href={reportUrl}
+                        target="_blank"
                         rel="noreferrer"
-                        style={{
-                          display: 'inline-flex', 
-                          alignItems: 'center', 
-                          gap: '0.4rem', 
-                          padding: '0.45rem 0.85rem', 
-                          borderRadius: '0.5rem', 
-                          background: '#eff6ff', 
-                          color: '#2563eb', 
-                          fontWeight: 600, 
-                          fontSize: '0.85rem', 
-                          textDecoration: 'none',
-                          border: '1px solid #bfdbfe',
-                          transition: 'all 0.2s'
-                        }}
+                        className="btn btn-sm"
                       >
-                        <Eye size={16} /> Web Preview
+                        <Eye size={14} /> Preview
                       </a>
                       <RejectReportButton reportId={report.id} disabled={isPublished} />
                       <SendReportButton reportId={report.id} disabled={isPublished} />
@@ -195,28 +183,3 @@ function ReportTable({ reports, isInbox }: { reports: any[], isInbox: boolean })
     </div>
   );
 }
-
-const cardStyle: CSSProperties = {
-  background: '#ffffff',
-  borderRadius: '16px',
-  border: '1px solid #e2e8f0',
-  overflow: 'hidden',
-  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-};
-
-const thStyle: CSSProperties = {
-  padding: '1.25rem 1.5rem',
-  fontSize: '0.75rem',
-  color: '#64748b',
-  borderBottom: '1px solid #e2e8f0',
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-  fontWeight: 700,
-};
-
-const tdStyle: CSSProperties = {
-  padding: '1.25rem 1.5rem',
-  fontSize: '0.9rem',
-  color: '#334155',
-  verticalAlign: 'middle',
-};

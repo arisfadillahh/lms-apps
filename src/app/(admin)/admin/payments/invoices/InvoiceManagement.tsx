@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type CSSProperties, useCallback } from 'react';
+import { useState, type CSSProperties, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import type { Invoice } from '@/lib/types/invoice';
 import { useReminder } from '@/contexts/ReminderContext';
@@ -32,7 +32,28 @@ export default function InvoiceManagement({
     const [stats, setStats] = useState<Stats>(initialStats);
     const [month, setMonth] = useState(initialMonth);
     const [year, setYear] = useState(initialYear);
-    const [statusFilter, setStatusFilter] = useState<string>('');
+    const [statusFilter, setStatusFilter] = useState<string>('ALL');
+    const [itemsPerPage, setItemsPerPage] = useState<number | 'all'>(10);
+    const [currentPage, setCurrentPage] = useState(1);
+
+    const filteredInvoices = useMemo(() => {
+        let list = invoices;
+        if (statusFilter && statusFilter !== 'ALL') {
+            list = list.filter(i => i.status === statusFilter);
+        }
+        return list;
+    }, [invoices, statusFilter]);
+
+    const displayedInvoices = useMemo(() => {
+        if (itemsPerPage === 'all') return filteredInvoices;
+        const start = (currentPage - 1) * itemsPerPage;
+        return filteredInvoices.slice(start, start + itemsPerPage);
+    }, [filteredInvoices, currentPage, itemsPerPage]);
+
+    const totalPages = useMemo(() => {
+        if (itemsPerPage === 'all') return 1;
+        return Math.ceil(filteredInvoices.length / itemsPerPage) || 1;
+    }, [filteredInvoices, itemsPerPage]);
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -109,7 +130,7 @@ export default function InvoiceManagement({
             const params = new URLSearchParams();
             params.set('month', month.toString());
             params.set('year', year.toString());
-            if (statusFilter) params.set('status', statusFilter);
+            params.set('limit', '1000'); // Fetch all for local pagination
             if (search) params.set('search', search);
 
             const res = await fetch(`/api/invoices?${params.toString()}`);
@@ -301,67 +322,39 @@ export default function InvoiceManagement({
     return (
         <div style={containerStyle}>
             {/* Header */}
-            <div style={headerStyle}>
+            <div className="page-head">
                 <div>
-                    <h1 style={titleStyle}>Invoice Management</h1>
-                    <p style={subtitleStyle}>Kelola invoice dan kirim reminder pembayaran</p>
+                    <h1>Invoice</h1>
+                    <p>Tagihan Coder per paket pembayaran.</p>
                 </div>
-            </div>
-
-            {/* Action Buttons - Full Width */}
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
-                <button
-                    onClick={handleGenerate}
-                    disabled={generating || isProcessingQueue}
-                    style={{
-                        ...secondaryButtonStyle,
-                        width: 'auto',
-                        padding: '0.75rem 2rem',
-                        fontSize: '1rem'
-                    }}
-                >
-                    {generating ? '⏳ Generating...' : '⚙️ Generate Invoice'}
-                </button>
-                <button
-                    onClick={() => setShowSeasonalModal(true)}
-                    style={{
-                        ...secondaryButtonStyle,
-                        width: 'auto',
-                        padding: '0.75rem 2rem',
-                        fontSize: '1rem',
-                        background: '#fef3c7',
-                        borderColor: '#fbbf24',
-                        color: '#92400e',
-                    }}
-                >
-                    📅 Invoice Seasonal
-                </button>
-                <button
-                    onClick={() => setShowWeeklyModal(true)}
-                    style={{
-                        ...secondaryButtonStyle,
-                        width: 'auto',
-                        padding: '0.75rem 2rem',
-                        fontSize: '1rem',
-                        background: '#e0e7ff',
-                        borderColor: '#818cf8',
-                        color: '#3730a3',
-                    }}
-                >
-                    📝 Registrasi Weekly Baru
-                </button>
-                <button
-                    onClick={handlePrepareReminders}
-                    disabled={generating || isProcessingQueue}
-                    style={{
-                        ...primaryButtonStyle,
-                        width: 'auto',
-                        padding: '0.75rem 2rem',
-                        fontSize: '1rem'
-                    }}
-                >
-                    📤 Kirim Reminder
-                </button>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                        onClick={handleGenerate}
+                        disabled={generating || isProcessingQueue}
+                        className="btn"
+                    >
+                        {generating ? '⏳ Generating...' : '⚙️ Generate Invoice'}
+                    </button>
+                    <button
+                        onClick={() => setShowSeasonalModal(true)}
+                        className="btn"
+                    >
+                        📅 Invoice Seasonal
+                    </button>
+                    <button
+                        onClick={() => setShowWeeklyModal(true)}
+                        className="btn"
+                    >
+                        📝 Registrasi Weekly
+                    </button>
+                    <button
+                        onClick={handlePrepareReminders}
+                        disabled={generating || isProcessingQueue}
+                        className="btn btn-primary"
+                    >
+                        📤 Kirim Reminder
+                    </button>
+                </div>
             </div>
 
             {/* Message */}
@@ -372,26 +365,27 @@ export default function InvoiceManagement({
             )}
 
             {/* Stats */}
-            <div style={statsGridStyle}>
-                <div style={statCardStyle}>
-                    <p style={statLabelStyle}>Total Invoice</p>
-                    <p style={statValueStyle}>{stats.pending + stats.paid + stats.overdue}</p>
+            <div className="grid grid-4" style={{ marginBottom: 18 }}>
+                <div className="stat">
+                    <div className="stat-label">Total Invoice</div>
+                    <div className="stat-value">{stats.pending + stats.paid + stats.overdue}</div>
+                    <div className="stat-icon">🧾</div>
                 </div>
-                <div style={{ ...statCardStyle, borderLeft: '4px solid #ef6c00' }}>
-                    <p style={statLabelStyle}>Pending</p>
-                    <p style={{ ...statValueStyle, color: '#ef6c00' }}>{stats.pending}</p>
+                <div className="stat">
+                    <div className="stat-label">Pending</div>
+                    <div className="stat-value">{stats.pending}</div>
+                    <div className="stat-icon">🕒</div>
                 </div>
-                <div style={{ ...statCardStyle, borderLeft: '4px solid #2e7d32' }}>
-                    <p style={statLabelStyle}>Lunas</p>
-                    <p style={{ ...statValueStyle, color: '#2e7d32' }}>{stats.paid}</p>
+                <div className="stat">
+                    <div className="stat-label">Overdue</div>
+                    <div className="stat-value">{stats.overdue}</div>
+                    <div className="stat-icon">⚠️</div>
+                    <div className="stat-foot" style={{ color: '#c62828' }}>perlu follow-up</div>
                 </div>
-                <div style={{ ...statCardStyle, borderLeft: '4px solid #c62828' }}>
-                    <p style={statLabelStyle}>Jatuh Tempo</p>
-                    <p style={{ ...statValueStyle, color: '#c62828' }}>{stats.overdue}</p>
-                </div>
-                <div style={{ ...statCardStyle, borderLeft: '4px solid #1976d2' }}>
-                    <p style={statLabelStyle}>Total Amount</p>
-                    <p style={{ ...statValueStyle, color: '#1976d2', fontSize: '18px' }}>{formatCurrency(stats.totalAmount)}</p>
+                <div className="stat">
+                    <div className="stat-label">Belum Terbayar</div>
+                    <div className="stat-value" style={{ fontSize: '24px' }}>{formatCurrency(stats.totalAmount)}</div>
+                    <div className="stat-icon">💳</div>
                 </div>
             </div>
 
@@ -407,7 +401,6 @@ export default function InvoiceManagement({
                         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(m => (
                             <option key={m} value={m}>{getMonthName(m)}</option>
                         ))}
-
                     </select>
                 </div>
                 <div style={filterGroupStyle}>
@@ -422,19 +415,6 @@ export default function InvoiceManagement({
                         ))}
                     </select>
                 </div>
-                <div style={filterGroupStyle}>
-                    <label style={filterLabelStyle}>Status</label>
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        style={selectStyle}
-                    >
-                        <option value="">Semua</option>
-                        <option value="PENDING">Pending</option>
-                        <option value="PAID">Lunas</option>
-                        <option value="OVERDUE">Jatuh Tempo</option>
-                    </select>
-                </div>
                 <div style={{ ...filterGroupStyle, flex: 1 }}>
                     <label style={filterLabelStyle}>Search</label>
                     <input
@@ -446,47 +426,68 @@ export default function InvoiceManagement({
                     />
                 </div>
                 <button onClick={fetchInvoices} disabled={loading} style={filterButtonStyle}>
-                    {loading ? '...' : '🔍 Filter'}
+                    {loading ? '...' : '🔍 Load Data'}
                 </button>
             </div>
 
+            <div className="tabs">
+                {[
+                    ['ALL', 'Semua', invoices.length],
+                    ['PENDING', 'Pending', invoices.filter(i => i.status === 'PENDING').length],
+                    ['OVERDUE', 'Overdue', invoices.filter(i => i.status === 'OVERDUE').length],
+                    ['PAID', 'Paid', invoices.filter(i => i.status === 'PAID').length]
+                ].map(([k, l, n]) => (
+                    <div 
+                        key={k as string} 
+                        className={`tab ${statusFilter === k ? 'active' : ''}`} 
+                        onClick={() => { setStatusFilter(k as string); setCurrentPage(1); }}
+                    >
+                        {l as string} <span className="chip" style={{ marginLeft: 4, fontSize: 10 }}>{n as number}</span>
+                    </div>
+                ))}
+            </div>
+
             {/* Table */}
-            <div style={tableContainerStyle}>
-                <table style={tableStyle}>
+            <div className="card" style={{ padding: 0 }}>
+                <table className="table">
                     <thead>
                         <tr>
-                            <th style={thStyle}>Invoice Number</th>
-                            <th style={thStyle}>Parent Name</th>
-                            <th style={thStyle}>Periode</th>
-                            <th style={thStyle}>Total</th>
-                            <th style={thStyle}>Status</th>
-                            <th style={thStyle}>Due Date</th>
-                            <th style={thStyle}>Paid Date</th>
-                            <th style={thStyle}>Actions</th>
+                            <th>Invoice Number</th>
+                            <th>Parent Name</th>
+                            <th>Periode</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Due Date</th>
+                            <th>Paid Date</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {invoices.length === 0 ? (
+                        {displayedInvoices.length === 0 ? (
                             <tr>
-                                <td colSpan={8} style={emptyStyle}>Tidak ada invoice</td>
+                                <td colSpan={8} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Tidak ada invoice</td>
                             </tr>
                         ) : (
-                            invoices.map((inv) => (
-                                <tr key={inv.id} style={trStyle}>
-                                    <td style={tdStyle}>
+                            displayedInvoices.map((inv) => (
+                                <tr key={inv.id}>
+                                    <td className="mono" style={{ fontWeight: 700, fontSize: 12.5 }}>
                                         <Link href={`/invoice/${inv.invoice_number}`} target="_blank" style={linkStyle}>
                                             {inv.invoice_number}
                                         </Link>
                                     </td>
-                                    <td style={tdStyle}>{inv.parent_name}</td>
-                                    <td style={tdStyle}>{formatPeriodRange(inv.period_start_date, inv.period_end_date)}</td>
-                                    <td style={tdStyle}>{formatCurrency(inv.total_amount)}</td>
-                                    <td style={tdStyle}>{getStatusBadge(inv.status)}</td>
-                                    <td style={tdStyle}>{formatDate(inv.due_date)}</td>
-                                    <td style={tdStyle}>{inv.paid_at ? formatDate(inv.paid_at) : '-'}</td>
-                                    <td style={tdStyle}>
-                                        <div style={actionsStyle}>
-                                            <Link href={`/invoice/${inv.invoice_number}`} target="_blank" style={actionLinkStyle}>
+                                    <td><div style={{ fontWeight: 600 }}>{inv.parent_name}</div></td>
+                                    <td>{formatPeriodRange(inv.period_start_date, inv.period_end_date)}</td>
+                                    <td style={{ fontWeight: 700 }}>{formatCurrency(inv.total_amount)}</td>
+                                    <td>
+                                        {inv.status === 'PAID' && <span className="badge badge-success">Paid</span>}
+                                        {inv.status === 'PENDING' && <span className="badge badge-warn">Pending</span>}
+                                        {inv.status === 'OVERDUE' && <span className="badge badge-danger">Overdue</span>}
+                                    </td>
+                                    <td className="muted">{formatDate(inv.due_date)}</td>
+                                    <td className="muted">{inv.paid_at ? formatDate(inv.paid_at) : '-'}</td>
+                                    <td style={{ textAlign: 'right' }}>
+                                        <div className="row gap-1" style={{ justifyContent: 'flex-end' }}>
+                                            <Link href={`/invoice/${inv.invoice_number}`} target="_blank" className="btn btn-sm btn-ghost">
                                                 👁️
                                             </Link>
                                             {inv.status !== 'PAID' && (
@@ -495,7 +496,7 @@ export default function InvoiceManagement({
                                                         setShowPaidModal(inv);
                                                         setPaidDate(new Date().toISOString().split('T')[0]);
                                                     }}
-                                                    style={actionButtonStyle}
+                                                    className="btn btn-sm btn-ghost"
                                                     title="Tandai Lunas"
                                                 >
                                                     ✅
@@ -504,16 +505,18 @@ export default function InvoiceManagement({
                                             {inv.status === 'PAID' && (
                                                 <button
                                                     onClick={() => handleUnmarkPaid(inv.id)}
-                                                    style={{ ...actionButtonStyle, color: '#f59e0b' }}
+                                                    className="btn btn-sm btn-ghost"
                                                     title="Batalkan Lunas"
+                                                    style={{ color: '#f59e0b' }}
                                                 >
                                                     ↩️
                                                 </button>
                                             )}
                                             <button
                                                 onClick={() => setShowDeleteModal(inv)}
-                                                style={{ ...actionButtonStyle, color: '#c62828' }}
+                                                className="btn btn-sm btn-ghost"
                                                 title="Hapus invoice"
+                                                style={{ color: '#ef4444' }}
                                             >
                                                 🗑️
                                             </button>
@@ -524,6 +527,46 @@ export default function InvoiceManagement({
                         )}
                     </tbody>
                 </table>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', borderTop: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span className="muted" style={{ fontSize: '0.9rem' }}>Tampilkan:</span>
+                        <select 
+                            value={itemsPerPage} 
+                            onChange={(e) => {
+                                setItemsPerPage(e.target.value === 'all' ? 'all' : Number(e.target.value));
+                                setCurrentPage(1);
+                            }}
+                            className="input"
+                            style={{ padding: '0.3rem', width: 'auto', fontSize: '0.9rem' }}
+                        >
+                            <option value={10}>10 baris</option>
+                            <option value={20}>20 baris</option>
+                            <option value={50}>50 baris</option>
+                            <option value="all">Semua</option>
+                        </select>
+                    </div>
+                    {itemsPerPage !== 'all' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <button 
+                                className="btn btn-sm btn-ghost" 
+                                disabled={currentPage === 1}
+                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            >
+                                Prev
+                            </button>
+                            <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>
+                                {currentPage} / {totalPages}
+                            </span>
+                            <button 
+                                className="btn btn-sm btn-ghost" 
+                                disabled={currentPage === totalPages}
+                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                            >
+                                Next
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Mark Paid Modal */}
@@ -630,33 +673,33 @@ export default function InvoiceManagement({
 }
 
 // Styles
-const containerStyle: CSSProperties = { padding: '2rem', width: '100%', fontFamily: 'Inter, sans-serif' };
+const containerStyle: CSSProperties = { width: '100%', fontFamily: 'var(--font-ui)' };
 const headerStyle: CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' };
-const titleStyle: CSSProperties = { fontSize: '1.8rem', fontWeight: 800, color: '#1e293b', margin: 0, letterSpacing: '-0.02em' };
-const subtitleStyle: CSSProperties = { color: '#64748b', fontSize: '1rem', marginTop: '0.5rem' };
+const titleStyle: CSSProperties = { fontSize: '1.8rem', fontWeight: 800, color: 'var(--text)', margin: 0, letterSpacing: '-0.02em' };
+const subtitleStyle: CSSProperties = { color: 'var(--text-muted)', fontSize: '1rem', marginTop: '0.5rem' };
 
 const primaryButtonStyle: CSSProperties = {
     padding: '0.75rem 1.5rem',
-    background: '#3b82f6',
+    background: 'linear-gradient(135deg, var(--c-navy), var(--c-green))',
     color: 'white',
     border: 'none',
-    borderRadius: '10px',
+    borderRadius: '12px',
     fontWeight: 600,
     cursor: 'pointer',
     fontSize: '0.95rem',
     display: 'flex',
     alignItems: 'center',
     gap: '0.5rem',
-    boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2)',
+    boxShadow: '0 16px 30px -22px rgba(34, 54, 123, 0.75)',
     transition: 'all 0.2s',
 };
 
 const secondaryButtonStyle: CSSProperties = {
     padding: '0.75rem 1.5rem',
-    background: '#ffffff',
-    color: '#475569',
-    border: '1px solid #cbd5e1',
-    borderRadius: '10px',
+    background: 'var(--surface)',
+    color: 'var(--text)',
+    border: '1px solid var(--border)',
+    borderRadius: '12px',
     fontWeight: 600,
     cursor: 'pointer',
     fontSize: '0.95rem',
@@ -664,20 +707,20 @@ const secondaryButtonStyle: CSSProperties = {
 };
 
 const statsGridStyle: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' };
-const statCardStyle: CSSProperties = { background: 'white', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' };
-const statLabelStyle: CSSProperties = { color: '#64748b', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' };
-const statValueStyle: CSSProperties = { fontSize: '2rem', fontWeight: 700, color: '#1e293b', margin: 0, lineHeight: 1 };
+const statCardStyle: CSSProperties = { background: 'var(--surface)', padding: '1.5rem', borderRadius: 'calc(var(--radius-lg) + 2px)', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border)' };
+const statLabelStyle: CSSProperties = { color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' };
+const statValueStyle: CSSProperties = { fontSize: '2rem', fontWeight: 700, color: 'var(--text)', margin: 0, lineHeight: 1 };
 
-const filtersStyle: CSSProperties = { display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', background: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' };
+const filtersStyle: CSSProperties = { display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', background: 'var(--surface)', padding: '1rem', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)' };
 const filterGroupStyle: CSSProperties = { display: 'flex', flexDirection: 'column', gap: '0.25rem' };
-const filterLabelStyle: CSSProperties = { fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' };
-const selectStyle: CSSProperties = { padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', minWidth: '140px', outline: 'none' };
-const inputStyle: CSSProperties = { padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', width: '250px', outline: 'none' };
+const filterLabelStyle: CSSProperties = { fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' };
+const selectStyle: CSSProperties = { padding: '0.7rem 0.8rem', borderRadius: '12px', border: '1px solid var(--border)', fontSize: '0.9rem', minWidth: '140px', outline: 'none', background: 'var(--surface-2)', color: 'var(--text)' };
+const inputStyle: CSSProperties = { padding: '0.7rem 0.8rem', borderRadius: '12px', border: '1px solid var(--border)', fontSize: '0.9rem', width: '250px', outline: 'none', background: 'var(--surface-2)', color: 'var(--text)' };
 const filterButtonStyle: CSSProperties = { padding: '0.6rem 1rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.9rem', alignSelf: 'flex-end' };
 
 
-const successMessageStyle: CSSProperties = { padding: '1rem', background: '#dcfce7', color: '#166534', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid #bbf7d0', fontWeight: 500 };
-const errorMessageStyle: CSSProperties = { padding: '1rem', background: '#fee2e2', color: '#991b1b', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid #fecaca', fontWeight: 500 };
+const successMessageStyle: CSSProperties = { padding: '1rem', background: '#dcfce7', color: '#166534', borderRadius: '12px', marginBottom: '1.5rem', border: '1px solid #bbf7d0', fontWeight: 500 };
+const errorMessageStyle: CSSProperties = { padding: '1rem', background: '#fff1df', color: '#b45309', borderRadius: '12px', marginBottom: '1.5rem', border: '1px solid #fed7aa', fontWeight: 500 };
 
 const modalOverlayStyle: CSSProperties = {
     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -686,30 +729,30 @@ const modalOverlayStyle: CSSProperties = {
 };
 
 const modalContentStyle: CSSProperties = {
-    background: 'white', padding: '2rem', borderRadius: '16px', width: '90%', maxWidth: '500px',
+    background: 'var(--surface)', padding: '2rem', borderRadius: '18px', width: '90%', maxWidth: '500px',
     boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
 };
 const modalStyle = modalContentStyle; // Alias for compatibility
 
 const modalActionsStyle: CSSProperties = { display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' };
-const labelStyle: CSSProperties = { display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 600, color: '#475569' };
+const labelStyle: CSSProperties = { display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)' };
 const textAreaStyle: CSSProperties = { width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '1rem', minHeight: '80px', fontSize: '0.9rem' };
 
 // Table Styles
-const tableContainerStyle: CSSProperties = { background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' };
+const tableContainerStyle: CSSProperties = { background: 'var(--surface)', borderRadius: '18px', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' };
 const tableStyle: CSSProperties = { width: '100%', borderCollapse: 'collapse' };
-const thStyle: CSSProperties = { textAlign: 'left', padding: '1rem', background: '#f8fafc', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', borderBottom: '1px solid #e2e8f0', textTransform: 'uppercase', letterSpacing: '0.05em' };
-const tdStyle: CSSProperties = { padding: '1rem', borderBottom: '1px solid #f1f5f9', color: '#334155', fontSize: '0.9rem' };
+const thStyle: CSSProperties = { textAlign: 'left', padding: '1rem', background: 'var(--surface-2)', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', textTransform: 'uppercase', letterSpacing: '0.05em' };
+const tdStyle: CSSProperties = { padding: '1rem', borderBottom: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem' };
 const trStyle: CSSProperties = { transition: 'background 0.2s' };
-const emptyStyle: CSSProperties = { padding: '3rem', textAlign: 'center', color: '#94a3b8' };
-const linkStyle: CSSProperties = { color: '#3b82f6', textDecoration: 'none', fontWeight: 600 };
+const emptyStyle: CSSProperties = { padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' };
+const linkStyle: CSSProperties = { color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 };
 const actionsStyle: CSSProperties = { display: 'flex', gap: '0.5rem' };
-const actionButtonStyle: CSSProperties = { padding: '0.4rem', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white', cursor: 'pointer', color: '#64748b', transition: 'all 0.2s' };
+const actionButtonStyle: CSSProperties = { padding: '0.4rem', border: '1px solid var(--border)', borderRadius: '10px', background: 'var(--surface)', cursor: 'pointer', color: 'var(--text-muted)', transition: 'all 0.2s' };
 const actionLinkStyle: CSSProperties = { display: 'block' };
 const modalTitleStyle: CSSProperties = { fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' };
-const modalSubtitleStyle: CSSProperties = { color: '#64748b', marginBottom: '20px' };
+const modalSubtitleStyle: CSSProperties = { color: 'var(--text-muted)', marginBottom: '20px' };
 const formGroupStyle: CSSProperties = { marginBottom: '16px' };
 const formLabelStyle: CSSProperties = { display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: 500 };
 const textareaStyle: CSSProperties = { ...inputStyle, minHeight: '80px', resize: 'vertical' };
-const cancelButtonStyle: CSSProperties = { padding: '10px 20px', backgroundColor: '#fff', border: '2px solid #cbd5e1', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, color: '#475569', fontSize: '0.9rem' };
-const confirmButtonStyle: CSSProperties = { padding: '8px 16px', backgroundColor: '#2e7d32', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' };
+const cancelButtonStyle: CSSProperties = { padding: '10px 20px', backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', cursor: 'pointer', fontWeight: 600, color: 'var(--text)', fontSize: '0.9rem' };
+const confirmButtonStyle: CSSProperties = { padding: '10px 16px', backgroundColor: '#15803d', color: '#fff', border: 'none', borderRadius: '12px', cursor: 'pointer' };

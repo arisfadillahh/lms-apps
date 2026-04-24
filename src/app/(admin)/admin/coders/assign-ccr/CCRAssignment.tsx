@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, type CSSProperties } from 'react';
+import { useState, useEffect } from 'react';
 
 interface Coder {
     id: string;
@@ -12,7 +12,7 @@ interface Coder {
 interface ParentGroup {
     parent_phone: string;
     parent_name: string;
-    existing_ccr?: string; // CCR already exists for this parent (sibling case)
+    existing_ccr?: string;
     coders: Coder[];
 }
 
@@ -36,12 +36,10 @@ export default function CCRAssignment() {
             setGroups(data.groups || []);
             setNextCCR(data.nextCCR || 'CCR001');
 
-            // Initialize CCR inputs - use existing CCR for siblings or new sequence
             const inputs: Record<string, string> = {};
             let currentSeq = parseInt(data.nextCCR?.substring(3) || '1', 10);
             for (const group of data.groups || []) {
                 if (group.existing_ccr) {
-                    // Sibling case: pre-fill with existing CCR
                     inputs[group.parent_phone] = group.existing_ccr;
                 } else {
                     inputs[group.parent_phone] = `CCR${String(currentSeq).padStart(3, '0')}`;
@@ -70,21 +68,16 @@ export default function CCRAssignment() {
             const res = await fetch('/api/ccr', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    parent_phone: parentPhone,
-                    ccr_code: ccrCode,
-                    parent_name: parentName
-                })
+                body: JSON.stringify({ parent_phone: parentPhone, ccr_code: ccrCode, parent_name: parentName })
             });
 
             const data = await res.json();
 
             if (res.ok && data.success) {
-                setMessage({ type: 'success', text: `CCR ${ccrCode} assigned successfully!` });
-                // Remove from list
+                setMessage({ type: 'success', text: `CCR ${ccrCode} berhasil di-assign!` });
                 setGroups(prev => prev.filter(g => g.parent_phone !== parentPhone));
             } else {
-                setMessage({ type: 'error', text: data.error || 'Failed to assign CCR' });
+                setMessage({ type: 'error', text: data.error || 'Gagal assign CCR' });
             }
         } catch (error) {
             setMessage({ type: 'error', text: 'Error: ' + String(error) });
@@ -98,68 +91,78 @@ export default function CCRAssignment() {
     };
 
     if (loading) {
-        return <div style={loadingStyle}>Loading...</div>;
+        return <div className="empty">Memuat data...</div>;
     }
 
     return (
-        <div style={containerStyle}>
+        <div style={{ maxWidth: 800 }}>
+            {/* Message */}
             {message && (
-                <div style={message.type === 'success' ? successStyle : errorStyle}>
-                    {message.text}
+                <div
+                    className={message.type === 'success' ? 'badge badge-success' : 'badge badge-danger'}
+                    style={{ display: 'block', padding: '10px 14px', borderRadius: 'var(--radius)', marginBottom: 16, fontSize: 13 }}
+                >
+                    {message.type === 'success' ? '✅' : '❌'} {message.text}
                 </div>
             )}
 
             {/* Stats */}
-            <div style={statsStyle}>
-                <div style={statCardStyle}>
-                    <p style={statLabelStyle}>Belum Punya CCR</p>
-                    <p style={statValueStyle}>{groups.length} Keluarga</p>
+            <div className="grid grid-2" style={{ marginBottom: 18 }}>
+                <div className="stat">
+                    <div className="stat-label">Belum Punya ID Invoice</div>
+                    <div className="stat-value">{groups.length} <span style={{ fontSize: 16, fontWeight: 500 }}>Keluarga</span></div>
+                    <div className="stat-icon">👨‍👩‍👧</div>
                 </div>
-                <div style={statCardStyle}>
-                    <p style={statLabelStyle}>Next Available CCR</p>
-                    <p style={statValueStyle}>{nextCCR}</p>
+                <div className="stat">
+                    <div className="stat-label">Next Available CCR</div>
+                    <div className="stat-value mono" style={{ fontSize: 26 }}>{nextCCR}</div>
+                    <div className="stat-icon">🔢</div>
                 </div>
             </div>
 
+            {/* Empty state */}
             {groups.length === 0 ? (
-                <div style={emptyStyle}>
-                    ✅ Semua coder sudah memiliki CCR number!
+                <div className="card" style={{ padding: '48px 20px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
+                    <div style={{ fontWeight: 700, fontSize: 15 }}>Semua coder sudah memiliki ID Invoice!</div>
+                    <div className="muted" style={{ marginTop: 4, fontSize: 13 }}>Tidak ada keluarga yang perlu di-assign saat ini.</div>
                 </div>
             ) : (
-                <div style={listStyle}>
+                <div className="col gap-3">
                     {groups.map((group) => (
-                        <div key={group.parent_phone} style={cardStyle}>
-                            <div style={cardHeaderStyle}>
+                        <div key={group.parent_phone} className="card" style={{ padding: 20 }}>
+                            {/* Card header */}
+                            <div className="row between" style={{ marginBottom: 12 }}>
                                 <div>
-                                    <h3 style={parentNameStyle}>
-                                        Parent: {group.parent_name}
-                                    </h3>
-                                    <p style={phoneStyle}>{group.parent_phone}</p>
+                                    <div style={{ fontWeight: 700, fontSize: 15 }}>{group.parent_name}</div>
+                                    <div className="muted mono" style={{ fontSize: 12.5, marginTop: 2 }}>{group.parent_phone}</div>
                                 </div>
-                                <span style={badgeStyle}>
-                                    {group.coders.length} Anak
-                                </span>
-                                {group.existing_ccr && (
-                                    <span style={siblingBadgeStyle}>
-                                        👨‍👩‍👧‍👦 Sibling
-                                    </span>
-                                )}
+                                <div className="row gap-2">
+                                    <span className="chip">{group.coders.length} Anak</span>
+                                    {group.existing_ccr && (
+                                        <span className="badge badge-warn">👨‍👩‍👧‍👦 Sibling</span>
+                                    )}
+                                </div>
                             </div>
 
-                            <div style={codersListStyle}>
+                            {/* Coders list */}
+                            <div className="subcard" style={{ marginBottom: 14 }}>
                                 {group.coders.map((coder) => (
-                                    <div key={coder.id} style={coderItemStyle}>
-                                        <span style={coderNameStyle}>• {coder.full_name}</span>
-                                        <span style={coderInfoStyle}>
+                                    <div key={coder.id} className="row between" style={{ padding: '5px 0', borderBottom: '1px solid var(--border)' }}>
+                                        <span style={{ fontWeight: 600, fontSize: 13 }}>• {coder.full_name}</span>
+                                        <span className="muted" style={{ fontSize: 12 }}>
                                             {coder.level_name}{coder.class_name ? `, ${coder.class_name}` : ''}
                                         </span>
                                     </div>
                                 ))}
                             </div>
 
-                            <div style={formRowStyle}>
-                                <div style={inputGroupStyle}>
-                                    <label style={labelStyle}>CCR Number:</label>
+                            {/* CCR Input + Actions */}
+                            <div className="row gap-3" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                                <div style={{ flex: 1, minWidth: 200 }}>
+                                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>
+                                        CCR Number
+                                    </label>
                                     <input
                                         type="text"
                                         value={ccrInputs[group.parent_phone] || ''}
@@ -168,31 +171,28 @@ export default function CCRAssignment() {
                                             [group.parent_phone]: e.target.value.toUpperCase()
                                         }))}
                                         placeholder="CCR001"
-                                        style={inputStyle}
+                                        className="input mono"
+                                        style={{ fontWeight: 700, letterSpacing: '.05em' }}
                                     />
-                                    <span style={hintStyle}>
+                                    <span style={{ fontSize: 11.5, color: 'var(--text-dim)', marginTop: 4, display: 'block' }}>
                                         {group.existing_ccr
                                             ? `✅ Parent sudah punya CCR: ${group.existing_ccr}`
                                             : `Next available: ${nextCCR}`}
                                     </span>
                                 </div>
-
-                                <div style={actionsStyle}>
+                                <div className="row gap-2">
                                     <button
                                         onClick={() => handleAssign(group.parent_phone, group.parent_name)}
                                         disabled={assigning === group.parent_phone}
-                                        style={assignButtonStyle}
+                                        className="btn btn-primary"
                                     >
                                         {assigning === group.parent_phone
-                                            ? '...'
-                                            : group.coders.length > 1
-                                                ? 'Assign to All'
-                                                : 'Assign'
-                                        }
+                                            ? '⏳ Assigning...'
+                                            : group.coders.length > 1 ? 'Assign to All' : 'Assign'}
                                     </button>
                                     <button
                                         onClick={() => handleSkip(group.parent_phone)}
-                                        style={skipButtonStyle}
+                                        className="btn btn-ghost"
                                     >
                                         Skip
                                     </button>
@@ -203,41 +203,10 @@ export default function CCRAssignment() {
                 </div>
             )}
 
-            {/* Refresh button */}
-            <button onClick={fetchUnassigned} style={refreshButtonStyle}>
+            {/* Refresh */}
+            <button onClick={fetchUnassigned} className="btn" style={{ marginTop: 20 }}>
                 🔄 Refresh List
             </button>
         </div>
     );
 }
-
-// Styles
-const containerStyle: CSSProperties = { maxWidth: '800px' };
-const loadingStyle: CSSProperties = { padding: '40px', textAlign: 'center', color: '#64748b' };
-const successStyle: CSSProperties = { backgroundColor: '#e8f5e9', color: '#2e7d32', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px' };
-const errorStyle: CSSProperties = { backgroundColor: '#ffebee', color: '#c62828', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px' };
-const statsStyle: CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' };
-const statCardStyle: CSSProperties = { backgroundColor: '#fff', padding: '16px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' };
-const statLabelStyle: CSSProperties = { color: '#64748b', fontSize: '12px', marginBottom: '4px' };
-const statValueStyle: CSSProperties = { fontSize: '20px', fontWeight: 'bold', color: '#1e293b' };
-const emptyStyle: CSSProperties = { backgroundColor: '#e8f5e9', padding: '40px', borderRadius: '12px', textAlign: 'center', color: '#2e7d32', fontSize: '16px' };
-const listStyle: CSSProperties = { display: 'flex', flexDirection: 'column', gap: '16px' };
-const cardStyle: CSSProperties = { backgroundColor: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0' };
-const cardHeaderStyle: CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' };
-const parentNameStyle: CSSProperties = { fontSize: '16px', fontWeight: 600, color: '#1e293b', margin: 0 };
-const phoneStyle: CSSProperties = { fontSize: '14px', color: '#64748b', marginTop: '4px' };
-const badgeStyle: CSSProperties = { backgroundColor: '#eff6ff', color: '#3b82f6', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600 };
-const codersListStyle: CSSProperties = { backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px', marginBottom: '16px' };
-const coderItemStyle: CSSProperties = { display: 'flex', justifyContent: 'space-between', padding: '6px 0' };
-const coderNameStyle: CSSProperties = { fontWeight: 500, color: '#1e293b' };
-const coderInfoStyle: CSSProperties = { color: '#64748b', fontSize: '13px' };
-const formRowStyle: CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '16px', flexWrap: 'wrap' };
-const inputGroupStyle: CSSProperties = { flex: 1, minWidth: '200px' };
-const labelStyle: CSSProperties = { display: 'block', fontSize: '14px', fontWeight: 500, marginBottom: '6px', color: '#374151' };
-const inputStyle: CSSProperties = { width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', fontWeight: 600 };
-const hintStyle: CSSProperties = { fontSize: '12px', color: '#94a3b8', marginTop: '4px', display: 'block' };
-const actionsStyle: CSSProperties = { display: 'flex', gap: '8px' };
-const assignButtonStyle: CSSProperties = { backgroundColor: '#3b82f6', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 };
-const skipButtonStyle: CSSProperties = { backgroundColor: '#f1f5f9', color: '#64748b', border: 'none', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer' };
-const refreshButtonStyle: CSSProperties = { backgroundColor: '#f1f5f9', color: '#475569', border: 'none', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', marginTop: '24px', fontWeight: 500 };
-const siblingBadgeStyle: CSSProperties = { backgroundColor: '#fef3c7', color: '#d97706', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, marginLeft: '8px' };

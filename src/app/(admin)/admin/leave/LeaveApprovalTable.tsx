@@ -1,6 +1,5 @@
 'use client';
 
-import type { CSSProperties } from 'react';
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -25,7 +24,6 @@ export default function LeaveApprovalTable({ requests, coaches }: LeaveApprovalT
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  // Track which requests are in "edit mode"
   const [editingIds, setEditingIds] = useState<Set<string>>(new Set());
 
   const coachOptions = useMemo(() => coaches, [coaches]);
@@ -84,218 +82,133 @@ export default function LeaveApprovalTable({ requests, coaches }: LeaveApprovalT
   };
 
   return (
-    <section style={cardStyle}>
-      <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '0.75rem', color: 'var(--color-text-primary)' }}>Pengajuan Masuk</h2>
-      {statusMessage ? <p style={{ color: 'var(--color-success)', fontSize: '0.9rem' }}>{statusMessage}</p> : null}
-      {errorMessage ? <p style={{ color: 'var(--color-danger)', fontSize: '0.9rem' }}>{errorMessage}</p> : null}
+    <div className="card">
+      {statusMessage && (
+        <div style={{ padding: '10px 16px', background: '#e9f7ed', color: '#117a3a', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600 }}>
+          ✓ {statusMessage}
+        </div>
+      )}
+      {errorMessage && (
+        <div style={{ padding: '10px 16px', background: '#fde7ea', color: '#b4192e', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600 }}>
+          ⚠ {errorMessage}
+        </div>
+      )}
       {requests.length === 0 ? (
-        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.95rem' }}>Tidak ada pengajuan leave.</p>
+        <div className="empty">Tidak ada pengajuan leave.</div>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead style={{ background: 'rgba(15, 23, 42, 0.04)', textAlign: 'left' }}>
-            <tr>
-              <th style={thStyle}>Coach</th>
-              <th style={thStyle}>Sesi</th>
-              <th style={thStyle}>Status</th>
-              <th style={thStyle}>Substitute</th>
-              <th style={thStyle}>Catatan</th>
-              <th style={thStyle}>Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {requests.map((request) => {
-              const substituteOptions = coachOptions.filter((coach) => coach.id !== request.coach_id);
-              const selected = substituteMap[request.id] ?? request.substitute_coach_id ?? '';
-              const isEditing = editingIds.has(request.id);
-              const isPending_ = request.status === 'PENDING';
+        <div style={{ overflowX: 'auto' }}>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Coach</th>
+                <th>Sesi</th>
+                <th>Status</th>
+                <th>Pengganti</th>
+                <th>Catatan</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {requests.map((request) => {
+                const substituteOptions = coachOptions.filter((coach) => coach.id !== request.coach_id);
+                const selected = substituteMap[request.id] ?? request.substitute_coach_id ?? '';
+                const isEditing = editingIds.has(request.id);
+                const isPending_ = request.status === 'PENDING';
 
-              return (
-                <tr key={request.id} style={{ borderBottom: `1px solid var(--color-border)` }}>
-                  <td style={tdStyle}>{request.coach?.full_name ?? 'Coach'}</td>
-                  <td style={tdStyle}>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ fontWeight: 600 }}>{request.class?.name ?? 'Class'}</span>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
-                        {request.session ? new Date(request.session.date_time).toLocaleString() : '—'}
-                      </span>
-                    </div>
-                  </td>
-                  <td style={tdStyle}>
-                    <span style={{ color: statusColor(request.status), fontWeight: 600 }}>{request.status}</span>
-                  </td>
-                  <td style={tdStyle}>
-                    {/* Show dropdown only if PENDING or editing */}
-                    {isPending_ || isEditing ? (
-                      <select
-                        value={selected}
-                        onChange={(event) =>
-                          setSubstituteMap((prev) => ({
-                            ...prev,
-                            [request.id]: event.target.value,
-                          }))
-                        }
-                        style={selectStyle}
-                        disabled={isPending}
-                      >
-                        <option value="">Pilih coach</option>
-                        {substituteOptions.map((coach) => (
-                          <option key={coach.id} value={coach.id}>
-                            {coach.name}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <span style={{ color: '#1e3a5f', fontWeight: 500 }}>
-                        {request.substitute?.full_name ?? '—'}
-                      </span>
-                    )}
-                  </td>
-                  <td style={tdStyle}>{request.note ?? '—'}</td>
-                  <td style={{ ...tdStyle, verticalAlign: 'middle' }}>
-                    <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                      {/* If PENDING or editing, show Approve/Reject icon buttons */}
+                return (
+                  <tr key={request.id}>
+                    <td>
+                      <div className="row gap-2">
+                        <div className="avatar">{(request.coach?.full_name ?? 'C').slice(0, 2).toUpperCase()}</div>
+                        <span style={{ fontWeight: 600 }}>{request.coach?.full_name ?? 'Coach'}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{request.class?.name ?? '—'}</div>
+                      <div className="muted" style={{ fontSize: 11.5, marginTop: 2 }}>
+                        {request.session ? new Date(request.session.date_time).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}
+                      </div>
+                    </td>
+                    <td>
+                      {request.status === 'APPROVED' && <span className="badge badge-success">Disetujui</span>}
+                      {request.status === 'PENDING' && <span className="badge badge-warn">Menunggu</span>}
+                      {request.status === 'REJECTED' && <span className="badge badge-danger">Ditolak</span>}
+                    </td>
+                    <td>
                       {isPending_ || isEditing ? (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => updateStatus(request.id, 'APPROVED')}
-                            disabled={isPending}
-                            style={iconButtonApprove}
-                            title="Approve"
-                          >
-                            ✓
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => updateStatus(request.id, 'REJECTED')}
-                            disabled={isPending}
-                            style={iconButtonReject}
-                            title="Tolak"
-                          >
-                            ✕
-                          </button>
-                          {isEditing && (
+                        <select
+                          className="input"
+                          style={{ width: 'auto', minWidth: 160 }}
+                          value={selected}
+                          onChange={(e) =>
+                            setSubstituteMap((prev) => ({
+                              ...prev,
+                              [request.id]: e.target.value,
+                            }))
+                          }
+                          disabled={isPending}
+                        >
+                          <option value="">Pilih coach</option>
+                          {substituteOptions.map((coach) => (
+                            <option key={coach.id} value={coach.id}>
+                              {coach.name}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span style={{ fontWeight: 500 }}>{request.substitute?.full_name ?? '—'}</span>
+                      )}
+                    </td>
+                    <td className="muted" style={{ fontSize: 12.5 }}>{request.note ?? '—'}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div className="row gap-1" style={{ justifyContent: 'flex-end' }}>
+                        {isPending_ || isEditing ? (
+                          <>
                             <button
                               type="button"
-                              onClick={() => toggleEdit(request.id)}
-                              style={iconButtonCancel}
-                              title="Batal"
+                              onClick={() => updateStatus(request.id, 'APPROVED')}
+                              disabled={isPending}
+                              className="btn btn-sm btn-primary"
                             >
-                              ↩
+                              ✓ Setujui
                             </button>
-                          )}
-                        </>
-                      ) : (
-                        /* Show Undo/Edit icon for already processed requests */
-                        <button
-                          type="button"
-                          onClick={() => toggleEdit(request.id)}
-                          style={iconButtonEdit}
-                          title="Edit"
-                        >
-                          ✏️
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                            <button
+                              type="button"
+                              onClick={() => updateStatus(request.id, 'REJECTED')}
+                              disabled={isPending}
+                              className="btn btn-sm"
+                              style={{ color: '#b4192e' }}
+                            >
+                              ✕ Tolak
+                            </button>
+                            {isEditing && (
+                              <button
+                                type="button"
+                                onClick={() => toggleEdit(request.id)}
+                                className="btn btn-sm btn-ghost"
+                              >
+                                ↩
+                              </button>
+                            )}
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => toggleEdit(request.id)}
+                            className="btn btn-sm btn-ghost"
+                          >
+                            ✏️ Edit
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
-    </section>
+    </div>
   );
 }
-
-function statusColor(status: CoachLeaveRequestWithRelations['status']): string {
-  switch (status) {
-    case 'APPROVED':
-      return 'var(--color-success)';
-    case 'REJECTED':
-      return 'var(--color-danger)';
-    default:
-      return 'var(--color-accent)';
-  }
-}
-
-const cardStyle: CSSProperties = {
-  background: 'var(--color-bg-surface)',
-  borderRadius: 'var(--radius-lg)',
-  border: `1px solid var(--color-border)`,
-  padding: '1.25rem 1.5rem',
-  overflowX: 'auto',
-  boxShadow: 'var(--shadow-medium)',
-};
-
-const thStyle: CSSProperties = {
-  padding: '0.75rem 1rem',
-  fontSize: '0.85rem',
-  color: 'var(--color-text-secondary)',
-  borderBottom: `1px solid var(--color-border)`,
-};
-
-const tdStyle: CSSProperties = {
-  padding: '0.85rem 1rem',
-  fontSize: '0.9rem',
-  color: 'var(--color-text-primary)',
-  verticalAlign: 'top',
-};
-
-const tdActionStyle: CSSProperties = {
-  ...tdStyle,
-  display: 'flex',
-  gap: '0.5rem',
-  flexWrap: 'wrap',
-};
-
-const selectStyle: CSSProperties = {
-  minWidth: '180px',
-  padding: '0.45rem 0.65rem',
-  borderRadius: '0.5rem',
-  border: `1px solid var(--color-border)`,
-  fontSize: '0.85rem',
-  background: 'var(--color-bg-surface)',
-  color: 'var(--color-text-primary)',
-};
-
-const iconButtonBase: CSSProperties = {
-  width: '32px',
-  height: '32px',
-  borderRadius: '0.5rem',
-  border: 'none',
-  fontSize: '1rem',
-  fontWeight: 600,
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  transition: 'transform 0.15s ease, opacity 0.15s ease',
-};
-
-const iconButtonApprove: CSSProperties = {
-  ...iconButtonBase,
-  background: '#dcfce7',
-  color: '#16a34a',
-};
-
-const iconButtonReject: CSSProperties = {
-  ...iconButtonBase,
-  background: '#fee2e2',
-  color: '#dc2626',
-};
-
-const iconButtonEdit: CSSProperties = {
-  ...iconButtonBase,
-  background: '#f1f5f9',
-  color: '#475569',
-  border: '1px solid #e2e8f0',
-};
-
-const iconButtonCancel: CSSProperties = {
-  ...iconButtonBase,
-  background: '#f8fafc',
-  color: '#94a3b8',
-  border: '1px solid #e2e8f0',
-};
-

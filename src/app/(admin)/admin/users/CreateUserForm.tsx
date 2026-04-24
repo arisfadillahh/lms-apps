@@ -102,23 +102,23 @@ export default function CreateUserForm() {
 
   return (
     <section style={{
-      background: '#ffffff',
-      borderRadius: '16px',
-      border: '1px solid #e2e8f0',
+      background: 'var(--surface)',
+      borderRadius: 'calc(var(--radius-lg) + 2px)',
+      border: '1px solid var(--border)',
       padding: '2rem',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+      boxShadow: 'var(--shadow-sm)',
       marginBottom: '1rem'
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
         <div style={{
-          width: '40px', height: '40px', borderRadius: '10px', background: '#eff6ff',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6'
+          width: '40px', height: '40px', borderRadius: '12px', background: 'var(--accent-weak)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)'
         }}>
           <UserPlus size={22} />
         </div>
         <div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Tambah Pengguna Baru</h2>
-          <p style={{ fontSize: '0.875rem', color: '#64748b', margin: '0.25rem 0 0' }}>Buat akun baru untuk Admin, Coach, atau Coder</p>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text)', margin: 0 }}>Tambah Pengguna Baru</h2>
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>Buat akun baru untuk Admin, Coach, atau Coder</p>
         </div>
       </div>
 
@@ -295,7 +295,7 @@ const fieldStyle: CSSProperties = {
 
 const labelStyle: CSSProperties = {
   fontSize: '0.85rem',
-  color: '#475569',
+  color: 'var(--text-muted)',
   fontWeight: 600,
   marginLeft: '0.25rem'
 };
@@ -303,10 +303,10 @@ const labelStyle: CSSProperties = {
 const inputStyle: CSSProperties = {
   padding: '0.75rem 1rem',
   borderRadius: '12px',
-  border: '1px solid #e2e8f0',
+  border: '1px solid var(--border)',
   fontSize: '0.95rem',
-  background: '#f8fafc',
-  color: '#1e293b',
+  background: 'var(--surface-2)',
+  color: 'var(--text)',
   outline: 'none',
   width: '100%',
   transition: 'all 0.2s',

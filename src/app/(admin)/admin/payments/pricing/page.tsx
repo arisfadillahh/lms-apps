@@ -1,195 +1,104 @@
-import type { CSSProperties } from 'react';
 import Link from 'next/link';
-
 import { getSessionOrThrow } from '@/lib/auth';
 import { assertRole } from '@/lib/roles';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { levelsDao } from '@/lib/dao';
 import AddPricingButton from './AddPricingButton';
 import PricingActions from './PricingActions';
+import PageHead from '@/components/admin/PageHead';
 
 interface PricingItem {
-    id: string;
-    level_id: string | null;
-    mode: 'ONLINE' | 'OFFLINE';
-    base_price_monthly: number;
-    is_active: boolean;
-    created_at: string;
-    updated_at: string;
-    pricing_type: 'WEEKLY' | 'SEASONAL';
-    seasonal_name: string | null;
+  id: string;
+  level_id: string | null;
+  mode: 'ONLINE' | 'OFFLINE';
+  base_price_monthly: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  pricing_type: 'WEEKLY' | 'SEASONAL';
+  seasonal_name: string | null;
 }
 
 export default async function PricingPage() {
-    const session = await getSessionOrThrow();
-    await assertRole(session, 'ADMIN');
+  const session = await getSessionOrThrow();
+  await assertRole(session, 'ADMIN');
 
-    const supabase = getSupabaseAdmin();
-    const [{ data }, levels] = await Promise.all([
-        supabase.from('pricing').select('*').order('created_at', { ascending: false }),
-        levelsDao.listLevels(),
-    ]);
+  const supabase = getSupabaseAdmin();
+  const [{ data }, levels] = await Promise.all([
+    supabase.from('pricing').select('*').order('created_at', { ascending: false }),
+    levelsDao.listLevels(),
+  ]);
 
-    // Cast to explicit type to fix lint errors since Supabase types might be outdated
-    const pricing = (data || []) as unknown as PricingItem[];
+  const pricing = (data || []) as unknown as PricingItem[];
+  const levelMap = new Map(levels.map((l) => [l.id, l.name]));
 
-    // Create a map of level names
-    const levelMap = new Map(levels.map((l) => [l.id, l.name]));
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
 
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
-    };
+  return (
+    <div className="col gap-4">
+      <PageHead
+        title="Harga per Level"
+        desc="Sesuaikan base price, diskon, dan struktur biaya untuk semua level belajar."
+        actions={<AddPricingButton levels={levels} />}
+      />
 
-    return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <header style={headerStyle}>
-                <div>
-                    <Link href="/admin/payments" style={backLinkStyle}>← Paket Pembayaran</Link>
-                    <h1 style={titleStyle}>Harga per Level</h1>
-                    <p style={subtitleStyle}>Kelola harga bulanan untuk setiap level dan mode (online/offline)</p>
-                </div>
-                <AddPricingButton levels={levels} />
-            </header>
-
-            {pricing && pricing.length > 0 ? (
-                <div style={tableContainerStyle}>
-                    <table style={tableStyle}>
-                        <thead>
-                            <tr>
-                                <th style={thStyle}>Tipe</th>
-                                <th style={thStyle}>Level / Program</th>
-                                <th style={thStyle}>Mode</th>
-                                <th style={thStyle}>Harga/Bulan</th>
-                                <th style={thStyle}>Status</th>
-                                <th style={thStyle}>Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {pricing.map((item) => (
-                                <tr key={item.id}>
-                                    <td style={tdStyle}>
-                                        <span style={{
-                                            padding: '0.2rem 0.5rem',
-                                            borderRadius: '4px',
-                                            fontSize: '0.75rem',
-                                            fontWeight: 600,
-                                            background: item.pricing_type === 'SEASONAL' ? '#f3e8ff' : '#e0e7ff',
-                                            color: item.pricing_type === 'SEASONAL' ? '#7e22ce' : '#3730a3',
-                                        }}>
-                                            {item.pricing_type || 'WEEKLY'}
-                                        </span>
-                                    </td>
-                                    <td style={tdStyle}>
-                                        {item.pricing_type === 'SEASONAL'
-                                            ? (item.seasonal_name || '-')
-                                            : (item.level_id ? (levelMap.get(item.level_id) || 'Unknown') : '-')
-                                        }
-                                    </td>
-                                    <td style={tdStyle}>
-                                        <span style={{
-                                            padding: '0.2rem 0.5rem',
-                                            borderRadius: '4px',
-                                            fontSize: '0.75rem',
-                                            fontWeight: 600,
-                                            background: item.mode === 'ONLINE' ? '#dbeafe' : '#fef3c7',
-                                            color: item.mode === 'ONLINE' ? '#1d4ed8' : '#b45309',
-                                        }}>
-                                            {item.mode}
-                                        </span>
-                                    </td>
-                                    <td style={tdStyle}>{formatCurrency(item.base_price_monthly)}</td>
-                                    <td style={tdStyle}>
-                                        <span style={{
-                                            padding: '0.25rem 0.5rem',
-                                            borderRadius: '4px',
-                                            fontSize: '0.75rem',
-                                            fontWeight: 600,
-                                            background: item.is_active ? '#dcfce7' : '#fee2e2',
-                                            color: item.is_active ? '#16a34a' : '#dc2626',
-                                        }}>
-                                            {item.is_active ? 'Aktif' : 'Nonaktif'}
-                                        </span>
-                                    </td>
-                                    <td style={tdStyle}>
-                                        <PricingActions
-                                            pricing={item}
-                                            levels={levels}
-                                            levelName={item.pricing_type === 'SEASONAL' ? (item.seasonal_name || '-') : (item.level_id ? (levelMap.get(item.level_id) || 'Unknown') : '-')}
-                                        />
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            ) : (
-                <div style={emptyStyle}>
-                    Belum ada harga yang ditentukan. Klik tombol &quot;Tambah Harga&quot; untuk mulai.
-                </div>
-            )}
-        </div>
-    );
+      <div className="card" style={{ overflow: 'hidden' }}>
+        {pricing && pricing.length > 0 ? (
+          <div style={{ overflowX: 'auto' }}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Tipe</th>
+                  <th>Level / Program</th>
+                  <th>Mode</th>
+                  <th>Harga/Bulan</th>
+                  <th>Status</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {pricing.map((item) => (
+                  <tr key={item.id}>
+                    <td>
+                      <span className={`badge ${item.pricing_type === 'SEASONAL' ? 'badge-info' : 'badge-neutral'}`}>
+                        {item.pricing_type || 'WEEKLY'}
+                      </span>
+                    </td>
+                    <td>
+                      {item.pricing_type === 'SEASONAL'
+                        ? (item.seasonal_name || '-')
+                        : (item.level_id ? (levelMap.get(item.level_id) || 'Unknown') : '-')}
+                    </td>
+                    <td>
+                      <span className={`badge ${item.mode === 'ONLINE' ? 'badge-info' : 'badge-warn'}`}>
+                        {item.mode}
+                      </span>
+                    </td>
+                    <td style={{ fontWeight: 700 }}>{formatCurrency(item.base_price_monthly)}</td>
+                    <td>
+                      <span className={`badge ${item.is_active ? 'badge-success' : 'badge-neutral'}`}>
+                        {item.is_active ? 'Aktif' : 'Nonaktif'}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <PricingActions
+                        pricing={item}
+                        levels={levels}
+                        levelName={item.pricing_type === 'SEASONAL'
+                          ? (item.seasonal_name || '-')
+                          : (item.level_id ? (levelMap.get(item.level_id) || 'Unknown') : '-')}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="empty">Belum ada harga yang ditentukan. Klik &quot;Tambah Harga&quot; untuk mulai.</div>
+        )}
+      </div>
+    </div>
+  );
 }
-
-const headerStyle: CSSProperties = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: '1rem',
-    flexWrap: 'wrap',
-};
-
-const backLinkStyle: CSSProperties = {
-    color: '#1e3a5f',
-    fontSize: '0.9rem',
-    marginBottom: '0.5rem',
-    display: 'inline-block',
-};
-
-const titleStyle: CSSProperties = {
-    fontSize: '1.5rem',
-    fontWeight: 700,
-    color: '#0f172a',
-    margin: 0,
-};
-
-const subtitleStyle: CSSProperties = {
-    color: '#64748b',
-    fontSize: '0.9rem',
-};
-
-const tableContainerStyle: CSSProperties = {
-    background: '#fff',
-    borderRadius: '0.75rem',
-    border: '1px solid #e2e8f0',
-    overflow: 'hidden',
-};
-
-const tableStyle: CSSProperties = {
-    width: '100%',
-    borderCollapse: 'collapse',
-};
-
-const thStyle: CSSProperties = {
-    textAlign: 'left',
-    padding: '0.75rem 1rem',
-    background: '#f8fafc',
-    fontSize: '0.85rem',
-    fontWeight: 600,
-    color: '#475569',
-    borderBottom: '1px solid #e2e8f0',
-};
-
-const tdStyle: CSSProperties = {
-    padding: '0.75rem 1rem',
-    borderBottom: '1px solid #f1f5f9',
-    color: '#334155',
-};
-
-const emptyStyle: CSSProperties = {
-    padding: '2rem',
-    textAlign: 'center',
-    color: '#64748b',
-    background: '#f8fafc',
-    borderRadius: '0.75rem',
-};

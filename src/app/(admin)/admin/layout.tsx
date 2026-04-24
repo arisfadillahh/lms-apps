@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
 import { getServerAuthSession } from '@/lib/auth';
-import AdminSidebar from './AdminSidebar';
 import PageTransition from '@/components/PageTransition';
-import DashboardHeader from '@/components/layout/DashboardHeader';
 import AdminClientWrapper from '@/components/admin/AdminClientWrapper';
+import AdminChrome from '@/components/admin/AdminChrome';
 import { redirect } from 'next/navigation';
 import { usersDao } from '@/lib/dao';
+
+export const dynamic = 'force-dynamic';
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const session = await getServerAuthSession();
@@ -22,43 +23,16 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     id: user.id,
     fullName: user.full_name,
     role: user.role,
+    username: user.username,
     avatarPath: user.avatar_path ?? null,
     adminPermissions: user.admin_permissions,
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', background: '#f8fafc' }}>
-      <AdminSidebar session={{ ...session, user: { ...session.user, adminPermissions: user.admin_permissions } }} />
-      <main
-        className="admin-main-content"
-        style={{
-          flex: 1,
-          marginLeft: '240px',
-          padding: '2rem 2.5rem',
-          background: 'transparent',
-          color: '#1e293b',
-        }}
-      >
-        <DashboardHeader user={userForHeader} />
-        <AdminClientWrapper>
-          <PageTransition>{children}</PageTransition>
-        </AdminClientWrapper>
-      </main>
-
-      {/* Responsive CSS for mobile */}
-      <style>{`
-        @media (max-width: 768px) {
-          .admin-main-content {
-            margin-left: 0 !important;
-            padding: 1rem !important;
-            max-width: 100vw !important;
-            overflow-x: hidden !important;
-            overflow-y: visible !important;
-            min-height: auto !important;
-            height: auto !important;
-          }
-        }
-      `}</style>
-    </div>
+    <AdminChrome user={userForHeader}>
+      <AdminClientWrapper>
+        <PageTransition>{children}</PageTransition>
+      </AdminClientWrapper>
+    </AdminChrome>
   );
 }

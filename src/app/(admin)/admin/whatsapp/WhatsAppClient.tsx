@@ -79,6 +79,7 @@ export default function WhatsAppSettingsPage() {
         status: string;
         created_at: string;
     }>>([]);
+    const [deliveryStats, setDeliveryStats] = useState({ sentToday: 0, failedToday: 0, queuedToday: 0 });
 
     // Test Modal State
     const [showTestModal, setShowTestModal] = useState(false);
@@ -141,10 +142,19 @@ export default function WhatsAppSettingsPage() {
 
     const fetchLogs = async () => {
         try {
-            const res = await fetch('/api/whatsapp/logs?limit=30');
+            const res = await fetch('/api/whatsapp/logs?limit=200');
             if (res.ok) {
                 const data = await res.json();
-                setLogs(data.logs || []);
+                const nextLogs = data.logs || [];
+                const startToday = new Date();
+                startToday.setHours(0, 0, 0, 0);
+
+                setLogs(nextLogs);
+                setDeliveryStats({
+                    sentToday: nextLogs.filter((log: any) => log.status === 'SENT' && new Date(log.created_at) >= startToday).length,
+                    failedToday: nextLogs.filter((log: any) => log.status === 'FAILED' && new Date(log.created_at) >= startToday).length,
+                    queuedToday: nextLogs.filter((log: any) => log.status === 'QUEUED' && new Date(log.created_at) >= startToday).length,
+                });
             }
         } catch (err) {
             console.error('Error fetching logs:', err);
@@ -297,8 +307,28 @@ export default function WhatsAppSettingsPage() {
 
     return (
         <div style={containerStyle}>
-            <h1 style={pageTitle}>WhatsApp</h1>
-            <p style={pageDesc}>Kelola koneksi WhatsApp dan pengaturan reminder otomatis.</p>
+
+
+            <div style={statsStripStyle}>
+                <div style={statsCardStyle}>
+                    <span style={statsLabelStyle}>Status Server</span>
+                    <strong style={{ ...statsValueStyle, color: status?.isConnected ? '#15803d' : '#b91c1c', fontSize: '1.2rem' }}>
+                        {status?.isConnected ? 'Terhubung' : 'Belum terhubung'}
+                    </strong>
+                </div>
+                <div style={statsCardStyle}>
+                    <span style={statsLabelStyle}>Terkirim Hari Ini</span>
+                    <strong style={statsValueStyle}>{deliveryStats.sentToday}</strong>
+                </div>
+                <div style={statsCardStyle}>
+                    <span style={statsLabelStyle}>Gagal Hari Ini</span>
+                    <strong style={{ ...statsValueStyle, color: deliveryStats.failedToday > 0 ? '#dc2626' : 'var(--text)' }}>{deliveryStats.failedToday}</strong>
+                </div>
+                <div style={statsCardStyle}>
+                    <span style={statsLabelStyle}>Queue Hari Ini</span>
+                    <strong style={statsValueStyle}>{deliveryStats.queuedToday}</strong>
+                </div>
+            </div>
 
             {/* Tab Navigation */}
             <div style={tabContainerStyle}>
@@ -656,58 +686,63 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: b
 // Styles
 // =====================
 
-const containerStyle: CSSProperties = { width: '100%', padding: '20px' };
-const pageTitle: CSSProperties = { fontSize: 24, fontWeight: 700, marginBottom: 8, color: '#0f172a' };
-const pageDesc: CSSProperties = { color: '#64748b', marginBottom: 24 };
-const loadingStyle: CSSProperties = { padding: 40, textAlign: 'center', color: '#64748b' };
+const containerStyle: CSSProperties = { width: '100%' };
+const pageTitle: CSSProperties = { fontSize: 24, fontWeight: 700, marginBottom: 8, color: 'var(--text)' };
+const pageDesc: CSSProperties = { color: 'var(--text-muted)', marginBottom: 24 };
+const loadingStyle: CSSProperties = { padding: 40, textAlign: 'center', color: 'var(--text-muted)' };
 
-const tabContainerStyle: CSSProperties = { display: 'flex', gap: 0, borderBottom: '1px solid #e2e8f0', marginBottom: 24 };
-const tabStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', border: 'none', background: 'transparent', color: '#64748b', fontSize: 14, fontWeight: 500, cursor: 'pointer', borderBottomWidth: 2, borderBottomStyle: 'solid', borderBottomColor: 'transparent', transition: 'all 0.2s' };
-const activeTabStyle: CSSProperties = { ...tabStyle, color: '#25d366', borderBottomColor: '#25d366', fontWeight: 600 };
+const statsStripStyle: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 18 };
+const statsCardStyle: CSSProperties = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, padding: '18px 20px', boxShadow: 'var(--shadow-sm)' };
+const statsLabelStyle: CSSProperties = { display: 'block', marginBottom: 8, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)' };
+const statsValueStyle: CSSProperties = { fontSize: 24, lineHeight: 1, color: 'var(--text)', fontWeight: 800 };
+
+const tabContainerStyle: CSSProperties = { display: 'flex', gap: 8, flexWrap: 'wrap', borderBottom: '1px solid var(--border)', marginBottom: 24, paddingBottom: 8 };
+const tabStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, padding: '12px 18px', border: '1px solid var(--border)', borderRadius: 999, background: 'var(--surface)', color: 'var(--text-muted)', fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' };
+const activeTabStyle: CSSProperties = { ...tabStyle, color: '#ffffff', borderColor: 'transparent', background: 'linear-gradient(135deg, var(--c-navy), var(--c-green))' };
 const tabContentStyle: CSSProperties = {};
 
-const cardStyle: CSSProperties = { backgroundColor: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: 24, marginBottom: 20 };
-const sectionTitleStyle: CSSProperties = { fontSize: 18, fontWeight: 600, margin: '0 0 16px 0', color: '#0f172a' };
+const cardStyle: CSSProperties = { backgroundColor: 'var(--surface)', borderRadius: 18, border: '1px solid var(--border)', padding: 24, marginBottom: 20, boxShadow: 'var(--shadow-sm)' };
+const sectionTitleStyle: CSSProperties = { fontSize: 18, fontWeight: 700, margin: '0 0 16px 0', color: 'var(--text)' };
 
 const statusContainerStyle: CSSProperties = { marginBottom: 20 };
 const statusIndicatorStyle = (connected: boolean): CSSProperties => ({ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, fontWeight: 600, color: connected ? '#22c55e' : '#ef4444' });
-const phoneInfoStyle: CSSProperties = { marginTop: 8, color: '#64748b', fontSize: 14 };
+const phoneInfoStyle: CSSProperties = { marginTop: 8, color: 'var(--text-muted)', fontSize: 14 };
 const errorTextStyle: CSSProperties = { color: '#dc2626', marginTop: 8 };
 const successTextStyle: CSSProperties = { color: '#16a34a', marginTop: 8 };
-const serverTimeStyle: CSSProperties = { fontSize: 12, color: '#64748b', marginTop: 4, display: 'block' };
+const serverTimeStyle: CSSProperties = { fontSize: 12, color: 'var(--text-muted)', marginTop: 4, display: 'block' };
 
-const qrContainerStyle: CSSProperties = { textAlign: 'center', padding: 20, backgroundColor: '#f8fafc', borderRadius: 8, marginBottom: 20 };
+const qrContainerStyle: CSSProperties = { textAlign: 'center', padding: 20, backgroundColor: 'var(--surface-2)', borderRadius: 16, marginBottom: 20 };
 const qrInstructionStyle: CSSProperties = { marginBottom: 16, fontWeight: 500 };
-const qrImageStyle: CSSProperties = { maxWidth: 256, border: '4px solid #fff', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' };
-const qrHelpStyle: CSSProperties = { marginTop: 16, color: '#64748b', fontSize: 14 };
+const qrImageStyle: CSSProperties = { maxWidth: 256, border: '4px solid #fff', borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' };
+const qrHelpStyle: CSSProperties = { marginTop: 16, color: 'var(--text-muted)', fontSize: 14 };
 
 const actionsStyle: CSSProperties = { display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 };
-const primaryButtonStyle: CSSProperties = { backgroundColor: '#25d366', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14 };
-const secondaryButtonStyle: CSSProperties = { backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '10px 20px', borderRadius: 8, cursor: 'pointer', fontWeight: 500, fontSize: 14 };
-const dangerButtonStyle: CSSProperties = { backgroundColor: '#ef4444', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14 };
-const warningButtonStyle: CSSProperties = { backgroundColor: '#f59e0b', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14 };
-const smallButtonStyle: CSSProperties = { backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 12 };
-const cancelButtonStyle: CSSProperties = { backgroundColor: '#f1f5f9', color: '#64748b', border: 'none', padding: '10px 20px', borderRadius: 8, cursor: 'pointer', fontWeight: 500 };
+const primaryButtonStyle: CSSProperties = { background: 'linear-gradient(135deg, var(--c-navy), var(--c-green))', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 12, cursor: 'pointer', fontWeight: 600, fontSize: 14 };
+const secondaryButtonStyle: CSSProperties = { backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border)', padding: '10px 20px', borderRadius: 12, cursor: 'pointer', fontWeight: 500, fontSize: 14 };
+const dangerButtonStyle: CSSProperties = { backgroundColor: '#ef4444', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 12, cursor: 'pointer', fontWeight: 600, fontSize: 14 };
+const warningButtonStyle: CSSProperties = { backgroundColor: '#f59e0b', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 12, cursor: 'pointer', fontWeight: 600, fontSize: 14 };
+const smallButtonStyle: CSSProperties = { backgroundColor: 'var(--surface-2)', color: 'var(--text)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: 10, cursor: 'pointer', fontSize: 12 };
+const cancelButtonStyle: CSSProperties = { backgroundColor: 'var(--surface-2)', color: 'var(--text-muted)', border: 'none', padding: '10px 20px', borderRadius: 12, cursor: 'pointer', fontWeight: 500 };
 
 const instructionsBoxStyle: CSSProperties = { backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 16, fontSize: 14, color: '#166534' };
 
 const formGroupStyle: CSSProperties = { marginBottom: 16 };
 const formRowStyle: CSSProperties = { display: 'flex', gap: 16 };
-const labelStyle: CSSProperties = { display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 500, color: '#374151' };
-const inputStyle: CSSProperties = { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 14, boxSizing: 'border-box' };
+const labelStyle: CSSProperties = { display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 500, color: 'var(--text)' };
+const inputStyle: CSSProperties = { width: '100%', padding: '10px 12px', borderRadius: 12, border: '1px solid var(--border)', fontSize: 14, boxSizing: 'border-box', background: 'var(--surface-2)', color: 'var(--text)' };
 const textareaStyle: CSSProperties = { ...inputStyle, resize: 'vertical', fontFamily: 'inherit' };
-const helpTextStyle: CSSProperties = { fontSize: 12, color: '#64748b', marginTop: 4 };
+const helpTextStyle: CSSProperties = { fontSize: 12, color: 'var(--text-muted)', marginTop: 4 };
 const checkboxLabelStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, cursor: 'pointer' };
 
 const successStyle: CSSProperties = { backgroundColor: '#dcfce7', color: '#166534', padding: '12px 16px', borderRadius: 8, marginBottom: 16 };
 const errorStyle: CSSProperties = { backgroundColor: '#fee2e2', color: '#dc2626', padding: '12px 16px', borderRadius: 8, marginBottom: 16 };
 
 const modalOverlayStyle: CSSProperties = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 };
-const modalContentStyle: CSSProperties = { backgroundColor: '#fff', borderRadius: 12, padding: 24, width: '90%', maxWidth: 400 };
+const modalContentStyle: CSSProperties = { backgroundColor: 'var(--surface)', borderRadius: 18, padding: 24, width: '90%', maxWidth: 400 };
 
 const tableStyle: CSSProperties = { width: '100%', borderCollapse: 'collapse' };
-const thStyle: CSSProperties = { textAlign: 'left', padding: '10px 12px', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', fontSize: 13, fontWeight: 600, color: '#475569' };
-const tdStyle: CSSProperties = { padding: '10px 12px', borderBottom: '1px solid #f1f5f9', fontSize: 13 };
+const thStyle: CSSProperties = { textAlign: 'left', padding: '10px 12px', backgroundColor: 'var(--surface-2)', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' };
+const tdStyle: CSSProperties = { padding: '10px 12px', borderBottom: '1px solid var(--border)', fontSize: 13, color: 'var(--text)' };
 
 const getCategoryBadge = (category: string, payloadType?: string): CSSProperties => {
     const isClassReminder = payloadType === 'CLASS_REMINDER';

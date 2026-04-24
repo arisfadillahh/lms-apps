@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { GripVertical, Trash2, Eye, EyeOff, Upload, Image, Link, ExternalLink, Check, X } from 'lucide-react';
+import PageHead from '@/components/admin/PageHead';
 
 type Banner = {
     id: string;
@@ -167,61 +168,37 @@ export default function AdminBannersPage() {
     }
 
     return (
-        <div className="flex flex-col gap-6 pb-8 max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="flex justify-between items-start gap-4 mb-2">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900 m-0">
-                        Manajemen Banner
-                    </h1>
-                    <p className="text-sm text-slate-500 mt-1">
-                        Kelola banner carousel di dashboard Coder untuk pengumuman dan promo.
-                    </p>
-                </div>
-                <button
-                    onClick={() => setShowUploadForm(!showUploadForm)}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white border-none rounded-xl text-sm font-semibold cursor-pointer shadow-sm shadow-blue-500/20 transition-all hover:-translate-y-0.5"
-                >
-                    {showUploadForm ? <X size={16} /> : <span className="text-lg leading-none">+</span>}
-                    {showUploadForm ? 'Tutup' : 'Tambah Banner'}
-                </button>
-            </div>
+        <div className="col gap-4">
+            <PageHead
+                title="Banner"
+                desc="Kelola banner yang tampil di dashboard coder. Drag & drop untuk mengubah urutan tampilan."
+                actions={
+                    <button
+                        onClick={() => setShowUploadForm(!showUploadForm)}
+                        className={`btn ${showUploadForm ? 'btn-ghost' : 'btn-primary'}`}
+                    >
+                        {showUploadForm ? <X size={16} /> : <span>+</span>}
+                        {showUploadForm ? 'Tutup' : 'Tambah Banner'}
+                    </button>
+                }
+            />
 
-            {/* Metrics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
-                {/* Card 1: Total Banner */}
-                <div className="bg-white rounded-2xl border border-slate-200 p-5 flex items-center gap-4 shadow-sm">
-                    <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500 flex-shrink-0">
-                        <Image size={24} strokeWidth={2.5} />
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-bold text-slate-500 tracking-wider mb-0.5 uppercase">Total Banner</p>
-                        <p className="text-xl font-bold text-slate-800 leading-none">{banners.length}</p>
-                    </div>
+            {/* Metrics */}
+            <div className="grid grid-4">
+                <div className="stat">
+                    <div className="stat-icon"><Image size={16} /></div>
+                    <div className="stat-label">Total Banner</div>
+                    <div className="stat-value">{banners.length}</div>
                 </div>
-
-                {/* Card 2: Banner Aktif */}
-                <div className="bg-white rounded-2xl border border-slate-200 p-5 flex items-center gap-4 shadow-sm">
-                    <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center text-green-500 flex-shrink-0">
-                        <Check size={24} strokeWidth={2.5} />
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-bold text-slate-500 tracking-wider mb-0.5 uppercase">Banner Aktif</p>
-                        <p className="text-xl font-bold text-slate-800 leading-none">{banners.filter(b => b.isActive).length}</p>
-                    </div>
+                <div className="stat">
+                    <div className="stat-icon" style={{ background: '#f0fdf4', color: '#16a34a' }}><Check size={16} /></div>
+                    <div className="stat-label">Banner Aktif</div>
+                    <div className="stat-value">{banners.filter(b => b.isActive).length}</div>
                 </div>
-
-                {/* Card 3: Total Tayangan (Converted to Total Klik) */}
-                <div className="bg-white rounded-2xl border border-slate-200 p-5 flex items-center gap-4 shadow-sm">
-                    <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 flex-shrink-0">
-                        <Eye size={24} strokeWidth={2.5} />
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-bold text-slate-500 tracking-wider mb-0.5 uppercase">Total Klik</p>
-                        <p className="text-xl font-bold text-slate-800 leading-none">
-                            {banners.reduce((sum, b) => sum + (b.clicks || 0), 0)}
-                        </p>
-                    </div>
+                <div className="stat">
+                    <div className="stat-icon"><Eye size={16} /></div>
+                    <div className="stat-label">Total Klik</div>
+                    <div className="stat-value">{banners.reduce((sum, b) => sum + (b.clicks || 0), 0)}</div>
                 </div>
             </div>
 

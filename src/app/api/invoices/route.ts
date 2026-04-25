@@ -24,8 +24,8 @@ export async function GET(request: NextRequest) {
         // Parse query params
         const { searchParams } = new URL(request.url);
         const filters: InvoiceFilters = {
-            month: searchParams.get('month') ? parseInt(searchParams.get('month')!) : undefined,
-            year: searchParams.get('year') ? parseInt(searchParams.get('year')!) : undefined,
+            month: searchParams.get('month') && searchParams.get('month') !== 'all' ? parseInt(searchParams.get('month')!) : undefined,
+            year: searchParams.get('year') && searchParams.get('year') !== 'all' ? parseInt(searchParams.get('year')!) : undefined,
             status: searchParams.get('status') as InvoiceStatus | undefined,
             search: searchParams.get('search') || undefined,
             page: searchParams.get('page') ? parseInt(searchParams.get('page')!) : 1,
@@ -35,11 +35,8 @@ export async function GET(request: NextRequest) {
         // Get invoices
         const result = await listInvoices(filters);
 
-        // Get stats if month/year provided
-        let stats = null;
-        if (filters.month && filters.year) {
-            stats = await getInvoiceStats(filters.month, filters.year);
-        }
+        // Get stats
+        const stats = await getInvoiceStats(filters.month, filters.year);
 
         // Get settings
         const settings = await getInvoiceSettings();

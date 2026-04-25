@@ -336,18 +336,33 @@ function calculateDueDate(
 /**
  * Get invoice statistics for current month
  */
-export async function getInvoiceStats(month: number, year: number) {
+export async function getInvoiceStats(month?: number, year?: number) {
     const supabase = getSupabaseAdmin();
 
+    let queryPending = supabase.from('invoices' as any).select('*', { count: 'exact', head: true }).eq('status', 'PENDING');
+    let queryPaid = supabase.from('invoices' as any).select('*', { count: 'exact', head: true }).eq('status', 'PAID');
+    let queryOverdue = supabase.from('invoices' as any).select('*', { count: 'exact', head: true }).eq('status', 'OVERDUE');
+    let queryTotal = supabase.from('invoices' as any).select('total_amount').neq('status', 'PAID');
+
+    if (month) {
+        queryPending = queryPending.eq('period_month', month);
+        queryPaid = queryPaid.eq('period_month', month);
+        queryOverdue = queryOverdue.eq('period_month', month);
+        queryTotal = queryTotal.eq('period_month', month);
+    }
+    
+    if (year) {
+        queryPending = queryPending.eq('period_year', year);
+        queryPaid = queryPaid.eq('period_year', year);
+        queryOverdue = queryOverdue.eq('period_year', year);
+        queryTotal = queryTotal.eq('period_year', year);
+    }
+
     const [pending, paid, overdue, total] = await Promise.all([
-        supabase.from('invoices' as any).select('*', { count: 'exact', head: true })
-            .eq('period_month', month).eq('period_year', year).eq('status', 'PENDING'),
-        supabase.from('invoices' as any).select('*', { count: 'exact', head: true })
-            .eq('period_month', month).eq('period_year', year).eq('status', 'PAID'),
-        supabase.from('invoices' as any).select('*', { count: 'exact', head: true })
-            .eq('period_month', month).eq('period_year', year).eq('status', 'OVERDUE'),
-        supabase.from('invoices' as any).select('total_amount')
-            .eq('period_month', month).eq('period_year', year).neq('status', 'PAID')
+        queryPending,
+        queryPaid,
+        queryOverdue,
+        queryTotal
     ]);
 
     const totalAmount = ((total.data as any[]) || []).reduce(

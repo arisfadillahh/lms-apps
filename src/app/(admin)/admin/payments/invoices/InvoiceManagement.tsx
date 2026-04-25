@@ -30,8 +30,8 @@ export default function InvoiceManagement({
 }: Props) {
     const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
     const [stats, setStats] = useState<Stats>(initialStats);
-    const [month, setMonth] = useState(initialMonth);
-    const [year, setYear] = useState(initialYear);
+    const [month, setMonth] = useState<number | 'all'>(initialMonth);
+    const [year, setYear] = useState<number | 'all'>(initialYear);
     const [statusFilter, setStatusFilter] = useState<string>('ALL');
     const [itemsPerPage, setItemsPerPage] = useState<number | 'all'>(10);
     const [currentPage, setCurrentPage] = useState(1);
@@ -128,8 +128,8 @@ export default function InvoiceManagement({
         setLoading(true);
         try {
             const params = new URLSearchParams();
-            params.set('month', month.toString());
-            params.set('year', year.toString());
+            if (month !== 'all') params.set('month', month.toString());
+            if (year !== 'all') params.set('year', year.toString());
             params.set('limit', '1000'); // Fetch all for local pagination
             if (search) params.set('search', search);
 
@@ -149,6 +149,10 @@ export default function InvoiceManagement({
 
     // Action: Generate Invoices ONLY
     const handleGenerate = async () => {
+        if (month === 'all' || year === 'all') {
+            setMessage({ type: 'error', text: 'Pilih bulan dan tahun spesifik untuk generate invoice.' });
+            return;
+        }
         setGenerating(true);
         setMessage(null);
 
@@ -330,7 +334,7 @@ export default function InvoiceManagement({
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <button
                         onClick={handleGenerate}
-                        disabled={generating || isProcessingQueue}
+                        disabled={generating || isProcessingQueue || month === 'all' || year === 'all'}
                         className="btn"
                     >
                         {generating ? '⏳ Generating...' : '⚙️ Generate Invoice'}
@@ -395,9 +399,10 @@ export default function InvoiceManagement({
                     <label style={filterLabelStyle}>Bulan</label>
                     <select
                         value={month}
-                        onChange={(e) => setMonth(parseInt(e.target.value))}
+                        onChange={(e) => setMonth(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
                         style={selectStyle}
                     >
+                        <option value="all">Semua Bulan</option>
                         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(m => (
                             <option key={m} value={m}>{getMonthName(m)}</option>
                         ))}
@@ -407,9 +412,10 @@ export default function InvoiceManagement({
                     <label style={filterLabelStyle}>Tahun</label>
                     <select
                         value={year}
-                        onChange={(e) => setYear(parseInt(e.target.value))}
+                        onChange={(e) => setYear(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
                         style={selectStyle}
                     >
+                        <option value="all">Semua Tahun</option>
                         {[2024, 2025, 2026, 2027].map(y => (
                             <option key={y} value={y}>{y}</option>
                         ))}

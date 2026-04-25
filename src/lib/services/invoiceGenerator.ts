@@ -347,7 +347,7 @@ export async function getInvoiceStats(month: number, year: number) {
         supabase.from('invoices' as any).select('*', { count: 'exact', head: true })
             .eq('period_month', month).eq('period_year', year).eq('status', 'OVERDUE'),
         supabase.from('invoices' as any).select('total_amount')
-            .eq('period_month', month).eq('period_year', year)
+            .eq('period_month', month).eq('period_year', year).neq('status', 'PAID')
     ]);
 
     const totalAmount = ((total.data as any[]) || []).reduce(

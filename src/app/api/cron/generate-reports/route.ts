@@ -1,16 +1,12 @@
 import { NextResponse } from 'next/server';
 import { generateDraftReportsTask } from '@/lib/services/aiReports';
+import { verifyCronRequest } from '@/lib/cron';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function GET(request: Request) {
-  // Try mapping cron secret so it is protected
-  const authHeader = request.headers.get('authorization');
-  if (
-    process.env.CRON_SECRET &&
-    authHeader !== `Bearer ${process.env.CRON_SECRET}`
-  ) {
+  if (!verifyCronRequest(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

@@ -58,3 +58,6 @@ deploy.sh
 # located at ../design admin — already outside git scope
 # design admin reference folder (UI mockups, not for production)
 /design admin/
+
+# AI assistant configs / guidelines
+skill.md

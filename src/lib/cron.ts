@@ -1,8 +1,10 @@
 export function verifyCronRequest(request: Request): boolean {
   const secret = process.env.CRON_SECRET;
   if (!secret) {
-    return true;
+    console.error('[Cron] CRON_SECRET is missing; refusing cron request.');
+    return false;
   }
+
   const authHeader = request.headers.get('authorization');
   if (!authHeader) {
     return false;

@@ -30,7 +30,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         id,
         status,
         coder:users!block_reports_coder_id_fkey(full_name),
-        class:classes(name),
+        class:classes(id, name),
         block:blocks(id, name)
       `)
       .eq('id', id)
@@ -66,9 +66,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     // 3. Prompt AI using OpenRouter
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: 'OpenRouter API Key is missing' }, { status: 500 });
+    }
+
     const openai = new OpenAI({
       baseURL: 'https://openrouter.ai/api/v1',
-      apiKey: process.env.OPENROUTER_API_KEY || 'MISSING_API_KEY', 
+      apiKey,
       defaultHeaders: {
         'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://lms.clevio.co',
         'X-Title': 'Clevio LMS',

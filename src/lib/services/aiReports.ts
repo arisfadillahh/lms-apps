@@ -7,6 +7,7 @@ import OpenAI from 'openai';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { reportsDao, sessionsDao } from '@/lib/dao';
 import { computeLessonSchedule } from '@/lib/services/lessonScheduler';
+import { getAiReportGenerationSkipReason } from '@/lib/services/aiReportGuards';
 
 type ClassBlockWithRelations = {
   id: string;
@@ -35,9 +36,15 @@ async function generateBlockReportDescriptions(
   };
 
   // Initialize OpenAI client lazily to avoid build errors if env var is missing
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    console.error('OpenRouter API key is missing; skipping AI report description generation.');
+    return criteriaInput.map(c => ({ criteriaId: c.criteriaId, description: "AI belum dikonfigurasi. Mohon isi deskripsi manual." }));
+  }
+
   const openai = new OpenAI({
     baseURL: 'https://openrouter.ai/api/v1',
-    apiKey: process.env.OPENROUTER_API_KEY || 'MISSING_API_KEY', 
+    apiKey,
     defaultHeaders: {
       'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://lms.clevio.co',
       'X-Title': 'Clevio LMS',
@@ -196,13 +203,9 @@ async function generateDraftReportsFromClassBlocks(
 
     for (const coderId of Object.keys(coderScores)) {
       const existingReport = await reportsDao.getBlockReport(classId, blockId, coderId);
-      if (existingReport && existingReport.is_ai_generated) {
-        console.log(`[${logPrefix}] Skipping Coder ${coderId} in block ${blockId} because AI report already generated.`);
-        continue;
-      }
-
-      if (existingReport && existingReport.status === 'PUBLISHED') {
-        console.log(`[${logPrefix}] Skipping Coder ${coderId} in block ${blockId} because the report is already manually PUBLISHED.`);
+      const skipReason = getAiReportGenerationSkipReason(existingReport);
+      if (skipReason) {
+        console.log(`[${logPrefix}] Skipping Coder ${coderId} in block ${blockId}: ${skipReason}`);
         continue;
       }
 

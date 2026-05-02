@@ -163,9 +163,9 @@ export default async function CoachDashboardPage() {
                                         <span className="material-symbols-outlined text-emerald-600">school</span>
                                         Manajemen Kelas
                                     </h2>
-                                    <button className="text-slate-500 font-bold text-xs flex items-center gap-1 hover:text-brand-deep transition-colors">
+                                    <Link href="/coach/classes" className="text-slate-500 font-bold text-xs flex items-center gap-1 hover:text-brand-deep transition-colors">
                                         Kelola Semua Kelas <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                                    </button>
+                                    </Link>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {classes.slice(0, 4).length > 0 ? classes.slice(0, 4).map(cls => (

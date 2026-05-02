@@ -14,9 +14,10 @@ import {
   X,
 } from 'lucide-react';
 
-import { classesDao, coachLeaveDao, rubricsDao, sessionsDao, usersDao } from '@/lib/dao';
+import { classLessonsDao, classesDao, coachLeaveDao, rubricsDao, sessionsDao, usersDao } from '@/lib/dao';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { getWhatsAppSession, listInvoices } from '@/lib/dao/invoicesDao';
+import { resolvePitchingDayDate } from '@/lib/services/pitchingDay';
 
 function levelTagClass(levelId: string | null, type: string) {
   if (type === 'EKSKUL' || !levelId) return 'tag-ekskul';
@@ -173,20 +174,35 @@ export default async function AdminDashboardPage() {
 
   const todaySessions = allSessions.filter((session) => isSameDay(new Date(session.date_time), now));
   const tomorrowSessions = allSessions.filter((session) => isSameDay(new Date(session.date_time), tomorrow));
+  const sessionDateById = new Map(allSessions.map((session) => [session.id, session.date_time]));
 
   const blockRows = (
     await Promise.all(
       classes.map(async (klass) => {
         const blocks = await classesDao.getClassBlocks(klass.id);
-        return blocks
-          .filter((block) => block.pitching_day_date)
-          .map((block) => ({
-            classId: klass.id,
-            className: klass.name,
-            blockName: block.block_name ?? 'Pitching Day',
-            pitchingDayDate: block.pitching_day_date as string,
-            students: enrollmentCountMap[klass.id] ?? 0,
-          }));
+        const rows = await Promise.all(
+          blocks.map(async (block) => {
+            const lessons = await classLessonsDao.listLessonsByClassBlock(block.id);
+            const sessionDates = lessons
+              .map((lesson) => (lesson.session_id ? sessionDateById.get(lesson.session_id) ?? null : null))
+              .filter((value): value is string => value !== null);
+            const pitchingDayDate = resolvePitchingDayDate(sessionDates, block.pitching_day_date);
+
+            if (!pitchingDayDate) {
+              return null;
+            }
+
+            return {
+              classId: klass.id,
+              className: klass.name,
+              blockName: block.block_name ?? 'Pitching Day',
+              pitchingDayDate,
+              students: enrollmentCountMap[klass.id] ?? 0,
+            };
+          }),
+        );
+
+        return rows.filter((row): row is NonNullable<typeof row> => row !== null);
       }),
     )
   )

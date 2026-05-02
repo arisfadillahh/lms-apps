@@ -4,6 +4,7 @@ import { addDays } from 'date-fns';
 
 import { blocksDao, classLessonsDao, classesDao, coderProgressDao, lessonTemplatesDao, sessionsDao } from '@/lib/dao';
 import { buildClassLessonOrderIndex, buildClassLessonTitle } from '@/lib/dao/classLessonsDao';
+import { resolvePitchingDayDate } from '@/lib/services/pitchingDay';
 import type { ClassLessonRecord } from '@/lib/dao/classLessonsDao';
 import type { ClassRecord } from '@/lib/dao/classesDao';
 import type { LessonTemplateRecord } from '@/lib/dao/lessonTemplatesDao';
@@ -580,6 +581,6 @@ function resolveBlockRuntimeDates(
   return {
     startDate: formatDateOnly(new Date(mappedSessionDates[0])),
     endDate: lastDate,
-    pitchingDayDate: lastDate,
+    pitchingDayDate: resolvePitchingDayDate(mappedSessionDates, block.pitching_day_date),
   };
 }

@@ -2,24 +2,33 @@ import type { ReactNode } from 'react';
 import { getServerAuthSession } from '@/lib/auth';
 import { usersDao } from '@/lib/dao';
 import CoachSidebar from './CoachSidebar';
-import CoachMobileNav from './CoachMobileNav';
 import PageTransition from '@/components/PageTransition';
 import CoachDashboardHeader from '@/components/coach/CoachDashboardHeader';
+import { redirect } from 'next/navigation';
 
 export default async function CoachLayout({ children }: { children: ReactNode }) {
   const session = await getServerAuthSession();
 
-  if (!session?.user?.id) return null;
+  if (!session?.user?.id) {
+    redirect('/login');
+  }
 
-  const user = await usersDao.getUserById(session.user.id);
-  if (!user) return null;
+  let user;
+  try {
+    user = await usersDao.getUserById(session.user.id);
+  } catch (error) {
+    console.warn('[CoachLayout] Invalid session user; redirecting to login', error);
+    redirect('/login');
+  }
+
+  if (!user) {
+    redirect('/login');
+  }
 
   return (
-    <div className="min-h-screen flex antialiased bg-[#f1f5f9] text-[#0f172a] font-sans">
-      {/* Google Fonts: Material Symbols + Plus Jakarta Sans */}
-      {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+      <div className="min-h-screen flex antialiased bg-[#f1f5f9] text-[#0f172a] font-sans">
+        {/* Google Fonts: Material Symbols + Plus Jakarta Sans */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
-      {/* eslint-disable-next-line @next/next/no-page-custom-font */}
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
       {/* eslint-disable-next-line @next/next/no-page-custom-font */}
       <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />

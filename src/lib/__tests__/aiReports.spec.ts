@@ -14,4 +14,12 @@ describe('getAiReportGenerationSkipReason', () => {
   it('skips existing manual reports too', () => {
     expect(getAiReportGenerationSkipReason({ status: 'SUBMITTED', is_ai_generated: false })).toContain('already exists');
   });
+
+  it('skips existing reports even when the AI flag is null', () => {
+    expect(getAiReportGenerationSkipReason({ status: 'DRAFT', is_ai_generated: null })).toContain('already exists');
+  });
+
+  it('includes the current status in the skip reason', () => {
+    expect(getAiReportGenerationSkipReason({ status: 'PUBLISHED', is_ai_generated: true })).toContain('PUBLISHED');
+  });
 });

@@ -3,6 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 import { getServerAuthSession } from '@/lib/auth';
+import { usersDao } from '@/lib/dao';
 import { getRoleDashboardPath } from '@/lib/routing';
 
 import LoginForm from './LoginForm';
@@ -11,14 +12,25 @@ export const metadata = {
   title: 'Login | Clevio LMS',
 };
 
-export default async function LoginPage(props: any) {
+type LoginPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>> | Record<string, string | string[] | undefined>;
+};
+
+export default async function LoginPage(props: LoginPageProps) {
   const searchParams = props.searchParams ? await Promise.resolve(props.searchParams) : {};
   const lang = searchParams.lang === 'en' ? 'en' : 'id';
   const isEng = lang === 'en';
 
   const session = await getServerAuthSession();
-  if (session) {
-    redirect(getRoleDashboardPath(session.user.role));
+  if (session?.user?.id) {
+    try {
+      const user = await usersDao.getUserById(session.user.id);
+      if (user) {
+        redirect(getRoleDashboardPath(user.role));
+      }
+    } catch (error) {
+      console.warn('[LoginPage] Ignoring stale session during login render', error);
+    }
   }
 
   return (

@@ -15,9 +15,17 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     redirect('/login');
   }
 
-  const user = await usersDao.getUserById(session.user.id);
+  let user;
+  try {
+    user = await usersDao.getUserById(session.user.id);
+  } catch (error) {
+    console.warn('[AdminLayout] Invalid session user; redirecting to login', error);
+    redirect('/login');
+  }
 
-  if (!user) return null;
+  if (!user) {
+    redirect('/login');
+  }
 
   const userForHeader = {
     id: user.id,

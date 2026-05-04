@@ -10,12 +10,20 @@ import { redirect } from 'next/navigation';
 export default async function CoderLayout({ children }: { children: ReactNode }) {
   const session = await getServerAuthSession();
   if (!session?.user?.id) {
-    redirect('/auth/signin');
+    redirect('/login');
   }
 
-  const user = await usersDao.getUserById(session.user.id);
+  let user;
+  try {
+    user = await usersDao.getUserById(session.user.id);
+  } catch (error) {
+    console.warn('[CoderLayout] Invalid session user; redirecting to login', error);
+    redirect('/login');
+  }
 
-  if (!user) return null;
+  if (!user) {
+    redirect('/login');
+  }
 
   const userName = session.user.fullName?.split(' ')[0] || 'Coder';
   const todayDate = format(new Date(), 'EEEE, d MMMM yyyy', { locale: id });
@@ -28,10 +36,10 @@ export default async function CoderLayout({ children }: { children: ReactNode })
           userName={userName}
           fullName={session.user.fullName || 'Coder'}
           todayDate={todayDate}
-          avatarPath={(session.user as any).avatarPath}
+          avatarPath={session.user.avatarPath}
           role={session.user.role}
-          username={(session.user as any).username}
-          adminPermissions={(session.user as any).adminPermissions}
+          username={session.user.username}
+          adminPermissions={session.user.adminPermissions}
         />
         {children}
       </main>

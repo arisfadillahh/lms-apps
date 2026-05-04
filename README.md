@@ -18,14 +18,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ### Development credentials
 
-For local testing the app ships with demo accounts that are always available in development builds.
-If a username is not found inside Supabase (or Supabase isn&apos;t wired up yet) the credentials below can be used:
-
-- `admin` / `admin123`
-- `coach` / `coach123`
-- `coder` / `coder123`
-
-Set the appropriate Supabase environment variables once your backend is ready and create real users from the Admin dashboard.
+Local testing uses user accounts from Supabase. Create or sync test users in the database; the app no longer ships with hardcoded fallback login credentials.
 
 ### Refreshing class data (dev)
 

@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldAlert, MessageCircle, Mail, Lock, AtSign } from 'lucide-react';
+import { ShieldAlert, MessageCircle, AtSign, Loader2 } from 'lucide-react';
 
 import { getRoleDashboardPath } from '@/lib/routing';
 import type { Role } from '@/types/supabase';
@@ -129,6 +129,7 @@ export default function LoginForm({ lang = 'id' }: { lang?: 'id' | 'en' }) {
         <form
           onSubmit={handleSubmit(onSubmit)}
           className="flex flex-col gap-3 lg:gap-4"
+          aria-busy={submitting}
         >
         {errorMessage && (
           <div style={{
@@ -160,8 +161,9 @@ export default function LoginForm({ lang = 'id' }: { lang?: 'id' | 'en' }) {
                   type="text"
                   autoComplete="username"
                   placeholder="cleviocoder"
+                  disabled={submitting}
                   {...register('username')}
-                  className="w-full p-0 border-none text-sm md:text-sm lg:text-base bg-transparent outline-none text-slate-800 font-bold"
+                  className="w-full p-0 border-none text-sm md:text-sm lg:text-base bg-transparent outline-none text-slate-800 font-bold disabled:cursor-not-allowed disabled:opacity-60"
                 />
              </div>
              <div className="absolute right-3 md:right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
@@ -183,8 +185,9 @@ export default function LoginForm({ lang = 'id' }: { lang?: 'id' | 'en' }) {
                   type="password"
                   autoComplete="current-password"
                   placeholder="........"
+                  disabled={submitting}
                   {...register('password')}
-                  className="w-full p-0 border-none text-base md:text-lg lg:text-xl bg-transparent outline-none text-slate-800 font-extrabold tracking-widest"
+                  className="w-full p-0 border-none text-base md:text-lg lg:text-xl bg-transparent outline-none text-slate-800 font-extrabold tracking-widest disabled:cursor-not-allowed disabled:opacity-60"
                 />
              </div>
              <div className="absolute right-3 md:right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
@@ -199,7 +202,8 @@ export default function LoginForm({ lang = 'id' }: { lang?: 'id' | 'en' }) {
             <button
                 type="button"
                 onClick={() => setShowForgotModal(true)}
-                className="flex-1 py-3 md:py-3 lg:py-4 rounded-xl md:rounded-2xl lg:rounded-[24px] bg-slate-100 text-slate-600 text-xs md:text-sm lg:text-base font-extrabold transition-all text-center shadow-sm hover:bg-slate-200 border-none cursor-pointer"
+                disabled={submitting}
+                className="flex-1 py-3 md:py-3 lg:py-4 rounded-xl md:rounded-2xl lg:rounded-[24px] bg-slate-100 text-slate-600 text-xs md:text-sm lg:text-base font-extrabold transition-all text-center shadow-sm hover:bg-slate-200 border-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
             >
                 {t.forgot}
             </button>
@@ -209,7 +213,10 @@ export default function LoginForm({ lang = 'id' }: { lang?: 'id' | 'en' }) {
               disabled={submitting}
               className={`flex-[1.2] py-3 md:py-3 lg:py-4 rounded-xl md:rounded-2xl lg:rounded-[24px] bg-[#00b0d7] text-white text-xs md:text-sm lg:text-base font-bold transition-all border-none shadow-[0_8px_24px_rgba(0,176,215,0.25)] ${submitting ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer hover:brightness-110'}`}
             >
-              {submitting ? t.auth : t.login}
+              <span className="inline-flex items-center justify-center gap-2">
+                {submitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+                {submitting ? t.auth : t.login}
+              </span>
             </button>
         </div>
       </form>

@@ -3,6 +3,7 @@ import { classesDao, sessionsDao } from '@/lib/dao';
 import type { ClassBlockRecord } from '@/lib/dao/classesDao';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 import { getSoftwareByBlockId } from '@/lib/dao/blockSoftwareDao';
+import { mergeCoachClassesById, pickNextCoachSession, pickRelevantCoachSessions } from '@/lib/services/coachClassSummary';
 
 type SoftwareInfo = {
   id: string;
@@ -55,11 +56,7 @@ export async function getCoachClassesWithBlocks(coachId: string): Promise<CoachC
     classesDao.listClassesWhereCoachIsSubstitute(coachId)
   ]);
 
-  // Merge and deduplicate by ID
-  const allClassesMap = new Map();
-  ownClasses.forEach(c => allClassesMap.set(c.id, c));
-  subClasses.forEach(c => allClassesMap.set(c.id, c));
-  const classes = Array.from(allClassesMap.values());
+  const classes = mergeCoachClassesById(ownClasses, subClasses);
 
   return Promise.all(
     classes.map(async (klass) => {
@@ -90,13 +87,8 @@ export async function getCoachClassesWithBlocks(coachId: string): Promise<CoachC
         };
       }
 
-      const relevantSessions = isMainCoach
-        ? sessions
-        : sessions.filter(s => s.substitute_coach_id === coachId);
-
-      const nextSession = relevantSessions
-        .filter((session) => new Date(session.date_time) >= new Date())
-        .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime())[0];
+      const relevantSessions = pickRelevantCoachSessions(sessions, isMainCoach, coachId);
+      const nextSession = pickNextCoachSession(relevantSessions);
 
       let nextLesson = null;
       if (nextSession && nextSession.status !== 'CANCELLED') {

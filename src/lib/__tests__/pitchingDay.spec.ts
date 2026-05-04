@@ -25,4 +25,19 @@ describe('resolvePitchingDayDate', () => {
 
     expect(resolvePitchingDayDate(dates, null)).toBe('2026-03-08');
   });
+
+  it('sorts sessions before choosing the second-to-last date', () => {
+    const dates = [
+      '2026-04-22T10:00:00+07:00',
+      '2026-04-01T10:00:00+07:00',
+      '2026-04-15T10:00:00+07:00',
+      '2026-04-08T10:00:00+07:00',
+    ];
+
+    expect(resolvePitchingDayDate(dates, null)).toBe('2026-04-15');
+  });
+
+  it('falls back to the stored date when no session dates exist', () => {
+    expect(resolvePitchingDayDate([], '2026-05-10')).toBe('2026-05-10');
+  });
 });

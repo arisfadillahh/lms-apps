@@ -16,15 +16,42 @@ export type CreateUserInput = {
   adminPermissions?: { menus: string[]; is_superadmin: boolean } | null;
 };
 
+const TRANSIENT_SCHEMA_CACHE_PATTERNS = [
+  'schema cache',
+  'retrying',
+  'fetch failed',
+];
+
+function isTransientUserQueryError(error: { message?: string } | null): boolean {
+  const message = error?.message?.toLowerCase() ?? '';
+  return TRANSIENT_SCHEMA_CACHE_PATTERNS.some((pattern) => message.includes(pattern));
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function getUserById(id: string): Promise<UserRecord | null> {
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase.from('users').select('*').eq('id', id).maybeSingle();
+  let lastError: { message: string } | null = null;
 
-  if (error) {
-    throw new Error(`Failed to fetch user by id: ${error.message}`);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const { data, error } = await supabase.from('users').select('*').eq('id', id).maybeSingle();
+
+    if (!error) {
+      return data;
+    }
+
+    lastError = error;
+
+    if (!isTransientUserQueryError(error) || attempt === 2) {
+      break;
+    }
+
+    await wait(150 * (attempt + 1));
   }
 
-  return data;
+  throw new Error(`Failed to fetch user by id: ${lastError?.message ?? 'Unknown error'}`);
 }
 
 export async function getUserByUsername(username: string): Promise<UserRecord | null> {
@@ -157,7 +184,7 @@ export async function deleteUser(userId: string): Promise<void> {
 
   // Delete related records first to avoid FK constraint errors
   // 1. Delete coder_payment_periods
-  await supabase.from('coder_payment_periods' as any).delete().eq('coder_id', userId);
+  await supabase.from('coder_payment_periods' as never).delete().eq('coder_id', userId);
 
   // 2. Delete enrollments
   await supabase.from('enrollments').delete().eq('coder_id', userId);
@@ -169,7 +196,7 @@ export async function deleteUser(userId: string): Promise<void> {
   await supabase.from('coder_block_progress').delete().eq('coder_id', userId);
 
   // 5. Delete invoices
-  await supabase.from('invoices' as any).delete().eq('coder_id', userId);
+  await supabase.from('invoices' as never).delete().eq('coder_id', userId);
 
   // Delete from Supabase Auth (ignore errors if not exists)
   const { error: authError } = await supabase.auth.admin.deleteUser(userId);

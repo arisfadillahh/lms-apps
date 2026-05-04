@@ -14,10 +14,28 @@ import {
   X,
 } from 'lucide-react';
 
-import { classLessonsDao, classesDao, coachLeaveDao, rubricsDao, sessionsDao, usersDao } from '@/lib/dao';
+import { classLessonsDao, classesDao, coachLeaveDao, sessionsDao, usersDao } from '@/lib/dao';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { getWhatsAppSession, listInvoices } from '@/lib/dao/invoicesDao';
 import { resolvePitchingDayDate } from '@/lib/services/pitchingDay';
+
+type DashboardReportRelation<T> = T | T[] | null;
+
+type DashboardReportInboxRow = {
+  id: string;
+  status: string;
+  updated_at: string | null;
+  class: DashboardReportRelation<{ name: string | null; type: string | null }>;
+  block: DashboardReportRelation<{ name: string | null }>;
+  coder: DashboardReportRelation<{ full_name: string | null }>;
+};
+
+function getRelation<T>(relation: DashboardReportRelation<T>): T | undefined {
+  if (Array.isArray(relation)) return relation[0];
+  return relation ?? undefined;
+}
+
+export const dynamic = 'force-dynamic';
 
 function levelTagClass(levelId: string | null, type: string) {
   if (type === 'EKSKUL' || !levelId) return 'tag-ekskul';
@@ -120,7 +138,7 @@ export default async function AdminDashboardPage() {
     classes,
     coaches,
     coders,
-    submissions,
+    reportResult,
     leaveRequests,
     invoiceResult,
     { data: enrollmentsRaw },
@@ -131,7 +149,21 @@ export default async function AdminDashboardPage() {
     classesDao.listClasses(),
     usersDao.listUsersByRole('COACH'),
     usersDao.listUsersByRole('CODER'),
-    rubricsDao.listSubmissionsWithReports(20),
+    supabase
+      .from('block_reports')
+      .select(
+        `
+        id,
+        status,
+        updated_at,
+        class:classes(name, type),
+        block:blocks(name),
+        coder:users!block_reports_coder_id_fkey(full_name)
+      `,
+      )
+      .neq('status', 'DRAFT')
+      .order('updated_at', { ascending: false })
+      .limit(200),
     coachLeaveDao.listLeaveRequestsWithCoach(),
     listInvoices({ page: 1, limit: 10 }),
     supabase.from('enrollments').select('class_id').eq('status', 'ACTIVE'),
@@ -143,6 +175,10 @@ export default async function AdminDashboardPage() {
       .lt('created_at', tomorrowStart.toISOString()),
     (await import('@/lib/dao')).levelsDao.listLevels(),
   ]);
+
+  if (reportResult.error) {
+    console.error('[AdminDashboardPage] Failed to fetch submitted reports:', reportResult.error);
+  }
 
   const coachMap = new Map(coaches.map((coach) => [coach.id, coach.full_name]));
   const levelMap = new Map(levels.map((level) => [level.id, level.name]));
@@ -219,11 +255,12 @@ export default async function AdminDashboardPage() {
   const activeClasses = classes.filter((klass) => klass.end_date >= format(now, 'yyyy-MM-dd')).length;
   const activeCoaches = coaches.filter((coach) => coach.is_active).length;
   const activeCoders = coders.filter((coder) => coder.is_active).length;
-  const pendingReports = submissions.filter((row) => !row.report?.pdf_url).length;
+  const submittedReports = ((reportResult.data ?? []) as DashboardReportInboxRow[]).filter((report) => report.status === 'SUBMITTED');
+  const reportInbox = submittedReports.slice(0, 3);
+  const pendingReports = submittedReports.length;
   const pendingLeaves = leaveRequests.filter((request) => request.status === 'PENDING').length;
   const pendingInvoices = invoiceResult.invoices.filter((invoice) => invoice.status === 'PENDING' || invoice.status === 'OVERDUE');
   const overdueInvoices = pendingInvoices.filter((invoice) => invoice.status === 'OVERDUE');
-  const reportInbox = submissions.filter((row) => !row.report?.pdf_url).slice(0, 3);
   const whatsappTodayLogs = (whatsappLogsRaw ?? []) as Array<{ status: 'QUEUED' | 'SENT' | 'FAILED'; created_at: string }>;
   const whatsappSentToday = whatsappTodayLogs.filter((row) => row.status === 'SENT').length;
   const whatsappFailedToday = whatsappTodayLogs.filter((row) => row.status === 'FAILED').length;
@@ -308,7 +345,7 @@ export default async function AdminDashboardPage() {
           trendType="up"
         />
         <Stat
-          label="Rapor Pending"
+          label="Rapor Review"
           value={pendingReports}
           icon={<FileText size={16} />}
           trend={pendingReports > 2 ? 'perlu aksi' : 'normal'}
@@ -447,36 +484,43 @@ export default async function AdminDashboardPage() {
         <div className="col" style={{ gap: 16 }}>
           <div className="card card-p" style={{ borderColor: pendingReports > 0 ? '#f5d2fb' : 'var(--border)' }}>
             <div className="row between" style={{ marginBottom: 12, gap: 8 }}>
-              <div style={{ fontWeight: 800, fontSize: 14 }}>Perlu review</div>
-              <span className="badge badge-info">{pendingReports} baru</span>
+              <div style={{ fontWeight: 800, fontSize: 14 }}>Rapor perlu review</div>
+              <span className="badge badge-info">{pendingReports} rapor</span>
             </div>
             <div className="col" style={{ gap: 8 }}>
               {reportInbox.length === 0 ? (
-                <div className="empty" style={{ padding: 16 }}>Tidak ada rapor pending.</div>
+                <div className="empty" style={{ padding: 16 }}>Tidak ada rapor yang menunggu review.</div>
               ) : (
-                reportInbox.map((row) => (
-                  <div key={row.submission.id} className="row" style={{ gap: 12, padding: 10, borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
-                    <div className="avatar">{row.coder.full_name.slice(0, 2).toUpperCase()}</div>
-                    <div className="flex1" style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: 13 }} className="truncate">
-                        {row.coder.full_name}
+                reportInbox.map((row) => {
+                  const coder = getRelation(row.coder);
+                  const klass = getRelation(row.class);
+                  const block = getRelation(row.block);
+                  const coderName = coder?.full_name ?? 'Coder';
+
+                  return (
+                    <div key={row.id} className="row" style={{ gap: 12, padding: 10, borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+                      <div className="avatar">{coderName.slice(0, 2).toUpperCase()}</div>
+                      <div className="flex1" style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 13 }} className="truncate">
+                          {coderName}
+                        </div>
+                        <div className="muted" style={{ fontSize: 11.5 }}>
+                          {block?.name ?? 'Rapor terbaru'}
+                        </div>
                       </div>
-                      <div className="muted" style={{ fontSize: 11.5 }}>
-                        {row.blockName ?? 'Rubrik terbaru'}
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontWeight: 800, fontSize: 12.5 }}>{klass?.name ?? 'Kelas'}</div>
+                        <div className="muted" style={{ fontSize: 10.5 }}>
+                          {row.updated_at ? format(new Date(row.updated_at), 'd MMM · HH:mm', { locale: id }) : '-'}
+                        </div>
                       </div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontWeight: 800, fontSize: 12.5 }}>{row.class.name}</div>
-                      <div className="muted" style={{ fontSize: 10.5 }}>
-                        {format(new Date(row.submission.submitted_at), 'd MMM · HH:mm', { locale: id })}
-                      </div>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
             <Link href="/admin/reports" className="btn btn-primary" style={{ width: '100%', marginTop: 10 }}>
-              Buka semua
+              Buka semua rapor
               <ChevronRight size={14} />
             </Link>
           </div>

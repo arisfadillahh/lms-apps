@@ -7,7 +7,6 @@ type ResetBody = {
   newPassword?: string;
 };
 
-const DEFAULT_PASSWORD = process.env.DEV_ADMIN_RESET_PASSWORD ?? 'admin123';
 const DEFAULT_USERNAME = process.env.DEV_ADMIN_USERNAME ?? 'admin';
 const DEFAULT_FULL_NAME = process.env.DEV_ADMIN_FULLNAME ?? 'Dev Admin';
 
@@ -19,11 +18,17 @@ export async function POST(request: NextRequest) {
   let body: ResetBody = {};
   try {
     body = (await request.json()) as ResetBody;
-  } catch (_) {
+  } catch {
     // ignore bad JSON and fall back to defaults
   }
 
-  const newPassword = (body.newPassword ?? '').trim() || DEFAULT_PASSWORD;
+  const newPassword = (body.newPassword ?? '').trim() || process.env.DEV_ADMIN_RESET_PASSWORD?.trim();
+  if (!newPassword) {
+    return NextResponse.json(
+      { error: 'Provide newPassword or DEV_ADMIN_RESET_PASSWORD' },
+      { status: 400 },
+    );
+  }
 
   let supabase;
   try {

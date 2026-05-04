@@ -8,6 +8,7 @@ import { authOptions } from '@/lib/authOptions';
 import { getInvoiceById, markInvoiceAsPaid, getInvoiceSettings, extendPaymentPeriodsForInvoice } from '@/lib/dao/invoicesDao';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { sendWhatsAppMessage } from '@/lib/services/whatsappClient';
+import { buildPaymentConfirmationMessage, resolvePaymentConfirmationTarget } from '@/lib/services/invoicePaymentConfirmation';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -112,25 +113,11 @@ export async function PATCH(
         try {
             const settings = await getInvoiceSettings();
             if (settings?.payment_confirmation_template) {
-                const formattedAmount = new Intl.NumberFormat('id-ID').format(invoice.total_amount);
-                const paidDate = new Date(paid_at).toLocaleDateString('id-ID', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                });
-
-                const invoiceUrl = `${settings.base_url}/invoice/${invoice.invoice_number}`;
-
-                const message = settings.payment_confirmation_template
-                    .replace(/{parent_name}/g, invoice.parent_name)
-                    .replace(/{invoice_number}/g, invoice.invoice_number)
-                    .replace(/{amount}/g, formattedAmount)
-                    .replace(/{paid_date}/g, paidDate)
-                    .replace(/{invoice_url}/g, invoiceUrl);
-
-                const waResult = await sendWhatsAppMessage(invoice.parent_phone, message);
+                const message = buildPaymentConfirmationMessage(invoice, settings, paid_at);
+                const targetPhone = resolvePaymentConfirmationTarget(invoice);
+                const waResult = await sendWhatsAppMessage(targetPhone, message);
                 if (waResult.success) {
-                    console.log('[API] Payment confirmation sent to', invoice.parent_phone);
+                    console.log('[API] Payment confirmation sent to', targetPhone);
                     waStatus = { sent: true };
                 } else {
                     console.error('[API] Failed to send payment confirmation:', waResult.error);

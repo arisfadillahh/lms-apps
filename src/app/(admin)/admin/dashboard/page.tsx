@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { addDays, format, isSameDay, isWithinInterval } from 'date-fns';
+import { addDays, format, isSameDay } from 'date-fns';
 import { id } from 'date-fns/locale';
 import {
   Calendar,
@@ -17,7 +17,8 @@ import {
 import { classLessonsDao, classesDao, coachLeaveDao, sessionsDao, usersDao } from '@/lib/dao';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { getWhatsAppSession, listInvoices } from '@/lib/dao/invoicesDao';
-import { resolvePitchingDayDate } from '@/lib/services/pitchingDay';
+import { resolveDashboardPitchingDay } from '@/lib/services/dashboardPitchingDay';
+import PitchingDayPanel from './PitchingDayPanel';
 
 type DashboardReportRelation<T> = T | T[] | null;
 
@@ -130,7 +131,6 @@ export default async function AdminDashboardPage() {
   const supabase = getSupabaseAdmin();
   const now = new Date();
   const tomorrow = addDays(now, 1);
-  const thisWeekEnd = addDays(now, 14);
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const tomorrowStart = addDays(todayStart, 1);
 
@@ -210,29 +210,34 @@ export default async function AdminDashboardPage() {
 
   const todaySessions = allSessions.filter((session) => isSameDay(new Date(session.date_time), now));
   const tomorrowSessions = allSessions.filter((session) => isSameDay(new Date(session.date_time), tomorrow));
-  const sessionDateById = new Map(allSessions.map((session) => [session.id, session.date_time]));
-
-  const blockRows = (
+  const allPitchingRows = (
     await Promise.all(
       classes.map(async (klass) => {
         const blocks = await classesDao.getClassBlocks(klass.id);
         const rows = await Promise.all(
           blocks.map(async (block) => {
             const lessons = await classLessonsDao.listLessonsByClassBlock(block.id);
-            const sessionDates = lessons
-              .map((lesson) => (lesson.session_id ? sessionDateById.get(lesson.session_id) ?? null : null))
-              .filter((value): value is string => value !== null);
-            const pitchingDayDate = resolvePitchingDayDate(sessionDates, block.pitching_day_date);
+            const pitchingDay = resolveDashboardPitchingDay({
+              lessons,
+              sessions: allSessions,
+              now,
+            });
 
-            if (!pitchingDayDate) {
+            if (!pitchingDay) {
               return null;
             }
 
             return {
+              id: block.id,
               classId: klass.id,
               className: klass.name,
+              coachName: coachMap.get(klass.coach_id) ?? 'Coach',
               blockName: block.block_name ?? 'Pitching Day',
-              pitchingDayDate,
+              pitchingDayDate: pitchingDay.displayDate,
+              pitchingDayStatus: pitchingDay.status,
+              estimatedWeeks: pitchingDay.estimatedWeeks,
+              lessonPosition: pitchingDay.targetIndex + 1,
+              totalLessons: pitchingDay.totalLessons,
               students: enrollmentCountMap[klass.id] ?? 0,
             };
           }),
@@ -243,14 +248,18 @@ export default async function AdminDashboardPage() {
     )
   )
     .flat()
-    .filter((block) =>
-      isWithinInterval(new Date(block.pitchingDayDate), {
-        start: now,
-        end: thisWeekEnd,
-      }),
-    )
-    .sort((left, right) => new Date(left.pitchingDayDate).getTime() - new Date(right.pitchingDayDate).getTime())
-    .slice(0, 4);
+    .sort((left, right) => {
+      if (left.pitchingDayDate && right.pitchingDayDate) {
+        return new Date(left.pitchingDayDate).getTime() - new Date(right.pitchingDayDate).getTime();
+      }
+      if (left.pitchingDayDate) return -1;
+      if (right.pitchingDayDate) return 1;
+      return left.estimatedWeeks - right.estimatedWeeks;
+    });
+  const serializedPitchingRows = allPitchingRows.map((row) => ({
+    ...row,
+    pitchingDayDate: row.pitchingDayDate ?? null,
+  }));
 
   const activeClasses = classes.filter((klass) => klass.end_date >= format(now, 'yyyy-MM-dd')).length;
   const activeCoaches = coaches.filter((coach) => coach.is_active).length;
@@ -439,46 +448,7 @@ export default async function AdminDashboardPage() {
             </div>
           </div>
 
-          <div className="card card-p">
-            <div className="row between" style={{ marginBottom: 14 }}>
-              <div style={{ fontWeight: 800, fontSize: 15 }}>Pitching Day mendatang</div>
-              <span className="chip">{blockRows.length} event 2 minggu ke depan</span>
-            </div>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Tanggal</th>
-                  <th>Kelas</th>
-                  <th>Block</th>
-                  <th>Siswa</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {blockRows.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="empty">
-                      Belum ada pitching day terjadwal dalam 2 minggu ke depan.
-                    </td>
-                  </tr>
-                ) : (
-                  blockRows.map((block) => (
-                    <tr key={`${block.classId}-${block.pitchingDayDate}`}>
-                      <td style={{ fontWeight: 700 }}>{format(new Date(block.pitchingDayDate), 'EEE, d MMM', { locale: id })}</td>
-                      <td>{block.className}</td>
-                      <td className="muted">{block.blockName}</td>
-                      <td>{block.students}</td>
-                      <td style={{ textAlign: 'right' }}>
-                        <Link href="/admin/reports" className="btn btn-sm">
-                          Siapkan
-                        </Link>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          <PitchingDayPanel rows={serializedPitchingRows} />
         </div>
 
         <div className="col" style={{ gap: 16 }}>

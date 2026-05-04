@@ -3,9 +3,19 @@
 // import DeleteClassButton from './DeleteClassButton'; // Moved to Client Component
 import ClassListClient from './ClassListClient';
 
-import { blocksDao, classesDao, levelsDao, usersDao } from '@/lib/dao';
+import { blocksDao, classLessonsDao, classesDao, levelsDao, sessionsDao, usersDao } from '@/lib/dao';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import AdminClassesPageWrapper from './AdminClassesPageWrapper';
+
+type EkskulPlanRow = {
+  id: string;
+  name: string | null;
+};
+
+type EkskulLessonMeetingRow = {
+  estimated_meetings: number | null;
+};
+
 export default async function AdminClassesPage() {
   const supabase = getSupabaseAdmin();
 
@@ -22,20 +32,62 @@ export default async function AdminClassesPage() {
     return acc;
   }, {});
 
+  const classProgressEntries = await Promise.all(
+    classes.map(async (klass) => {
+      const [classBlocks, sessions] = await Promise.all([
+        classesDao.getClassBlocks(klass.id),
+        sessionsDao.listSessionsByClass(klass.id),
+      ]);
+      const sessionMap = new Map(sessions.map((session) => [session.id, session]));
+      let totalLessons = 0;
+      let completedLessons = 0;
+
+      await Promise.all(
+        classBlocks.map(async (block) => {
+          const lessons = await classLessonsDao.listLessonsByClassBlock(block.id);
+          const sortedLessons = lessons.slice().sort((a, b) => a.order_index - b.order_index);
+          let lastCompletedIndex = -1;
+
+          for (let index = 0; index < sortedLessons.length; index += 1) {
+            const lesson = sortedLessons[index];
+            if (!lesson.session_id) continue;
+            const session = sessionMap.get(lesson.session_id);
+            if (session?.status === 'COMPLETED') {
+              lastCompletedIndex = index;
+            }
+          }
+
+          totalLessons += sortedLessons.length;
+          completedLessons += lastCompletedIndex + 1;
+        }),
+      );
+
+      return [
+        klass.id,
+        totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0,
+      ] as const;
+    }),
+  );
+  const classProgressMap = Object.fromEntries(classProgressEntries);
+
   const classesWithCounts = classes.map(c => ({
     ...c,
-    studentCount: enrollmentCounts[c.id] || 0
+    studentCount: enrollmentCounts[c.id] || 0,
+    curriculumProgress: classProgressMap[c.id] ?? 0
   }));
 
   // Calculate total meetings for each ekskul plan from lessons
   const ekskulPlans = await Promise.all(
-    (ekskulPlansRaw || []).map(async (plan: any) => {
-      const { data: lessons } = await (supabase as any)
+    ((ekskulPlansRaw || []) as EkskulPlanRow[]).map(async (plan) => {
+      const { data: lessons } = await supabase
         .from('ekskul_lessons')
         .select('estimated_meetings')
         .eq('plan_id', plan.id);
 
-      const totalMeetings = (lessons || []).reduce((sum: number, l: any) => sum + (l.estimated_meetings || 1), 0);
+      const totalMeetings = ((lessons || []) as EkskulLessonMeetingRow[]).reduce(
+        (sum, lesson) => sum + (lesson.estimated_meetings || 1),
+        0,
+      );
       return { ...plan, total_lessons: totalMeetings };
     })
   );
@@ -49,9 +101,6 @@ export default async function AdminClassesPage() {
   const levelBlocks: Record<string, Awaited<ReturnType<typeof blocksDao.listBlocksByLevel>>> = Object.fromEntries(
     blockEntries,
   );
-
-  const coachMap = new Map(coaches.map((coach) => [coach.id, coach.full_name]));
-  const levelMap = new Map(levels.map((level) => [level.id, level.name]));
 
   return (
     <div className="admin-page-stack">

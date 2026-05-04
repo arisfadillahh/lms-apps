@@ -3,14 +3,37 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Clock, Users, User, Search, ChevronDown, Plus, MoreHorizontal } from 'lucide-react';
+import { Clock, Plus, Search, Users } from 'lucide-react';
 import DeleteClassButton from './DeleteClassButton';
 import ActionDropdown from '@/components/admin/ActionDropdown';
 
+type ClassListItem = {
+    id: string;
+    name: string | null;
+    type: 'WEEKLY' | 'EKSKUL' | string;
+    coach_id: string | null;
+    level_id: string | null;
+    schedule_day: string | null;
+    schedule_time: string | null;
+    studentCount?: number;
+    curriculumProgress?: number;
+};
+
+type CoachOption = {
+    id: string;
+    full_name: string | null;
+    avatar_url?: string | null;
+};
+
+type LevelOption = {
+    id: string;
+    name: string | null;
+};
+
 interface ClassListClientProps {
-    initialClasses: any[];
-    coaches: any[];
-    levels: any[];
+    initialClasses: ClassListItem[];
+    coaches: CoachOption[];
+    levels: LevelOption[];
 }
 
 export default function ClassListClient({ initialClasses, coaches, levels }: ClassListClientProps) {
@@ -30,8 +53,8 @@ export default function ClassListClient({ initialClasses, coaches, levels }: Cla
 
         const term = searchTerm.toLowerCase();
         const nameMatch = klass.name?.toLowerCase().includes(term);
-        const coachMatch = coachMap.get(klass.coach_id)?.full_name?.toLowerCase().includes(term);
-        const levelMatch = levelMap.get(klass.level_id)?.name?.toLowerCase().includes(term);
+        const coachMatch = klass.coach_id ? coachMap.get(klass.coach_id)?.full_name?.toLowerCase().includes(term) : false;
+        const levelMatch = klass.level_id ? levelMap.get(klass.level_id)?.name?.toLowerCase().includes(term) : false;
         const dayMatch = klass.schedule_day?.toLowerCase().includes(term);
 
         const matchesSearch = nameMatch || coachMatch || levelMatch || dayMatch;
@@ -105,8 +128,8 @@ export default function ClassListClient({ initialClasses, coaches, levels }: Cla
                 {filteredClasses.map((klass, index) => {
                     const hasValidId = typeof klass.id === 'string' && klass.id.length > 0;
                     const rowKey = hasValidId ? klass.id : `missing-${index}`;
-                    const coach = coachMap.get(klass.coach_id);
-                    const levelName = klass.type === 'EKSKUL' ? 'Ekskul' : (levelMap.get(klass.level_id)?.name || 'Ekskul');
+                    const coach = klass.coach_id ? coachMap.get(klass.coach_id) : undefined;
+                    const levelName = klass.type === 'EKSKUL' ? 'Ekskul' : (klass.level_id ? levelMap.get(klass.level_id)?.name : null) || 'Ekskul';
 
                     const isCompleted = klass.name?.toLowerCase().includes('completed');
                     const isDraft = klass.name?.toLowerCase().includes('draft');
@@ -115,8 +138,7 @@ export default function ClassListClient({ initialClasses, coaches, levels }: Cla
                     if (isCompleted) status = 'COMPLETED';
                     else if (isDraft) status = 'DRAFT';
 
-                    // Mock progress
-                    const mockProgress = Math.floor(Math.random() * 100);
+                    const curriculumProgress = Math.max(0, Math.min(100, Number(klass.curriculumProgress) || 0));
 
                     return (
                         <Link href={`/admin/classes/${klass.id}`} key={rowKey} style={{ textDecoration: 'none', color: 'inherit', display: 'flex' }}>
@@ -131,7 +153,7 @@ export default function ClassListClient({ initialClasses, coaches, levels }: Cla
                                     <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
                                         <ActionDropdown>
                                             <div className="col gap-1" style={{ padding: '4px' }}>
-                                                <DeleteClassButton classId={hasValidId ? klass.id : ''} className={klass.name} />
+                                                <DeleteClassButton classId={hasValidId ? klass.id : ''} className={klass.name ?? 'Kelas'} />
                                             </div>
                                         </ActionDropdown>
                                     </div>
@@ -147,10 +169,10 @@ export default function ClassListClient({ initialClasses, coaches, levels }: Cla
                                 {status === 'ACTIVE' && (
                                     <div>
                                         <div className="row between" style={{ fontSize: 11, marginBottom: 6 }}>
-                                            <span className="muted">Progress kurikulum</span>
-                                            <span style={{ fontWeight: 700 }}>{mockProgress}%</span>
+                                             <span className="muted">Progress kurikulum</span>
+                                            <span style={{ fontWeight: 700 }}>{curriculumProgress}%</span>
                                         </div>
-                                        <div className="bar"><span style={{ width: `${mockProgress}%` }} /></div>
+                                        <div className="bar"><span style={{ width: `${curriculumProgress}%` }} /></div>
                                     </div>
                                 )}
 
@@ -158,7 +180,7 @@ export default function ClassListClient({ initialClasses, coaches, levels }: Cla
                                     <div className="row gap-2">
                                         <div className="avatar">
                                             {coach?.avatar_url ? (
-                                                <Image src={coach.avatar_url} alt={coach.full_name} width={28} height={28} style={{ objectFit: 'cover', borderRadius: '50%' }} />
+                                                <Image src={coach.avatar_url} alt={coach.full_name ?? 'Coach'} width={28} height={28} style={{ objectFit: 'cover', borderRadius: '50%' }} />
                                             ) : (
                                                 coach?.full_name ? coach.full_name.slice(0, 2).toUpperCase() : '?'
                                             )}

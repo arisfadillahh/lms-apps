@@ -89,3 +89,30 @@ export async function createNotification(userId: string, title: string, message:
         throw new Error(`Failed to create notification: ${error.message}`);
     }
 }
+
+export async function hasMatchingNotificationToday(
+    userId: string,
+    title: string,
+    message: string,
+    type = 'SYSTEM',
+): Promise<boolean> {
+    const supabase = getSupabaseAdmin();
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const { data, error } = await supabase
+        .from('notifications' as any)
+        .select('id')
+        .eq('user_id', userId)
+        .eq('title', title)
+        .eq('message', message)
+        .eq('type', type)
+        .gte('created_at', startOfDay.toISOString())
+        .limit(1);
+
+    if (error) {
+        throw new Error(`Failed to check existing notification: ${error.message}`);
+    }
+
+    return Boolean(data && data.length > 0);
+}

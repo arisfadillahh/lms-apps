@@ -129,6 +129,25 @@ export async function logWhatsappEvent(input: WhatsappLogInput): Promise<Whatsap
   return data;
 }
 
+export async function hasWhatsappLogWithIdempotencyKey(
+  idempotencyKey: string,
+  statuses: WhatsappLogRecord['status'][] = ['QUEUED', 'SENT'],
+): Promise<boolean> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('whatsapp_message_logs' as any)
+    .select('id')
+    .contains('payload', { idempotency_key: idempotencyKey })
+    .in('status', statuses)
+    .limit(1);
+
+  if (error) {
+    throw new Error(`Failed to check WhatsApp idempotency key: ${error.message}`);
+  }
+
+  return Boolean(data && data.length > 0);
+}
+
 export async function updateWhatsappLogStatus(
   id: string,
   status: WhatsappLogRecord['status'],
@@ -138,6 +157,7 @@ export async function updateWhatsappLogStatus(
   const payload: TablesUpdate<'whatsapp_message_logs'> = {
     status,
     response: response ?? null,
+    processed_at: new Date().toISOString(),
   };
 
   const { error } = await supabase.from('whatsapp_message_logs').update(payload).eq('id', id);

@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { makeUpTasksDao, reportsDao, sessionsDao, usersDao, classesDao } from '@/lib/dao';
 import { getAppBaseUrl } from '@/lib/env';
 import { sendAbsentNotification } from '@/lib/services/whatsappClient';
+import { buildMakeupReminderIdempotencyKey } from '@/lib/services/reminderIdempotency';
 import { verifyCronRequest } from '@/lib/cron';
 
 export async function POST(request: Request) {
@@ -30,6 +31,13 @@ export async function POST(request: Request) {
     );
 
     for (const task of tasks) {
+      const idempotencyKey = buildMakeupReminderIdempotencyKey(task.id, window.label);
+      const alreadyQueuedOrSent = await reportsDao.hasWhatsappLogWithIdempotencyKey(idempotencyKey);
+      if (alreadyQueuedOrSent) {
+        results.push({ taskId: task.id, reminderType: window.label, status: 'SKIPPED_DUPLICATE' });
+        continue;
+      }
+
       const coder = await usersDao.getUserById(task.coder_id);
       const session = await sessionsDao.getSessionById(task.session_id);
       const classRecord = session ? await classesDao.getClassById(session.class_id) : null;
@@ -47,6 +55,7 @@ export async function POST(request: Request) {
           dueDate: task.due_date,
           reminderType: window.label,
           instructions: task.instructions,
+          idempotency_key: idempotencyKey,
         },
       });
 

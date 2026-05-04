@@ -1,6 +1,7 @@
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { getInvoiceSettings } from '@/lib/dao/invoicesDao';
 import { sendClassReminder } from '@/lib/services/whatsappClient';
+import { buildClassReminderIdempotencyKey } from '@/lib/services/reminderIdempotency';
 
 /**
  * Check and Send Class Reminders for "Today"
@@ -77,11 +78,15 @@ export async function checkAndSendClassReminders(): Promise<{
 
     // Get list of parent phones that already received CLASS_REMINDER today
     const sentParentPhones = new Set<string>();
+    const sentReminderKeys = new Set<string>();
 
     if (logs && logs.length > 0) {
         logs.forEach((log: any) => {
             if (log.payload?.type === 'CLASS_REMINDER' && log.payload?.parent_phone) {
                 sentParentPhones.add(log.payload.parent_phone);
+            }
+            if (log.payload?.type === 'CLASS_REMINDER' && log.payload?.idempotency_key) {
+                sentReminderKeys.add(log.payload.idempotency_key);
             }
         });
     }
@@ -158,6 +163,7 @@ export async function checkAndSendClassReminders(): Promise<{
         students: string[];
         time: string;
         zoomLink: string;
+        idempotencyKey: string;
     }>();
 
     for (const session of sessions) {
@@ -167,7 +173,8 @@ export async function checkAndSendClassReminders(): Promise<{
         if (!phone) continue;
 
         // SKIP if this parent already received a reminder today
-        if (sentParentPhones.has(phone)) {
+        const idempotencyKey = buildClassReminderIdempotencyKey(tomorrowStr, phone);
+        if (sentParentPhones.has(phone) || sentReminderKeys.has(idempotencyKey)) {
             continue;
         }
 
@@ -177,7 +184,8 @@ export async function checkAndSendClassReminders(): Promise<{
                 parentName: coder.parent_name || 'Ayah/Bunda',
                 students: [],
                 time: time,
-                zoomLink: (session.class as any)?.zoom_link || '-'
+                zoomLink: (session.class as any)?.zoom_link || '-',
+                idempotencyKey,
             });
         }
 
@@ -199,8 +207,10 @@ export async function checkAndSendClassReminders(): Promise<{
             .replace('{time}', data.time)
             .replace('{zoom_link}', data.zoomLink);
 
-        await sendClassReminder(phone, msg, data.students.join(', '));
-        sentCount++;
+        const response = await sendClassReminder(phone, msg, data.students.join(', '), 'CLASS_REMINDER', data.idempotencyKey);
+        if (!response.skipped) {
+            sentCount++;
+        }
 
         // Random Delay
         const minDelay = settings.class_reminder_delay_min || 5;
@@ -212,7 +222,7 @@ export async function checkAndSendClassReminders(): Promise<{
 
     // 7. Send In-App Notifications to Coaches
     try {
-        const { createNotification } = await import('@/lib/dao/notificationsDao');
+        const { createNotification, hasMatchingNotificationToday } = await import('@/lib/dao/notificationsDao');
         const { getUsersByIds } = await import('@/lib/dao/usersDao');
         
         // Find coach_id for each session
@@ -250,13 +260,12 @@ export async function checkAndSendClassReminders(): Promise<{
                 if (wantsNotif) {
                     const scheduleList = coachSchedules.get(coach.id)?.join('\n') || '';
                     const message = `Anda memiliki ${coachSchedules.get(coach.id)?.length} sesi kelas besok:\n${scheduleList}\n\nMohon persiapkan materi dan hadir tepat waktu.`;
-                    
-                    await createNotification(
-                        coach.id,
-                        'Pengingat Sesi',
-                        message,
-                        'SYSTEM'
-                    );
+                    const title = 'Pengingat Sesi';
+                    const type = 'SYSTEM';
+
+                    if (!await hasMatchingNotificationToday(coach.id, title, message, type)) {
+                        await createNotification(coach.id, title, message, type);
+                    }
                 }
             }
         }

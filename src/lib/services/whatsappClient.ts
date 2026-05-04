@@ -11,6 +11,14 @@ import {
     getInvoiceSettings,
     getUnpaidInvoicesForMonth
 } from '@/lib/dao/invoicesDao';
+import {
+    hasWhatsappLogWithIdempotencyKey,
+    logWhatsappEvent,
+    updateWhatsappLogStatus,
+} from '@/lib/dao/reportsDao';
+import {
+    buildInvoiceReminderIdempotencyKey,
+} from '@/lib/services/reminderIdempotency';
 import type { Invoice, SendRemindersResponse, WhatsAppSession, WhatsAppStatus } from '@/lib/types/invoice';
 import makeWASocket, {
     useMultiFileAuthState,
@@ -381,7 +389,7 @@ export async function sendWhatsAppMessage(
 /**
  * Send a single invoice reminder by ID
  */
-export async function sendSingleInvoiceReminder(invoiceId: string): Promise<{ success: boolean; error?: string }> {
+export async function sendSingleInvoiceReminder(invoiceId: string): Promise<{ success: boolean; error?: string; skipped?: boolean }> {
     try {
         // Check connection
         if (!isConnected || !sock) {
@@ -401,6 +409,12 @@ export async function sendSingleInvoiceReminder(invoiceId: string): Promise<{ su
             return { success: false, error: 'Invoice not found' };
         }
 
+        const idempotencyKey = buildInvoiceReminderIdempotencyKey(invoice.id);
+        if (await hasWhatsappLogWithIdempotencyKey(idempotencyKey)) {
+            console.log(`[WhatsApp] Skipping duplicate reminder for ${invoice.invoice_number}`);
+            return { success: true, skipped: true };
+        }
+
         // Get settings
         const settings = await getInvoiceSettings();
         if (!settings) {
@@ -413,11 +427,26 @@ export async function sendSingleInvoiceReminder(invoiceId: string): Promise<{ su
 
         console.log(`[WhatsApp] Sending message to ${invoice.parent_phone}`);
 
+        const logEntry = await logWhatsappEvent({
+            category: 'INVOICE' as any,
+            payload: {
+                invoice_id: invoice.id,
+                invoice_number: invoice.invoice_number,
+                parent_phone: invoice.parent_phone,
+                parent_name: invoice.parent_name,
+                idempotency_key: idempotencyKey,
+            },
+            status: 'QUEUED',
+        });
+
         // Send
         const result = await sendWhatsAppMessage(invoice.parent_phone, message);
 
-        // Log result
-        await logWhatsAppMessage(invoice, result.success ? 'SENT' : 'FAILED', result.error);
+        await updateWhatsappLogStatus(
+            logEntry.id,
+            result.success ? 'SENT' : 'FAILED',
+            result.error ? { error: result.error } : { success: true },
+        );
 
         return result;
 
@@ -438,8 +467,9 @@ export async function sendClassReminder(
     parentPhone: string,
     message: string,
     studentName: string,
-    logType: 'CLASS_REMINDER' | 'TEST_CLASS_REMINDER' = 'CLASS_REMINDER'
-): Promise<{ success: boolean; error?: string }> {
+    logType: 'CLASS_REMINDER' | 'TEST_CLASS_REMINDER' = 'CLASS_REMINDER',
+    idempotencyKey?: string,
+): Promise<{ success: boolean; error?: string; skipped?: boolean }> {
     try {
         // Check connection
         if (!isConnected || !sock) {
@@ -452,22 +482,48 @@ export async function sendClassReminder(
 
         console.log(`[WhatsApp] Sending class reminder to ${parentPhone} for ${studentName} (${logType})`);
 
+        if (idempotencyKey && await hasWhatsappLogWithIdempotencyKey(idempotencyKey)) {
+            console.log(`[WhatsApp] Skipping duplicate class reminder for ${parentPhone}`);
+            return { success: true, skipped: true };
+        }
+
+        const queuedLog = idempotencyKey
+            ? await logWhatsappEvent({
+                category: 'REMINDER' as any,
+                payload: {
+                    parent_phone: parentPhone,
+                    student_name: studentName,
+                    type: logType,
+                    idempotency_key: idempotencyKey,
+                },
+                status: 'QUEUED',
+            })
+            : null;
+
         // Send
         const result = await sendWhatsAppMessage(parentPhone, message);
 
         // Log result
-        const supabase = getSupabaseAdmin();
-        await supabase.from('whatsapp_message_logs').insert({
-            category: 'REMINDER' as any, // Use existing REMINDER category
-            payload: {
-                parent_phone: parentPhone,
-                student_name: studentName,
-                type: logType // Add type to differentiate
-            },
-            status: result.success ? 'SENT' : 'FAILED',
-            response: result.error ? { error: result.error } : { success: true },
-            processed_at: new Date().toISOString()
-        });
+        if (queuedLog) {
+            await updateWhatsappLogStatus(
+                queuedLog.id,
+                result.success ? 'SENT' : 'FAILED',
+                result.error ? { error: result.error } : { success: true },
+            );
+        } else {
+            const supabase = getSupabaseAdmin();
+            await supabase.from('whatsapp_message_logs').insert({
+                category: 'REMINDER' as any, // Use existing REMINDER category
+                payload: {
+                    parent_phone: parentPhone,
+                    student_name: studentName,
+                    type: logType // Add type to differentiate
+                },
+                status: result.success ? 'SENT' : 'FAILED',
+                response: result.error ? { error: result.error } : { success: true },
+                processed_at: new Date().toISOString()
+            });
+        }
 
         return result;
 
@@ -714,19 +770,37 @@ export async function sendInvoiceReminders(
             const invoice = invoices[i];
 
             try {
+                const idempotencyKey = buildInvoiceReminderIdempotencyKey(invoice.id);
+                if (await hasWhatsappLogWithIdempotencyKey(idempotencyKey)) {
+                    console.log(`[WhatsApp] Skipping duplicate reminder for ${invoice.invoice_number}`);
+                    continue;
+                }
+
                 // Generate message from template
                 const message = formatInvoiceMessage(invoice, settings);
+
+                const logEntry = await logWhatsappEvent({
+                    category: 'INVOICE' as any,
+                    payload: {
+                        invoice_id: invoice.id,
+                        invoice_number: invoice.invoice_number,
+                        parent_phone: invoice.parent_phone,
+                        parent_name: invoice.parent_name,
+                        idempotency_key: idempotencyKey,
+                    },
+                    status: 'QUEUED',
+                });
 
                 // Send message
                 const sendResult = await sendWhatsAppMessage(invoice.parent_phone, message);
 
                 if (sendResult.success) {
                     result.sent++;
-                    await logWhatsAppMessage(invoice, 'SENT');
+                    await updateWhatsappLogStatus(logEntry.id, 'SENT', { success: true });
                 } else {
                     result.failed++;
                     result.errors.push(`Failed to send to ${invoice.parent_name}: ${sendResult.error}`);
-                    await logWhatsAppMessage(invoice, 'FAILED', sendResult.error);
+                    await updateWhatsappLogStatus(logEntry.id, 'FAILED', { error: sendResult.error ?? 'Unknown error' });
                 }
 
                 // Random delay using class_reminder_delay settings

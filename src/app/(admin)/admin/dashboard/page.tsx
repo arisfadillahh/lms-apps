@@ -17,6 +17,7 @@ import {
 import { classLessonsDao, classesDao, coachLeaveDao, sessionsDao, usersDao } from '@/lib/dao';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { getWhatsAppSession, listInvoices } from '@/lib/dao/invoicesDao';
+import { listCurrentCycleBlocks } from '@/lib/services/classCycleProgress';
 import { resolveDashboardPitchingDay } from '@/lib/services/dashboardPitchingDay';
 import PitchingDayPanel from './PitchingDayPanel';
 
@@ -214,8 +215,9 @@ export default async function AdminDashboardPage() {
     await Promise.all(
       classes.map(async (klass) => {
         const blocks = await classesDao.getClassBlocks(klass.id);
+        const currentCycleBlocks = listCurrentCycleBlocks(blocks);
         const rows = await Promise.all(
-          blocks.map(async (block) => {
+          currentCycleBlocks.map(async (block) => {
             const lessons = await classLessonsDao.listLessonsByClassBlock(block.id);
             const pitchingDay = resolveDashboardPitchingDay({
               lessons,

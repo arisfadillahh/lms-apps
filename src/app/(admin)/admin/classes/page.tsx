@@ -4,6 +4,7 @@
 import ClassListClient from './ClassListClient';
 
 import { blocksDao, classLessonsDao, classesDao, levelsDao, sessionsDao, usersDao } from '@/lib/dao';
+import { pickCurrentCycleProgressBlock, resolveCycleLessonProgress } from '@/lib/services/classCycleProgress';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import AdminClassesPageWrapper from './AdminClassesPageWrapper';
 
@@ -38,33 +39,18 @@ export default async function AdminClassesPage() {
         classesDao.getClassBlocks(klass.id),
         sessionsDao.listSessionsByClass(klass.id),
       ]);
-      const sessionMap = new Map(sessions.map((session) => [session.id, session]));
-      let totalLessons = 0;
-      let completedLessons = 0;
+      const currentCycleBlock = pickCurrentCycleProgressBlock(classBlocks);
 
-      await Promise.all(
-        classBlocks.map(async (block) => {
-          const lessons = await classLessonsDao.listLessonsByClassBlock(block.id);
-          const sortedLessons = lessons.slice().sort((a, b) => a.order_index - b.order_index);
-          let lastCompletedIndex = -1;
+      if (!currentCycleBlock) {
+        return [klass.id, 0] as const;
+      }
 
-          for (let index = 0; index < sortedLessons.length; index += 1) {
-            const lesson = sortedLessons[index];
-            if (!lesson.session_id) continue;
-            const session = sessionMap.get(lesson.session_id);
-            if (session?.status === 'COMPLETED') {
-              lastCompletedIndex = index;
-            }
-          }
-
-          totalLessons += sortedLessons.length;
-          completedLessons += lastCompletedIndex + 1;
-        }),
-      );
+      const lessons = await classLessonsDao.listLessonsByClassBlock(currentCycleBlock.id);
+      const progress = resolveCycleLessonProgress(lessons, sessions);
 
       return [
         klass.id,
-        totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0,
+        progress.percent,
       ] as const;
     }),
   );

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { resolveBlockRuntimeDates, resolveBlockStatus, resolveCurrentBlockIndex } from '@/lib/services/blockRuntime';
+import {
+  resolveBlockRuntimeDates,
+  resolveBlockStatus,
+  resolveCurrentBlockIndex,
+  resolveNextBlockTemplateIndex,
+} from '@/lib/services/blockRuntime';
 
 const block = {
   start_date: '2026-01-01',
@@ -62,5 +67,36 @@ describe('resolveBlockRuntimeDates', () => {
       endDate: '2026-01-31',
       pitchingDayDate: '2026-01-20',
     });
+  });
+});
+
+describe('resolveNextBlockTemplateIndex', () => {
+  const templates = Array.from({ length: 10 }, (_, index) => ({ id: `block-${index + 1}` }));
+
+  it('uses the current cycle block instead of the last completed historical block', () => {
+    const blocks = [
+      { id: 'cycle-current', block_id: 'block-3', status: 'CURRENT' as const, start_date: '2026-05-01', created_at: '2026-05-01T00:00:00Z' },
+      { id: 'history-4', block_id: 'block-4', status: 'COMPLETED' as const, start_date: '2026-01-01', created_at: '2026-01-01T00:00:00Z' },
+      { id: 'history-10', block_id: 'block-10', status: 'COMPLETED' as const, start_date: '2026-04-01', created_at: '2026-04-01T00:00:00Z' },
+    ];
+
+    expect(resolveNextBlockTemplateIndex(blocks, templates)).toBe(3);
+  });
+
+  it('wraps to the first block only when the active cycle is on the last block', () => {
+    const blocks = [
+      { id: 'cycle-last', block_id: 'block-10', status: 'CURRENT' as const, start_date: '2026-05-01', created_at: '2026-05-01T00:00:00Z' },
+    ];
+
+    expect(resolveNextBlockTemplateIndex(blocks, templates)).toBe(0);
+  });
+
+  it('continues after the latest upcoming block when future capacity already exists', () => {
+    const blocks = [
+      { id: 'cycle-current', block_id: 'block-3', status: 'CURRENT' as const, start_date: '2026-05-01', created_at: '2026-05-01T00:00:00Z' },
+      { id: 'cycle-upcoming', block_id: 'block-4', status: 'UPCOMING' as const, start_date: '2026-06-01', created_at: '2026-06-01T00:00:00Z' },
+    ];
+
+    expect(resolveNextBlockTemplateIndex(blocks, templates)).toBe(4);
   });
 });

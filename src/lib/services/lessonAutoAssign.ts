@@ -4,7 +4,7 @@ import { addDays } from 'date-fns';
 
 import { blocksDao, classLessonsDao, classesDao, coderProgressDao, lessonTemplatesDao, sessionsDao } from '@/lib/dao';
 import { buildClassLessonOrderIndex, buildClassLessonTitle } from '@/lib/dao/classLessonsDao';
-import { resolveBlockRuntimeDates, resolveBlockStatus, resolveCurrentBlockIndex } from '@/lib/services/blockRuntime';
+import { resolveBlockRuntimeDates, resolveBlockStatus, resolveCurrentBlockIndex, resolveNextBlockTemplateIndex } from '@/lib/services/blockRuntime';
 import type { ClassLessonRecord } from '@/lib/dao/classLessonsDao';
 import type { ClassRecord } from '@/lib/dao/classesDao';
 import type { LessonTemplateRecord } from '@/lib/dao/lessonTemplatesDao';
@@ -14,6 +14,10 @@ type ClassBlockRow = Awaited<ReturnType<typeof classesDao.getClassBlocks>>[numbe
 type BlockTemplate = Awaited<ReturnType<typeof blocksDao.listBlocksByLevel>>[number];
 type AutoAssignOptions = {
   mode?: 'preserve' | 'rebuild_future';
+};
+
+type ReflowLessonsResult = {
+  assigned: number;
 };
 
 export async function autoAssignLessonsForClass(
@@ -86,6 +90,114 @@ export async function autoAssignLessonsForClass(
   return { assigned };
 }
 
+export async function reflowLessonsFromSession(
+  sessionId: string,
+  classLessonId: string,
+): Promise<ReflowLessonsResult> {
+  const targetSession = await sessionsDao.getSessionById(sessionId);
+  if (!targetSession) {
+    throw new Error('Session not found');
+  }
+
+  if (targetSession.status !== 'SCHEDULED') {
+    throw new Error('Only scheduled sessions can be reflowed');
+  }
+
+  const klass = await classesDao.getClassById(targetSession.class_id);
+  if (!klass || klass.type !== 'WEEKLY' || !klass.level_id) {
+    throw new Error('Lesson reflow is only available for weekly classes');
+  }
+
+  const selectedLesson = await classLessonsDao.getClassLessonById(classLessonId);
+  if (!selectedLesson) {
+    throw new Error('Lesson not found');
+  }
+
+  const [allSessions, blockTemplates] = await Promise.all([
+    sessionsDao.listSessionsByClass(klass.id),
+    blocksDao.listBlocksByLevel(klass.level_id),
+  ]);
+
+  if (blockTemplates.length === 0) {
+    throw new Error('No block templates found for this class level');
+  }
+
+  const sessions = allSessions
+    .filter((session) => session.status !== 'CANCELLED')
+    .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
+  const targetSessionIndex = sessions.findIndex((session) => session.id === sessionId);
+  if (targetSessionIndex < 0) {
+    throw new Error('Cannot reflow a cancelled or invalid session');
+  }
+
+  const futureSessions = sessions
+    .slice(targetSessionIndex)
+    .filter((session) => session.status === 'SCHEDULED');
+  if (futureSessions.length === 0) {
+    throw new Error('No scheduled sessions available to reflow');
+  }
+
+  const initialBlocks = await classesDao.getClassBlocks(klass.id);
+  const selectedBlock = initialBlocks.find((block) => block.id === selectedLesson.class_block_id);
+  if (!selectedBlock || selectedBlock.class_id !== klass.id) {
+    throw new Error('Lesson not found in this class');
+  }
+
+  if (selectedBlock.status === 'COMPLETED') {
+    throw new Error('Cannot reflow from a completed block lesson');
+  }
+
+  const sessionOrder = new Map(sessions.map((session, index) => [session.id, index]));
+  if (selectedLesson.session_id) {
+    const selectedSessionIndex = sessionOrder.get(selectedLesson.session_id);
+    if (selectedSessionIndex === undefined || selectedSessionIndex < targetSessionIndex) {
+      throw new Error('Cannot move a lesson from a previous or completed session');
+    }
+  }
+
+  await classLessonsDao.unassignLessonsFromSessions(futureSessions.map((session) => session.id));
+
+  const { blocks, lessonsByBlock } = await ensureLessonCapacity(klass, sessions, blockTemplates);
+  const futureSessionIds = new Set(futureSessions.map((session) => session.id));
+  const lessonTemplateCache = new Map<string, LessonTemplateRecord[]>();
+  let reflowQueue = buildReflowLessonQueue(blocks, lessonsByBlock, classLessonId, futureSessionIds);
+
+  while (reflowQueue.length < futureSessions.length && blockTemplates.length > 0) {
+    const template = blockTemplates[resolveNextBlockTemplateIndex(blocks, blockTemplates)];
+    await instantiateBlockFromTemplate({
+      klass,
+      template,
+      targetSessions: futureSessions,
+      allSessions: sessions,
+      desiredSessionIndex: Math.max(reflowQueue.length, futureSessions.length),
+      status: 'UPCOMING',
+      lessonsByBlock,
+      blocks,
+      lessonTemplateCache,
+      fallbackStartDate: computeNextBlockStartDate(blocks, klass),
+    });
+    reflowQueue = buildReflowLessonQueue(blocks, lessonsByBlock, classLessonId, futureSessionIds);
+  }
+
+  let assigned = 0;
+  for (let index = 0; index < futureSessions.length; index += 1) {
+    const lesson = reflowQueue[index];
+    const session = futureSessions[index];
+    if (!lesson || !session) {
+      break;
+    }
+
+    await classLessonsDao.assignLessonToSession(lesson.id, session.id, session.date_time);
+    lesson.session_id = session.id;
+    lesson.unlock_at = session.date_time;
+    assigned += 1;
+  }
+
+  await syncBlockStatuses(blocks, lessonsByBlock, sessions);
+
+  return { assigned };
+}
+
 type EnsureResult = {
   blocks: ClassBlockRow[];
   lessonsByBlock: Map<string, ClassLessonRecord[]>;
@@ -97,7 +209,7 @@ async function ensureLessonCapacity(
   sessions: SessionRecord[],
   blockTemplates: BlockTemplate[],
 ): Promise<EnsureResult> {
-  let blocks = await classesDao.getClassBlocks(klass.id);
+  const blocks = await classesDao.getClassBlocks(klass.id);
   const lessonsByBlock = await loadLessons(blocks);
   const lessonTemplateCache = new Map<string, LessonTemplateRecord[]>();
   await syncLessonsWithTemplates(blocks, lessonsByBlock, lessonTemplateCache);
@@ -122,7 +234,7 @@ async function ensureLessonCapacity(
 
   let lessonQueue = buildLessonQueue(blocks, lessonsByBlock);
 
-  let templateIndex = getNextTemplateIndex(blocks, blockTemplates);
+  let templateIndex = resolveNextBlockTemplateIndex(blocks, blockTemplates);
   while (lessonQueue.length < unassignedSessions.length && blockTemplates.length > 0) {
     const template = blockTemplates[templateIndex];
     templateIndex = (templateIndex + 1) % blockTemplates.length;
@@ -141,7 +253,7 @@ async function ensureLessonCapacity(
   }
 
   if (!blocks.some((block) => block.status === 'UPCOMING') && blockTemplates.length > 0) {
-    const template = blockTemplates[getNextTemplateIndex(blocks, blockTemplates)];
+    const template = blockTemplates[resolveNextBlockTemplateIndex(blocks, blockTemplates)];
     await instantiateBlockFromTemplate({
       klass,
       template,
@@ -195,6 +307,42 @@ function buildLessonQueue(
       return lessons.slice().sort((a, b) => a.order_index - b.order_index);
     })
     .filter((lesson) => !lesson.session_id);
+}
+
+function buildReflowLessonQueue(
+  blocks: ClassBlockRow[],
+  lessonsByBlock: Map<string, ClassLessonRecord[]>,
+  startLessonId: string,
+  reflowSessionIds: Set<string>,
+): ClassLessonRecord[] {
+  const sortedBlocks = blocks.slice().sort(compareBlocksByScheduleOrder);
+  const startBlockIndex = sortedBlocks.findIndex((block) => (
+    lessonsByBlock.get(block.id)?.some((lesson) => lesson.id === startLessonId)
+  ));
+
+  if (startBlockIndex < 0) {
+    return [];
+  }
+
+  const startLesson = lessonsByBlock
+    .get(sortedBlocks[startBlockIndex].id)
+    ?.find((lesson) => lesson.id === startLessonId);
+  if (!startLesson) {
+    return [];
+  }
+
+  return sortedBlocks
+    .slice(startBlockIndex)
+    .flatMap((block, blockOffset) => {
+      const lessons = (lessonsByBlock.get(block.id) ?? [])
+        .slice()
+        .sort((a, b) => a.order_index - b.order_index);
+
+      return blockOffset === 0
+        ? lessons.filter((lesson) => lesson.order_index >= startLesson.order_index)
+        : lessons;
+    })
+    .filter((lesson) => !lesson.session_id || reflowSessionIds.has(lesson.session_id));
 }
 
 
@@ -409,18 +557,6 @@ async function getLessonTemplates(
     cache.set(templateId, await lessonTemplatesDao.listLessonsByBlock(templateId));
   }
   return cache.get(templateId) ?? [];
-}
-
-function getNextTemplateIndex(blocks: ClassBlockRow[], templates: BlockTemplate[]): number {
-  if (blocks.length === 0) {
-    return 0;
-  }
-  const lastBlock = blocks[blocks.length - 1];
-  const index = templates.findIndex((template) => template.id === lastBlock.block_id);
-  if (index < 0) {
-    return 0;
-  }
-  return (index + 1) % templates.length;
 }
 
 function computeNextBlockStartDate(blocks: ClassBlockRow[], klass: ClassRecord): string {

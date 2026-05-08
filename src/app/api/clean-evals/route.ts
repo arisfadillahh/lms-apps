@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
+import { getServerAuthSession } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
 export async function GET() {
   try {
+    const session = await getServerAuthSession();
+    if (!session || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const supabase = getSupabaseAdmin();
 
     const { data: evals, error: evalError } = await supabase

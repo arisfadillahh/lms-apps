@@ -11,7 +11,7 @@ const DEFAULT_USERNAME = process.env.DEV_ADMIN_USERNAME ?? 'admin';
 const DEFAULT_FULL_NAME = process.env.DEV_ADMIN_FULLNAME ?? 'Dev Admin';
 
 export async function POST(request: NextRequest) {
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === 'production' || process.env.ENABLE_DEV_RESET_ADMIN !== 'true') {
     return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
   }
 
@@ -71,7 +71,6 @@ export async function POST(request: NextRequest) {
       success: true,
       action: 'updated',
       username: DEFAULT_USERNAME,
-      password: newPassword,
     });
   }
 
@@ -96,7 +95,6 @@ export async function POST(request: NextRequest) {
     success: true,
     action: 'created',
     username: DEFAULT_USERNAME,
-    password: newPassword,
     id: created?.id,
   });
 }

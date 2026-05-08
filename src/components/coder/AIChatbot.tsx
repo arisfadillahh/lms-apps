@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { Bot, X, Send, User, ChevronDown, MessageSquare, Maximize2, Minimize2 } from 'lucide-react';
+import { useState, useRef, useEffect, type HTMLAttributes, type ReactNode } from 'react';
+import { Bot, Send, User, ChevronDown, MessageSquare, Maximize2, Minimize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -12,12 +12,18 @@ interface Message {
 }
 
 interface AIChatbotProps {
+    classLessonId: string;
     lessonTitle: string;
     lessonSummary: string;
     lessonMakeUpInstructions?: string | null;
 }
 
-export default function AIChatbot({ lessonTitle, lessonSummary, lessonMakeUpInstructions }: AIChatbotProps) {
+type MarkdownCodeProps = HTMLAttributes<HTMLElement> & {
+    inline?: boolean;
+    children?: ReactNode;
+};
+
+export default function AIChatbot({ classLessonId, lessonTitle, lessonSummary, lessonMakeUpInstructions }: AIChatbotProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
         { role: 'assistant', content: `Halo! 👋 Aku Clevio Coach AI. Ada pertanyaan tentang materi *${lessonTitle}* ini?` }
@@ -55,6 +61,7 @@ export default function AIChatbot({ lessonTitle, lessonSummary, lessonMakeUpInst
                 body: JSON.stringify({
                     messages: [...messages, { role: 'user', content: userMessage }].map(m => ({ role: m.role, content: m.content })),
                     lessonContext: {
+                        classLessonId,
                         title: lessonTitle,
                         summary: lessonSummary,
                         instructions: lessonMakeUpInstructions
@@ -184,7 +191,7 @@ export default function AIChatbot({ lessonTitle, lessonSummary, lessonMakeUpInst
                                         <div className="bg-pastel-blue/30 border border-sky/30 rounded-xl p-3 text-xs text-clevio-navy text-center flex flex-col items-center gap-1.5">
                                             <MessageSquare className="w-4 h-4 text-sky" />
                                             <span className="font-medium">AI Fokus pada materi ini:</span>
-                                            <strong className="text-clevio-navy leading-tight">"{lessonTitle}"</strong>
+                                            <strong className="text-clevio-navy leading-tight">&quot;{lessonTitle}&quot;</strong>
                                         </div>
 
                                         {messages.map((msg, i) => (
@@ -213,17 +220,17 @@ export default function AIChatbot({ lessonTitle, lessonSummary, lessonMakeUpInst
                                                                 <ReactMarkdown 
                                                                     remarkPlugins={[remarkGfm]}
                                                                     components={{
-                                                                        strong: ({node, ...props}) => <strong className="font-bold" {...props} />,
-                                                                        a: ({node, ...props}) => <a className={`${msg.role === 'user' ? 'text-sky-300' : 'text-sky-600'} hover:underline font-semibold`} target="_blank" {...props} />,
-                                                                        code: ({node, inline, className, children, ...props}: any) => {
+                                                                        strong: ({node: _node, ...props}) => <strong className="font-bold" {...props} />,
+                                                                        a: ({node: _node, ...props}) => <a className={`${msg.role === 'user' ? 'text-sky-300' : 'text-sky-600'} hover:underline font-semibold`} target="_blank" {...props} />,
+                                                                        code: ({inline, children, ...props}: MarkdownCodeProps) => {
                                                                             return inline 
                                                                                 ? <code className={`rounded px-1.5 py-0.5 font-mono text-[11px] font-bold ${msg.role === 'user' ? 'bg-slate-700 text-slate-100' : 'bg-slate-100 text-pink-600'}`} {...props}>{children}</code>
                                                                                 : <div className="my-2 w-full overflow-hidden rounded-xl border border-slate-700/50 bg-[#0d1117]"><div className="flex px-3 py-1.5 bg-slate-800 border-b border-slate-700"><span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">CODE</span></div><pre className="p-3 overflow-x-auto font-mono text-[11px] text-slate-200" {...props}>{children}</pre></div>
                                                                         },
-                                                                        p: ({node, ...props}) => <p className="mb-2 last:mb-0 leading-relaxed" {...props} />,
-                                                                        ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-1 space-y-0" {...props} />,
-                                                                        ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-1 space-y-0" {...props} />,
-                                                                        li: ({node, ...props}) => <li className="leading-snug" {...props} />,
+                                                                        p: ({node: _node, ...props}) => <p className="mb-2 last:mb-0 leading-relaxed" {...props} />,
+                                                                        ol: ({node: _node, ...props}) => <ol className="list-decimal pl-5 mb-1 space-y-0" {...props} />,
+                                                                        ul: ({node: _node, ...props}) => <ul className="list-disc pl-5 mb-1 space-y-0" {...props} />,
+                                                                        li: ({node: _node, ...props}) => <li className="leading-snug" {...props} />,
                                                                     }}
                                                                 >
                                                                     {msg.content}

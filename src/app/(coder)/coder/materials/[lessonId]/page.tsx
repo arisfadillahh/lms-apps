@@ -172,6 +172,7 @@ export default async function CoderLessonDetailPage(props: PageProps) {
                 `}</style>
             </div>
             <AIChatbot 
+                classLessonId={params.lessonId}
                 lessonTitle={lesson.title || 'Materi Belajar'} 
                 lessonSummary={lesson.summary || ''} 
                 lessonMakeUpInstructions={lesson.make_up_instructions} 

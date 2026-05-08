@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
 import { checkAndSendClassReminders } from '@/lib/services/classReminderScheduler';
+import { verifyCronRequest } from '@/lib/cron';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
     try {
-        // Check for Authorization header to secure the cron job
-        const authHeader = request.headers.get('authorization');
-        if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+        if (!verifyCronRequest(request)) {
             return new NextResponse('Unauthorized', { status: 401 });
         }
 

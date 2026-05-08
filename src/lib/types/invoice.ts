@@ -68,6 +68,7 @@ export interface Invoice {
     paid_notes: string | null;
     created_at: string;
     updated_at: string;
+    public_url?: string;
     // Seasonal fields
     seasonal_student_name?: string;
     seasonal_student_phone?: string;

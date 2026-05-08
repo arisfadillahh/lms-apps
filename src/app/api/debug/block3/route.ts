@@ -1,7 +1,17 @@
 import { NextResponse } from 'next/server';
+import { getServerAuthSession } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
 export async function GET() {
+  if (process.env.NODE_ENV === 'production' && process.env.ENABLE_DEBUG_ROUTES !== 'true') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
+  const session = await getServerAuthSession();
+  if (!session || session.user.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const supabase = getSupabaseAdmin();
   const classId = '23a83a47-b026-4ead-9d26-50ed8a56a5ef'; // Explorer Sabtu
   

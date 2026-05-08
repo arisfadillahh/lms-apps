@@ -4,6 +4,7 @@ import { getSessionOrThrow } from '@/lib/auth';
 import { assertRole } from '@/lib/roles';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { getOrCreateCCR } from '@/lib/dao/invoicesDao';
+import { buildInvoicePublicUrl } from '@/lib/services/invoicePublicAccess';
 
 // Schema for each student registration
 const studentRegistrationSchema = z.object({
@@ -134,11 +135,13 @@ export async function POST(request: Request) {
             .eq('id', invoiceId)
             .single();
 
+        const publicUrl = buildInvoicePublicUrl(process.env.NEXT_PUBLIC_BASE_URL || '', finalInvoice as any);
+
         return NextResponse.json({
             success: true,
             invoice: {
                 invoice_number: (finalInvoice as any).invoice_number,
-                public_url: `${process.env.NEXT_PUBLIC_BASE_URL}/invoice/${(finalInvoice as any).invoice_number}`,
+                public_url: publicUrl,
                 due_date: (finalInvoice as any).due_date
             }
         });

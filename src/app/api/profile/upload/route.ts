@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
+import { randomUUID } from 'crypto';
 import { getSessionOrThrow } from '@/lib/auth';
+import { detectAvatarImageType, MAX_AVATAR_UPLOAD_BYTES } from '@/lib/services/avatarUploadSecurity';
 
 export async function POST(request: Request) {
     try {
@@ -15,9 +17,19 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
         }
 
+        if (file.size > MAX_AVATAR_UPLOAD_BYTES) {
+            return NextResponse.json({ error: 'File too large. Maximum size is 2MB.' }, { status: 400 });
+        }
+
         const buffer = Buffer.from(await file.arrayBuffer());
-        const filename = `${userId}-${Date.now()}${path.extname(file.name)}`;
-        const uploadDir = path.join(process.cwd(), 'public/uploads/avatars');
+        const imageType = detectAvatarImageType(file.type, buffer);
+
+        if (!imageType) {
+            return NextResponse.json({ error: 'Only PNG, JPG, GIF, or WEBP images are allowed.' }, { status: 400 });
+        }
+
+        const filename = `${userId}-${Date.now()}-${randomUUID()}${imageType.extension}`;
+        const uploadDir = path.join(process.cwd(), '.uploads/avatars');
 
         // Ensure directory exists
         await mkdir(uploadDir, { recursive: true });

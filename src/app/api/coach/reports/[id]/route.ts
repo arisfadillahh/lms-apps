@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSessionOrThrow } from '@/lib/auth';
 import { assertRole } from '@/lib/roles';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { classesDao } from '@/lib/dao';
 
 export async function DELETE(
   request: Request,
@@ -9,7 +10,7 @@ export async function DELETE(
 ) {
   try {
     const session = await getSessionOrThrow();
-    await assertRole(session, 'COACH');
+    const coachSession = await assertRole(session, 'COACH');
 
     const resolvedParams = await params;
     const { id } = resolvedParams;
@@ -29,6 +30,14 @@ export async function DELETE(
 
     if (fetchError || !report) {
       return NextResponse.json({ error: 'Report not found' }, { status: 404 });
+    }
+
+    const coachClasses = await classesDao.listClassesForCoach(coachSession.user.id);
+    const substituteClasses = await classesDao.listClassesWhereCoachIsSubstitute(coachSession.user.id);
+    const authorizedClassIds = new Set([...coachClasses, ...substituteClasses].map((klass) => klass.id));
+
+    if (!authorizedClassIds.has(report.class_id)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // 2. We need to find the session IDs for this class and block.

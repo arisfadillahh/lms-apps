@@ -19,6 +19,7 @@ import {
 import {
     buildInvoiceReminderIdempotencyKey,
 } from '@/lib/services/reminderIdempotency';
+import { buildInvoicePublicUrl } from '@/lib/services/invoicePublicAccess';
 import type { Invoice, SendRemindersResponse, WhatsAppSession, WhatsAppStatus } from '@/lib/types/invoice';
 import makeWASocket, {
     useMultiFileAuthState,
@@ -868,7 +869,7 @@ function formatInvoiceMessage(
 ): string {
     // Check for Weekly Registration (REG) - Check by invoice number prefix OR ccr code
     const isWeeklyReg = invoice.invoice_number.startsWith('REG-') || (invoice.ccr && invoice.ccr.ccr_code === 'REG');
-    const invoiceUrl = `${settings.base_url}/invoice/${invoice.invoice_number}`;
+    const invoiceUrl = buildInvoicePublicUrl(settings.base_url, invoice);
 
     // Helper to get student names - Handle multiple students!
     const studentNames = Array.from(new Set(

@@ -1,4 +1,5 @@
 import type { Invoice, InvoiceSettings } from '@/lib/types/invoice';
+import { buildInvoicePublicUrl } from '@/lib/services/invoicePublicAccess';
 
 type PaymentConfirmationInvoice = Pick<Invoice, 'invoice_number' | 'parent_name' | 'parent_phone' | 'total_amount'>;
 type PaymentConfirmationSettings = Pick<InvoiceSettings, 'base_url' | 'payment_confirmation_template'>;
@@ -22,7 +23,7 @@ export function buildPaymentConfirmationMessage(
 ): string {
   const formattedAmount = new Intl.NumberFormat('id-ID').format(invoice.total_amount);
   const paidDate = formatPaymentConfirmationPaidDate(paidAt);
-  const invoiceUrl = `${settings.base_url}/invoice/${invoice.invoice_number}`;
+  const invoiceUrl = buildInvoicePublicUrl(settings.base_url, invoice);
 
   return settings.payment_confirmation_template
     .replace(/{parent_name}/g, invoice.parent_name)

@@ -477,7 +477,7 @@ export default function InvoiceManagement({
                             displayedInvoices.map((inv) => (
                                 <tr key={inv.id}>
                                     <td className="mono" style={{ fontWeight: 700, fontSize: 12.5 }}>
-                                        <Link href={`/invoice/${inv.invoice_number}`} target="_blank" style={linkStyle}>
+                                                    <Link href={inv.public_url ?? `/invoice/${inv.invoice_number}`} target="_blank" style={linkStyle}>
                                             {inv.invoice_number}
                                         </Link>
                                     </td>
@@ -493,7 +493,7 @@ export default function InvoiceManagement({
                                     <td className="muted">{inv.paid_at ? formatDate(inv.paid_at) : '-'}</td>
                                     <td style={{ textAlign: 'right' }}>
                                         <div className="row gap-1" style={{ justifyContent: 'flex-end' }}>
-                                            <Link href={`/invoice/${inv.invoice_number}`} target="_blank" className="btn btn-sm btn-ghost">
+                                                    <Link href={inv.public_url ?? `/invoice/${inv.invoice_number}`} target="_blank" className="btn btn-sm btn-ghost">
                                                 👁️
                                             </Link>
                                             {inv.status !== 'PAID' && (

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import {
   buildPaymentConfirmationMessage,
@@ -20,6 +20,10 @@ const settings = {
 };
 
 describe('invoice payment confirmation helpers', () => {
+  beforeAll(() => {
+    process.env.INVOICE_PUBLIC_TOKEN_SECRET = 'test-invoice-public-token-secret';
+  });
+
   it('keeps payment confirmation target on invoice parent_phone', () => {
     expect(resolvePaymentConfirmationTarget(invoice)).toBe('628123456789');
   });
@@ -34,7 +38,7 @@ describe('invoice payment confirmation helpers', () => {
     expect(message).toContain('Orang Tua Test');
     expect(message).toContain('CCR001-052026');
     expect(message).toContain('1.250.000');
-    expect(message).toContain('https://lms.clevio.co/invoice/CCR001-052026');
+    expect(message).toContain('https://lms.clevio.co/invoice/CCR001-052026?t=');
     expect(message).not.toContain('{parent_name}');
     expect(message).not.toContain('{invoice_number}');
     expect(message).not.toContain('{amount}');

@@ -7,20 +7,24 @@
 
 import { notFound } from 'next/navigation';
 import { getInvoiceByNumber, getInvoiceSettings } from '@/lib/dao/invoicesDao';
+import { verifyInvoicePublicToken } from '@/lib/services/invoicePublicAccess';
 import { getWhatsAppStatus } from '@/lib/services/whatsappClient';
 import InvoiceView from './InvoiceView';
 
 interface Props {
     params: Promise<{ invoiceNumber: string }>;
+    searchParams: Promise<{ t?: string | string[] }>;
 }
 
-export default async function PublicInvoicePage({ params }: Props) {
+export default async function PublicInvoicePage({ params, searchParams }: Props) {
     const { invoiceNumber } = await params;
+    const tokenParams = await searchParams;
+    const token = Array.isArray(tokenParams.t) ? tokenParams.t[0] : tokenParams.t;
 
     // Fetch invoice data
     const invoice = await getInvoiceByNumber(invoiceNumber);
 
-    if (!invoice) {
+    if (!invoice || !verifyInvoicePublicToken(invoice, token)) {
         notFound();
     }
 

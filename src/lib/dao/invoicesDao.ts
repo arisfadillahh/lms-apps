@@ -14,6 +14,7 @@ import type {
     InvoiceListResult,
     InvoiceStatus
 } from '@/lib/types/invoice';
+import { buildInvoicePublicUrl } from '@/lib/services/invoicePublicAccess';
 
 // ============================================================================
 // Invoice Settings
@@ -577,11 +578,15 @@ export async function listInvoices(filters: InvoiceFilters): Promise<InvoiceList
     }
 
     const invoices = (data as unknown) as Invoice[];
+    const settings = await getInvoiceSettings();
 
     // Map ccr_numbers to ccr
     invoices.forEach(inv => {
         if ((inv as any).ccr_numbers) {
             inv.ccr = (inv as any).ccr_numbers;
+        }
+        if (settings?.base_url) {
+            inv.public_url = buildInvoicePublicUrl(settings.base_url, inv);
         }
     });
 

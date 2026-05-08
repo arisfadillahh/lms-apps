@@ -34,7 +34,6 @@ function isAsset(pathname: string): boolean {
     pathname.startsWith('/static') ||
     pathname.startsWith('/logo') ||
     pathname.startsWith('/banners') ||
-    pathname.startsWith('/uploads') ||
     pathname.startsWith('/favicon.ico') ||
     !!pathname.match(/\.(svg|png|jpg|jpeg|gif|webp)$/)
   );

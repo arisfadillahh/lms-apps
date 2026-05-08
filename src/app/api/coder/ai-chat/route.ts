@@ -1,22 +1,90 @@
 import { NextResponse } from 'next/server';
 import { getSessionOrThrow } from '@/lib/auth';
+import { getLessonDetailForCoder } from '@/lib/services/coder';
 import OpenAI from 'openai';
 
 // Ensure this route handler is fully dynamic
 export const dynamic = 'force-dynamic';
 
+const MAX_CHAT_MESSAGES = 8;
+const MAX_MESSAGE_CHARS = 1200;
+const MAX_REQUESTS_PER_WINDOW = 12;
+const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const aiChatRequestLog = new Map<string, number[]>();
+
+function isRateLimited(userId: string): boolean {
+    const now = Date.now();
+    const windowStart = now - RATE_LIMIT_WINDOW_MS;
+    const recentRequests = (aiChatRequestLog.get(userId) ?? []).filter((time) => time > windowStart);
+
+    if (recentRequests.length >= MAX_REQUESTS_PER_WINDOW) {
+        aiChatRequestLog.set(userId, recentRequests);
+        return true;
+    }
+
+    recentRequests.push(now);
+    aiChatRequestLog.set(userId, recentRequests);
+    return false;
+}
+
+function sanitizeMessages(messages: unknown) {
+    if (!Array.isArray(messages)) {
+        return null;
+    }
+
+    const safeMessages = messages
+        .slice(-MAX_CHAT_MESSAGES)
+        .map((message) => {
+            if (!message || typeof message !== 'object') {
+                return null;
+            }
+
+            const role = (message as { role?: unknown }).role;
+            const content = (message as { content?: unknown }).content;
+
+            if ((role !== 'user' && role !== 'assistant') || typeof content !== 'string') {
+                return null;
+            }
+
+            return {
+                role,
+                content: content.slice(0, MAX_MESSAGE_CHARS),
+            };
+        });
+
+    if (safeMessages.some((message) => message === null)) {
+        return null;
+    }
+
+    return safeMessages as Array<{ role: 'user' | 'assistant'; content: string }>;
+}
+
 export async function POST(req: Request) {
     try {
         const session = await getSessionOrThrow();
-        // Allow Coders only (or alternatively, loosen this if a coach tests it via /coder/...)
-        if (session.user.role !== 'CODER' && session.user.role !== 'COACH' && session.user.role !== 'ADMIN') {
+        if (session.user.role !== 'CODER') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
         }
 
-        const { messages, lessonContext } = await req.json();
+        if (isRateLimited(session.user.id)) {
+            return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+        }
 
-        if (!messages || !Array.isArray(messages)) {
+        const { messages, lessonContext } = await req.json();
+        const classLessonId = lessonContext?.classLessonId;
+
+        const safeMessages = sanitizeMessages(messages);
+        if (!safeMessages) {
             return NextResponse.json({ error: 'Invalid messages array' }, { status: 400 });
+        }
+
+        if (typeof classLessonId !== 'string' || !classLessonId) {
+            return NextResponse.json({ error: 'Invalid lesson context' }, { status: 400 });
+        }
+
+        const lesson = await getLessonDetailForCoder(session.user.id, classLessonId);
+        if (!lesson) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
         const apiKey = process.env.OPENROUTER_API_KEY;
@@ -39,9 +107,9 @@ export async function POST(req: Request) {
             content: `Kamu adalah asisten AI (pengajar yang ramah, asik, bersemangat, pakai sapaan 'Kakak' atau santai tapi sopan layaknya seorang mentor IT Clevio) yang mendampingi siswa ("Coder") belajar pemrograman.
 
 FOKUS MATERI SAAT INI:
-- Judul Materi: ${lessonContext.title || "Tidak diketahui"}
-- Ringkasan Materi: ${lessonContext.summary || "Tidak ada summary."}
-- Catatan Tambahan (Instruksi/Hints): ${lessonContext.instructions || "Tidak ada catatan."}
+- Judul Materi: ${lesson.title || "Tidak diketahui"}
+- Ringkasan Materi: ${lesson.summary || "Tidak ada summary."}
+- Catatan Tambahan (Instruksi/Hints): ${lesson.make_up_instructions || "Tidak ada catatan."}
 
 ATURAN MENJAWAB:
 1. Kamu HARUS 100% fokus menjawab berdasarkan materi di atas.
@@ -52,20 +120,14 @@ ATURAN MENJAWAB:
 `
         };
 
-        const apiMessages = [systemMessage, ...messages];
-
-        // Ensure messages are properly formatted for OpenAI schema
-        const safeMessages = apiMessages.map(m => ({
-            role: m.role,
-            content: m.content
-        }));
+        const apiMessages = [systemMessage, ...safeMessages];
 
         const response = await openai.chat.completions.create({
             model: 'openai/gpt-4o-mini',
-            messages: safeMessages as any,
+            messages: apiMessages as any,
             stream: true,
             temperature: 0.6, // slightly creative but mostly factual
-            max_tokens: 1000,
+            max_tokens: 600,
         });
 
         // Create a ReadableStream from the OpenAI AsyncIterable

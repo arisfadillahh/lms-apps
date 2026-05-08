@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getInvoiceByNumber, getInvoiceSettings } from '@/lib/dao/invoicesDao';
+import { verifyInvoicePublicToken } from '@/lib/services/invoicePublicAccess';
 
 type RouteParams = { params: Promise<{ invoiceNumber: string }> };
 
@@ -22,10 +23,12 @@ export async function GET(
             );
         }
 
+        const token = request.nextUrl.searchParams.get('t');
+
         // Get invoice
         const invoice = await getInvoiceByNumber(invoiceNumber);
 
-        if (!invoice) {
+        if (!invoice || !verifyInvoicePublicToken(invoice, token)) {
             return NextResponse.json(
                 { error: 'Invoice not found' },
                 { status: 404 }

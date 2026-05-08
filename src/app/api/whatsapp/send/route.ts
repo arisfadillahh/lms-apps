@@ -4,14 +4,21 @@ import { sendWhatsAppMessage } from '@/lib/services/whatsappClient';
 export async function POST(request: NextRequest) {
     try {
         // Simple authentication using Bearer token or API Key
-        // You can use process.env.API_Whatsapp in your .env
         const authHeader = request.headers.get('authorization');
-        const API_KEY = process.env.API_Whatsapp || 'clevio-secret-key-123';
+        const apiKey = process.env.API_Whatsapp?.trim();
+
+        if (!apiKey) {
+            console.error('[WA API] Missing API_Whatsapp env var');
+            return NextResponse.json(
+                { error: 'WhatsApp API key is not configured' },
+                { status: 503 }
+            );
+        }
         
         // Remove 'Bearer ' prefix if it exists
-        const token = authHeader?.replace(/^Bearer\s+/i, '');
+        const token = authHeader?.replace(/^Bearer\s+/i, '').trim();
 
-        if (token !== API_KEY) {
+        if (token !== apiKey) {
             return NextResponse.json(
                 { error: 'Unauthorized. Please provide a valid API key in the Authorization header' },
                 { status: 401 }

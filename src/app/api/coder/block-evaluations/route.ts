@@ -17,12 +17,48 @@ export async function POST(req: Request) {
 
     const supabase = getSupabaseAdmin();
 
+    const { data: enrollment, error: enrollmentError } = await supabase
+      .from('enrollments')
+      .select('id')
+      .eq('class_id', classId)
+      .eq('coder_id', session.user.id)
+      .eq('status', 'ACTIVE')
+      .maybeSingle();
+
+    if (enrollmentError) {
+      console.error('[block-evaluations POST] Enrollment check failed:', enrollmentError);
+      return NextResponse.json({ error: 'Gagal memvalidasi akses kelas.' }, { status: 500 });
+    }
+
+    if (!enrollment) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const { data: lessonAccess, error: lessonAccessError } = await supabase
+      .from('class_lessons')
+      .select('id')
+      .eq('class_id', classId)
+      .eq('block_id', blockId)
+      .eq('session_id', sessionId)
+      .maybeSingle();
+
+    if (lessonAccessError) {
+      console.error('[block-evaluations POST] Lesson access check failed:', lessonAccessError);
+      return NextResponse.json({ error: 'Gagal memvalidasi akses sesi.' }, { status: 500 });
+    }
+
+    if (!lessonAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     // Check for duplicate
     const { data: existing } = await supabase
       .from('block_evaluations')
       .select('id')
       .eq('coder_id', session.user.id)
+      .eq('class_id', classId)
       .eq('block_id', blockId)
+      .eq('session_id', sessionId)
       .maybeSingle();
 
     if (existing) {

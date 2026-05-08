@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { readFile } from 'fs/promises';
 import path from 'path';
 import { existsSync } from 'fs';
+import { isAllowedAvatarFilename } from '@/lib/services/avatarUploadSecurity';
 
 export async function GET(
     request: Request,
@@ -11,7 +12,11 @@ export async function GET(
 
     // Security: Prevent directory traversal
     const safeFilename = path.basename(filename);
-    const filePath = path.join(process.cwd(), 'public/uploads/avatars', safeFilename);
+    if (safeFilename !== filename || !isAllowedAvatarFilename(safeFilename)) {
+        return new NextResponse('File not found', { status: 404 });
+    }
+
+    const filePath = path.join(process.cwd(), '.uploads/avatars', safeFilename);
 
     if (!existsSync(filePath)) {
         return new NextResponse('File not found', { status: 404 });

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSeasonalInvoice } from '@/lib/dao/invoicesDao';
+import { buildInvoicePublicUrl } from '@/lib/services/invoicePublicAccess';
 
 // Helper to generate seasonal invoice number
 function generateSeasonalInvoiceNumber(month: number, year: number): string {
@@ -12,13 +13,17 @@ export async function POST(request: NextRequest) {
     try {
         // Simple API Key authentication (for n8n)
         const authHeader = request.headers.get('authorization');
-        // Fallback token is provided as example. Ideally set this in .env
-        const expectedToken = process.env.N8N_API_SECRET || 'clevio-seasonal-secret-2026';
+        const expectedToken = process.env.N8N_API_SECRET?.trim();
+
+        if (!expectedToken) {
+            console.error('[Seasonal Invoice API] Missing N8N_API_SECRET env var');
+            return NextResponse.json({ error: 'Invoice API secret is not configured' }, { status: 503 });
+        }
+
+        const providedToken = authHeader?.replace(/^Bearer\s+/i, '').trim();
         
-        if (!authHeader || !authHeader.startsWith('Bearer ') || authHeader.split(' ')[1] !== expectedToken) {
-            console.log('\n[DEBUG n8n] Auth Failed!');
-            console.log('- Header yg dikirim n8n:', authHeader);
-            console.log('- Token yg diharapkan:', expectedToken);
+        if (providedToken !== expectedToken) {
+            console.warn('[Seasonal Invoice API] Auth failed');
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
@@ -102,7 +107,7 @@ export async function POST(request: NextRequest) {
         if (baseUrl.endsWith('/')) {
             baseUrl = baseUrl.slice(0, -1);
         }
-        const invoiceUrl = `${baseUrl}/invoice/${invoiceNumber}`;
+        const invoiceUrl = buildInvoicePublicUrl(baseUrl, result.invoice);
 
         return NextResponse.json({
             success: true,

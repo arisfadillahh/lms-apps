@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { getSessionOrThrow } from '@/lib/auth';
 import { assertRole } from '@/lib/roles';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { buildInvoicePublicUrl } from '@/lib/services/invoicePublicAccess';
 
 const seasonalInvoiceSchema = z.object({
     studentName: z.string().min(2, 'Nama siswa minimal 2 karakter'),
@@ -177,7 +178,7 @@ export async function POST(request: Request) {
     // Remove trailing slash if present
     baseUrl = baseUrl.replace(/\/$/, '');
 
-    const publicUrl = `${baseUrl}/invoice/${invoice.invoice_number}`;
+    const publicUrl = buildInvoicePublicUrl(baseUrl, invoice);
 
     return NextResponse.json({
         invoice: {

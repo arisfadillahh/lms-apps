@@ -36,10 +36,10 @@ export async function POST(req: Request) {
 
     const { data: lessonAccess, error: lessonAccessError } = await supabase
       .from('class_lessons')
-      .select('id')
-      .eq('class_id', classId)
-      .eq('block_id', blockId)
+      .select('id, class_blocks!inner(id)')
       .eq('session_id', sessionId)
+      .eq('class_blocks.class_id', classId)
+      .eq('class_blocks.block_id', blockId)
       .maybeSingle();
 
     if (lessonAccessError) {
@@ -56,9 +56,7 @@ export async function POST(req: Request) {
       .from('block_evaluations')
       .select('id')
       .eq('coder_id', session.user.id)
-      .eq('class_id', classId)
       .eq('block_id', blockId)
-      .eq('session_id', sessionId)
       .maybeSingle();
 
     if (existing) {

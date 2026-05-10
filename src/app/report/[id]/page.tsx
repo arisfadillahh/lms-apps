@@ -232,8 +232,15 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 0.75rem;
         }
+        [data-purpose="competency-print-list"] {
+            display: none;
+        }
 
         @media print {
+            @page {
+                size: A4;
+                margin: 10mm;
+            }
             body { 
                 background: white !important; 
                 -webkit-print-color-adjust: exact !important; 
@@ -281,14 +288,26 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
                 margin-bottom: 0.75rem !important;
             }
             [data-purpose="competency-list"] {
+                display: none !important;
+            }
+            [data-purpose="competency-print-list"] {
                 display: block !important;
             }
-            [data-purpose="competency-card"] {
+            [data-purpose="competency-print-row"] {
+                display: block !important;
                 break-inside: auto !important;
                 page-break-inside: auto !important;
-                margin-bottom: 0.75rem !important;
-                padding: 0.75rem !important;
-                border-radius: 1rem !important;
+                border: 1px solid #e2e8f0 !important;
+                border-radius: 0.75rem !important;
+                padding: 0.5rem 0.65rem !important;
+                margin: 0 0 0.5rem 0 !important;
+                background: white !important;
+            }
+            [data-purpose="competency-print-row"] p {
+                margin: 0.25rem 0 0 0 !important;
+                font-size: 10px !important;
+                line-height: 1.35 !important;
+                color: #334155 !important;
             }
             [data-purpose="lesson-list"], [data-purpose="reflection-qa"] {
                 margin-top: 1rem !important;
@@ -424,6 +443,23 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
                  </div>
                );
             })}
+            </div>
+            <div data-purpose="competency-print-list" aria-hidden="true">
+              {breakdownData.map((item, idx) => {
+                const pct = Math.round((item.average / 10) * 100);
+                return (
+                  <div key={idx} data-purpose="competency-print-row">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Skill Area</span>
+                        <h4 className="text-sm font-bold text-clevio-navy mt-0.5">{item.name}</h4>
+                      </div>
+                      <span className="text-sm font-black text-clevio-navy">{pct}%</span>
+                    </div>
+                    <p>&quot;{item.description || 'Tidak ada catatan khusus dari coach untuk poin ini.'}&quot;</p>
+                  </div>
+                );
+              })}
             </div>
           </section>
 

@@ -239,9 +239,13 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
                 -webkit-print-color-adjust: exact !important; 
                 print-color-adjust: exact !important; 
             }
-            .glass-card, [data-purpose="grade-summary"] > div, [data-purpose="lesson-list"] > div, [data-purpose="reflection-qa"] > div {
+            [data-purpose="grade-summary"] > div, [data-purpose="lesson-list"] > div, [data-purpose="reflection-qa"] > div {
                 break-inside: avoid !important;
                 page-break-inside: avoid !important;
+                box-shadow: none !important;
+                border: 1px solid #e2e8f0 !important;
+            }
+            .glass-card {
                 box-shadow: none !important;
                 border: 1px solid #e2e8f0 !important;
             }
@@ -251,7 +255,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
                 box-shadow: none !important;
                 border: 1px solid #e2e8f0 !important;
                 margin-top: 0 !important;
-                margin-bottom: 2rem !important;
+                margin-bottom: 1rem !important;
             }
             .progress-glow, .progress-glow-sky, .progress-glow-coral {
                 box-shadow: none !important;
@@ -265,10 +269,29 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
                 print-color-adjust: exact !important;
             }
             [data-purpose="grade-summary"] {
-                margin-bottom: 2rem !important;
+                margin-bottom: 0.75rem !important;
+            }
+            [data-purpose="competency-feedback"] {
+                break-before: auto !important;
+                page-break-before: auto !important;
+            }
+            [data-purpose="competency-feedback"] > div:first-child {
+                break-after: avoid !important;
+                page-break-after: avoid !important;
+                margin-bottom: 0.75rem !important;
+            }
+            [data-purpose="competency-list"] {
+                display: block !important;
+            }
+            [data-purpose="competency-card"] {
+                break-inside: auto !important;
+                page-break-inside: auto !important;
+                margin-bottom: 0.75rem !important;
+                padding: 0.75rem !important;
+                border-radius: 1rem !important;
             }
             [data-purpose="lesson-list"], [data-purpose="reflection-qa"] {
-                margin-top: 2rem !important;
+                margin-top: 1rem !important;
             }
             /* Ensure text inside color blocks remains visible */
             [data-purpose="student-hero"] h1, 
@@ -372,7 +395,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
               </div>
             </div>
 
-            <div className="flex flex-col gap-6 print:gap-3">
+            <div className="flex flex-col gap-6 print:gap-3" data-purpose="competency-list">
             {breakdownData.map((item, idx) => {
                const pct = Math.round((item.average / 10) * 100);
                const themes = [
@@ -384,7 +407,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
                const theme = themes[idx % themes.length];
 
                return (
-                 <div key={idx} className="glass-card rounded-[2rem] p-6 sm:p-8 shadow-sm border border-slate-200 bg-white print:p-4 print:rounded-2xl print:shadow-none print:break-inside-avoid">
+                 <div key={idx} data-purpose="competency-card" className="glass-card rounded-[2rem] p-6 sm:p-8 shadow-sm border border-slate-200 bg-white print:p-3 print:rounded-2xl print:shadow-none">
                    <div className="flex justify-between items-end mb-4 print:mb-2">
                      <div>
                        <span className={`${theme.textContext} font-bold uppercase text-xs tracking-widest print:text-[10px]`}>Skill Area</span>

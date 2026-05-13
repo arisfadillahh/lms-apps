@@ -25,6 +25,10 @@ export default async function CoachLayout({ children }: { children: ReactNode })
     redirect('/login');
   }
 
+  if (user.role !== 'COACH' || !user.is_active) {
+    redirect('/login');
+  }
+
   return (
       <div className="min-h-screen flex antialiased bg-[#f1f5f9] text-[#0f172a] font-sans">
         {/* Google Fonts: Material Symbols + Plus Jakarta Sans */}

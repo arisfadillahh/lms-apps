@@ -56,7 +56,9 @@ export async function POST(req: Request) {
       .from('block_evaluations')
       .select('id')
       .eq('coder_id', session.user.id)
+      .eq('class_id', classId)
       .eq('block_id', blockId)
+      .eq('session_id', sessionId)
       .maybeSingle();
 
     if (existing) {
@@ -97,7 +99,9 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
+    const classId = searchParams.get('classId');
     const blockId = searchParams.get('blockId');
+    const sessionId = searchParams.get('sessionId');
 
     if (!blockId) {
       return NextResponse.json({ submitted: false });
@@ -105,12 +109,20 @@ export async function GET(req: Request) {
 
     const supabase = getSupabaseAdmin();
 
-    const { data } = await supabase
+    let query = supabase
       .from('block_evaluations')
       .select('id')
       .eq('coder_id', session.user.id)
-      .eq('block_id', blockId)
-      .maybeSingle();
+      .eq('block_id', blockId);
+
+    if (classId) {
+      query = query.eq('class_id', classId);
+    }
+    if (sessionId) {
+      query = query.eq('session_id', sessionId);
+    }
+
+    const { data } = await query.maybeSingle();
 
     return NextResponse.json({ submitted: !!data, id: data?.id ?? null });
   } catch (e) {

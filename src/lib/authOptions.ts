@@ -128,6 +128,40 @@ export const authOptions: NextAuthOptions = {
         token.isActive = typedUser.isActive;
         token.adminPermissions = typedUser.adminPermissions ?? null;
         token.avatarPath = typedUser.avatarPath ?? null;
+      } else if (typeof token.userId === 'string') {
+        try {
+          const supabase = getSupabaseAdmin();
+          const { data, error } = await supabase
+            .from('users')
+            .select('id, username, full_name, role, is_active, admin_permissions, avatar_path')
+            .eq('id', token.userId)
+            .maybeSingle();
+
+          if (error || !data) {
+            if (error) {
+              console.error('[auth] Failed to refresh token user', error);
+            }
+            token.isActive = false;
+            return token;
+          }
+
+          const normalizedRole = normalizeRole(data.role);
+          if (!normalizedRole) {
+            token.isActive = false;
+            return token;
+          }
+
+          token.userId = data.id;
+          token.username = data.username;
+          token.role = normalizedRole;
+          token.fullName = data.full_name;
+          token.isActive = data.is_active;
+          token.adminPermissions = data.admin_permissions ?? null;
+          token.avatarPath = data.avatar_path ?? null;
+        } catch (error) {
+          console.error('[auth] Failed to refresh token from database', error);
+          token.isActive = false;
+        }
       }
       return token;
     },

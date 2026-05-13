@@ -3,12 +3,9 @@ import type { NextRequest } from 'next/server';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { usersDao } from '@/lib/dao';
+import { isSuperAdmin } from '@/lib/permissions';
 import { assertRole } from '@/lib/roles';
 import { updateUserStatusSchema } from '@/lib/validation/admin';
-
-type RouteContext = {
-  params: { id: string };
-};
 
 export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -23,11 +20,14 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
       console.log('[API] User not found:', userId);
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
+    if (user.role === 'ADMIN' && !isSuperAdmin(session.user.username, session.user.adminPermissions ?? null)) {
+      return NextResponse.json({ error: 'Only Super Admin can update admin users' }, { status: 403 });
+    }
 
     let body: unknown;
     try {
       body = await request.json();
-    } catch (error) {
+    } catch {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
 
@@ -42,8 +42,9 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
 
     console.log('[API] Status updated successfully');
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[API] Error updating user status:', error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Internal Server Error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

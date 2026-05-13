@@ -3,11 +3,8 @@ import type { NextRequest } from 'next/server';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { usersDao } from '@/lib/dao';
+import { isSuperAdmin } from '@/lib/permissions';
 import { assertRole } from '@/lib/roles';
-
-type RouteContext = {
-    params: { id: string };
-};
 
 export async function DELETE(request: NextRequest, props: { params: Promise<{ id: string }> }) {
     const params = await props.params;
@@ -21,10 +18,18 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
     }
 
     try {
+        const targetUser = await usersDao.getUserById(userId);
+        if (!targetUser) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+        if (targetUser.role === 'ADMIN' && !isSuperAdmin(session.user.username, session.user.adminPermissions ?? null)) {
+            return NextResponse.json({ error: 'Only Super Admin can delete admin users' }, { status: 403 });
+        }
         await usersDao.deleteUser(userId);
         return NextResponse.json({ success: true });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Delete user error:', error);
-        return NextResponse.json({ error: error.message || 'Failed to delete user' }, { status: 500 });
+        const message = error instanceof Error ? error.message : 'Failed to delete user';
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

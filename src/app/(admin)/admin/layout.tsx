@@ -27,6 +27,10 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     redirect('/login');
   }
 
+  if (user.role !== 'ADMIN' || !user.is_active) {
+    redirect('/login');
+  }
+
   const userForHeader = {
     id: user.id,
     fullName: user.full_name,

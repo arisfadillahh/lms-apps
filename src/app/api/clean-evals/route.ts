@@ -3,6 +3,13 @@ import { getServerAuthSession } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
 export async function GET() {
+  return NextResponse.json(
+    { error: 'Method not allowed. Use POST to run cleanup.' },
+    { status: 405, headers: { Allow: 'POST' } },
+  );
+}
+
+export async function POST() {
   try {
     const session = await getServerAuthSession();
     if (!session || session.user.role !== 'ADMIN') {
@@ -43,7 +50,8 @@ export async function GET() {
     }
     
     return NextResponse.json({ success: true, message: `Beres! ${deletedCount} coder dibersihkan nilai yatim piatunya.` });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Internal server error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

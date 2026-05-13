@@ -25,6 +25,10 @@ export default async function CoderLayout({ children }: { children: ReactNode })
     redirect('/login');
   }
 
+  if (user.role !== 'CODER' || !user.is_active) {
+    redirect('/login');
+  }
+
   const userName = session.user.fullName?.split(' ')[0] || 'Coder';
   const todayDate = format(new Date(), 'EEEE, d MMMM yyyy', { locale: id });
 

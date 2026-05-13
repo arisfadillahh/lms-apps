@@ -10,8 +10,30 @@ type BlockEvaluationCardProps = {
   userId: string;
 };
 
+type ActiveEvaluationSession = {
+  id: string;
+  block_id: string;
+  session_id: string | null;
+  status: 'in_progress' | 'completed' | string;
+};
+
+type ActiveEvaluationSessionFilter = {
+  eq(column: string, value: string): ActiveEvaluationSessionFilter;
+  in(column: string, values: string[]): ActiveEvaluationSessionFilter;
+  order(column: string, options: { ascending: boolean }): ActiveEvaluationSessionFilter;
+  limit(count: number): {
+    maybeSingle(): Promise<{ data: ActiveEvaluationSession | null }>;
+  };
+};
+
+type ActiveEvaluationSessionClient = {
+  from(table: 'block_evaluation_sessions'): {
+    select(columns: string): ActiveEvaluationSessionFilter;
+  };
+};
+
 export default function BlockEvaluationCard({ classId, userId }: BlockEvaluationCardProps) {
-  const [activeSession, setActiveSession] = useState<any>(null);
+  const [activeSession, setActiveSession] = useState<ActiveEvaluationSession | null>(null);
   const supabase = getSupabaseBrowser();
 
   useEffect(() => {
@@ -21,18 +43,24 @@ export default function BlockEvaluationCard({ classId, userId }: BlockEvaluation
     const fetchActiveEval = async () => {
       if (!userId) return;
 
-      const { data } = await (supabase as any)
+      const evaluationSessionClient = supabase as unknown as ActiveEvaluationSessionClient;
+      const { data } = await evaluationSessionClient
         .from('block_evaluation_sessions')
-        .select('*')
+        .select('id, block_id, session_id, status')
         .eq('class_id', classId)
         .in('status', ['in_progress', 'completed'])
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      if (data) {
+      if (data?.session_id) {
         // Use the API endpoint since direct Supabase queries might be blocked by RLS
-        const res = await fetch(`/api/coder/block-evaluations?blockId=${data.block_id}`);
+        const params = new URLSearchParams({
+          classId,
+          blockId: data.block_id,
+          sessionId: data.session_id,
+        });
+        const res = await fetch(`/api/coder/block-evaluations?${params.toString()}`);
         let alreadySubmitted = false;
         
         if (res.ok) {
@@ -64,8 +92,9 @@ export default function BlockEvaluationCard({ classId, userId }: BlockEvaluation
           table: 'block_evaluation_sessions',
           filter: `class_id=eq.${classId}`
         },
-        (payload: any) => {
-          if (payload.new && (payload.new.status === 'in_progress' || payload.new.status === 'completed')) {
+        (payload) => {
+          const nextSession = payload.new as Partial<ActiveEvaluationSession> | null;
+          if (nextSession && (nextSession.status === 'in_progress' || nextSession.status === 'completed')) {
             // Re-fetch to ensure we check 'alreadySubmitted' before showing it
             fetchActiveEval();
           } else {
@@ -122,4 +151,3 @@ export default function BlockEvaluationCard({ classId, userId }: BlockEvaluation
     </div>
   );
 }
-

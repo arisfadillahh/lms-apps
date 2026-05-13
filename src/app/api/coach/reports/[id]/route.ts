@@ -40,16 +40,17 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // 2. We need to find the session IDs for this class and block.
-    // However, to make a lesson "Pending" again, we just need to delete the `lesson_evaluations` 
-    // for this specific coder. 
-    // We can find all lesson_evaluations for this coder_id on sessions belonging to this class.
-    
-    // First find all sessions for this class
-    const { data: sessions } = await supabase
+    // Delete only evaluations tied to this report's class block.
+    const { data: sessions, error: sessionsError } = await supabase
       .from('class_lessons')
-      .select('session_id')
-      .eq('class_id', report.class_id);
+      .select('session_id, class_blocks!inner(class_id, block_id)')
+      .eq('class_blocks.class_id', report.class_id)
+      .eq('class_blocks.block_id', report.block_id);
+
+    if (sessionsError) {
+      console.error('[Delete Report] Failed to fetch scoped sessions:', sessionsError);
+      return NextResponse.json({ error: 'Failed to scope report evaluations' }, { status: 500 });
+    }
       
     const sessionIds = (sessions || []).map(s => s.session_id).filter(id => id !== null) as string[];
     
@@ -79,10 +80,11 @@ export async function DELETE(
     }
 
     return NextResponse.json({ success: true, message: 'Report and assigned evaluations deleted' });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Delete Report] Unexpected error:', error);
-    if (error.message === 'Unauthorized' || error.message === 'Forbidden') {
-      return NextResponse.json({ error: error.message }, { status: error.message === 'Unauthorized' ? 401 : 403 });
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    if (message === 'Unauthorized' || message === 'Forbidden') {
+      return NextResponse.json({ error: message }, { status: message === 'Unauthorized' ? 401 : 403 });
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

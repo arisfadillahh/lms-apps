@@ -35,6 +35,9 @@ export async function getServerAuthSession(): Promise<AppSession | null> {
   if (!isValidRole(role)) {
     return null;
   }
+  if (!session.user.isActive) {
+    return null;
+  }
 
   return session as AppSession;
 }

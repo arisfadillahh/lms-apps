@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 
 import { getSessionOrThrow, hashPassword } from '@/lib/auth';
 import { usersDao } from '@/lib/dao';
+import { isSuperAdmin } from '@/lib/permissions';
 import { assertRole } from '@/lib/roles';
 import { createUserSchema } from '@/lib/validation/admin';
 
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest) {
   let body: unknown;
   try {
     body = await request.json();
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
@@ -25,6 +26,11 @@ export async function POST(request: NextRequest) {
   const input = parsed.data;
   const bodyData = body as Record<string, unknown>;
   const adminPermissions = bodyData.adminPermissions as { menus: string[]; is_superadmin: boolean } | null | undefined;
+  const superAdmin = isSuperAdmin(session.user.username, session.user.adminPermissions ?? null);
+
+  if (input.role === 'ADMIN' && !superAdmin) {
+    return NextResponse.json({ error: 'Only Super Admin can create admin users' }, { status: 403 });
+  }
 
   const existing = await usersDao.getUserByUsername(input.username);
   if (existing) {

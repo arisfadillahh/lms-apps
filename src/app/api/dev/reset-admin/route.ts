@@ -15,6 +15,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
   }
 
+  const resetSecret = process.env.DEV_ADMIN_RESET_SECRET?.trim();
+  const authHeader = request.headers.get('authorization');
+  const providedSecret = authHeader?.replace(/^Bearer\s+/i, '').trim();
+  if (!resetSecret || providedSecret !== resetSecret) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   let body: ResetBody = {};
   try {
     body = (await request.json()) as ResetBody;

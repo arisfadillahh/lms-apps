@@ -60,7 +60,7 @@ type AdminAccessRule = {
 
 const ADMIN_ACCESS_RULES: AdminAccessRule[] = [
   { prefix: '/admin/profile', menus: null },
-  { prefix: '/admin/dashboard', menus: ['dashboard'] },
+  { prefix: '/admin/dashboard', menus: null },
   { prefix: '/admin/users', menus: ['users'] },
   { prefix: '/admin/classes', menus: ['classes'] },
   { prefix: '/admin/curriculum/reports', menus: ['lessonReports'] },

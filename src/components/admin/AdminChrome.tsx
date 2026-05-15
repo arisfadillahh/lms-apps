@@ -80,6 +80,7 @@ type MenuItem = {
 type RouteTab = {
   href: string;
   label: string;
+  menus?: MenuId[] | null;
 };
 
 type RouteMeta = {
@@ -132,30 +133,30 @@ const MENU_SECTIONS: Array<{ label: string | null; items: MenuId[] }> = [
 
 const SECTION_TABS = {
   academic: [
-    { href: '/admin/users', label: 'Pengguna' },
-    { href: '/admin/classes', label: 'Kelas' },
-    { href: '/admin/curriculum', label: 'Kurikulum' },
-    { href: '/admin/ekskul', label: 'Ekskul' },
-    { href: '/admin/evaluations', label: 'Rapor' },
-    { href: '/admin/reports', label: 'Status Rapor' },
+    { href: '/admin/users', label: 'Pengguna', menus: ['users'] },
+    { href: '/admin/classes', label: 'Kelas', menus: ['classes'] },
+    { href: '/admin/curriculum', label: 'Kurikulum', menus: ['curriculum'] },
+    { href: '/admin/ekskul', label: 'Ekskul', menus: ['ekskul'] },
+    { href: '/admin/evaluations', label: 'Rapor', menus: ['evaluations'] },
+    { href: '/admin/reports', label: 'Status Rapor', menus: ['reports'] },
   ],
   payments: [
-    { href: '/admin/payments', label: 'Paket & Tarif' },
-    { href: '/admin/payments/invoices', label: 'Invoice' },
-    { href: '/admin/payments/pricing', label: 'Harga Level' },
-    { href: '/admin/payments/registration', label: 'Registrasi' },
-    { href: '/admin/payments/coders', label: 'Periode Coder' },
-    { href: '/admin/payments/expired', label: 'Expired' },
+    { href: '/admin/payments', label: 'Paket & Tarif', menus: ['payments'] },
+    { href: '/admin/payments/invoices', label: 'Invoice', menus: ['invoices'] },
+    { href: '/admin/payments/pricing', label: 'Harga Level', menus: ['payments'] },
+    { href: '/admin/payments/registration', label: 'Registrasi', menus: ['payments', 'invoices'] },
+    { href: '/admin/payments/coders', label: 'Periode Coder', menus: ['payments', 'invoices'] },
+    { href: '/admin/payments/expired', label: 'Expired', menus: ['payments', 'invoices'] },
   ],
   whatsapp: [
-    { href: '/admin/whatsapp', label: 'Server' },
-    { href: '/admin/whatsapp/templates', label: 'Template' },
-    { href: '/admin/broadcast', label: 'Broadcast' },
+    { href: '/admin/whatsapp', label: 'Server', menus: ['whatsapp'] },
+    { href: '/admin/whatsapp/templates', label: 'Template', menus: ['whatsapp'] },
+    { href: '/admin/broadcast', label: 'Broadcast', menus: ['broadcast'] },
   ],
   settings: [
-    { href: '/admin/settings', label: 'Overview' },
-    { href: '/admin/settings/invoice', label: 'Invoice' },
-    { href: '/admin/settings/whatsapp', label: 'WhatsApp' },
+    { href: '/admin/settings', label: 'Overview', menus: ['settings'] },
+    { href: '/admin/settings/invoice', label: 'Invoice', menus: ['settings'] },
+    { href: '/admin/settings/whatsapp', label: 'WhatsApp', menus: ['settings'] },
   ],
 } satisfies Record<string, RouteTab[]>;
 
@@ -461,6 +462,10 @@ export default function AdminChrome({ children, user }: AdminChromeProps) {
   );
 
   const visibleMenuIds = new Set(visibleMenu.map((item) => item.id));
+  const visibleTabs = (routeMeta.tabs ?? []).filter((tab) => {
+    if (superAdmin || tab.menus === null) return true;
+    return tab.menus?.some((menu) => visibleMenuIds.has(menu)) ?? false;
+  });
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -613,6 +618,20 @@ export default function AdminChrome({ children, user }: AdminChromeProps) {
 
           <div className="page">
             <div className="admin-route-shell" data-admin-route={routeMeta.key}>
+              {visibleTabs.length > 1 ? (
+                <nav className="tabs" aria-label={`${routeMeta.section} navigation`}>
+                  {visibleTabs.map((tab) => (
+                    <Link
+                      key={tab.href}
+                      href={tab.href}
+                      className={`tab${isActivePath(pathname, tab.href) ? ' active' : ''}`}
+                      onClick={closeTransientUi}
+                    >
+                      {tab.label}
+                    </Link>
+                  ))}
+                </nav>
+              ) : null}
 
               <div className="admin-route-content">{children}</div>
             </div>

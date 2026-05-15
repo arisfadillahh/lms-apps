@@ -1101,6 +1101,7 @@
   border-bottom: 2px solid transparent;
   transition: color 0.15s, border-color 0.15s;
   user-select: none;
+  text-decoration: none;
 }
 
 [data-admin-shell='true'] .tab:hover {

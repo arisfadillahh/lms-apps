@@ -18,7 +18,6 @@ interface Attendee {
 interface AttendanceWrapperProps {
     sessionId: string;
     attendees: Attendee[];
-    zoomLink: string;
     canComplete: boolean;
     slideUrl?: string | null;
     slideTitle?: string | null;
@@ -27,12 +26,14 @@ interface AttendanceWrapperProps {
     blockId?: string;
     templateId?: string | null;
     existingEvalSessionId?: string | null;
+    ekskulReportUrl?: string | null;
+    canOpenEkskulReport?: boolean;
+    ekskulReportLockedReason?: string | null;
 }
 
 export default function AttendanceWrapper({
     sessionId,
     attendees,
-    zoomLink,
     canComplete,
     slideUrl,
     slideTitle,
@@ -41,6 +42,9 @@ export default function AttendanceWrapper({
     blockId,
     templateId,
     existingEvalSessionId,
+    ekskulReportUrl,
+    canOpenEkskulReport = false,
+    ekskulReportLockedReason,
 }: AttendanceWrapperProps) {
     const router = useRouter();
     const listRef = useRef<AttendanceListHandle>(null);
@@ -56,13 +60,19 @@ export default function AttendanceWrapper({
             
             // Auto complete session if it is not completed yet
             if (canComplete) {
-                await fetch(`/api/coach/sessions/${sessionId}/status`, {
+                const response = await fetch(`/api/coach/sessions/${sessionId}/status`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status: 'COMPLETED' })
                 });
+                if (!response.ok) {
+                    const payload = await response.json().catch(() => ({}));
+                    throw new Error(payload.error ?? 'Gagal menyelesaikan sesi.');
+                }
                 router.refresh();
             }
+        } catch (err) {
+            alert(err instanceof Error ? err.message : 'Gagal menyimpan presensi.');
         } finally {
             setIsSaving(false);
         }
@@ -83,11 +93,20 @@ export default function AttendanceWrapper({
             if (!res.ok) throw new Error('Gagal memulai evaluasi');
             const { evalSessionId } = await res.json();
             router.push(`/coach/evaluation-present/${evalSessionId}`);
-        } catch (err: any) {
-            alert(err.message ?? 'Terjadi kesalahan');
+        } catch (err: unknown) {
+            alert(err instanceof Error ? err.message : 'Terjadi kesalahan');
         } finally {
             setIsStartingEval(false);
         }
+    };
+
+    const handleOpenEkskulReport = () => {
+        if (!ekskulReportUrl) return;
+        if (!canOpenEkskulReport) {
+            alert(ekskulReportLockedReason ?? 'Lengkapi presensi dulu sebelum membuat rapor ekskul.');
+            return;
+        }
+        router.push(ekskulReportUrl);
     };
 
     return (
@@ -136,6 +155,24 @@ export default function AttendanceWrapper({
                         >
                             <span className="material-symbols-outlined text-base">quiz</span>
                             {existingEvalSessionId ? 'Lanjut Evaluasi' : isStartingEval ? 'Memulai...' : 'Buka Evaluasi'}
+                        </button>
+                    )}
+
+                    {ekskulReportUrl && (
+                        <button
+                            type="button"
+                            onClick={handleOpenEkskulReport}
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-colors ${
+                                canOpenEkskulReport
+                                    ? 'bg-[#22367b] hover:bg-[#162b46] text-white'
+                                    : 'bg-slate-100 text-slate-500 border border-slate-200'
+                            }`}
+                            title={ekskulReportLockedReason ?? undefined}
+                        >
+                            <span className="material-symbols-outlined text-base">
+                                {canOpenEkskulReport ? 'summarize' : 'lock'}
+                            </span>
+                            {canOpenEkskulReport ? 'Buat Rapor Ekskul' : 'Lengkapi Presensi'}
                         </button>
                     )}
 

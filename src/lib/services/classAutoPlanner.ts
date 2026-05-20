@@ -425,5 +425,13 @@ export async function autoPlanEkskulClass(classRecord: ClassRow, preferredStartL
     }
   }
 
+  const finalSession = sessionsToCreate[sessionsToCreate.length - 1];
+  if (finalSession?.date_time) {
+    const finalDate = finalSession.date_time.slice(0, 10);
+    if (classRecord.end_date !== finalDate) {
+      await updateClass(classRecord.id, { endDate: finalDate });
+    }
+  }
+
   return { skipped: false, blockId: '', sessionsCreated: totalSessionsCreated };
 }

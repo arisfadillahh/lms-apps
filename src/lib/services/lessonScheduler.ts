@@ -95,8 +95,10 @@ export async function computeLessonSchedule(
 
         const result = new Map<string, LessonSlot>();
         activeSessions.forEach((session, index) => {
-            const slotIndex = index % lessonSlots.length;
-            result.set(session.id, lessonSlots[slotIndex]);
+            const slot = lessonSlots[index];
+            if (slot) {
+                result.set(session.id, slot);
+            }
         });
         return result;
     }
@@ -137,7 +139,7 @@ export async function computeLessonSchedule(
             if (!classLessons || classLessons.length === 0) continue;
 
             // Group by lesson_template_id to calculate total parts per lesson
-            const lessonGroups = new Map<string, any[]>();
+            const lessonGroups = new Map<string, Array<(typeof classLessons)[number]>>();
             for (const cl of classLessons) {
                 const templateId = cl.lesson_template_id;
                 if (!templateId) continue;  // Skip if no template_id
@@ -165,7 +167,7 @@ export async function computeLessonSchedule(
                 } else if (totalParts > 1) {
                     // If no Part in title but multiple parts exist, find position
                     const group = lessonGroups.get(templateId) || [];
-                    partNumber = group.findIndex((g: any) => g.id === cl.id) + 1;
+                    partNumber = group.findIndex((g) => g.id === cl.id) + 1;
                 }
 
                 orderedSlots.push({

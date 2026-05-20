@@ -2,9 +2,11 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { getSessionOrThrow } from '@/lib/auth';
-import { classesDao, rubricsDao, usersDao } from '@/lib/dao';
+import { attendanceDao, classesDao, rubricsDao, sessionsDao, usersDao } from '@/lib/dao';
+import { generateRubricPdf } from '@/lib/pdf/generateRubricPdf';
 import { assertRole } from '@/lib/roles';
 import { generateNarrative } from '@/lib/rubrics/narrative';
+import { computeLessonSchedule } from '@/lib/services/lessonScheduler';
 
 type CompetencyMap = Record<
   string,
@@ -54,6 +56,49 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Ekskul rubric only for EKSKUL classes' }, { status: 400 });
   }
 
+  const activeEnrollments = (await classesDao.listEnrollmentsByClass(classId)).filter(
+    (enrollment) => enrollment.status === 'ACTIVE',
+  );
+  if (!activeEnrollments.some((enrollment) => enrollment.coder_id === coderId)) {
+    return NextResponse.json({ error: 'Coder tidak terdaftar aktif di kelas ini' }, { status: 403 });
+  }
+
+  const [classSessions, lessonSchedule] = await Promise.all([
+    sessionsDao.listSessionsByClass(classId),
+    computeLessonSchedule(
+      classId,
+      classRecord.level_id ?? null,
+      (classRecord as { ekskul_lesson_plan_id?: string | null }).ekskul_lesson_plan_id,
+    ),
+  ]);
+  const requiredLessonSessions = classSessions
+    .filter((item) => item.status !== 'CANCELLED' && lessonSchedule.has(item.id))
+    .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
+
+  if (requiredLessonSessions.length === 0) {
+    return NextResponse.json({ error: 'Lesson ekskul belum terjadwal' }, { status: 409 });
+  }
+
+  const incompleteSessions = requiredLessonSessions.filter((item) => item.status !== 'COMPLETED');
+  if (incompleteSessions.length > 0) {
+    return NextResponse.json(
+      { error: `Selesaikan ${incompleteSessions.length} lesson ekskul dulu sebelum membuat rapor.` },
+      { status: 409 },
+    );
+  }
+
+  const attendanceRecords = await attendanceDao.listAttendanceForSessions(requiredLessonSessions.map((item) => item.id));
+  const attendedSessionIds = new Set(
+    attendanceRecords.filter((record) => record.coder_id === coderId).map((record) => record.session_id),
+  );
+  const missingAttendanceCount = requiredLessonSessions.filter((item) => !attendedSessionIds.has(item.id)).length;
+  if (missingAttendanceCount > 0) {
+    return NextResponse.json(
+      { error: `Lengkapi presensi ${missingAttendanceCount} lesson ekskul untuk coder ini sebelum memberi nilai.` },
+      { status: 409 },
+    );
+  }
+
   const template = await rubricsDao.findRubricTemplate('EKSKUL', classRecord.level_id ?? null);
   if (!template) {
     return NextResponse.json({ error: 'Rubric template not configured for this class' }, { status: 400 });
@@ -92,5 +137,17 @@ export async function POST(request: Request) {
     semesterTag,
   });
 
-  return NextResponse.json({ submission });
+  try {
+    const generated = await generateRubricPdf(submission.id);
+    return NextResponse.json({ submission, report: generated.report, pdfUrl: generated.pdfUrl });
+  } catch (error) {
+    console.error('Failed to generate ekskul report PDF', error);
+    return NextResponse.json(
+      {
+        error: 'Nilai tersimpan, tapi PDF rapor gagal dibuat. Coba generate ulang dari admin.',
+        submission,
+      },
+      { status: 500 },
+    );
+  }
 }

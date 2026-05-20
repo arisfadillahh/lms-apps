@@ -76,7 +76,7 @@ export default function EkskulRubricForm({ classId, semesterTag, coders, compete
         return;
       }
 
-      setStatusMessage('Rubric submitted');
+      setStatusMessage('Nilai tersimpan dan rapor ekskul dibuat');
       router.refresh();
     });
   };

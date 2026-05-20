@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 
 import { getSessionOrThrow } from '@/lib/auth';
-import { sessionsDao, reportsDao, classesDao } from '@/lib/dao';
+import { attendanceDao, sessionsDao, reportsDao, classesDao } from '@/lib/dao';
 import type { UpsertLessonEvaluationInput } from '@/lib/dao/reportsDao';
-import { computeLessonSchedule } from '@/lib/services/lessonScheduler';
 
 export async function POST(req: Request) {
   try {
@@ -29,6 +28,29 @@ export async function POST(req: Request) {
     if (!klass || (klass.coach_id !== sessionUser.user.id && session.substitute_coach_id !== sessionUser.user.id)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
+    if (klass.type === 'EKSKUL') {
+      return NextResponse.json({ error: 'Gunakan alur rapor ekskul, bukan evaluasi block.' }, { status: 400 });
+    }
+
+    const activeEnrollments = (await classesDao.listEnrollmentsByClass(klass.id)).filter(
+      (enrollment) => enrollment.status === 'ACTIVE',
+    );
+    const activeCoderIds = new Set(activeEnrollments.map((enrollment) => enrollment.coder_id));
+    const submittedCoderIds = Object.keys(scores as Record<string, unknown>);
+    const unknownCoderIds = submittedCoderIds.filter((coderId) => !activeCoderIds.has(coderId));
+    if (unknownCoderIds.length > 0) {
+      return NextResponse.json({ error: 'Ada coder yang tidak terdaftar aktif di kelas ini.' }, { status: 400 });
+    }
+
+    const attendanceRecords = await attendanceDao.listAttendanceBySession(session.id);
+    const attendedCoderIds = new Set(attendanceRecords.map((record) => record.coder_id));
+    const missingAttendance = submittedCoderIds.filter((coderId) => !attendedCoderIds.has(coderId));
+    if (missingAttendance.length > 0) {
+      return NextResponse.json(
+        { error: `Lengkapi presensi ${missingAttendance.length} coder dulu sebelum menyimpan nilai.` },
+        { status: 409 },
+      );
+    }
 
     // Flatten { coderId: { criteriaId: score } } into flat array
     const evaluationsToUpsert: UpsertLessonEvaluationInput[] = [];
@@ -50,9 +72,8 @@ export async function POST(req: Request) {
     await reportsDao.upsertLessonEvaluations(evaluationsToUpsert);
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error saving evaluations:', error);
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal server error' }, { status: 500 });
   }
 }
-

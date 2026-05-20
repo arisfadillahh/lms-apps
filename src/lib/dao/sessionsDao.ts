@@ -310,6 +310,7 @@ export async function ensureFutureSessions(classId: string, weeksAhead = 12): Pr
   const supabase = getSupabaseAdmin();
   const classRecord = await getClassById(classId);
   if (!classRecord) return 0;
+  if (classRecord.type === 'EKSKUL') return 0;
 
   // 1. Determine target end date (now + weeksAhead)
   const now = new Date();

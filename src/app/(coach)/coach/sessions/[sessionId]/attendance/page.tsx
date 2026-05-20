@@ -5,7 +5,7 @@ import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonS
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
 import AttendanceWrapper from './AttendanceWrapper';
-import MarkSessionCompleteButton from '@/app/(coach)/coach/classes/[id]/MarkSessionCompleteButton';
+import type { AttendanceStatus } from './AttendanceList';
 
 type PageProps = {
   params: Promise<{ sessionId: string }>;
@@ -40,13 +40,16 @@ export default async function SessionAttendancePage({ params }: PageProps) {
     return renderError('Akses Ditolak', 'Anda bukan coach untuk sesi ini.');
   }
 
+  const ekskulLessonPlanId =
+    (classRecord as { ekskul_lesson_plan_id?: string | null }).ekskul_lesson_plan_id ?? null;
+
   const [enrollments, classSessions, lessonScheduleMap] = await Promise.all([
     classesDao.listEnrollmentsByClass(classRecord.id, { includeInactive: true }),
     sessionsDao.listSessionsByClass(classRecord.id),
     computeLessonSchedule(
       classRecord.id,
       classRecord.level_id ?? null,
-      (classRecord as any).ekskul_lesson_plan_id
+      ekskulLessonPlanId
     ),
   ]);
 
@@ -78,7 +81,7 @@ export default async function SessionAttendancePage({ params }: PageProps) {
       fullName: coderMap.get(enrollment.coder_id) ?? 'Unknown Coder',
       attendance: currentSessionMap.get(enrollment.coder_id)
         ? {
-          status: currentSessionMap.get(enrollment.coder_id)!.status as any,
+          status: currentSessionMap.get(enrollment.coder_id)!.status as AttendanceStatus,
           reason: currentSessionMap.get(enrollment.coder_id)!.reason,
         }
         : null,
@@ -88,6 +91,7 @@ export default async function SessionAttendancePage({ params }: PageProps) {
   const slideUrl = currentLessonSlot?.lessonTemplate.slide_url ?? null;
   const slideTitle = currentLessonSlot ? formatLessonTitle(currentLessonSlot) : null;
   const lessonSummary = currentLessonSlot?.lessonTemplate.summary ?? 'Tidak ada ringkasan materi.';
+  const isEkskulClass = classRecord.type === 'EKSKUL';
 
   // Compute attendance stats
   const totalCoders = attendees.length;
@@ -96,19 +100,15 @@ export default async function SessionAttendancePage({ params }: PageProps) {
   const attendancePercentage = totalCoders > 0 ? Math.round((presentCoders / totalCoders) * 100) : 0;
 
   // Compute block name
-  const blockName = classRecord.type === 'EKSKUL'
+  const blockName = isEkskulClass
     ? 'Ekskul'
     : (lessonScheduleMap.get(sessionRecord.id)?.block.name ?? 'General');
-
-  const lessonNumber = classRecord.type === 'EKSKUL'
-    ? classSessions.findIndex(s => s.id === sessionRecord.id) + 1
-    : (lessonScheduleMap.get(sessionRecord.id)?.globalIndex ?? 0) + 1;
 
   // Detect if this is the LAST session of this block (for evaluation button)
   const currentSlot = lessonScheduleMap.get(sessionRecord.id);
   const currentBlockId = currentSlot?.block.id ?? null;
   let isLastSessionOfBlock = false;
-  if (currentBlockId) {
+  if (!isEkskulClass && currentBlockId) {
     const blockSessions = classSessions.filter(s => {
       const slot = lessonScheduleMap.get(s.id);
       return slot?.block.id === currentBlockId;
@@ -124,7 +124,16 @@ export default async function SessionAttendancePage({ params }: PageProps) {
   let templateId: string | null = null;
   if (isLastSessionOfBlock && currentBlockId) {
     const supabase = getSupabaseAdmin();
-    const { data: existingEval } = await (supabase as any)
+    const blockEvaluationClient = supabase as unknown as {
+      from(table: 'block_evaluation_sessions'): {
+        select(columns: string): {
+          eq(column: string, value: string): {
+            maybeSingle(): Promise<{ data: { id: string } | null }>;
+          };
+        };
+      };
+    };
+    const { data: existingEval } = await blockEvaluationClient
       .from('block_evaluation_sessions')
       .select('id')
       .eq('session_id', sessionRecord.id)
@@ -155,6 +164,40 @@ export default async function SessionAttendancePage({ params }: PageProps) {
     }
   }
 
+  const activeEnrollmentCoderIds = enrollments
+    .filter((enrollment) => enrollment.status === 'ACTIVE')
+    .map((enrollment) => enrollment.coder_id);
+
+  const ekskulLessonSessions = isEkskulClass
+    ? classSessions
+      .filter((item) => item.status !== 'CANCELLED' && lessonScheduleMap.has(item.id))
+      .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime())
+    : [];
+  const finalEkskulLessonSession = ekskulLessonSessions[ekskulLessonSessions.length - 1] ?? null;
+  const isFinalEkskulLessonSession = isEkskulClass && finalEkskulLessonSession?.id === sessionRecord.id;
+  const allEkskulLessonSessionsCompleted =
+    ekskulLessonSessions.length > 0 && ekskulLessonSessions.every((item) => item.status === 'COMPLETED');
+  let ekskulMissingAttendanceCount = 0;
+  if (isFinalEkskulLessonSession) {
+    for (const lessonSession of ekskulLessonSessions) {
+      const sessionAttendance = attendanceBySession.get(lessonSession.id) ?? new Map();
+      for (const coderId of activeEnrollmentCoderIds) {
+        if (!sessionAttendance.has(coderId)) {
+          ekskulMissingAttendanceCount += 1;
+        }
+      }
+    }
+  }
+  const ekskulReportUrl = isFinalEkskulLessonSession
+    ? `/coach/rubrics/ekskul/${encodeURIComponent(classRecord.id)}__${encodeURIComponent(getEkskulSemesterTag(sessionRecord.date_time))}`
+    : null;
+  const ekskulReportLockedReason = isFinalEkskulLessonSession && !allEkskulLessonSessionsCompleted
+    ? 'Selesaikan semua lesson ekskul dulu sebelum membuat rapor.'
+    : isFinalEkskulLessonSession && ekskulMissingAttendanceCount > 0
+      ? `Lengkapi ${ekskulMissingAttendanceCount} presensi lesson ekskul dulu sebelum memberi nilai.`
+      : null;
+  const canOpenEkskulReport = isFinalEkskulLessonSession && allEkskulLessonSessionsCompleted && ekskulMissingAttendanceCount === 0;
+
   const sessionStart = new Date(sessionRecord.date_time);
   const sessionEnd = new Date(sessionStart.getTime() + 90 * 60000);
   const formattedDate = sessionStart.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
@@ -172,7 +215,6 @@ export default async function SessionAttendancePage({ params }: PageProps) {
   );
   const presentCount = allMonthAttendance.filter(r => r.status === 'PRESENT').length;
   const excusedCount = allMonthAttendance.filter(r => r.status === 'EXCUSED').length;
-  const weekdayAbbrMap: Record<string, string> = { 'Senin': 'Sen', 'Selasa': 'Sel', 'Rabu': 'Rab', 'Kamis': 'Kam', 'Jumat': 'Jum', 'Sabtu': 'Sab', 'Minggu': 'Min' };
   const avgAttendance = monthSessions.length > 0 && totalCoders > 0
     ? Math.round((presentCount / (monthSessions.length * totalCoders)) * 100)
     : 0;
@@ -272,7 +314,6 @@ export default async function SessionAttendancePage({ params }: PageProps) {
         <AttendanceWrapper
           sessionId={sessionRecord.id}
           attendees={attendees}
-          zoomLink={sessionRecord.zoom_link_snapshot}
           canComplete={sessionRecord.status === 'SCHEDULED'}
           slideUrl={slideUrl}
           slideTitle={slideTitle}
@@ -281,6 +322,9 @@ export default async function SessionAttendancePage({ params }: PageProps) {
           blockId={currentBlockId ?? undefined}
           templateId={templateId}
           existingEvalSessionId={existingEvalSessionId}
+          ekskulReportUrl={ekskulReportUrl}
+          canOpenEkskulReport={canOpenEkskulReport}
+          ekskulReportLockedReason={ekskulReportLockedReason}
         />
 
         {/* Monthly Recap Section */}
@@ -316,6 +360,12 @@ export default async function SessionAttendancePage({ params }: PageProps) {
       </div>
     </div>
   );
+}
+
+function getEkskulSemesterTag(dateString: string) {
+  const date = new Date(dateString);
+  const semester = date.getMonth() < 6 ? 1 : 2;
+  return `${date.getFullYear()}-${semester}`;
 }
 
 function renderError(title: string, message: string) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { useRouter } from 'next/navigation';
 
 export type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'EXCUSED' | 'LATE';
@@ -98,7 +98,7 @@ const AttendanceList = forwardRef<AttendanceListHandle, AttendanceListProps>(
         dirty: false,
       }))
     );
-    const [isSaving, startTransition] = useTransition();
+    const [isSaving, setIsSaving] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -110,6 +110,13 @@ const AttendanceList = forwardRef<AttendanceListHandle, AttendanceListProps>(
     }, []);
 
     const save = useCallback(async () => {
+      const missing = records.filter((r) => r.status === null);
+      if (missing.length > 0) {
+        const message = `Lengkapi presensi ${missing.length} coder dulu.`;
+        setErrorMessage(message);
+        throw new Error(message);
+      }
+
       const dirty = records.filter((r) => r.dirty && r.status !== null);
       if (dirty.length === 0) {
         setSaveSuccess(true);
@@ -118,36 +125,37 @@ const AttendanceList = forwardRef<AttendanceListHandle, AttendanceListProps>(
       }
       setErrorMessage(null);
 
-      startTransition(async () => {
-        try {
-          const results = await Promise.all(
-            dirty.map((r) =>
-              fetch('/api/coach/attendance', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  sessionId,
-                  coderId: r.coderId,
-                  status: r.status,
-                  reason: r.reason.trim(),
-                }),
-              }).then((res) => {
-                if (!res.ok) throw new Error(`Failed for ${r.fullName}`);
-                return res;
-              })
-            )
-          );
+      setIsSaving(true);
+      try {
+        await Promise.all(
+          dirty.map((r) =>
+            fetch('/api/coach/attendance', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                sessionId,
+                coderId: r.coderId,
+                status: r.status,
+                reason: r.reason.trim(),
+              }),
+            }).then((res) => {
+              if (!res.ok) throw new Error(`Failed for ${r.fullName}`);
+              return res;
+            })
+          )
+        );
 
-          if (results) {
-            setRecords((prev) => prev.map((r) => ({ ...r, dirty: false })));
-            setSaveSuccess(true);
-            setTimeout(() => setSaveSuccess(false), 3000);
-            router.refresh();
-          }
-        } catch (err: any) {
-          setErrorMessage(err.message ?? 'Gagal menyimpan presensi.');
-        }
-      });
+        setRecords((prev) => prev.map((r) => ({ ...r, dirty: false })));
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+        router.refresh();
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Gagal menyimpan presensi.';
+        setErrorMessage(message);
+        throw new Error(message);
+      } finally {
+        setIsSaving(false);
+      }
     }, [records, sessionId, router]);
 
     // Expose save fn to parent via ref
@@ -178,7 +186,6 @@ const AttendanceList = forwardRef<AttendanceListHandle, AttendanceListProps>(
         {/* Student rows */}
         {records.map((record, idx) => {
           const uiState = getUiState(record.status, record.reason);
-          const isHadir = uiState === 'HADIR';
           const needsMakeUp = uiState !== null && uiState !== 'HADIR';
 
           let wrapperClass =

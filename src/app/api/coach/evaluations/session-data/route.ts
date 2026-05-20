@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSessionOrThrow } from '@/lib/auth';
-import { sessionsDao, classesDao, reportsDao } from '@/lib/dao';
+import { attendanceDao, sessionsDao, classesDao, reportsDao } from '@/lib/dao';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 
 export async function GET(req: Request) {
@@ -27,6 +27,9 @@ export async function GET(req: Request) {
     if (!klass || (klass.coach_id !== coachId && session.substitute_coach_id !== coachId)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
+    if (klass.type === 'EKSKUL') {
+      return NextResponse.json({ error: 'Gunakan alur rapor ekskul, bukan evaluasi block.' }, { status: 400 });
+    }
 
     const lessonMap = await computeLessonSchedule(klass.id, klass.level_id);
     const slot = lessonMap.get(sessionId);
@@ -40,6 +43,19 @@ export async function GET(req: Request) {
 
     if (activeStudentIds.length === 0) {
       return NextResponse.json({ error: 'No active students' }, { status: 404 });
+    }
+
+    const attendanceRecords = await attendanceDao.listAttendanceBySession(session.id);
+    const attendedCoderIds = new Set(attendanceRecords.map((record) => record.coder_id));
+    const missingAttendance = activeStudentIds.filter((coderId) => !attendedCoderIds.has(coderId));
+    if (missingAttendance.length > 0) {
+      return NextResponse.json(
+        {
+          error: `Lengkapi presensi ${missingAttendance.length} coder dulu sebelum memberi nilai.`,
+          missingAttendanceCount: missingAttendance.length,
+        },
+        { status: 409 },
+      );
     }
 
     const { createClient } = await import('@supabase/supabase-js');
@@ -62,8 +78,8 @@ export async function GET(req: Request) {
       lessonTitle: formatLessonTitle(slot),
       blockName: slot.block.name || 'Unknown Block'
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching session data:', error);
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal server error' }, { status: 500 });
   }
 }

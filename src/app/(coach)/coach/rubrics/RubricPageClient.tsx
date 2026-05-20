@@ -385,11 +385,15 @@ export default function RubricPageClient({ pendingLessons, draftReports }: Rubri
     setLoadingSessionId(sessionId);
     try {
       const res = await fetch(`/api/coach/evaluations/session-data?sessionId=${sessionId}`);
-      if (!res.ok) throw new Error('Gagal memuat data penilaian.');
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        throw new Error(payload.error ?? 'Gagal memuat data penilaian.');
+      }
       const data = await res.json();
       setOpenModal(data);
     } catch (e) {
       console.error(e);
+      window.alert(e instanceof Error ? e.message : 'Gagal memuat data penilaian.');
     } finally {
       setLoadingSessionId(null);
     }

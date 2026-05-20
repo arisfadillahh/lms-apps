@@ -1,27 +1,21 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getSessionOrThrow } from '@/lib/auth';
-import { classLessonsDao, classesDao, lessonTemplatesDao, sessionsDao, coderProgressDao, usersDao } from '@/lib/dao';
+import { classesDao, sessionsDao, coderProgressDao, usersDao } from '@/lib/dao';
 import type { ExtendedSession } from '@/lib/services/coach';
 import { computeLessonSchedule } from '@/lib/services/lessonScheduler';
 import type { EnrollmentRecord } from '@/lib/dao/classesDao';
-
-import UploadMaterialForm from './UploadMaterialForm';
-import CollapsibleUpload from './CollapsibleUpload';
 
 export const dynamic = 'force-dynamic';
 
 type PageProps = {
     params: Promise<{ id: string }>;
-    searchParams: Promise<{ block?: string; page?: string }>;
 };
 
-export default async function ClassDetailPage({ params, searchParams }: PageProps) {
+export default async function ClassDetailPage({ params }: PageProps) {
     const session = await getSessionOrThrow();
     const resolvedParams = await params;
-    const resolvedSearch = await searchParams;
     const classIdParam = decodeURIComponent(resolvedParams.id ?? '').trim();
-    const blockIdParam = resolvedSearch.block ?? null;
 
     if (!classIdParam || !isValidUuid(classIdParam)) {
         return (
@@ -68,54 +62,25 @@ export default async function ClassDetailPage({ params, searchParams }: PageProp
     }
 
     // Compute schedule
+    const isEkskulClass = classRecord.type === 'EKSKUL';
+    const ekskulLessonPlanId =
+        (classRecord as { ekskul_lesson_plan_id?: string | null }).ekskul_lesson_plan_id ?? null;
+    const lessonSchedule = await computeLessonSchedule(classIdParam, classRecord.level_id, ekskulLessonPlanId);
     let nextSession = null;
     const now = new Date();
-    const sortedSessions = sessions
+    const scheduledSessions = isEkskulClass
+        ? sessions.filter((sessionItem) => lessonSchedule.has(sessionItem.id))
+        : sessions;
+    const sortedSessions = scheduledSessions
         .filter((s: ExtendedSession) => s.status !== 'CANCELLED')
         .sort((a: ExtendedSession, b: ExtendedSession) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
 
     nextSession = sortedSessions.find((s: ExtendedSession) => new Date(s.date_time) >= now && s.status !== 'COMPLETED');
     const displayNextSession = nextSession || sortedSessions[sortedSessions.length - 1]; // Fallback to last session if all finished
 
-    // Get the actual mapping of session IDs to lesson templates!
-    const lessonSchedule = await computeLessonSchedule(classIdParam, classRecord.level_id, (classRecord as any).ekskul_lesson_plan_id);
-
-    // Map lessons for the Next Session Card (if we need template details)
-    let nextSessionLessonTemplate: any = null;
-    let fallbackLessonTemplate: any = null;
-
-    const blockLessons = await Promise.all(
-        classBlocks.map(async (block) => {
-            const [lessons, templateLessons] = await Promise.all([
-                classLessonsDao.listLessonsByClassBlock(block.id),
-                block.block_id ? lessonTemplatesDao.listLessonsByBlock(block.block_id) : [],
-            ]);
-            const templateById = new Map(templateLessons.map((template) => [template.id, template]));
-            const orderedLessons = lessons.slice().sort((a, b) => a.order_index - b.order_index);
-            const lessonsWithTemplate = orderedLessons.map((lesson) => {
-                const template = lesson.lesson_template_id ? templateById.get(lesson.lesson_template_id) ?? null : null;
-                // Basic matching for Next Session
-                if (displayNextSession && lesson.session_id === displayNextSession.id) {
-                    nextSessionLessonTemplate = template;
-                } else if (!displayNextSession && !fallbackLessonTemplate) {
-                    fallbackLessonTemplate = template; // Just pick the first as fallback
-                }
-                return {
-                    lesson,
-                    template,
-                };
-            });
-            return {
-                block,
-                lessons: lessonsWithTemplate,
-            };
-        }),
-    );
-
-    // Filter to specific block if provided
-    const filteredBlockLessons = blockIdParam
-        ? blockLessons.filter(({ block }) => block.id === blockIdParam)
-        : blockLessons;
+    const nextSessionLessonTemplate = displayNextSession
+        ? lessonSchedule.get(displayNextSession.id)?.lessonTemplate ?? null
+        : null;
 
     const currentBlockDisplay = classBlocks.find((b) => b.status === 'CURRENT') || classBlocks[0];
 
@@ -134,19 +99,11 @@ export default async function ClassDetailPage({ params, searchParams }: PageProp
         })
     );
 
-    // Sessions for upload form
-    const sessionsForUpload = allSessions.map((s) => ({
-        id: s.id,
-        date_time: s.date_time,
-    }));
-
     // Time helper — used to determine if a session is past/today for the Presensi button
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
     // Compute unlocked sessions logic:
     // Display all sessions so that past sessions are visible and their attendance can be updated.
-    const unlockedSessionsList = sortedSessions;
-
     // Show the next 12 upcoming sessions (starting from the next one)
     const nextSessionIndex = sortedSessions.findIndex(s => s.id === nextSession?.id);
     const focusIndex = nextSessionIndex >= 0 ? nextSessionIndex : sortedSessions.length;
@@ -155,8 +112,6 @@ export default async function ClassDetailPage({ params, searchParams }: PageProp
     // Past sessions (completed/before next) — for presensi access, most recent first
     const pastSessions = sortedSessions.slice(0, focusIndex).reverse();
 
-    // Let's create a Set for 'Detail' access: all scheduled sessions.
-    const unlockedSessionIds = new Set(allSessions.map(s => s.id));
     return (
         <div style={{ fontFamily: "'Inter', sans-serif", margin: '0 -2rem', paddingBottom: '2rem' }}>
             {/* Main Content Area */}
@@ -457,13 +412,6 @@ function formatDateLong(dateString: string) {
 
 function formatTimeOnly(dateString: string) {
     return new Date(dateString).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-}
-
-function formatDayDateIndo(dateString: string) {
-    const d = new Date(dateString);
-    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-    return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 function isValidUuid(value: string): boolean {

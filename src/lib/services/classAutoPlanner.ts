@@ -23,6 +23,11 @@ function toDateOnly(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
+function normalizeScheduleTime(time: string): string {
+  const [hour = '00', minute = '00', second = '00'] = time.split(':');
+  return `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}:${second.slice(0, 2).padStart(2, '0')}`;
+}
+
 function alignDateToWeekday(start: Date, targetIndex: number): Date {
   const aligned = new Date(start);
   const currentIndex = aligned.getDay();
@@ -383,7 +388,7 @@ export async function autoPlanEkskulClass(classRecord: ClassRow, preferredStartL
     for (let meeting = 0; meeting < lessonMeetings; meeting++) {
       const sessionDate = toDateOnly(currentDate);
       // Combine date and time into ISO datetime string with Explicit +07:00 (WIB) offset
-      const dateTime = `${sessionDate}T${classRecord.schedule_time}:00+07:00`;
+      const dateTime = `${sessionDate}T${normalizeScheduleTime(classRecord.schedule_time)}+07:00`;
 
       sessionsToCreate.push({
         class_id: classRecord.id,

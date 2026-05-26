@@ -5,13 +5,16 @@ import EkskulRubricForm from './EkskulRubricForm';
 
 type PageProps = {
   params: { slug: string };
+  searchParams: Promise<{ sessionId?: string }>;
 };
 
-export default async function EkskulRubricPage({ params }: PageProps) {
+export default async function EkskulRubricPage({ params, searchParams }: PageProps) {
   const session = await getSessionOrThrow();
+  const resolvedSearchParams = await searchParams;
   const [encodedClassId, encodedSemester] = params.slug.split('__');
   const classId = encodedClassId ? decodeURIComponent(encodedClassId) : '';
   const semesterTag = encodedSemester ? decodeURIComponent(encodedSemester) : '';
+  const sourceSessionId = resolvedSearchParams.sessionId?.trim() || null;
 
   if (!classId || !semesterTag) {
     return (
@@ -59,6 +62,7 @@ export default async function EkskulRubricPage({ params }: PageProps) {
       <EkskulRubricForm
         classId={classId}
         semesterTag={semesterTag}
+        sourceSessionId={sourceSessionId}
         coders={coders.map((coder) => ({ id: coder.id, fullName: coder.full_name }))}
         competencies={competencies}
         positiveCharacters={positiveCharacters}

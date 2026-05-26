@@ -103,7 +103,7 @@ export default function AttendanceWrapper({
     const handleOpenEkskulReport = () => {
         if (!ekskulReportUrl) return;
         if (!canOpenEkskulReport) {
-            alert(ekskulReportLockedReason ?? 'Lengkapi presensi dulu sebelum membuat rapor ekskul.');
+            alert(ekskulReportLockedReason ?? 'Lengkapi presensi sesi ini dulu sebelum memberi nilai ekskul.');
             return;
         }
         router.push(ekskulReportUrl);
@@ -172,7 +172,7 @@ export default function AttendanceWrapper({
                             <span className="material-symbols-outlined text-base">
                                 {canOpenEkskulReport ? 'summarize' : 'lock'}
                             </span>
-                            {canOpenEkskulReport ? 'Buat Rapor Ekskul' : 'Lengkapi Presensi'}
+                            {canOpenEkskulReport ? 'Beri Nilai Ekskul' : 'Lengkapi Presensi'}
                         </button>
                     )}
 

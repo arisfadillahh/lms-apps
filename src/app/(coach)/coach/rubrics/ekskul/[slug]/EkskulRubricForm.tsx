@@ -11,12 +11,13 @@ type CompetencyMap = Record<string, { label: string; descriptions?: Record<'A' |
 type EkskulRubricFormProps = {
   classId: string;
   semesterTag: string;
+  sourceSessionId: string | null;
   coders: { id: string; fullName: string }[];
   competencies: CompetencyMap;
   positiveCharacters: string[];
 };
 
-export default function EkskulRubricForm({ classId, semesterTag, coders, competencies, positiveCharacters }: EkskulRubricFormProps) {
+export default function EkskulRubricForm({ classId, semesterTag, sourceSessionId, coders, competencies, positiveCharacters }: EkskulRubricFormProps) {
   const router = useRouter();
   const [coderId, setCoderId] = useState(coders[0]?.id ?? '');
   const [grades, setGrades] = useState<Record<string, 'A' | 'B' | 'C'>>(() => {
@@ -64,6 +65,7 @@ export default function EkskulRubricForm({ classId, semesterTag, coders, compete
         body: JSON.stringify({
           classId,
           semesterTag,
+          sourceSessionId,
           coderId,
           grades,
           positiveCharacters: selectedCharacters,

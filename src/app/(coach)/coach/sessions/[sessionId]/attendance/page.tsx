@@ -168,35 +168,22 @@ export default async function SessionAttendancePage({ params }: PageProps) {
     .filter((enrollment) => enrollment.status === 'ACTIVE')
     .map((enrollment) => enrollment.coder_id);
 
-  const ekskulLessonSessions = isEkskulClass
-    ? classSessions
-      .filter((item) => item.status !== 'CANCELLED' && lessonScheduleMap.has(item.id))
-      .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime())
-    : [];
-  const finalEkskulLessonSession = ekskulLessonSessions[ekskulLessonSessions.length - 1] ?? null;
-  const isFinalEkskulLessonSession = isEkskulClass && finalEkskulLessonSession?.id === sessionRecord.id;
-  const allEkskulLessonSessionsCompleted =
-    ekskulLessonSessions.length > 0 && ekskulLessonSessions.every((item) => item.status === 'COMPLETED');
-  let ekskulMissingAttendanceCount = 0;
-  if (isFinalEkskulLessonSession) {
-    for (const lessonSession of ekskulLessonSessions) {
-      const sessionAttendance = attendanceBySession.get(lessonSession.id) ?? new Map();
-      for (const coderId of activeEnrollmentCoderIds) {
-        if (!sessionAttendance.has(coderId)) {
-          ekskulMissingAttendanceCount += 1;
-        }
-      }
-    }
-  }
-  const ekskulReportUrl = isFinalEkskulLessonSession
-    ? `/coach/rubrics/ekskul/${encodeURIComponent(classRecord.id)}__${encodeURIComponent(getEkskulSemesterTag(sessionRecord.date_time))}`
+  const isEkskulLessonSession =
+    isEkskulClass && sessionRecord.status !== 'CANCELLED' && lessonScheduleMap.has(sessionRecord.id);
+  const ekskulCurrentSessionAttendance = attendanceBySession.get(sessionRecord.id) ?? new Map();
+  const ekskulMissingAttendanceCount = isEkskulLessonSession
+    ? activeEnrollmentCoderIds.filter((coderId) => !ekskulCurrentSessionAttendance.has(coderId)).length
+    : 0;
+  const ekskulReportUrl = isEkskulLessonSession
+    ? `/coach/rubrics/ekskul/${encodeURIComponent(classRecord.id)}__${encodeURIComponent(getEkskulSemesterTag(sessionRecord.date_time))}?sessionId=${encodeURIComponent(sessionRecord.id)}`
     : null;
-  const ekskulReportLockedReason = isFinalEkskulLessonSession && !allEkskulLessonSessionsCompleted
-    ? 'Selesaikan semua lesson ekskul dulu sebelum membuat rapor.'
-    : isFinalEkskulLessonSession && ekskulMissingAttendanceCount > 0
-      ? `Lengkapi ${ekskulMissingAttendanceCount} presensi lesson ekskul dulu sebelum memberi nilai.`
+  const ekskulReportLockedReason = isEkskulLessonSession && sessionRecord.status !== 'COMPLETED'
+    ? 'Simpan presensi sesi ini dulu sebelum memberi nilai.'
+    : isEkskulLessonSession && ekskulMissingAttendanceCount > 0
+      ? `Lengkapi ${ekskulMissingAttendanceCount} presensi sesi ini dulu sebelum memberi nilai.`
       : null;
-  const canOpenEkskulReport = isFinalEkskulLessonSession && allEkskulLessonSessionsCompleted && ekskulMissingAttendanceCount === 0;
+  const canOpenEkskulReport =
+    isEkskulLessonSession && sessionRecord.status === 'COMPLETED' && ekskulMissingAttendanceCount === 0;
 
   const sessionStart = new Date(sessionRecord.date_time);
   const sessionEnd = new Date(sessionStart.getTime() + 90 * 60000);

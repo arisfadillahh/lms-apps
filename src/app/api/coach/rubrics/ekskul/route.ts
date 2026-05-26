@@ -19,6 +19,7 @@ type CompetencyMap = Record<
 const ekskulSchema = z.object({
   classId: z.string().uuid(),
   semesterTag: z.string().min(1),
+  sourceSessionId: z.string().uuid().nullable().optional(),
   coderId: z.string().uuid(),
   grades: z.record(z.string(), z.enum(['A', 'B', 'C'])),
   positiveCharacters: z
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Validation failed', details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { classId, semesterTag, coderId, grades, positiveCharacters } = parsed.data;
+  const { classId, semesterTag, sourceSessionId, coderId, grades, positiveCharacters } = parsed.data;
   const classRecord = await classesDao.getClassById(classId);
   if (!classRecord) {
     return NextResponse.json({ error: 'Class not found' }, { status: 404 });
@@ -79,22 +80,38 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Lesson ekskul belum terjadwal' }, { status: 409 });
   }
 
-  const incompleteSessions = requiredLessonSessions.filter((item) => item.status !== 'COMPLETED');
+  const sourceSession = sourceSessionId
+    ? requiredLessonSessions.find((item) => item.id === sourceSessionId) ?? null
+    : null;
+  if (sourceSessionId && !sourceSession) {
+    return NextResponse.json({ error: 'Sesi ekskul tidak valid untuk kelas ini.' }, { status: 400 });
+  }
+
+  const sessionsToValidate = sourceSession ? [sourceSession] : requiredLessonSessions;
+  const incompleteSessions = sessionsToValidate.filter((item) => item.status !== 'COMPLETED');
   if (incompleteSessions.length > 0) {
     return NextResponse.json(
-      { error: `Selesaikan ${incompleteSessions.length} lesson ekskul dulu sebelum membuat rapor.` },
+      {
+        error: sourceSession
+          ? 'Simpan presensi sesi ini dulu sebelum memberi nilai.'
+          : `Selesaikan ${incompleteSessions.length} lesson ekskul dulu sebelum membuat rapor.`,
+      },
       { status: 409 },
     );
   }
 
-  const attendanceRecords = await attendanceDao.listAttendanceForSessions(requiredLessonSessions.map((item) => item.id));
+  const attendanceRecords = await attendanceDao.listAttendanceForSessions(sessionsToValidate.map((item) => item.id));
   const attendedSessionIds = new Set(
     attendanceRecords.filter((record) => record.coder_id === coderId).map((record) => record.session_id),
   );
-  const missingAttendanceCount = requiredLessonSessions.filter((item) => !attendedSessionIds.has(item.id)).length;
+  const missingAttendanceCount = sessionsToValidate.filter((item) => !attendedSessionIds.has(item.id)).length;
   if (missingAttendanceCount > 0) {
     return NextResponse.json(
-      { error: `Lengkapi presensi ${missingAttendanceCount} lesson ekskul untuk coder ini sebelum memberi nilai.` },
+      {
+        error: sourceSession
+          ? 'Lengkapi presensi coder ini pada sesi tersebut sebelum memberi nilai.'
+          : `Lengkapi presensi ${missingAttendanceCount} lesson ekskul untuk coder ini sebelum memberi nilai.`,
+      },
       { status: 409 },
     );
   }

@@ -175,7 +175,7 @@ export default async function SessionAttendancePage({ params }: PageProps) {
     ? activeEnrollmentCoderIds.filter((coderId) => !ekskulCurrentSessionAttendance.has(coderId)).length
     : 0;
   const ekskulReportUrl = isEkskulLessonSession
-    ? `/coach/rubrics/ekskul/${encodeURIComponent(classRecord.id)}__${encodeURIComponent(getEkskulSemesterTag(sessionRecord.date_time))}?sessionId=${encodeURIComponent(sessionRecord.id)}`
+    ? `/coach/rubrics/${encodeURIComponent(sessionRecord.id)}`
     : null;
   const ekskulReportLockedReason = isEkskulLessonSession && sessionRecord.status !== 'COMPLETED'
     ? 'Simpan presensi sesi ini dulu sebelum memberi nilai.'
@@ -347,12 +347,6 @@ export default async function SessionAttendancePage({ params }: PageProps) {
       </div>
     </div>
   );
-}
-
-function getEkskulSemesterTag(dateString: string) {
-  const date = new Date(dateString);
-  const semester = date.getMonth() < 6 ? 1 : 2;
-  return `${date.getFullYear()}-${semester}`;
 }
 
 function renderError(title: string, message: string) {

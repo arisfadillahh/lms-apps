@@ -22,7 +22,7 @@ export default async function CoachSessionEvaluationPage({ params }: { params: P
     redirect('/coach/rubrics');
   }
 
-  const lessonMap = await computeLessonSchedule(klass.id, klass.level_id);
+  const lessonMap = await computeLessonSchedule(klass.id, klass.level_id, klass.ekskul_lesson_plan_id);
   const slot = lessonMap.get(sessionId);
   if (!slot) redirect('/coach/rubrics');
 

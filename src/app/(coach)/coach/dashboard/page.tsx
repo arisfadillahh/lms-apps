@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
+import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { getSessionOrThrow } from '@/lib/auth';
 import { getCoachClassesWithBlocks, getAllCoachSessions, getPendingLessonEvaluationsForCoach } from '@/lib/services/coach';
@@ -22,22 +22,12 @@ export default async function CoachDashboardPage() {
         getPendingLessonEvaluationsForCoach(session.user.id),
     ]);
 
-    const user = session.user;
-    const userName = user.fullName || 'Coach';
-    const nameParts = userName.split(' ');
-    const firstName = nameParts[0];
-
     // Calculate stats
     const today = new Date();
     const ninetyMinsAgo = new Date(today.getTime() - 90 * 60 * 1000);
-    
-    const todaySessions = activeSessions.filter(s =>
-        isSameDay(new Date(s.date_time), today) &&
-        s.status !== 'CANCELLED'
-    );
 
     const upcomingSessions = activeSessions.filter(s =>
-        new Date(s.date_time) >= ninetyMinsAgo && s.status !== 'CANCELLED'
+        new Date(s.date_time) >= ninetyMinsAgo && s.status === 'SCHEDULED'
     ).sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
 
     const nextSession = upcomingSessions[0] || null;
@@ -45,9 +35,6 @@ export default async function CoachDashboardPage() {
     // Count pending tasks
     const pendingMakeUpCount = makeUpTasks.filter(t => t.status === 'SUBMITTED').length;
     const totalStudents = classes.reduce((acc, cls) => acc + (cls.studentsCount || 0), 0);
-
-    // Weekly Schedule Variables
-    const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 1 }); // Monday
 
     return (
         <>
@@ -183,7 +170,9 @@ export default async function CoachDashboardPage() {
                                             </div>
                                             <div className="grid grid-cols-2 gap-4 border-t border-slate-50 pt-4">
                                                 <div>
-                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Block Saat Ini</p>
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                                                        {cls.type === 'EKSKUL' ? 'Lesson Saat Ini' : 'Block Saat Ini'}
+                                                    </p>
                                                     <p className="text-xs font-bold text-brand-slate flex items-center gap-1">
                                                         <span className="material-symbols-outlined text-sm text-emerald-600">deployed_code</span>
                                                         {cls.currentBlock ? cls.currentBlock.name : 'Unknown'}

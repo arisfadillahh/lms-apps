@@ -1,5 +1,5 @@
 
-import { classesDao, sessionsDao } from '@/lib/dao';
+import { attendanceDao, classesDao, sessionsDao } from '@/lib/dao';
 import type { ClassBlockRecord } from '@/lib/dao/classesDao';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 import { getSoftwareByBlockId } from '@/lib/dao/blockSoftwareDao';
@@ -65,7 +65,7 @@ export async function getCoachClassesWithBlocks(coachId: string): Promise<CoachC
       const [blocks, sessions, lessonMap] = await Promise.all([
         classesDao.getClassBlocks(klass.id),
         sessionsDao.listSessionsByClass(klass.id),
-        computeLessonSchedule(klass.id, klass.level_id),
+        computeLessonSchedule(klass.id, klass.level_id, klass.ekskul_lesson_plan_id),
       ]);
 
       const currentBlockData = pickBlock(blocks, 'CURRENT');
@@ -87,12 +87,17 @@ export async function getCoachClassesWithBlocks(coachId: string): Promise<CoachC
         };
       }
 
-      const relevantSessions = pickRelevantCoachSessions(sessions, isMainCoach, coachId);
-      const nextSession = pickNextCoachSession(relevantSessions);
+      const relevantSessions = pickRelevantCoachSessions(sessions, isMainCoach, coachId)
+        .filter((session) => session.status !== 'CANCELLED' && lessonMap.has(session.id))
+        .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
+      const nextSession = pickNextCoachSession(
+        relevantSessions.filter((session) => session.status !== 'COMPLETED'),
+      );
+      const displaySession = nextSession ?? relevantSessions[relevantSessions.length - 1];
 
       let nextLesson = null;
-      if (nextSession && nextSession.status !== 'CANCELLED') {
-        const slot = lessonMap.get(nextSession.id);
+      if (displaySession) {
+        const slot = lessonMap.get(displaySession.id);
         if (slot) {
           nextLesson = {
             title: formatLessonTitle(slot),
@@ -100,6 +105,14 @@ export async function getCoachClassesWithBlocks(coachId: string): Promise<CoachC
             lessonTemplateId: slot.lessonTemplate.id,
           };
         }
+      }
+      if (klass.type === 'EKSKUL' && displaySession && nextLesson) {
+        currentBlock = {
+          name: nextLesson.title,
+          startDate: displaySession.date_time,
+          endDate: displaySession.date_time,
+          software: [],
+        };
       }
 
       const enrollments = await classesDao.listEnrollmentsByClass(klass.id);
@@ -109,7 +122,7 @@ export async function getCoachClassesWithBlocks(coachId: string): Promise<CoachC
         classId: klass.id,
         name: klass.name,
         type: klass.type,
-        nextSessionDate: nextSession?.date_time ?? null,
+        nextSessionDate: displaySession?.date_time ?? null,
         nextLesson,
         currentBlock,
         upcomingBlock,
@@ -137,7 +150,7 @@ export async function getAllCoachSessions(coachId: string): Promise<ExtendedSess
   const ownSessionsPromises = classes.map(async (klass) => {
     const [sessions, lessonMap] = await Promise.all([
       sessionsDao.listSessionsByClass(klass.id),
-      computeLessonSchedule(klass.id, klass.level_id),
+      computeLessonSchedule(klass.id, klass.level_id, klass.ekskul_lesson_plan_id),
     ]);
 
     return sessions.map((session) => {
@@ -195,7 +208,11 @@ async function getSubstituteSessions(coachId: string): Promise<ExtendedSession[]
       const classRecord = await classesDao.getClassById(classId);
       if (!classRecord) return [];
 
-      const lessonMap = await computeLessonSchedule(classId, classRecord.level_id);
+      const lessonMap = await computeLessonSchedule(
+        classId,
+        classRecord.level_id,
+        classRecord.ekskul_lesson_plan_id,
+      );
 
       return classSessions.map(session => {
         const lessonSlot = session.status !== 'CANCELLED' ? lessonMap.get(session.id) : null;
@@ -247,11 +264,21 @@ export async function getPendingLessonEvaluationsForCoach(coachId: string): Prom
 
     if (completedSessions.length === 0) continue;
 
-    const lessonMap = await computeLessonSchedule(klass.id, klass.level_id);
+    const lessonMap = await computeLessonSchedule(klass.id, klass.level_id, klass.ekskul_lesson_plan_id);
     const activeEnrollments = (await classesDao.listEnrollmentsByClass(klass.id)).filter(e => e.status === 'ACTIVE');
-    const classBlocks = await classesDao.getClassBlocks(klass.id);
+    const classBlocks = klass.type === 'EKSKUL' ? [] : await classesDao.getClassBlocks(klass.id);
     // ONLY evaluate lessons in the CURRENT active block. Do not leak to UPCOMING or COMPLETED blocks.
     const activeBlockIds = new Set(classBlocks.filter(b => b.status === 'CURRENT').map(b => b.block_id));
+    const attendanceRecords = klass.type === 'EKSKUL'
+      ? await attendanceDao.listAttendanceForSessions(completedSessions.map((session) => session.id))
+      : [];
+    const attendanceBySession = new Map<string, Set<string>>();
+    attendanceRecords.forEach((record) => {
+      if (!attendanceBySession.has(record.session_id)) {
+        attendanceBySession.set(record.session_id, new Set());
+      }
+      attendanceBySession.get(record.session_id)!.add(record.coder_id);
+    });
     
     // 3. Check which completed sessions already have evaluations
     for (const session of completedSessions) {
@@ -259,7 +286,7 @@ export async function getPendingLessonEvaluationsForCoach(coachId: string): Prom
       if (!slot) continue;
 
       // Only evaluate lessons that belong to an active block (prevent 'bocor' from old completed blocks)
-      if (!activeBlockIds.has(slot.block.id)) continue;
+      if (klass.type !== 'EKSKUL' && !activeBlockIds.has(slot.block.id)) continue;
 
       // RULE: Only evaluate a lesson when ALL parts of that lesson are completed.
       // So if a lesson has 3 parts, we only ask for evaluation on Part 3.
@@ -282,6 +309,12 @@ export async function getPendingLessonEvaluationsForCoach(coachId: string): Prom
       const relevantEnrollments = activeEnrollments;
 
       if (relevantEnrollments.length === 0) continue;
+      if (
+        klass.type === 'EKSKUL' &&
+        !relevantEnrollments.every((enrollment) => attendanceBySession.get(session.id)?.has(enrollment.coder_id))
+      ) {
+        continue;
+      }
 
       const allEvaluated = relevantEnrollments.every(e => evaluatedCoderIds.has(e.coder_id));
       if (allEvaluated) continue;
@@ -303,7 +336,7 @@ export async function getPendingLessonEvaluationsForCoach(coachId: string): Prom
         sessionId: session.id,
         classId: klass.id,
         className: klass.name,
-        blockId: slot.block.id,
+        blockId: klass.type === 'EKSKUL' ? null : slot.block.id,
         blockName: slot.block.name ?? 'Unknown Block',
         lessonTitle: slot.lessonTemplate.title, // Use raw title without (Part X) suffix since it applies to the whole lesson
         sessionDates: sessionDates,
@@ -362,15 +395,21 @@ export async function getDraftReportsForCoach(coachId: string): Promise<DraftRep
     return [];
   }
 
-  return (data || []).map(row => ({
-    reportId: row.id,
-    coderId: row.coder_id as string,
-    coderName: (row.users as any)?.full_name ?? 'Coder',
-    classId: row.class_id as string,
-    className: (row.classes as any)?.name ?? 'Class',
-    blockId: row.block_id as string,
-    blockName: (row.blocks as any)?.name ?? 'Block',
-    createdAt: row.created_at,
-    averageScore: row.average_score ? Number(row.average_score) : undefined,
-  }));
+  return (data || []).map((row) => {
+    const coder = Array.isArray(row.users) ? row.users[0] : row.users;
+    const klass = Array.isArray(row.classes) ? row.classes[0] : row.classes;
+    const block = Array.isArray(row.blocks) ? row.blocks[0] : row.blocks;
+
+    return {
+      reportId: row.id,
+      coderId: row.coder_id,
+      coderName: coder?.full_name ?? 'Coder',
+      classId: row.class_id,
+      className: klass?.name ?? 'Class',
+      blockId: row.block_id,
+      blockName: block?.name ?? 'Block',
+      createdAt: row.created_at,
+      averageScore: row.average_score ? Number(row.average_score) : undefined,
+    };
+  });
 }

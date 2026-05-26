@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { getSessionOrThrow } from '@/lib/auth';
 import { attendanceDao, sessionsDao, reportsDao, classesDao } from '@/lib/dao';
 import type { UpsertLessonEvaluationInput } from '@/lib/dao/reportsDao';
+import { computeLessonSchedule } from '@/lib/services/lessonScheduler';
 
 export async function POST(req: Request) {
   try {
@@ -29,7 +30,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     if (klass.type === 'EKSKUL') {
-      return NextResponse.json({ error: 'Gunakan alur rapor ekskul, bukan evaluasi block.' }, { status: 400 });
+      const lessonMap = await computeLessonSchedule(klass.id, klass.level_id, klass.ekskul_lesson_plan_id);
+      if (!lessonMap.has(session.id)) {
+        return NextResponse.json({ error: 'Lesson ekskul tidak ditemukan untuk sesi ini.' }, { status: 400 });
+      }
     }
 
     const activeEnrollments = (await classesDao.listEnrollmentsByClass(klass.id)).filter(

@@ -51,7 +51,40 @@ export default async function CoachLessonDetailPage({ params, searchParams }: Pa
     const classIdFromUrl = resolvedSearch.classId ?? null;
     const sessionIdFromUrl = resolvedSearch.sessionId ?? null;
 
-    const lesson = await lessonTemplatesDao.getLessonTemplateById(lessonId);
+    let lesson = await lessonTemplatesDao.getLessonTemplateById(lessonId);
+    let isEkskulLesson = false;
+
+    if (!lesson && classIdFromUrl) {
+        const classRecord = await classesDao.getClassById(classIdFromUrl);
+        if (classRecord?.type === 'EKSKUL' && classRecord.ekskul_lesson_plan_id) {
+            const supabase = getSupabaseAdmin();
+            const { data: ekskulLesson } = await supabase
+                .from('ekskul_lessons')
+                .select('*')
+                .eq('id', lessonId)
+                .eq('plan_id', classRecord.ekskul_lesson_plan_id)
+                .maybeSingle();
+
+            if (ekskulLesson) {
+                isEkskulLesson = true;
+                lesson = {
+                    id: ekskulLesson.id,
+                    block_id: '',
+                    title: ekskulLesson.title,
+                    summary: ekskulLesson.summary,
+                    slide_url: ekskulLesson.slide_url,
+                    example_url: ekskulLesson.example_url,
+                    example_storage_path: null,
+                    order_index: ekskulLesson.order_index,
+                    estimated_meeting_count: ekskulLesson.estimated_meetings,
+                    make_up_instructions: null,
+                    created_at: ekskulLesson.created_at,
+                    updated_at: ekskulLesson.created_at,
+                };
+            }
+        }
+    }
+
     if (!lesson) {
         notFound();
     }
@@ -74,17 +107,22 @@ export default async function CoachLessonDetailPage({ params, searchParams }: Pa
             .eq('lesson_template_id', lessonId)
             .limit(1)
             .maybeSingle();
-        const classBlock = (classLessonRow?.class_blocks as any);
+        const classBlock = classLessonRow?.class_blocks as unknown as {
+            class_id?: string | null;
+            classes?: { name?: string | null } | null;
+        } | null;
         const classId: string | null = classBlock?.class_id ?? null;
         className = classBlock?.classes?.name ?? null;
 
         if (!sessionId && classId) {
             const supabase2 = getSupabaseAdmin();
+            // eslint-disable-next-line react-hooks/purity -- This server-only fallback resolves a recent scheduled session.
+            const recentSessionCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
             const { data: sessionRow } = await supabase2
                 .from('sessions')
                 .select('id')
                 .eq('class_id', classId)
-                .gte('date_time', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+                .gte('date_time', recentSessionCutoff)
                 .order('date_time', { ascending: true })
                 .limit(1)
                 .maybeSingle();
@@ -156,7 +194,9 @@ export default async function CoachLessonDetailPage({ params, searchParams }: Pa
                                     Game Sample
                                 </a>
                             )}
-                            <ReportLessonButton lessonId={lesson.id} lessonTitle={lesson.title} coachId={session.user.id} />
+                            {!isEkskulLesson && (
+                                <ReportLessonButton lessonId={lesson.id} lessonTitle={lesson.title} coachId={session.user.id} />
+                            )}
                         </div>
 
                     </div>

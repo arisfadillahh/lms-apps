@@ -1,7 +1,7 @@
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { notFound } from 'next/navigation';
 import { readdir } from 'fs/promises';
-import path from 'path';
+import { buildAvatarPublicPath, getAvatarUploadDir, resolveAvatarPublicUrl } from '@/lib/services/avatarStorage';
 import { Sparkles, User, Calendar, ClipboardList, MessageSquare } from 'lucide-react';
 import DownloadPdfButton from './DownloadPdfButton';
 
@@ -72,22 +72,19 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
       .eq('id', report.coder_id)
       .maybeSingle();
     const rawAvatarPath: string | null = (coderUser as any)?.avatar_path || (coderUser as any)?.avatar_url || null;
-    console.log('[Report] coder_id:', report.coder_id, 'raw avatar:', rawAvatarPath);
     if (rawAvatarPath) {
-      // avatar_path already stores the full path e.g. /api/avatars/filename.jpg
-      // OR it could be just a filename - in both cases use directly or prefix if needed
-      coderAvatarUrl = rawAvatarPath;
+      coderAvatarUrl = resolveAvatarPublicUrl(rawAvatarPath);
     } else {
       // Fallback: scan the local uploads folder for a file matching the coder's ID prefix
       try {
-        const avatarsDir = path.join(process.cwd(), 'public/uploads/avatars');
+        const avatarsDir = getAvatarUploadDir();
         const files = await readdir(avatarsDir);
         const coderFiles = files
           .filter(f => f.startsWith(report.coder_id))
           .sort() // sort ascending; last one has the highest timestamp
           .reverse(); // latest first
         if (coderFiles.length > 0) {
-          coderAvatarUrl = `/api/avatars/${coderFiles[0]}`;
+          coderAvatarUrl = buildAvatarPublicPath(coderFiles[0]);
         }
       } catch {
         // avatars folder doesn't exist or can't be read — skip silently

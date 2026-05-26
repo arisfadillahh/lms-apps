@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { readFile } from 'fs/promises';
 import path from 'path';
-import { existsSync } from 'fs';
-import { isAllowedAvatarFilename } from '@/lib/services/avatarUploadSecurity';
+import { getStoredAvatarContentType, isAllowedAvatarFilename } from '@/lib/services/avatarUploadSecurity';
+import { getAvatarUploadDir } from '@/lib/services/avatarStorage';
 
 export async function GET(
     request: Request,
@@ -16,29 +16,28 @@ export async function GET(
         return new NextResponse('File not found', { status: 404 });
     }
 
-    const filePath = path.join(process.cwd(), '.uploads/avatars', safeFilename);
-
-    if (!existsSync(filePath)) {
-        return new NextResponse('File not found', { status: 404 });
-    }
+    const filePath = path.join(getAvatarUploadDir(), safeFilename);
 
     try {
         const fileBuffer = await readFile(filePath);
-        const ext = path.extname(safeFilename).toLowerCase();
+        const contentType = getStoredAvatarContentType(safeFilename, fileBuffer);
 
-        let contentType = 'application/octet-stream';
-        if (ext === '.png') contentType = 'image/png';
-        else if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
-        else if (ext === '.gif') contentType = 'image/gif';
-        else if (ext === '.webp') contentType = 'image/webp';
+        if (!contentType) {
+            return new NextResponse('File not found', { status: 404 });
+        }
 
         return new NextResponse(new Uint8Array(fileBuffer), {
             headers: {
                 'Content-Type': contentType,
-                'Cache-Control': 'public, max-age=3600, must-revalidate'
+                'Cache-Control': 'public, max-age=3600, must-revalidate',
+                'X-Content-Type-Options': 'nosniff',
             }
         });
-    } catch (error) {
+    } catch (error: unknown) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+            return new NextResponse('File not found', { status: 404 });
+        }
+
         console.error('Error reading avatar file:', error);
         return new NextResponse('Internal Server Error', { status: 500 });
     }

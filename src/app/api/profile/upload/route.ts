@@ -4,6 +4,7 @@ import path from 'path';
 import { randomUUID } from 'crypto';
 import { getSessionOrThrow } from '@/lib/auth';
 import { detectAvatarImageType, MAX_AVATAR_UPLOAD_BYTES } from '@/lib/services/avatarUploadSecurity';
+import { buildAvatarPublicPath, getAvatarUploadDir } from '@/lib/services/avatarStorage';
 
 export async function POST(request: Request) {
     try {
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
         }
 
         const filename = `${userId}-${Date.now()}-${randomUUID()}${imageType.extension}`;
-        const uploadDir = path.join(process.cwd(), '.uploads/avatars');
+        const uploadDir = getAvatarUploadDir();
 
         // Ensure directory exists
         await mkdir(uploadDir, { recursive: true });
@@ -37,10 +38,10 @@ export async function POST(request: Request) {
         const filePath = path.join(uploadDir, filename);
         await writeFile(filePath, buffer);
 
-        const publicPath = `/api/avatars/${filename}`;
+        const publicPath = buildAvatarPublicPath(filename);
 
         return NextResponse.json({ success: true, filePath: publicPath });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Upload error:', error);
         return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
     }

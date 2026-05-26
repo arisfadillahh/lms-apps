@@ -4,7 +4,7 @@ import { getSessionOrThrow } from '@/lib/auth';
 import ReportReviewClient from './ReportReviewClient';
 import { classesDao } from '@/lib/dao';
 import { readdir } from 'fs/promises';
-import path from 'path';
+import { buildAvatarPublicPath, getAvatarUploadDir, resolveAvatarPublicUrl } from '@/lib/services/avatarStorage';
 
 export default async function CoachReportReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSessionOrThrow();
@@ -122,24 +122,18 @@ export default async function CoachReportReviewPage({ params }: { params: Promis
       .maybeSingle();
     const rawAvatarUrl: string | null = (coderUser as any)?.avatar_path || (coderUser as any)?.avatar_url || null;
     if (rawAvatarUrl) {
-      if (rawAvatarUrl.startsWith('http')) {
-        coderAvatarUrl = rawAvatarUrl;
-      } else {
-        // Local storage: served via /api/avatars/[filename]
-        const filename = rawAvatarUrl.split('/').pop();
-        coderAvatarUrl = `/api/avatars/${filename}`;
-      }
+      coderAvatarUrl = resolveAvatarPublicUrl(rawAvatarUrl);
     } else {
       // Fallback: scan local avatars folder for files matching the coder's ID prefix
       try {
-        const avatarsDir = path.join(process.cwd(), 'public/uploads/avatars');
+        const avatarsDir = getAvatarUploadDir();
         const files = await readdir(avatarsDir);
         const coderFiles = files
           .filter(f => f.startsWith((coder as any).id))
           .sort()
           .reverse();
         if (coderFiles.length > 0) {
-          coderAvatarUrl = `/api/avatars/${coderFiles[0]}`;
+          coderAvatarUrl = buildAvatarPublicPath(coderFiles[0]);
         }
       } catch {
         // avatars folder not accessible — skip silently
@@ -165,4 +159,3 @@ export default async function CoachReportReviewPage({ params }: { params: Promis
     </div>
   );
 }
-

@@ -56,5 +56,24 @@ export function detectAvatarImageType(contentType: string, buffer: Buffer): Avat
 }
 
 export function isAllowedAvatarFilename(filename: string): boolean {
-  return AVATAR_IMAGE_TYPES.some((type) => filename.toLowerCase().endsWith(type.extension));
+  const normalizedFilename = filename.toLowerCase();
+  return (
+    AVATAR_IMAGE_TYPES.some((type) => normalizedFilename.endsWith(type.extension)) ||
+    normalizedFilename.endsWith('.jpeg')
+  );
+}
+
+export function getStoredAvatarContentType(filename: string, buffer: Buffer): string | null {
+  const normalizedFilename = filename.toLowerCase();
+  const imageType = AVATAR_IMAGE_TYPES.find((type) => type.matches(buffer));
+
+  if (!imageType) {
+    return null;
+  }
+
+  const matchesExtension =
+    normalizedFilename.endsWith(imageType.extension) ||
+    (imageType.contentType === 'image/jpeg' && normalizedFilename.endsWith('.jpeg'));
+
+  return matchesExtension ? imageType.contentType : null;
 }

@@ -372,6 +372,10 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
       `}</style>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 print:p-0 print:m-0 print:max-w-none">
         <header className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-sky to-blue-600 p-8 sm:p-10 shadow-lg shadow-sky/20 mb-8 border border-sky/20 print:p-5 print:rounded-xl print:shadow-none print:mb-4" data-purpose="student-hero">
+          <div className="absolute right-5 top-5 z-10 rounded-lg bg-white px-3 py-2 shadow-sm print:right-4 print:top-4 print:px-2 print:py-1.5">
+            <img src={CLEVIO_LOGO_SRC} alt="Clevio" className="h-7 sm:h-8 print:h-6 w-auto object-contain" />
+          </div>
+
           <div className="relative flex flex-col md:flex-row items-center gap-8 print:flex-row print:items-center print:gap-5">
             <div className={coderAvatarUrl ? 'relative' : 'relative print:hidden'}>
               <div className={`w-32 h-32 sm:w-40 sm:h-40 print:w-24 print:h-24 rounded-2xl border border-white/30 shadow-lg bg-white flex items-center justify-center ${coderAvatarUrl ? 'overflow-hidden p-0' : 'p-5'}`}>
@@ -383,11 +387,8 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
               </div>
             </div>
             
-            <div className="text-center md:text-left text-white flex-1 print:text-left">
+            <div className="text-center md:text-left text-white flex-1 md:pr-40 print:text-left print:pr-32">
               <div className="mb-5 flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3 print:mb-3 print:flex-row print:justify-start">
-                <div className="rounded-lg bg-white px-3 py-2 shadow-sm">
-                  <img src={CLEVIO_LOGO_SRC} alt="Clevio" className="h-8 sm:h-9 print:h-7 w-auto object-contain" />
-                </div>
                 <div className="inline-flex px-4 py-1.5 rounded-lg bg-white/10 border border-white/20 text-sm font-semibold tracking-wide uppercase print:text-xs print:px-3">
                   {reportTitle}
                 </div>

@@ -2,8 +2,10 @@ import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { notFound } from 'next/navigation';
 import { readdir } from 'fs/promises';
 import { buildAvatarPublicPath, getAvatarUploadDir, resolveAvatarPublicUrl } from '@/lib/services/avatarStorage';
-import { Sparkles, User, Calendar, ClipboardList, MessageSquare } from 'lucide-react';
+import { User, Calendar, ClipboardList, MessageSquare } from 'lucide-react';
 import DownloadPdfButton from './DownloadPdfButton';
+
+const CLEVIO_LOGO_SRC = '/images/clevio-logo.png.png?v=2';
 
 const getGrade = (score: number) => {
   if (score >= 8.5) return 'A';
@@ -198,8 +200,17 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
   const avgScore = Number((report.average_score || 0).toFixed(1));
   const grade = report.grade || getGrade(avgScore);
   const gradeColor = getGradeColor(avgScore);
-  const gradeMessage = avgScore >= 8.5 ? 'Excellent!' : avgScore >= 7.0 ? 'Good Job!' : avgScore >= 5.5 ? 'Keep Going!' : 'Keep Trying!';
+  const gradeMessage = avgScore >= 8.5
+    ? 'Excellent Performance'
+    : avgScore >= 7.0
+      ? 'Good Performance'
+      : avgScore >= 5.5
+        ? 'Developing Performance'
+        : 'Needs Support';
+  const reportTitle = klass?.type === 'EKSKUL' ? 'Performance Report' : 'Block Performance Report';
   const reportContextLabel = klass?.type === 'EKSKUL' ? 'Ekskul' : `${klass?.name ?? ''} - ${block?.name ?? ''}`;
+  const lessonSectionTitle = klass?.type === 'EKSKUL' ? 'Materi Ekskul' : 'Materi yang Dibahas';
+  const lessonSectionSubtitle = 'Daftar materi yang menjadi konteks penilaian laporan ini.';
 
   return (
     <div className="bg-slate-50 font-sans text-clevio-navy min-h-screen antialiased pb-20">
@@ -353,40 +364,39 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
         }
       `}</style>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 print:p-0 print:m-0 print:max-w-none">
-        <header className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-sky to-blue-600 p-8 sm:p-12 shadow-2xl shadow-sky/30 mb-8 print:p-6 print:rounded-2xl print:shadow-none print:mb-4" data-purpose="student-hero">
-          <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-48 h-48 bg-sunshine/20 rounded-full blur-2xl"></div>
-          
+        <header className="relative overflow-hidden rounded-2xl bg-clevio-navy p-8 sm:p-10 shadow-lg shadow-slate-200/60 mb-8 border border-clevio-navy/10 print:p-6 print:rounded-xl print:shadow-none print:mb-4" data-purpose="student-hero">
           <div className="relative flex flex-col md:flex-row items-center gap-8 print:gap-6">
             <div className="relative">
-              <div className="w-32 h-32 sm:w-40 sm:h-40 print:w-24 print:h-24 rounded-3xl overflow-hidden border-4 border-white/40 shadow-xl bg-white flex items-center justify-center text-5xl print:text-4xl font-black text-slate-300">
+              <div className={`w-32 h-32 sm:w-40 sm:h-40 print:w-24 print:h-24 rounded-2xl border border-white/30 shadow-lg bg-white flex items-center justify-center ${coderAvatarUrl ? 'overflow-hidden p-0' : 'p-5'}`}>
                 {coderAvatarUrl ? (
                   <img src={coderAvatarUrl} alt={coder?.full_name || 'Coder'} className="w-full h-full object-cover" />
                 ) : (
-                  coder?.full_name?.charAt(0).toUpperCase() || '?'
+                  <img src={CLEVIO_LOGO_SRC} alt="Clevio" className="h-14 sm:h-16 w-auto object-contain" />
                 )}
-              </div>
-              <div className="absolute -bottom-3 -right-3 bg-sunshine p-2 rounded-2xl shadow-lg print:hidden">
-                <Sparkles className="text-clevio-navy" size={20} />
               </div>
             </div>
             
             <div className="text-center md:text-left text-white flex-1">
-              <div className="inline-block px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-sm text-sm font-semibold mb-3 print:mb-2 tracking-wide uppercase">
-                Block Performance Report
+              <div className="mb-5 flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3 print:mb-3">
+                <div className="rounded-lg bg-white px-3 py-2 shadow-sm">
+                  <img src={CLEVIO_LOGO_SRC} alt="Clevio" className="h-7 w-auto object-contain" />
+                </div>
+                <div className="inline-flex px-4 py-1.5 rounded-lg bg-white/10 border border-white/20 text-sm font-semibold tracking-wide uppercase">
+                  {reportTitle}
+                </div>
               </div>
               <h1 className="text-3xl sm:text-4xl print:text-2xl font-extrabold mb-2 print:mb-1">{coder?.full_name}</h1>
               <p className="text-xl print:text-lg opacity-90 font-medium mb-6 print:mb-3">{reportContextLabel}</p>
               
               <div className="grid grid-cols-2 gap-4 text-sm sm:text-base max-w-md mx-auto md:mx-0">
-                <div className="flex items-center gap-3 bg-black/10 rounded-2xl p-3">
-                  <div className="bg-white/20 p-2 rounded-xl">
+                <div className="flex items-center gap-3 bg-white/10 border border-white/15 rounded-xl p-3">
+                  <div className="bg-white/15 p-2 rounded-lg">
                     <User size={16} className="text-white" />
                   </div>
                   <span>Coach: <span className="font-bold">{coach?.full_name ?? 'Clevio Coach'}</span></span>
                 </div>
-                <div className="flex items-center gap-3 bg-black/10 rounded-2xl p-3">
-                  <div className="bg-white/20 p-2 rounded-xl">
+                <div className="flex items-center gap-3 bg-white/10 border border-white/15 rounded-xl p-3">
+                  <div className="bg-white/15 p-2 rounded-lg">
                     <Calendar size={16} className="text-white" />
                   </div>
                   <span>{pubDate}</span>
@@ -400,18 +410,16 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
 
           {/* HORIZONTAL OVERALL GRADE CARD */}
           <section data-purpose="grade-summary" className="w-full mt-4 print:mt-0">
-            <div className="bg-white rounded-[2rem] p-8 sm:p-10 shadow-xl shadow-slate-200/60 border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12 print:flex-row print:justify-between print:items-center print:border-none print:shadow-none print:p-4 print:rounded-2xl print:bg-transparent">
+            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12 print:flex-row print:justify-between print:items-center print:border print:border-slate-200 print:shadow-none print:p-4 print:rounded-xl print:bg-transparent">
               <div className="text-center md:text-left flex-1 print:text-left print:flex-1">
                 <div className="inline-flex items-center gap-3 mb-4 print:mb-1">
-                  <div className="bg-clevio-navy/10 p-2.5 rounded-xl text-clevio-navy print:hidden">
-                    <Sparkles size={20} />
-                  </div>
+                  <span className="h-8 w-1 rounded-full bg-clevio-green print:hidden"></span>
                   <h3 className="text-clevio-navy font-bold text-2xl tracking-tight print:text-lg">Overall Grade</h3>
                 </div>
                 <p className="text-slate-500 mb-6 max-w-sm mx-auto md:mx-0 leading-relaxed print:max-w-none print:text-xs print:mb-2">
-                  Ringkasan nilai rata-rata dari seluruh kompetensi yang sudah diobservasi pada Blok kurikulum ini.
+                  Ringkasan nilai rata-rata dari seluruh kompetensi yang sudah diobservasi pada laporan ini.
                 </p>
-                <div className="bg-slate-50 rounded-2xl px-6 py-4 font-extrabold inline-flex items-center justify-center md:justify-start gap-2 border border-slate-200/60 w-full md:w-auto shadow-sm print:shadow-none print:p-0 print:border-none print:bg-transparent print:text-sm" style={{ color: gradeColor }}>
+                <div className="bg-slate-50 rounded-xl px-5 py-3 font-extrabold inline-flex items-center justify-center md:justify-start gap-2 border border-slate-200 w-full md:w-auto print:p-0 print:border-none print:bg-transparent print:text-sm" style={{ color: gradeColor }}>
                   {gradeMessage}
                 </div>
               </div>
@@ -436,10 +444,8 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
             </div>
           </section>
           <section data-purpose="competency-feedback">
-            <div className="flex items-center gap-4 mb-8 print:mb-4">
-              <div className="bg-sky/20 p-3 rounded-2xl text-sky print:hidden">
-                <Sparkles size={22} />
-              </div>
+            <div className="flex items-center gap-4 mb-6 print:mb-4">
+              <span className="h-10 w-1 rounded-full bg-clevio-cyan print:hidden"></span>
               <div>
                 <h3 className="text-2xl font-extrabold text-clevio-navy print:text-lg print:border-b print:border-slate-200 print:pb-1 print:inline-block">Kompetensi & Observasi</h3>
                 <p className="text-slate-500 font-medium text-sm print:text-xs">Catatan perkembangan dari Coach</p>
@@ -447,34 +453,29 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
             </div>
 
             <div className="flex flex-col gap-6 print:gap-3" data-purpose="competency-list">
-            {breakdownData.map((item, idx) => {
-               const pct = Math.round((item.average / 10) * 100);
-               const themes = [
-                 { bg: 'bg-sky', textContext: 'text-sky', glow: 'progress-glow-sky' },
-                 { bg: 'bg-coral', textContext: 'text-coral', glow: 'progress-glow-coral' },
-                 { bg: 'bg-clevio-green', textContext: 'text-clevio-green', glow: 'progress-glow' },
-                 { bg: 'bg-amber-400', textContext: 'text-amber-500', glow: 'progress-glow' },
-               ];
-               const theme = themes[idx % themes.length];
+              {breakdownData.map((item, idx) => {
+                const pct = Math.round((item.average / 10) * 100);
+                const barColors = ['bg-clevio-green', 'bg-clevio-cyan', 'bg-clevio-orange', 'bg-clevio-navy'];
+                const barColor = barColors[idx % barColors.length];
 
-               return (
-                 <div key={idx} data-purpose="competency-card" className="glass-card rounded-[2rem] p-6 sm:p-8 shadow-sm border border-slate-200 bg-white print:p-3 print:rounded-2xl print:shadow-none">
-                   <div className="flex justify-between items-end mb-4 print:mb-2">
-                     <div>
-                       <span className={`${theme.textContext} font-bold uppercase text-xs tracking-widest print:text-[10px]`}>Skill Area</span>
-                       <h4 className="text-xl font-bold text-clevio-navy mt-1 pr-4 print:text-sm print:mt-0">{item.name}</h4>
-                     </div>
-                     <span className="text-clevio-navy font-black text-2xl print:text-xl">{pct}%</span>
-                   </div>
-                   <div className="w-full bg-slate-100 rounded-full h-3 mb-5 overflow-hidden print:h-2 print:mb-3">
-                     <div className={`${theme.bg} h-full rounded-full ${theme.glow} print:shadow-none print:box-shadow-none`} style={{ width: `${pct}%` }}></div>
+                return (
+                  <div key={idx} data-purpose="competency-card" className="rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200 bg-white print:p-3 print:rounded-xl print:shadow-none">
+                    <div className="flex justify-between items-end mb-4 print:mb-2">
+                      <div>
+                        <span className="text-slate-500 font-bold uppercase text-xs tracking-widest print:text-[10px]">Competency</span>
+                        <h4 className="text-xl font-bold text-clevio-navy mt-1 pr-4 print:text-sm print:mt-0">{item.name}</h4>
+                      </div>
+                      <span className="text-clevio-navy font-black text-2xl print:text-xl">{pct}%</span>
                     </div>
-                    <p className="text-slate-600 text-sm leading-relaxed italic border-l-2 border-slate-200 pl-4 mt-2 print:text-xs print:pl-3 print:mt-1">
-                      &quot;{item.description || 'Tidak ada catatan khusus dari coach untuk poin ini.'}&quot;
+                    <div className="w-full bg-slate-100 rounded-full h-2.5 mb-5 overflow-hidden print:h-2 print:mb-3">
+                      <div className={`${barColor} h-full rounded-full print:shadow-none print:box-shadow-none`} style={{ width: `${pct}%` }}></div>
+                    </div>
+                    <p className="text-slate-600 text-sm leading-relaxed border-l-2 border-slate-200 pl-4 mt-2 print:text-xs print:pl-3 print:mt-1">
+                      {item.description || 'Tidak ada catatan khusus dari coach untuk poin ini.'}
                     </p>
-                 </div>
-               );
-            })}
+                  </div>
+                );
+              })}
             </div>
             <div data-purpose="competency-print-list" aria-hidden="true">
               {breakdownData.map((item, idx) => {
@@ -488,7 +489,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
                       </div>
                       <span className="text-sm font-black text-clevio-navy">{pct}%</span>
                     </div>
-                    <p>&quot;{item.description || 'Tidak ada catatan khusus dari coach untuk poin ini.'}&quot;</p>
+                    <p>{item.description || 'Tidak ada catatan khusus dari coach untuk poin ini.'}</p>
                   </div>
                 );
               })}
@@ -497,21 +498,21 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
 
           {lessonTitles.length > 0 && (
             <section className="lg:col-span-12 mt-4" data-purpose="lesson-list">
-              <div className="bg-white rounded-[2rem] p-8 sm:p-10 shadow-xl shadow-slate-200/60 border border-slate-100">
+              <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                   <div className="flex items-center gap-4">
-                    <div className="bg-slate-100 p-3 rounded-2xl text-slate-400">
+                    <div className="bg-slate-100 p-3 rounded-xl text-clevio-navy">
                       <ClipboardList size={22} />
                     </div>
                     <div>
-                      <h3 className="text-2xl font-extrabold text-clevio-navy">Learning Journey</h3>
-                      <p className="text-slate-500 font-medium text-sm">Completed {block?.name} Curriculum</p>
+                      <h3 className="text-2xl font-extrabold text-clevio-navy">{lessonSectionTitle}</h3>
+                      <p className="text-slate-500 font-medium text-sm">{lessonSectionSubtitle}</p>
                     </div>
                   </div>
                 </div>
                 <div className="lesson-grid">
                   {lessonTitles.map((title, idx) => (
-                    <div key={idx} className="flex items-center gap-3 px-4 py-3 bg-slate-50 rounded-xl border border-slate-100">
+                    <div key={idx} className="flex items-center gap-3 px-4 py-3 bg-slate-50 rounded-lg border border-slate-200">
                       <span className="text-xs font-bold text-slate-400">{(idx + 1).toString().padStart(2, '0')}</span>
                       <span className="text-sm font-semibold text-clevio-navy line-clamp-2" title={title}>{title}</span>
                     </div>
@@ -539,14 +540,14 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
 
             return (
               <section className="lg:col-span-12" data-purpose="reflection-qa">
-                <div className="bg-sunshine/10 rounded-[2.5rem] p-8 sm:p-10 border-2 border-dashed border-sunshine/30">
+                <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm">
                   <div className="flex items-center gap-4 mb-8">
-                    <div className="bg-sunshine p-3 rounded-2xl shadow-sm">
+                    <div className="bg-slate-100 p-3 rounded-xl">
                       <MessageSquare size={22} className="text-clevio-navy" />
                     </div>
                     <div>
                       <h3 className="text-2xl font-extrabold text-clevio-navy">Refleksi Coder</h3>
-                      <p className="text-sm text-slate-500 font-medium">{coder?.full_name?.split(' ')[0]}&apos;s thoughts on this block</p>
+                      <p className="text-sm text-slate-500 font-medium">Catatan refleksi yang dikirim oleh coder.</p>
                     </div>
                   </div>
                   
@@ -554,10 +555,10 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
                     {finalReflections.map((ref, idx) => (
                       <div key={idx} className="flex flex-col gap-3">
                         <div className="flex items-start gap-3">
-                          <div className="shrink-0 w-8 h-8 rounded-xl bg-clevio-navy text-white flex items-center justify-center text-xs font-black">{idx + 1}</div>
+                          <div className="shrink-0 w-8 h-8 rounded-lg bg-clevio-navy text-white flex items-center justify-center text-xs font-black">{idx + 1}</div>
                           <p className="text-slate-600 font-semibold text-sm pt-1.5">{ref.question}</p>
                         </div>
-                        <div className="ml-11 bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
+                        <div className="ml-11 bg-slate-50 rounded-xl border border-slate-200 p-5">
                           <p className="text-clevio-navy font-medium leading-relaxed">{ref.answer}</p>
                         </div>
                       </div>
@@ -569,7 +570,8 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
           })()}
         </main>
         
-        <footer className="mt-12 flex flex-col sm:flex-row gap-4 justify-center items-center print:hidden" data-purpose="report-actions">
+        <footer className="mt-12 flex flex-col gap-4 justify-center items-center print:hidden" data-purpose="report-actions">
+          <img src={CLEVIO_LOGO_SRC} alt="Clevio" className="h-7 w-auto object-contain" />
           <DownloadPdfButton />
         </footer>
       </div>

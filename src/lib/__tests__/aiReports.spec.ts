@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getAiReportGenerationSkipReason } from '@/lib/services/aiReportGuards';
+import { canRefreshAiDraftReport, getAiReportGenerationSkipReason } from '@/lib/services/aiReportGuards';
 
 describe('getAiReportGenerationSkipReason', () => {
   it('allows generation when no report exists yet', () => {
@@ -21,5 +21,16 @@ describe('getAiReportGenerationSkipReason', () => {
 
   it('includes the current status in the skip reason', () => {
     expect(getAiReportGenerationSkipReason({ status: 'PUBLISHED', is_ai_generated: true })).toContain('PUBLISHED');
+  });
+});
+
+describe('canRefreshAiDraftReport', () => {
+  it('allows refreshing AI-generated drafts so score changes can be regenerated', () => {
+    expect(canRefreshAiDraftReport({ status: 'DRAFT', is_ai_generated: true })).toBe(true);
+  });
+
+  it('does not refresh submitted or manual reports', () => {
+    expect(canRefreshAiDraftReport({ status: 'SUBMITTED', is_ai_generated: true })).toBe(false);
+    expect(canRefreshAiDraftReport({ status: 'DRAFT', is_ai_generated: false })).toBe(false);
   });
 });

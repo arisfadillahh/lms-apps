@@ -19,10 +19,40 @@ const getGradeColor = (score: number) => {
   return '#dc2626';
 };
 
-const getBarColor = (score: number) => {
-  if (score >= 8) return '#10b981';
-  if (score >= 6) return '#f59e0b';
-  return '#ef4444';
+type LooseQueryBuilder = {
+  select: (columns: string) => LooseQueryBuilder;
+  eq: (column: string, value: unknown) => LooseQueryBuilder;
+  limit: (count: number) => LooseQueryBuilder;
+  maybeSingle: () => Promise<{ data: unknown | null }>;
+  single: () => Promise<{ data: unknown | null }>;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+  typeof value === 'object' && value !== null
+);
+
+const toStringMap = (value: unknown): Record<string, string> | null => {
+  if (!isRecord(value)) return null;
+  return Object.fromEntries(
+    Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
+  );
+};
+
+const parseQuestionList = (value: unknown): { id: string; question: string }[] => {
+  let rawQuestions: unknown;
+  try {
+    rawQuestions = typeof value === 'string' ? JSON.parse(value) : value;
+  } catch {
+    return [];
+  }
+
+  if (!Array.isArray(rawQuestions)) return [];
+
+  return rawQuestions.flatMap((question) => (
+    isRecord(question) && typeof question.id === 'string' && typeof question.question === 'string'
+      ? [{ id: question.id, question: question.question }]
+      : []
+  ));
 };
 
 export default async function PublicReportView({ params }: { params: Promise<{ id: string }> }) {
@@ -71,7 +101,8 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
       .select('avatar_path, avatar_url')
       .eq('id', report.coder_id)
       .maybeSingle();
-    const rawAvatarPath: string | null = (coderUser as any)?.avatar_path || (coderUser as any)?.avatar_url || null;
+    const coderUserRecord = coderUser as { avatar_path?: string | null; avatar_url?: string | null } | null;
+    const rawAvatarPath: string | null = coderUserRecord?.avatar_path || coderUserRecord?.avatar_url || null;
     if (rawAvatarPath) {
       coderAvatarUrl = resolveAvatarPublicUrl(rawAvatarPath);
     } else {
@@ -101,31 +132,34 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
   let blockEvaluation: { answers: Record<string, string> } | null = null;
   let evalQuestions: { id: string; question: string }[] = [];
   try {
-    const { data: evalData } = await (supabase as any)
-      .from('block_evaluations')
+    const queryTable = (table: string) => (supabase as unknown as { from: (table: string) => LooseQueryBuilder }).from(table);
+
+    const { data: evalData } = await queryTable('block_evaluations')
       .select('answers')
       .eq('coder_id', report.coder_id)
       .eq('block_id', report.block_id)
       .maybeSingle();
-    if (evalData) blockEvaluation = evalData as any;
+    const answers = isRecord(evalData) ? toStringMap(evalData.answers) : null;
+    if (answers) blockEvaluation = { answers };
 
     // Try to fetch the evaluation template for this block to get actual questions
-    const { data: evalSession } = await (supabase as any)
-      .from('block_evaluation_sessions')
+    const { data: evalSession } = await queryTable('block_evaluation_sessions')
       .select('template_id')
       .eq('block_id', report.block_id)
       .limit(1)
       .maybeSingle();
 
-    if (evalSession?.template_id) {
-      const { data: tmpl } = await (supabase as any)
-        .from('block_evaluation_templates')
+    const templateId = isRecord(evalSession) && typeof evalSession.template_id === 'string'
+      ? evalSession.template_id
+      : null;
+
+    if (templateId) {
+      const { data: tmpl } = await queryTable('block_evaluation_templates')
         .select('questions')
-        .eq('id', evalSession.template_id)
+        .eq('id', templateId)
         .single();
-      if (tmpl?.questions) {
-        const qs = typeof tmpl.questions === 'string' ? JSON.parse(tmpl.questions) : tmpl.questions;
-        evalQuestions = qs.map((q: any) => ({ id: q.id, question: q.question }));
+      if (isRecord(tmpl) && tmpl.questions) {
+        evalQuestions = parseQuestionList(tmpl.questions);
       }
     }
 
@@ -165,6 +199,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
   const grade = report.grade || getGrade(avgScore);
   const gradeColor = getGradeColor(avgScore);
   const gradeMessage = avgScore >= 8.5 ? 'Excellent!' : avgScore >= 7.0 ? 'Good Job!' : avgScore >= 5.5 ? 'Keep Going!' : 'Keep Trying!';
+  const reportContextLabel = klass?.type === 'EKSKUL' ? 'Ekskul' : `${klass?.name ?? ''} - ${block?.name ?? ''}`;
 
   return (
     <div className="bg-slate-50 font-sans text-clevio-navy min-h-screen antialiased pb-20">
@@ -341,7 +376,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
                 Block Performance Report
               </div>
               <h1 className="text-3xl sm:text-4xl print:text-2xl font-extrabold mb-2 print:mb-1">{coder?.full_name}</h1>
-              <p className="text-xl print:text-lg opacity-90 font-medium mb-6 print:mb-3">{klass?.name} - {block?.name}</p>
+              <p className="text-xl print:text-lg opacity-90 font-medium mb-6 print:mb-3">{reportContextLabel}</p>
               
               <div className="grid grid-cols-2 gap-4 text-sm sm:text-base max-w-md mx-auto md:mx-0">
                 <div className="flex items-center gap-3 bg-black/10 rounded-2xl p-3">
@@ -433,10 +468,10 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
                    </div>
                    <div className="w-full bg-slate-100 rounded-full h-3 mb-5 overflow-hidden print:h-2 print:mb-3">
                      <div className={`${theme.bg} h-full rounded-full ${theme.glow} print:shadow-none print:box-shadow-none`} style={{ width: `${pct}%` }}></div>
-                   </div>
-                   <p className="text-slate-600 text-sm leading-relaxed italic border-l-2 border-slate-200 pl-4 mt-2 print:text-xs print:pl-3 print:mt-1">
-                     "{item.description || 'Tidak ada catatan khusus dari coach untuk poin ini.'}"
-                   </p>
+                    </div>
+                    <p className="text-slate-600 text-sm leading-relaxed italic border-l-2 border-slate-200 pl-4 mt-2 print:text-xs print:pl-3 print:mt-1">
+                      &quot;{item.description || 'Tidak ada catatan khusus dari coach untuk poin ini.'}&quot;
+                    </p>
                  </div>
                );
             })}

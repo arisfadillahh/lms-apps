@@ -12,3 +12,7 @@ export function getAiReportGenerationSkipReason(existingReport: ExistingAiReport
 
   return `Report already exists with status ${existingReport.status}.`;
 }
+
+export function canRefreshAiDraftReport(existingReport: ExistingAiReport | null): boolean {
+  return existingReport?.status === 'DRAFT' && existingReport.is_ai_generated === true;
+}

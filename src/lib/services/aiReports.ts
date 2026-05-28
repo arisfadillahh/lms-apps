@@ -7,7 +7,7 @@ import OpenAI from 'openai';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { attendanceDao, classesDao, reportsDao, sessionsDao } from '@/lib/dao';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
-import { getAiReportGenerationSkipReason } from '@/lib/services/aiReportGuards';
+import { canRefreshAiDraftReport, getAiReportGenerationSkipReason } from '@/lib/services/aiReportGuards';
 
 const EKSKUL_REVIEW_LEVEL_NAME = 'Ekskul';
 const EKSKUL_REPORT_GENERATION_CONCURRENCY = 4;
@@ -472,7 +472,8 @@ export async function generateDraftReportsForEkskulSession(
 
   await runWithConcurrency(activeCoderIds, EKSKUL_REPORT_GENERATION_CONCURRENCY, async (coderId) => {
     const existingReport = await reportsDao.getBlockReport(klass.id, reviewBlock.id, coderId);
-    const skipReason = getAiReportGenerationSkipReason(existingReport);
+    const shouldRefreshDraft = canRefreshAiDraftReport(existingReport);
+    const skipReason = shouldRefreshDraft ? null : getAiReportGenerationSkipReason(existingReport);
     if (skipReason) {
       if (existingReport?.status === 'DRAFT') {
         existingCount++;
@@ -480,6 +481,9 @@ export async function generateDraftReportsForEkskulSession(
       }
       console.log(`[AI Ekskul] Skipping Coder ${coderId} in ${reviewBlock.id}: ${skipReason}`);
       return;
+    }
+    if (shouldRefreshDraft) {
+      console.log(`[AI Ekskul] Refreshing existing draft report ${existingReport?.id} for Coder ${coderId}.`);
     }
 
     let totalSum = 0;

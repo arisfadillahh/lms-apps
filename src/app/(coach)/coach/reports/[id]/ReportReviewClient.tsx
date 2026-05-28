@@ -32,6 +32,8 @@ const CRITERIA_COLORS = [
   { bg: 'bg-rose-100', text: 'text-rose-600' },
 ];
 
+const getErrorMessage = (err: unknown) => err instanceof Error ? err.message : 'Terjadi kesalahan.';
+
 // SVG Arc Grade Ring
 function GradeRing({ score, grade }: { score: number; grade: string }) {
   const size = 120;
@@ -176,8 +178,8 @@ export default function ReportReviewClient({
       }
       const { description } = await res.json();
       setDescriptions(prev => prev.map(p => p.criteriaId === criteriaId ? { ...p, description } : p));
-    } catch (err: any) {
-      setErrorMsg(err.message);
+    } catch (err: unknown) {
+      setErrorMsg(getErrorMessage(err));
     } finally {
       setGeneratingId(null);
     }
@@ -203,8 +205,8 @@ export default function ReportReviewClient({
         }
         router.push('/coach/reports');
         router.refresh();
-      } catch (err: any) {
-        setErrorMsg(err.message);
+      } catch (err: unknown) {
+        setErrorMsg(getErrorMessage(err));
       }
     });
   };
@@ -222,8 +224,8 @@ export default function ReportReviewClient({
         }
         router.push('/coach/rubrics');
         router.refresh();
-      } catch (err: any) {
-        setErrorMsg(err.message);
+      } catch (err: unknown) {
+        setErrorMsg(getErrorMessage(err));
         setIsDeleting(false);
       }
     });
@@ -323,7 +325,7 @@ export default function ReportReviewClient({
       </aside>
 
       {/* ── RIGHT PANEL ── */}
-      <section className="w-full lg:w-[62%] bg-slate-50 flex flex-col overflow-hidden relative">
+      <section className="w-full lg:w-[62%] bg-slate-50 flex flex-col overflow-hidden min-h-0">
 
         {/* Sticky header with Publish button */}
         <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shrink-0">
@@ -348,7 +350,7 @@ export default function ReportReviewClient({
 
         {/* Scrollable criteria list */}
         <div
-          className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 pb-24"
+          className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 pb-6"
           style={{ scrollbarWidth: 'thin', scrollbarColor: '#cbd5e1 #f1f5f9' }}
         >
           {descriptions.map((desc, index) => {
@@ -455,11 +457,11 @@ export default function ReportReviewClient({
         </div>
 
         {/* Floating publish button — no chip */}
-        <footer className="absolute bottom-0 left-0 right-0 px-6 pb-8 pt-12 bg-gradient-to-t from-slate-50 via-slate-50/80 to-transparent pointer-events-none flex justify-center">
+        <footer className="shrink-0 border-t border-slate-200 bg-white px-6 py-4 flex justify-center">
           <button
             onClick={handlePublish}
             disabled={isPending || isDeleting || filledCount < totalCount}
-            className="pointer-events-auto w-full max-w-xs flex items-center justify-center gap-2 h-11 px-8 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-full shadow-lg shadow-emerald-300/50 transition-all text-sm group"
+            className="w-full max-w-xs flex items-center justify-center gap-2 h-11 px-8 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-full shadow-lg shadow-emerald-300/50 transition-all text-sm group"
           >
             {isPending && !isDeleting
               ? <><Loader2 size={15} className="animate-spin" /> Memproses...</>

@@ -10,6 +10,7 @@ import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonS
 import { getAiReportGenerationSkipReason } from '@/lib/services/aiReportGuards';
 
 const EKSKUL_REVIEW_LEVEL_NAME = 'Ekskul';
+const EKSKUL_REPORT_GENERATION_CONCURRENCY = 4;
 
 type ClassBlockWithRelations = {
   id: string;
@@ -355,6 +356,22 @@ async function getOrCreateEkskulReviewLevelId() {
   throw new Error(`Failed to create ekskul review level: ${createError?.message ?? 'Unknown error'}`);
 }
 
+async function runWithConcurrency<T>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<void>,
+) {
+  let nextIndex = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (nextIndex < items.length) {
+      const item = items[nextIndex++];
+      await worker(item);
+    }
+  });
+
+  await Promise.all(workers);
+}
+
 export async function generateDraftReportsForEkskulSession(sessionId: string, coachId?: string) {
   const supabase = getSupabaseAdmin();
   const session = await sessionsDao.getSessionById(sessionId);
@@ -439,7 +456,7 @@ export async function generateDraftReportsForEkskulSession(sessionId: string, co
   let existingCount = 0;
   const reportIds: string[] = [];
 
-  for (const coderId of activeCoderIds) {
+  await runWithConcurrency(activeCoderIds, EKSKUL_REPORT_GENERATION_CONCURRENCY, async (coderId) => {
     const existingReport = await reportsDao.getBlockReport(klass.id, reviewBlock.id, coderId);
     const skipReason = getAiReportGenerationSkipReason(existingReport);
     if (skipReason) {
@@ -448,7 +465,7 @@ export async function generateDraftReportsForEkskulSession(sessionId: string, co
         reportIds.push(existingReport.id);
       }
       console.log(`[AI Ekskul] Skipping Coder ${coderId} in ${reviewBlock.id}: ${skipReason}`);
-      continue;
+      return;
     }
 
     let totalSum = 0;
@@ -498,7 +515,7 @@ export async function generateDraftReportsForEkskulSession(sessionId: string, co
 
     generatedCount++;
     reportIds.push(newReport.id);
-  }
+  });
 
   return {
     success: true,

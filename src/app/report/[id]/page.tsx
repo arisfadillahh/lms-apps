@@ -5,7 +5,7 @@ import { buildAvatarPublicPath, getAvatarUploadDir, resolveAvatarPublicUrl } fro
 import { User, Calendar, ClipboardList, MessageSquare } from 'lucide-react';
 import DownloadPdfButton from './DownloadPdfButton';
 
-const CLEVIO_LOGO_SRC = '/images/clevio-logo.png.png?v=2';
+const CLEVIO_LOGO_SRC = '/logo/innovator-camp-logo-dark.png';
 
 const getGrade = (score: number) => {
   if (score >= 8.5) return 'A';
@@ -19,6 +19,12 @@ const getGradeColor = (score: number) => {
   if (score >= 7.0) return '#2563eb';
   if (score >= 5.5) return '#d97706';
   return '#dc2626';
+};
+
+const getInitials = (name?: string | null) => {
+  const words = name?.trim().split(/\s+/).filter(Boolean) ?? [];
+  const initials = words.slice(0, 2).map((word) => word[0]?.toUpperCase()).join('');
+  return initials || '?';
 };
 
 type LooseQueryBuilder = {
@@ -211,6 +217,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
   const reportContextLabel = klass?.type === 'EKSKUL' ? 'Ekskul' : `${klass?.name ?? ''} - ${block?.name ?? ''}`;
   const lessonSectionTitle = klass?.type === 'EKSKUL' ? 'Materi Ekskul' : 'Materi yang Dibahas';
   const lessonSectionSubtitle = 'Daftar materi yang menjadi konteks penilaian laporan ini.';
+  const coderInitials = getInitials(coder?.full_name);
 
   return (
     <div className="bg-slate-50 font-sans text-clevio-navy min-h-screen antialiased pb-20">
@@ -371,7 +378,10 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
                 {coderAvatarUrl ? (
                   <img src={coderAvatarUrl} alt={coder?.full_name || 'Coder'} className="w-full h-full object-cover" />
                 ) : (
-                  <img src={CLEVIO_LOGO_SRC} alt="Clevio" className="h-14 sm:h-16 w-auto object-contain" />
+                  <>
+                    <span className="text-4xl sm:text-5xl font-black text-clevio-navy print:hidden">{coderInitials}</span>
+                    <img src={CLEVIO_LOGO_SRC} alt="Clevio" className="hidden print:block h-9 w-auto object-contain" />
+                  </>
                 )}
               </div>
             </div>
@@ -379,7 +389,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
             <div className="text-center md:text-left text-white flex-1">
               <div className="mb-5 flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3 print:mb-3">
                 <div className="rounded-lg bg-white px-3 py-2 shadow-sm">
-                  <img src={CLEVIO_LOGO_SRC} alt="Clevio" className="h-7 w-auto object-contain" />
+                  <img src={CLEVIO_LOGO_SRC} alt="Clevio" className="h-8 sm:h-9 w-auto object-contain" />
                 </div>
                 <div className="inline-flex px-4 py-1.5 rounded-lg bg-white/10 border border-white/20 text-sm font-semibold tracking-wide uppercase">
                   {reportTitle}

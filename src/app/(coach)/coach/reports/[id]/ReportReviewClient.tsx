@@ -4,8 +4,6 @@ import { useState, useTransition, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sparkles, ArchiveRestore, Loader2, Send, ChevronDown } from 'lucide-react';
 
-const CLEVIO_LOGO_SRC = '/images/clevio-logo.png.png?v=2';
-
 export type ReportDescriptionItem = {
   criteriaId: string;
   criteriaName: string;
@@ -35,6 +33,12 @@ const CRITERIA_COLORS = [
 ];
 
 const getErrorMessage = (err: unknown) => err instanceof Error ? err.message : 'Terjadi kesalahan.';
+
+const getInitials = (name: string) => {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  const initials = words.slice(0, 2).map((word) => word[0]?.toUpperCase()).join('');
+  return initials || '?';
+};
 
 // SVG Arc Grade Ring
 function GradeRing({ score, grade }: { score: number; grade: string }) {
@@ -164,6 +168,7 @@ export default function ReportReviewClient({
   const avgScore = averageScore ?? 0;
   const displayGrade = grade || getGrade(avgScore);
   const shouldShowCoderAvatar = Boolean(coderAvatarUrl && !avatarFailed);
+  const coderInitials = getInitials(coderName);
 
   useEffect(() => {
     setAvatarFailed(false);
@@ -255,8 +260,8 @@ export default function ReportReviewClient({
                   onError={() => setAvatarFailed(true)}
                 />
               ) : (
-                <div className="w-24 h-24 rounded-full bg-white border border-slate-100 flex items-center justify-center p-4 select-none">
-                  <img src={CLEVIO_LOGO_SRC} alt="Clevio" className="h-10 w-auto object-contain" />
+                <div className="w-24 h-24 rounded-full bg-slate-800 flex items-center justify-center text-white text-3xl font-bold select-none">
+                  {coderInitials}
                 </div>
               )}
             </div>

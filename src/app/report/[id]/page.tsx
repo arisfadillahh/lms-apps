@@ -371,42 +371,39 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
         }
       `}</style>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 print:p-0 print:m-0 print:max-w-none">
-        <header className="relative overflow-hidden rounded-2xl bg-clevio-navy p-8 sm:p-10 shadow-lg shadow-slate-200/60 mb-8 border border-clevio-navy/10 print:p-6 print:rounded-xl print:shadow-none print:mb-4" data-purpose="student-hero">
-          <div className="relative flex flex-col md:flex-row items-center gap-8 print:gap-6">
-            <div className="relative">
+        <header className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-sky to-blue-600 p-8 sm:p-10 shadow-lg shadow-sky/20 mb-8 border border-sky/20 print:p-5 print:rounded-xl print:shadow-none print:mb-4" data-purpose="student-hero">
+          <div className="relative flex flex-col md:flex-row items-center gap-8 print:flex-row print:items-center print:gap-5">
+            <div className={coderAvatarUrl ? 'relative' : 'relative print:hidden'}>
               <div className={`w-32 h-32 sm:w-40 sm:h-40 print:w-24 print:h-24 rounded-2xl border border-white/30 shadow-lg bg-white flex items-center justify-center ${coderAvatarUrl ? 'overflow-hidden p-0' : 'p-5'}`}>
                 {coderAvatarUrl ? (
                   <img src={coderAvatarUrl} alt={coder?.full_name || 'Coder'} className="w-full h-full object-cover" />
                 ) : (
-                  <>
-                    <span className="text-4xl sm:text-5xl font-black text-clevio-navy print:hidden">{coderInitials}</span>
-                    <img src={CLEVIO_LOGO_SRC} alt="Clevio" className="hidden print:block h-9 w-auto object-contain" />
-                  </>
+                  <span className="text-4xl sm:text-5xl font-black text-clevio-navy">{coderInitials}</span>
                 )}
               </div>
             </div>
             
-            <div className="text-center md:text-left text-white flex-1">
-              <div className="mb-5 flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3 print:mb-3">
+            <div className="text-center md:text-left text-white flex-1 print:text-left">
+              <div className="mb-5 flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3 print:mb-3 print:flex-row print:justify-start">
                 <div className="rounded-lg bg-white px-3 py-2 shadow-sm">
-                  <img src={CLEVIO_LOGO_SRC} alt="Clevio" className="h-8 sm:h-9 w-auto object-contain" />
+                  <img src={CLEVIO_LOGO_SRC} alt="Clevio" className="h-8 sm:h-9 print:h-7 w-auto object-contain" />
                 </div>
-                <div className="inline-flex px-4 py-1.5 rounded-lg bg-white/10 border border-white/20 text-sm font-semibold tracking-wide uppercase">
+                <div className="inline-flex px-4 py-1.5 rounded-lg bg-white/10 border border-white/20 text-sm font-semibold tracking-wide uppercase print:text-xs print:px-3">
                   {reportTitle}
                 </div>
               </div>
               <h1 className="text-3xl sm:text-4xl print:text-2xl font-extrabold mb-2 print:mb-1">{coder?.full_name}</h1>
-              <p className="text-xl print:text-lg opacity-90 font-medium mb-6 print:mb-3">{reportContextLabel}</p>
+              <p className="text-xl print:text-base opacity-90 font-medium mb-6 print:mb-3">{reportContextLabel}</p>
               
-              <div className="grid grid-cols-2 gap-4 text-sm sm:text-base max-w-md mx-auto md:mx-0">
-                <div className="flex items-center gap-3 bg-white/10 border border-white/15 rounded-xl p-3">
-                  <div className="bg-white/15 p-2 rounded-lg">
+              <div className="grid grid-cols-2 gap-4 text-sm sm:text-base max-w-md mx-auto md:mx-0 print:max-w-none print:gap-3">
+                <div className="flex items-center gap-3 bg-white/10 border border-white/15 rounded-xl p-3 print:rounded-lg print:px-3 print:py-2">
+                  <div className="bg-white/15 p-2 rounded-lg print:p-1.5">
                     <User size={16} className="text-white" />
                   </div>
                   <span>Coach: <span className="font-bold">{coach?.full_name ?? 'Clevio Coach'}</span></span>
                 </div>
-                <div className="flex items-center gap-3 bg-white/10 border border-white/15 rounded-xl p-3">
-                  <div className="bg-white/15 p-2 rounded-lg">
+                <div className="flex items-center gap-3 bg-white/10 border border-white/15 rounded-xl p-3 print:rounded-lg print:px-3 print:py-2">
+                  <div className="bg-white/15 p-2 rounded-lg print:p-1.5">
                     <Calendar size={16} className="text-white" />
                   </div>
                   <span>{pubDate}</span>

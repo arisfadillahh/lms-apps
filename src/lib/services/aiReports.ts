@@ -372,7 +372,11 @@ async function runWithConcurrency<T>(
   await Promise.all(workers);
 }
 
-export async function generateDraftReportsForEkskulSession(sessionId: string, coachId?: string) {
+export async function generateDraftReportsForEkskulSession(
+  sessionId: string,
+  coachId?: string,
+  options: { validateOnly?: boolean } = {},
+) {
   const supabase = getSupabaseAdmin();
   const session = await sessionsDao.getSessionById(sessionId);
   if (!session) {
@@ -446,6 +450,16 @@ export async function generateDraftReportsForEkskulSession(sessionId: string, co
   const lessonTitle = formatLessonTitle(lessonSlot);
   const reviewLevelId = klass.level_id ?? await getOrCreateEkskulReviewLevelId();
   const reviewBlock = await getOrCreateEkskulReviewBlock(reviewLevelId, lessonTitle, lessonSlot.globalIndex);
+
+  if (options.validateOnly) {
+    return {
+      success: true,
+      count: 0,
+      existing: 0,
+      reportIds: [],
+    };
+  }
+
   const { data: coderUsers } = await supabase
     .from('users')
     .select('id, full_name')

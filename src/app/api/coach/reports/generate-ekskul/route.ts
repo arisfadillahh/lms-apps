@@ -28,8 +28,16 @@ function scheduleEkskulReportGeneration(sessionId: string, coachId: string) {
 }
 
 export async function POST(request: Request) {
-  const session = await getSessionOrThrow();
-  const coachSession = await assertRole(session, 'COACH');
+  let coachId: string;
+  try {
+    const session = await getSessionOrThrow();
+    const coachSession = await assertRole(session, 'COACH');
+    coachId = coachSession.user.id;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unauthorized';
+    const status = message === 'Unauthorized' || message === 'Unauthenticated' ? 401 : 403;
+    return NextResponse.json({ error: message }, { status });
+  }
 
   let body: unknown;
   try {
@@ -43,7 +51,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Validation failed', details: parsed.error.flatten() }, { status: 400 });
   }
 
-  scheduleEkskulReportGeneration(parsed.data.sessionId, coachSession.user.id);
+  try {
+    await generateDraftReportsForEkskulSession(parsed.data.sessionId, coachId, { validateOnly: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Gagal generate rapor ekskul';
+    const status = message === 'Forbidden' ? 403 : 409;
+    return NextResponse.json({ error: message }, { status });
+  }
+
+  scheduleEkskulReportGeneration(parsed.data.sessionId, coachId);
 
   return NextResponse.json({ success: true, queued: true }, { status: 202 });
 }

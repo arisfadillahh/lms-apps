@@ -4,6 +4,8 @@ import { useState, useTransition, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sparkles, ArchiveRestore, Loader2, Send, ChevronDown } from 'lucide-react';
 
+const CLEVIO_LOGO_SRC = '/images/clevio-logo.png.png?v=2';
+
 export type ReportDescriptionItem = {
   criteriaId: string;
   criteriaName: string;
@@ -126,7 +128,6 @@ type Props = {
   reportId: string;
   initialDescriptions: ReportDescriptionItem[];
   coderName: string;
-  coderInitials: string;
   coderAvatarUrl?: string | null;
   className: string;
   blockName: string;
@@ -140,7 +141,6 @@ export default function ReportReviewClient({
   reportId,
   initialDescriptions,
   coderName,
-  coderInitials,
   coderAvatarUrl,
   className,
   blockName,
@@ -155,6 +155,7 @@ export default function ReportReviewClient({
   const [errorMsg, setErrorMsg] = useState('');
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [avatarFailed, setAvatarFailed] = useState(false);
   // Accordion: only one open at a time
   const [openIndex, setOpenIndex] = useState<number>(0);
 
@@ -162,6 +163,11 @@ export default function ReportReviewClient({
   const totalCount = descriptions.length;
   const avgScore = averageScore ?? 0;
   const displayGrade = grade || getGrade(avgScore);
+  const shouldShowCoderAvatar = Boolean(coderAvatarUrl && !avatarFailed);
+
+  useEffect(() => {
+    setAvatarFailed(false);
+  }, [coderAvatarUrl]);
 
   const handleRegenerateCriteria = async (criteriaId: string, criteriaName: string, score: number) => {
     try {
@@ -241,16 +247,16 @@ export default function ReportReviewClient({
           {/* Identity */}
           <div className="text-center w-full">
             <div className="inline-block p-1 rounded-full border-2 border-slate-100 mb-4">
-              {coderAvatarUrl ? (
+              {shouldShowCoderAvatar ? (
                 <img
-                  src={coderAvatarUrl}
+                  src={coderAvatarUrl ?? ''}
                   alt={coderName}
                   className="w-24 h-24 rounded-full object-cover"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  onError={() => setAvatarFailed(true)}
                 />
               ) : (
-                <div className="w-24 h-24 rounded-full bg-slate-800 flex items-center justify-center text-white text-3xl font-bold select-none">
-                  {coderInitials}
+                <div className="w-24 h-24 rounded-full bg-white border border-slate-100 flex items-center justify-center p-4 select-none">
+                  <img src={CLEVIO_LOGO_SRC} alt="Clevio" className="h-10 w-auto object-contain" />
                 </div>
               )}
             </div>

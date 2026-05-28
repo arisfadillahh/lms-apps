@@ -6,6 +6,57 @@ import { classesDao } from '@/lib/dao';
 import { readdir } from 'fs/promises';
 import { buildAvatarPublicPath, getAvatarUploadDir, resolveAvatarPublicUrl } from '@/lib/services/avatarStorage';
 
+type ReportClass = { id: string; name: string; coach_id: string | null };
+type ReportBlock = { name: string | null };
+type ReportCoder = { id: string | null; full_name: string | null };
+type ReportRecord = {
+  id: string;
+  status: string;
+  coder_id: string | null;
+  block_id: string | null;
+  grade: string | null;
+  average_score: number | null;
+  class: ReportClass | ReportClass[] | null;
+  block: ReportBlock | ReportBlock[] | null;
+  coder: ReportCoder | ReportCoder[] | null;
+};
+
+type LooseQueryBuilder = {
+  select: (columns: string) => LooseQueryBuilder;
+  eq: (column: string, value: unknown) => LooseQueryBuilder;
+  limit: (count: number) => LooseQueryBuilder;
+  maybeSingle: () => Promise<{ data: unknown | null }>;
+  single: () => Promise<{ data: unknown | null }>;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+  typeof value === 'object' && value !== null
+);
+
+const toStringMap = (value: unknown): Record<string, string> | null => {
+  if (!isRecord(value)) return null;
+  return Object.fromEntries(
+    Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === 'string'),
+  );
+};
+
+const parseQuestionList = (value: unknown): { id: string; question: string }[] => {
+  let rawQuestions: unknown;
+  try {
+    rawQuestions = typeof value === 'string' ? JSON.parse(value) : value;
+  } catch {
+    return [];
+  }
+
+  if (!Array.isArray(rawQuestions)) return [];
+
+  return rawQuestions.flatMap((question) => (
+    isRecord(question) && typeof question.id === 'string' && typeof question.question === 'string'
+      ? [{ id: question.id, question: question.question }]
+      : []
+  ));
+};
+
 export default async function CoachReportReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSessionOrThrow();
   const coachId = session.user.id;
@@ -28,17 +79,18 @@ export default async function CoachReportReviewPage({ params }: { params: Promis
 
   if (error || !report) redirect('/coach/reports');
 
-  const klass = Array.isArray(report.class) ? report.class[0] : report.class;
+  const reportRecord = report as ReportRecord;
+  const klass = Array.isArray(reportRecord.class) ? reportRecord.class[0] : reportRecord.class;
   if (!klass) redirect('/coach/reports');
 
   const coachClasses = await classesDao.listClassesForCoach(coachId);
   const isAuthorized = coachClasses.some(c => c.id === klass.id);
   if (!isAuthorized) redirect('/coach/reports');
 
-  if (report.status === 'PUBLISHED') redirect('/coach/reports');
+  if (reportRecord.status === 'PUBLISHED') redirect('/coach/reports');
 
   const criteriaData = await import('@/lib/dao/reportsDao').then(r => r.getEvaluationCriteria());
-  const descriptionsData = await import('@/lib/dao/reportsDao').then(r => r.getBlockReportDescriptions(report.id));
+  const descriptionsData = await import('@/lib/dao/reportsDao').then(r => r.getBlockReportDescriptions(reportRecord.id));
 
   const initialDescriptions = criteriaData.map(c => {
     const savedDesc = descriptionsData.find(d => d.criteria_id === c.id);
@@ -55,32 +107,36 @@ export default async function CoachReportReviewPage({ params }: { params: Promis
   type EvalAnswer = { question: string; answer: string };
   let evaluationAnswers: EvalAnswer[] = [];
   try {
-    const coderId = report.coder_id;
-    const { data: evalData } = await (supabase as any)
-      .from('block_evaluations')
+    const queryTable = (table: string) => (supabase as unknown as { from: (table: string) => LooseQueryBuilder }).from(table);
+    const coderId = reportRecord.coder_id;
+    const { data: evalData } = await queryTable('block_evaluations')
       .select('answers')
       .eq('coder_id', coderId)
-      .eq('block_id', report.block_id)
+      .eq('block_id', reportRecord.block_id)
       .maybeSingle();
 
-    if (evalData?.answers) {
+    const answers = isRecord(evalData) ? toStringMap(evalData.answers) : null;
+
+    if (answers) {
       // Try to get actual questions from template
       let evalQuestions: { id: string; question: string }[] = [];
-      const { data: evalSession } = await (supabase as any)
-        .from('block_evaluation_sessions')
+      const { data: evalSession } = await queryTable('block_evaluation_sessions')
         .select('template_id')
-        .eq('block_id', report.block_id)
+        .eq('block_id', reportRecord.block_id)
         .limit(1)
         .maybeSingle();
-      if (evalSession?.template_id) {
-        const { data: tmpl } = await (supabase as any)
-          .from('block_evaluation_templates')
+
+      const templateId = isRecord(evalSession) && typeof evalSession.template_id === 'string'
+        ? evalSession.template_id
+        : null;
+
+      if (templateId) {
+        const { data: tmpl } = await queryTable('block_evaluation_templates')
           .select('questions')
-          .eq('id', evalSession.template_id)
+          .eq('id', templateId)
           .single();
-        if (tmpl?.questions) {
-          const qs = typeof tmpl.questions === 'string' ? JSON.parse(tmpl.questions) : tmpl.questions;
-          evalQuestions = qs.map((q: any) => ({ id: q.id, question: q.question }));
+        if (isRecord(tmpl) && tmpl.questions) {
+          evalQuestions = parseQuestionList(tmpl.questions);
         }
       }
       if (evalQuestions.length === 0) {
@@ -92,7 +148,6 @@ export default async function CoachReportReviewPage({ params }: { params: Promis
           { id: 'q5', question: 'Pesan untuk dirimu sendiri di block berikutnya:' },
         ];
       }
-      const answers = evalData.answers as Record<string, string>;
       evaluationAnswers = evalQuestions
         .filter(q => answers[q.id]?.trim())
         .map(q => ({ question: q.question, answer: answers[q.id] }));
@@ -102,25 +157,21 @@ export default async function CoachReportReviewPage({ params }: { params: Promis
   }
 
 
-  const coder = Array.isArray(report.coder) ? report.coder[0] : report.coder;
-  const block = Array.isArray(report.block) ? report.block[0] : report.block;
+  const coder = Array.isArray(reportRecord.coder) ? reportRecord.coder[0] : reportRecord.coder;
+  const block = Array.isArray(reportRecord.block) ? reportRecord.block[0] : reportRecord.block;
 
-  const coderName = (coder as any)?.full_name || 'Coder';
-  const coderInitials = coderName
-    .split(' ')
-    .slice(0, 2)
-    .map((w: string) => w[0]?.toUpperCase() ?? '')
-    .join('');
+  const coderName = coder?.full_name || 'Coder';
 
   // Build the coder's avatar public URL if they have one
   let coderAvatarUrl: string | null = null;
-  if ((coder as any)?.id) {
+  if (coder?.id) {
     const { data: coderUser } = await supabase
       .from('users')
       .select('avatar_path, avatar_url')
-      .eq('id', (coder as any).id)
+      .eq('id', coder.id)
       .maybeSingle();
-    const rawAvatarUrl: string | null = (coderUser as any)?.avatar_path || (coderUser as any)?.avatar_url || null;
+    const coderUserRecord = coderUser as { avatar_path?: string | null; avatar_url?: string | null } | null;
+    const rawAvatarUrl: string | null = coderUserRecord?.avatar_path || coderUserRecord?.avatar_url || null;
     if (rawAvatarUrl) {
       coderAvatarUrl = resolveAvatarPublicUrl(rawAvatarUrl);
     } else {
@@ -129,7 +180,7 @@ export default async function CoachReportReviewPage({ params }: { params: Promis
         const avatarsDir = getAvatarUploadDir();
         const files = await readdir(avatarsDir);
         const coderFiles = files
-          .filter(f => f.startsWith((coder as any).id))
+          .filter(f => f.startsWith(coder.id ?? ''))
           .sort()
           .reverse();
         if (coderFiles.length > 0) {
@@ -144,16 +195,15 @@ export default async function CoachReportReviewPage({ params }: { params: Promis
   return (
     <div className="-mx-8 -mb-8">
       <ReportReviewClient
-        reportId={report.id}
+        reportId={reportRecord.id}
         initialDescriptions={initialDescriptions}
         coderName={coderName}
-        coderInitials={coderInitials}
         coderAvatarUrl={coderAvatarUrl}
         className={klass.name}
-        blockName={(block as any)?.name ?? ''}
-        grade={report.grade}
-        averageScore={report.average_score}
-        status={report.status}
+        blockName={block?.name ?? ''}
+        grade={reportRecord.grade}
+        averageScore={reportRecord.average_score}
+        status={reportRecord.status}
         evaluationAnswers={evaluationAnswers}
       />
     </div>

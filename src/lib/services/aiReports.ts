@@ -420,11 +420,26 @@ export async function generateDraftReportsForEkskulSession(
   const allCriteria = await reportsDao.getEvaluationCriteria();
   const criteriaMap = new Map(allCriteria.map((criteria) => [criteria.id, criteria.name]));
   const criteriaIds = allCriteria.map((criteria) => criteria.id);
+  const classSessions = await sessionsDao.listSessionsByClass(klass.id);
+  const classSessionMap = new Map(classSessions.map((classSession) => [classSession.id, classSession]));
+  const reportLessonEntries = [...lessonMap.entries()]
+    .map(([sessionId, slot]) => ({ session: classSessionMap.get(sessionId), slot }))
+    .filter((entry): entry is { session: NonNullable<typeof entry.session>; slot: typeof entry.slot } =>
+      entry.session !== undefined
+      && entry.session.status === 'COMPLETED'
+      && entry.slot.globalIndex <= lessonSlot.globalIndex,
+    )
+    .sort((a, b) => new Date(a.session.date_time).getTime() - new Date(b.session.date_time).getTime());
+  const reportSessionIds = reportLessonEntries.map((entry) => entry.session.id);
+
+  if (reportSessionIds.length === 0) {
+    throw new Error('Tidak ada lesson ekskul selesai yang bisa dihitung untuk rapor ini.');
+  }
 
   const { data: evaluations, error: evaluationsError } = await supabase
     .from('lesson_evaluations')
     .select('*')
-    .eq('session_id', session.id)
+    .in('session_id', reportSessionIds)
     .in('coder_id', activeCoderIds);
 
   if (evaluationsError) {
@@ -440,14 +455,23 @@ export async function generateDraftReportsForEkskulSession(
     coderScores[evaluation.coder_id][evaluation.criteria_id].push(evaluation.score);
   }
 
-  const incompleteEvaluationCount = activeCoderIds.filter((coderId) =>
-    criteriaIds.some((criteriaId) => !coderScores[coderId]?.[criteriaId]?.length),
-  ).length;
+  const evaluationKeySet = new Set(
+    (evaluations ?? []).map((evaluation) =>
+      `${evaluation.coder_id}:${evaluation.session_id}:${evaluation.criteria_id}`,
+    ),
+  );
+  const incompleteEvaluationCount = activeCoderIds.reduce((count, coderId) => {
+    const missingForCoder = reportSessionIds.some((sessionId) =>
+      criteriaIds.some((criteriaId) => !evaluationKeySet.has(`${coderId}:${sessionId}:${criteriaId}`)),
+    );
+    return count + (missingForCoder ? 1 : 0);
+  }, 0);
   if (incompleteEvaluationCount > 0) {
     throw new Error(`Nilai lesson belum lengkap untuk ${incompleteEvaluationCount} coder. Lengkapi nilai dulu, lalu generate rapor.`);
   }
 
   const lessonTitle = formatLessonTitle(lessonSlot);
+  const lessonTitlesText = reportLessonEntries.map((entry) => formatLessonTitle(entry.slot)).join(', ');
   const reviewLevelId = klass.level_id ?? await getOrCreateEkskulReviewLevelId();
   const reviewBlock = await getOrCreateEkskulReviewBlock(reviewLevelId, lessonTitle, lessonSlot.globalIndex);
 
@@ -508,7 +532,7 @@ export async function generateDraftReportsForEkskulSession(
       coderName,
       klass.name,
       reviewBlock.name,
-      lessonTitle,
+      lessonTitlesText,
       criteriaInput,
     );
 

@@ -50,6 +50,7 @@ export default function AttendanceWrapper({
     const listRef = useRef<AttendanceListHandle>(null);
     const [isSlideOpen, setIsSlideOpen] = useState(false);
     const [isStartingEval, setIsStartingEval] = useState(false);
+    const [isGeneratingEkskulReport, setIsGeneratingEkskulReport] = useState(false);
 
     const [isSaving, setIsSaving] = useState(false);
 
@@ -100,13 +101,31 @@ export default function AttendanceWrapper({
         }
     };
 
-    const handleOpenEkskulReport = () => {
+    const handleGenerateEkskulReport = async () => {
         if (!ekskulReportUrl) return;
         if (!canOpenEkskulReport) {
-            alert(ekskulReportLockedReason ?? 'Lengkapi presensi sesi ini dulu sebelum memberi nilai ekskul.');
+            alert(ekskulReportLockedReason ?? 'Lengkapi presensi sesi ini dulu sebelum generate rapor ekskul.');
             return;
         }
-        router.push(ekskulReportUrl);
+
+        setIsGeneratingEkskulReport(true);
+        try {
+            const response = await fetch('/api/coach/reports/generate-ekskul', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId }),
+            });
+            if (!response.ok) {
+                const payload = await response.json().catch(() => ({}));
+                throw new Error(payload.error ?? 'Gagal generate rapor ekskul.');
+            }
+            router.push(ekskulReportUrl);
+            router.refresh();
+        } catch (err) {
+            alert(err instanceof Error ? err.message : 'Gagal generate rapor ekskul.');
+        } finally {
+            setIsGeneratingEkskulReport(false);
+        }
     };
 
     return (
@@ -161,7 +180,8 @@ export default function AttendanceWrapper({
                     {ekskulReportUrl && (
                         <button
                             type="button"
-                            onClick={handleOpenEkskulReport}
+                            onClick={handleGenerateEkskulReport}
+                            disabled={isGeneratingEkskulReport}
                             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-colors ${
                                 canOpenEkskulReport
                                     ? 'bg-[#22367b] hover:bg-[#162b46] text-white'
@@ -170,9 +190,9 @@ export default function AttendanceWrapper({
                             title={ekskulReportLockedReason ?? undefined}
                         >
                             <span className="material-symbols-outlined text-base">
-                                {canOpenEkskulReport ? 'summarize' : 'lock'}
+                                {isGeneratingEkskulReport ? 'progress_activity' : canOpenEkskulReport ? 'summarize' : 'lock'}
                             </span>
-                            {canOpenEkskulReport ? 'Beri Nilai Ekskul' : 'Lengkapi Presensi'}
+                            {isGeneratingEkskulReport ? 'Generating...' : canOpenEkskulReport ? 'Generate Rapor Ekskul' : 'Lengkapi Presensi'}
                         </button>
                     )}
 

@@ -5,8 +5,8 @@
 import OpenAI from 'openai';
 
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
-import { reportsDao, sessionsDao } from '@/lib/dao';
-import { computeLessonSchedule } from '@/lib/services/lessonScheduler';
+import { attendanceDao, classesDao, reportsDao, sessionsDao } from '@/lib/dao';
+import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 import { getAiReportGenerationSkipReason } from '@/lib/services/aiReportGuards';
 
 type ClassBlockWithRelations = {
@@ -259,6 +259,200 @@ async function generateDraftReportsFromClassBlocks(
   }
 
   return generatedCount;
+}
+
+async function getOrCreateEkskulReviewBlock(levelId: string, lessonTitle: string, orderIndex: number) {
+  const supabase = getSupabaseAdmin();
+  const blockName = `Ekskul - ${lessonTitle}`;
+
+  const { data: existing, error: existingError } = await supabase
+    .from('blocks')
+    .select('*')
+    .eq('level_id', levelId)
+    .eq('name', blockName)
+    .limit(1)
+    .maybeSingle();
+
+  if (existingError) {
+    throw new Error(`Failed to fetch ekskul review block: ${existingError.message}`);
+  }
+
+  if (existing) return existing;
+
+  const { data, error } = await supabase
+    .from('blocks')
+    .insert({
+      level_id: levelId,
+      name: blockName,
+      summary: 'Auto-generated review bucket for ekskul reports.',
+      order_index: 10000 + orderIndex,
+      estimated_sessions: 1,
+      is_published: false,
+    })
+    .select('*')
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to create ekskul review block: ${error.message}`);
+  }
+
+  return data;
+}
+
+export async function generateDraftReportsForEkskulSession(sessionId: string, coachId?: string) {
+  const supabase = getSupabaseAdmin();
+  const session = await sessionsDao.getSessionById(sessionId);
+  if (!session) {
+    throw new Error('Sesi ekskul tidak ditemukan.');
+  }
+
+  if (session.status !== 'COMPLETED') {
+    throw new Error('Selesaikan presensi sesi ini dulu sebelum generate rapor.');
+  }
+
+  const klass = await classesDao.getClassById(session.class_id);
+  if (!klass || klass.type !== 'EKSKUL') {
+    throw new Error('Generate rapor ekskul hanya tersedia untuk kelas ekskul.');
+  }
+
+  if (coachId && klass.coach_id !== coachId && session.substitute_coach_id !== coachId) {
+    throw new Error('Forbidden');
+  }
+
+  if (!klass.level_id) {
+    throw new Error('Kelas ekskul harus memiliki level untuk membuat draft rapor review.');
+  }
+
+  const lessonMap = await computeLessonSchedule(klass.id, klass.level_id, klass.ekskul_lesson_plan_id);
+  const lessonSlot = lessonMap.get(session.id);
+  if (!lessonSlot) {
+    throw new Error('Lesson ekskul tidak ditemukan untuk sesi ini.');
+  }
+
+  const activeEnrollments = (await classesDao.listEnrollmentsByClass(klass.id)).filter(
+    (enrollment) => enrollment.status === 'ACTIVE',
+  );
+  const activeCoderIds = activeEnrollments.map((enrollment) => enrollment.coder_id);
+  if (activeCoderIds.length === 0) {
+    throw new Error('Tidak ada coder aktif di kelas ini.');
+  }
+
+  const attendanceRecords = await attendanceDao.listAttendanceBySession(session.id);
+  const attendedCoderIds = new Set(attendanceRecords.map((record) => record.coder_id));
+  const missingAttendanceCount = activeCoderIds.filter((coderId) => !attendedCoderIds.has(coderId)).length;
+  if (missingAttendanceCount > 0) {
+    throw new Error(`Lengkapi ${missingAttendanceCount} presensi coder dulu sebelum generate rapor.`);
+  }
+
+  const allCriteria = await reportsDao.getEvaluationCriteria();
+  const criteriaMap = new Map(allCriteria.map((criteria) => [criteria.id, criteria.name]));
+  const criteriaIds = allCriteria.map((criteria) => criteria.id);
+
+  const { data: evaluations, error: evaluationsError } = await supabase
+    .from('lesson_evaluations')
+    .select('*')
+    .eq('session_id', session.id)
+    .in('coder_id', activeCoderIds);
+
+  if (evaluationsError) {
+    throw new Error(`Failed to fetch lesson evaluations: ${evaluationsError.message}`);
+  }
+
+  const coderScores: Record<string, Record<string, number[]>> = {};
+  for (const evaluation of evaluations ?? []) {
+    if (!coderScores[evaluation.coder_id]) coderScores[evaluation.coder_id] = {};
+    if (!coderScores[evaluation.coder_id][evaluation.criteria_id]) {
+      coderScores[evaluation.coder_id][evaluation.criteria_id] = [];
+    }
+    coderScores[evaluation.coder_id][evaluation.criteria_id].push(evaluation.score);
+  }
+
+  const incompleteEvaluationCount = activeCoderIds.filter((coderId) =>
+    criteriaIds.some((criteriaId) => !coderScores[coderId]?.[criteriaId]?.length),
+  ).length;
+  if (incompleteEvaluationCount > 0) {
+    throw new Error(`Nilai lesson belum lengkap untuk ${incompleteEvaluationCount} coder. Lengkapi nilai dulu, lalu generate rapor.`);
+  }
+
+  const lessonTitle = formatLessonTitle(lessonSlot);
+  const reviewBlock = await getOrCreateEkskulReviewBlock(klass.level_id, lessonTitle, lessonSlot.globalIndex);
+  const { data: coderUsers } = await supabase
+    .from('users')
+    .select('id, full_name')
+    .in('id', activeCoderIds);
+  const coderNameMap = new Map((coderUsers ?? []).map((coder) => [coder.id, coder.full_name]));
+
+  let generatedCount = 0;
+  let existingCount = 0;
+  const reportIds: string[] = [];
+
+  for (const coderId of activeCoderIds) {
+    const existingReport = await reportsDao.getBlockReport(klass.id, reviewBlock.id, coderId);
+    const skipReason = getAiReportGenerationSkipReason(existingReport);
+    if (skipReason) {
+      if (existingReport?.status === 'DRAFT') {
+        existingCount++;
+        reportIds.push(existingReport.id);
+      }
+      console.log(`[AI Ekskul] Skipping Coder ${coderId} in ${reviewBlock.id}: ${skipReason}`);
+      continue;
+    }
+
+    let totalSum = 0;
+    let criteriaCount = 0;
+    const criteriaInput: { criteriaId: string; criteriaName: string; score: number }[] = [];
+
+    for (const criteriaId of criteriaIds) {
+      const scores = coderScores[coderId][criteriaId];
+      const criteriaName = criteriaMap.get(criteriaId) ?? 'Kriteria Umum';
+      const avgCriteriaScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+
+      totalSum += avgCriteriaScore;
+      criteriaCount++;
+      criteriaInput.push({ criteriaId, criteriaName, score: avgCriteriaScore });
+    }
+
+    const globalAverage = criteriaCount > 0 ? totalSum / criteriaCount : 0;
+    const finalGrade = calculateGrade(globalAverage);
+    const coderName = coderNameMap.get(coderId) ?? 'Siswa';
+
+    const aiDescriptions = await generateBlockReportDescriptions(
+      coderName,
+      klass.name,
+      reviewBlock.name,
+      lessonTitle,
+      criteriaInput,
+    );
+
+    const newReport = await reportsDao.upsertBlockReport({
+      classId: klass.id,
+      blockId: reviewBlock.id,
+      coderId,
+      status: 'DRAFT',
+      averageScore: Number(globalAverage.toFixed(2)),
+      grade: finalGrade,
+      isAiGenerated: true,
+    });
+
+    await reportsDao.upsertBlockReportDescriptions(
+      aiDescriptions.map((description) => ({
+        reportId: newReport.id,
+        criteriaId: description.criteriaId,
+        score: criteriaInput.find((criteria) => criteria.criteriaId === description.criteriaId)?.score ?? 0,
+        description: description.description,
+      })),
+    );
+
+    generatedCount++;
+    reportIds.push(newReport.id);
+  }
+
+  return {
+    success: true,
+    count: generatedCount,
+    existing: existingCount,
+    reportIds,
+  };
 }
 
 /**

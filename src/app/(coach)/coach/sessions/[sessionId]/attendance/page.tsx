@@ -175,12 +175,12 @@ export default async function SessionAttendancePage({ params }: PageProps) {
     ? activeEnrollmentCoderIds.filter((coderId) => !ekskulCurrentSessionAttendance.has(coderId)).length
     : 0;
   const ekskulReportUrl = isEkskulLessonSession
-    ? `/coach/rubrics/${encodeURIComponent(sessionRecord.id)}`
+    ? '/coach/reports'
     : null;
   const ekskulReportLockedReason = isEkskulLessonSession && sessionRecord.status !== 'COMPLETED'
-    ? 'Simpan presensi sesi ini dulu sebelum memberi nilai.'
+    ? 'Simpan presensi sesi ini dulu sebelum generate rapor.'
     : isEkskulLessonSession && ekskulMissingAttendanceCount > 0
-      ? `Lengkapi ${ekskulMissingAttendanceCount} presensi sesi ini dulu sebelum memberi nilai.`
+      ? `Lengkapi ${ekskulMissingAttendanceCount} presensi sesi ini dulu sebelum generate rapor.`
       : null;
   const canOpenEkskulReport =
     isEkskulLessonSession && sessionRecord.status === 'COMPLETED' && ekskulMissingAttendanceCount === 0;

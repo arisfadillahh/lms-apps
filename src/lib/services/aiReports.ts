@@ -446,7 +446,27 @@ export async function generateDraftReportsForEkskulSession(
     throw new Error(`Failed to fetch lesson evaluations: ${evaluationsError.message}`);
   }
 
-  const coderScores: Record<string, Record<string, number[]>> = {};
+  const evaluationKeySet = new Set(
+    (evaluations ?? []).map((evaluation) =>
+      `${evaluation.coder_id}:${evaluation.session_id}:${evaluation.criteria_id}`,
+    ),
+  );
+  const incompleteCurrentEvaluationCount = activeCoderIds.reduce((count, coderId) => {
+    const missingForCoder = criteriaIds.some((criteriaId) =>
+      !evaluationKeySet.has(`${coderId}:${session.id}:${criteriaId}`),
+    );
+    return count + (missingForCoder ? 1 : 0);
+  }, 0);
+  if (incompleteCurrentEvaluationCount > 0) {
+    throw new Error(`Nilai lesson sesi ini belum lengkap untuk ${incompleteCurrentEvaluationCount} coder. Lengkapi nilai dulu, lalu generate rapor.`);
+  }
+
+  const coderScores: Record<string, Record<string, number[]>> = Object.fromEntries(
+    activeCoderIds.map((coderId) => [
+      coderId,
+      Object.fromEntries(criteriaIds.map((criteriaId) => [criteriaId, [] as number[]])),
+    ]),
+  );
   for (const evaluation of evaluations ?? []) {
     if (!coderScores[evaluation.coder_id]) coderScores[evaluation.coder_id] = {};
     if (!coderScores[evaluation.coder_id][evaluation.criteria_id]) {
@@ -455,23 +475,26 @@ export async function generateDraftReportsForEkskulSession(
     coderScores[evaluation.coder_id][evaluation.criteria_id].push(evaluation.score);
   }
 
-  const evaluationKeySet = new Set(
-    (evaluations ?? []).map((evaluation) =>
-      `${evaluation.coder_id}:${evaluation.session_id}:${evaluation.criteria_id}`,
-    ),
-  );
   const incompleteEvaluationCount = activeCoderIds.reduce((count, coderId) => {
-    const missingForCoder = reportSessionIds.some((sessionId) =>
-      criteriaIds.some((criteriaId) => !evaluationKeySet.has(`${coderId}:${sessionId}:${criteriaId}`)),
+    const missingForCoder = criteriaIds.some((criteriaId) =>
+      (coderScores[coderId]?.[criteriaId]?.length ?? 0) === 0,
     );
     return count + (missingForCoder ? 1 : 0);
   }, 0);
   if (incompleteEvaluationCount > 0) {
-    throw new Error(`Nilai lesson belum lengkap untuk ${incompleteEvaluationCount} coder. Lengkapi nilai dulu, lalu generate rapor.`);
+    throw new Error(`Nilai lesson belum tersedia untuk ${incompleteEvaluationCount} coder. Lengkapi nilai dulu, lalu generate rapor.`);
   }
 
   const lessonTitle = formatLessonTitle(lessonSlot);
-  const lessonTitlesText = reportLessonEntries.map((entry) => formatLessonTitle(entry.slot)).join(', ');
+  const evaluatedSessionIds = new Set((evaluations ?? []).map((evaluation) => evaluation.session_id));
+  const evaluatedLessonEntries = reportLessonEntries.filter((entry) => evaluatedSessionIds.has(entry.session.id));
+  const skippedEmptySessionCount = reportLessonEntries.length - evaluatedLessonEntries.length;
+  if (skippedEmptySessionCount > 0) {
+    console.warn(`[AI Ekskul] Skipping ${skippedEmptySessionCount} historical session(s) without saved lesson evaluations for ${klass.id}.`);
+  }
+  const lessonTitlesText = (evaluatedLessonEntries.length > 0 ? evaluatedLessonEntries : reportLessonEntries)
+    .map((entry) => formatLessonTitle(entry.slot))
+    .join(', ');
   const reviewLevelId = klass.level_id ?? await getOrCreateEkskulReviewLevelId();
   const reviewBlock = await getOrCreateEkskulReviewBlock(reviewLevelId, lessonTitle, lessonSlot.globalIndex);
 

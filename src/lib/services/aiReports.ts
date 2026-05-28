@@ -9,6 +9,8 @@ import { attendanceDao, classesDao, reportsDao, sessionsDao } from '@/lib/dao';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 import { getAiReportGenerationSkipReason } from '@/lib/services/aiReportGuards';
 
+const EKSKUL_REVIEW_LEVEL_NAME = 'Ekskul';
+
 type ClassBlockWithRelations = {
   id: string;
   class_id: string;
@@ -299,6 +301,60 @@ async function getOrCreateEkskulReviewBlock(levelId: string, lessonTitle: string
   return data;
 }
 
+async function getOrCreateEkskulReviewLevelId() {
+  const supabase = getSupabaseAdmin();
+  const { data: existing, error: existingError } = await supabase
+    .from('levels')
+    .select('id')
+    .eq('name', EKSKUL_REVIEW_LEVEL_NAME)
+    .limit(1)
+    .maybeSingle();
+
+  if (existingError) {
+    throw new Error(`Failed to fetch ekskul review level: ${existingError.message}`);
+  }
+
+  if (existing?.id) return existing.id;
+
+  const { data: latestLevels, error: latestLevelError } = await supabase
+    .from('levels')
+    .select('order_index')
+    .order('order_index', { ascending: false })
+    .limit(1);
+
+  if (latestLevelError) {
+    throw new Error(`Failed to resolve ekskul review level order: ${latestLevelError.message}`);
+  }
+
+  const orderIndex = (latestLevels?.[0]?.order_index ?? 0) + 1;
+  const { data: created, error: createError } = await supabase
+    .from('levels')
+    .insert({
+      name: EKSKUL_REVIEW_LEVEL_NAME,
+      description: 'Internal level used to group ekskul report review drafts.',
+      order_index: orderIndex,
+    })
+    .select('id')
+    .single();
+
+  if (!createError && created?.id) return created.id;
+
+  const { data: racedExisting, error: racedExistingError } = await supabase
+    .from('levels')
+    .select('id')
+    .eq('name', EKSKUL_REVIEW_LEVEL_NAME)
+    .limit(1)
+    .maybeSingle();
+
+  if (racedExistingError) {
+    throw new Error(`Failed to refetch ekskul review level: ${racedExistingError.message}`);
+  }
+
+  if (racedExisting?.id) return racedExisting.id;
+
+  throw new Error(`Failed to create ekskul review level: ${createError?.message ?? 'Unknown error'}`);
+}
+
 export async function generateDraftReportsForEkskulSession(sessionId: string, coachId?: string) {
   const supabase = getSupabaseAdmin();
   const session = await sessionsDao.getSessionById(sessionId);
@@ -317,10 +373,6 @@ export async function generateDraftReportsForEkskulSession(sessionId: string, co
 
   if (coachId && klass.coach_id !== coachId && session.substitute_coach_id !== coachId) {
     throw new Error('Forbidden');
-  }
-
-  if (!klass.level_id) {
-    throw new Error('Kelas ekskul harus memiliki level untuk membuat draft rapor review.');
   }
 
   const lessonMap = await computeLessonSchedule(klass.id, klass.level_id, klass.ekskul_lesson_plan_id);
@@ -375,7 +427,8 @@ export async function generateDraftReportsForEkskulSession(sessionId: string, co
   }
 
   const lessonTitle = formatLessonTitle(lessonSlot);
-  const reviewBlock = await getOrCreateEkskulReviewBlock(klass.level_id, lessonTitle, lessonSlot.globalIndex);
+  const reviewLevelId = klass.level_id ?? await getOrCreateEkskulReviewLevelId();
+  const reviewBlock = await getOrCreateEkskulReviewBlock(reviewLevelId, lessonTitle, lessonSlot.globalIndex);
   const { data: coderUsers } = await supabase
     .from('users')
     .select('id, full_name')

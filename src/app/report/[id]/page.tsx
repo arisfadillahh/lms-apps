@@ -296,7 +296,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
                 -webkit-print-color-adjust: exact !important; 
                 print-color-adjust: exact !important; 
             }
-            [data-purpose="grade-summary"] > div, [data-purpose="lesson-list"] > div, [data-purpose="reflection-qa"] > div {
+            [data-purpose="lesson-list"] > div, [data-purpose="reflection-qa"] > div {
                 break-inside: avoid !important;
                 page-break-inside: avoid !important;
                 box-shadow: none !important;
@@ -324,9 +324,6 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
-            }
-            [data-purpose="grade-summary"] {
-                margin-bottom: 0.75rem !important;
             }
             [data-purpose="competency-feedback"] {
                 break-before: auto !important;
@@ -387,7 +384,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
               </div>
             </div>
             
-            <div className="text-center md:text-left text-white flex-1 md:pr-40 print:text-left print:pr-32">
+            <div className="text-center md:text-left text-white flex-1 print:text-left">
               <div className="mb-5 flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3 print:mb-3 print:flex-row print:justify-start">
                 <div className="inline-flex px-4 py-1.5 rounded-lg bg-white/10 border border-white/20 text-sm font-semibold tracking-wide uppercase print:text-xs print:px-3">
                   {reportTitle}
@@ -411,46 +408,34 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
                 </div>
               </div>
             </div>
-          </div>
-        </header>
 
-        <main className="flex flex-col gap-10 print:gap-4">
-
-          {/* HORIZONTAL OVERALL GRADE CARD */}
-          <section data-purpose="grade-summary" className="w-full mt-4 print:mt-0">
-            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12 print:flex-row print:justify-between print:items-center print:border print:border-slate-200 print:shadow-none print:p-4 print:rounded-xl print:bg-transparent">
-              <div className="text-center md:text-left flex-1 print:text-left print:flex-1">
-                <div className="inline-flex items-center gap-3 mb-4 print:mb-1">
-                  <span className="h-8 w-1 rounded-full bg-clevio-green print:hidden"></span>
-                  <h3 className="text-clevio-navy font-bold text-2xl tracking-tight print:text-lg">Overall Grade</h3>
-                </div>
-                <p className="text-slate-500 mb-6 max-w-sm mx-auto md:mx-0 leading-relaxed print:max-w-none print:text-xs print:mb-2">
-                  Ringkasan nilai rata-rata dari seluruh kompetensi yang sudah diobservasi pada laporan ini.
-                </p>
-                <div className="bg-slate-50 rounded-xl px-5 py-3 font-extrabold inline-flex items-center justify-center md:justify-start gap-2 border border-slate-200 w-full md:w-auto print:p-0 print:border-none print:bg-transparent print:text-sm" style={{ color: gradeColor }}>
-                  {gradeMessage}
-                </div>
-              </div>
-
-              <div className="relative w-48 h-48 shrink-0 print:w-20 print:h-20">
+            <div data-purpose="header-grade" className="w-full max-w-44 shrink-0 rounded-xl border border-white/20 bg-white/10 p-4 text-center text-white backdrop-blur-sm md:mt-12 md:w-44 print:mt-8 print:w-28 print:p-2.5 print:rounded-lg">
+              <p className="text-xs font-bold uppercase tracking-wide opacity-90 print:text-[9px]">Overall Grade</p>
+              <div className="relative mx-auto mt-3 h-24 w-24 print:mt-2 print:h-14 print:w-14">
                 <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                  <circle className="text-slate-100 print:text-slate-200" cx="50" cy="50" fill="transparent" r="45" stroke="currentColor" strokeWidth="8"></circle>
-                  <circle 
-                    className="drop-shadow-[0_0_8px_rgba(94,220,139,0.5)] transition-all duration-1000 ease-out print:filter-none" 
+                  <circle className="text-white/20" cx="50" cy="50" fill="transparent" r="45" stroke="currentColor" strokeWidth="8"></circle>
+                  <circle
+                    className="drop-shadow-[0_0_8px_rgba(94,220,139,0.5)] transition-all duration-1000 ease-out print:filter-none"
                     style={{ stroke: gradeColor }}
-                    cx="50" cy="50" fill="transparent" r="45" stroke="currentColor" 
-                    strokeDasharray="282.7" 
-                    strokeDashoffset={282.7 - (282.7 * (avgScore / 10))} 
+                    cx="50" cy="50" fill="transparent" r="45" stroke="currentColor"
+                    strokeDasharray="282.7"
+                    strokeDashoffset={282.7 - (282.7 * (avgScore / 10))}
                     strokeLinecap="round" strokeWidth="8">
                   </circle>
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-5xl font-black text-clevio-navy drop-shadow-sm print:text-2xl print:drop-shadow-none">{Math.round(avgScore * 10)}</span>
-                  <span className="font-bold text-xl mt-1 tracking-wide print:text-[10px] print:mt-0 print:tracking-normal" style={{ color: gradeColor }}>GRADE {grade}</span>
+                  <span className="text-3xl font-black leading-none text-white drop-shadow-sm print:text-base print:drop-shadow-none">{Math.round(avgScore * 10)}</span>
+                  <span className="mt-1 text-[10px] font-bold leading-none tracking-wide print:mt-0.5 print:text-[7px]">GRADE {grade}</span>
                 </div>
               </div>
+              <p className="mt-3 text-sm font-extrabold leading-tight print:mt-2 print:text-[9px]" style={{ color: gradeColor }}>
+                {gradeMessage}
+              </p>
             </div>
-          </section>
+          </div>
+        </header>
+
+        <main className="flex flex-col gap-10 print:gap-4">
           <section data-purpose="competency-feedback">
             <div className="flex items-center gap-4 mb-6 print:mb-4">
               <span className="h-10 w-1 rounded-full bg-clevio-cyan print:hidden"></span>

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { canRefreshAiDraftReport, getAiReportGenerationSkipReason } from '@/lib/services/aiReportGuards';
+import {
+  canRefreshAiDraftReport,
+  getAiReportGenerationSkipReason,
+  hasVisibleOrGeneratableDraft,
+} from '@/lib/services/aiReportGuards';
 
 describe('getAiReportGenerationSkipReason', () => {
   it('allows generation when no report exists yet', () => {
@@ -32,5 +36,24 @@ describe('canRefreshAiDraftReport', () => {
   it('does not refresh submitted or manual reports', () => {
     expect(canRefreshAiDraftReport({ status: 'SUBMITTED', is_ai_generated: true })).toBe(false);
     expect(canRefreshAiDraftReport({ status: 'DRAFT', is_ai_generated: false })).toBe(false);
+  });
+});
+
+describe('hasVisibleOrGeneratableDraft', () => {
+  it('allows generation when at least one coder has no report yet', () => {
+    expect(hasVisibleOrGeneratableDraft([], ['coder-1'])).toBe(true);
+  });
+
+  it('allows the flow when an existing draft can still be shown to the coach', () => {
+    expect(hasVisibleOrGeneratableDraft([
+      { coder_id: 'coder-1', status: 'DRAFT', is_ai_generated: false },
+    ], ['coder-1'])).toBe(true);
+  });
+
+  it('blocks silent success when every coder already has a non-draft report', () => {
+    expect(hasVisibleOrGeneratableDraft([
+      { coder_id: 'coder-1', status: 'SUBMITTED', is_ai_generated: true },
+      { coder_id: 'coder-2', status: 'PUBLISHED', is_ai_generated: true },
+    ], ['coder-1', 'coder-2'])).toBe(false);
   });
 });

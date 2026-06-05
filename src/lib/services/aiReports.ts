@@ -7,7 +7,11 @@ import OpenAI from 'openai';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { attendanceDao, classesDao, reportsDao, sessionsDao } from '@/lib/dao';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
-import { canRefreshAiDraftReport, getAiReportGenerationSkipReason } from '@/lib/services/aiReportGuards';
+import {
+  canRefreshAiDraftReport,
+  getAiReportGenerationSkipReason,
+  hasVisibleOrGeneratableDraft,
+} from '@/lib/services/aiReportGuards';
 
 const EKSKUL_REVIEW_LEVEL_NAME = 'Ekskul';
 const EKSKUL_REPORT_GENERATION_CONCURRENCY = 4;
@@ -497,6 +501,21 @@ export async function generateDraftReportsForEkskulSession(
     .join(', ');
   const reviewLevelId = klass.level_id ?? await getOrCreateEkskulReviewLevelId();
   const reviewBlock = await getOrCreateEkskulReviewBlock(reviewLevelId, lessonTitle, lessonSlot.globalIndex);
+
+  const { data: existingReportsForReviewBlock, error: existingReportsError } = await supabase
+    .from('block_reports')
+    .select('id, coder_id, status, is_ai_generated')
+    .eq('class_id', klass.id)
+    .eq('block_id', reviewBlock.id)
+    .in('coder_id', activeCoderIds);
+
+  if (existingReportsError) {
+    throw new Error(`Failed to fetch existing ekskul reports: ${existingReportsError.message}`);
+  }
+
+  if (!hasVisibleOrGeneratableDraft(existingReportsForReviewBlock ?? [], activeCoderIds)) {
+    throw new Error('Rapor sesi ini sudah dikirim ke admin. Cek Admin > Status Rapor, atau reject dari admin kalau perlu dikembalikan ke draft.');
+  }
 
   if (options.validateOnly) {
     return {

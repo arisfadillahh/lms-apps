@@ -29,6 +29,7 @@ interface AttendanceWrapperProps {
     ekskulReportUrl?: string | null;
     canOpenEkskulReport?: boolean;
     ekskulReportLockedReason?: string | null;
+    ekskulReportStatus?: 'SUBMITTED' | null;
 }
 
 export default function AttendanceWrapper({
@@ -45,6 +46,7 @@ export default function AttendanceWrapper({
     ekskulReportUrl,
     canOpenEkskulReport = false,
     ekskulReportLockedReason,
+    ekskulReportStatus,
 }: AttendanceWrapperProps) {
     const router = useRouter();
     const listRef = useRef<AttendanceListHandle>(null);
@@ -103,6 +105,7 @@ export default function AttendanceWrapper({
 
     const handleGenerateEkskulReport = async () => {
         if (!ekskulReportUrl) return;
+        if (ekskulReportStatus === 'SUBMITTED') return;
         if (!canOpenEkskulReport) {
             alert(ekskulReportLockedReason ?? 'Lengkapi presensi sesi ini dulu sebelum generate rapor ekskul.');
             return;
@@ -127,6 +130,8 @@ export default function AttendanceWrapper({
             setIsGeneratingEkskulReport(false);
         }
     };
+
+    const ekskulReportSubmitted = ekskulReportStatus === 'SUBMITTED';
 
     return (
         <>
@@ -181,18 +186,20 @@ export default function AttendanceWrapper({
                         <button
                             type="button"
                             onClick={handleGenerateEkskulReport}
-                            disabled={isGeneratingEkskulReport}
+                            disabled={isGeneratingEkskulReport || ekskulReportSubmitted}
                             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-colors ${
-                                canOpenEkskulReport
+                                ekskulReportSubmitted
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default'
+                                    : canOpenEkskulReport
                                     ? 'bg-[#22367b] hover:bg-[#162b46] text-white'
                                     : 'bg-slate-100 text-slate-500 border border-slate-200'
                             }`}
-                            title={ekskulReportLockedReason ?? undefined}
+                            title={ekskulReportSubmitted ? 'Rapor sudah dikirim ke admin.' : ekskulReportLockedReason ?? undefined}
                         >
                             <span className="material-symbols-outlined text-base">
-                                {isGeneratingEkskulReport ? 'progress_activity' : canOpenEkskulReport ? 'summarize' : 'lock'}
+                                {ekskulReportSubmitted ? 'check_circle' : isGeneratingEkskulReport ? 'progress_activity' : canOpenEkskulReport ? 'summarize' : 'lock'}
                             </span>
-                            {isGeneratingEkskulReport ? 'Generating...' : canOpenEkskulReport ? 'Generate Rapor Ekskul' : 'Lengkapi Presensi'}
+                            {ekskulReportSubmitted ? 'Sudah Submit' : isGeneratingEkskulReport ? 'Generating...' : canOpenEkskulReport ? 'Generate Rapor Ekskul' : 'Lengkapi Presensi'}
                         </button>
                     )}
 

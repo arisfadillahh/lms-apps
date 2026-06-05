@@ -7,6 +7,9 @@ import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import AttendanceWrapper from './AttendanceWrapper';
 import type { AttendanceStatus } from './AttendanceList';
 
+const EKSKUL_REVIEW_LEVEL_NAME = 'Ekskul';
+const SUBMITTED_EKSKUL_REPORT_STATUSES = new Set(['SUBMITTED', 'PUBLISHED', 'SENT']);
+
 type PageProps = {
   params: Promise<{ sessionId: string }>;
 };
@@ -184,6 +187,40 @@ export default async function SessionAttendancePage({ params }: PageProps) {
       : null;
   const canOpenEkskulReport =
     isEkskulLessonSession && sessionRecord.status === 'COMPLETED' && ekskulMissingAttendanceCount === 0;
+  let ekskulReportStatus: 'SUBMITTED' | null = null;
+  if (isEkskulLessonSession && currentLessonSlot && activeEnrollmentCoderIds.length > 0) {
+    const supabase = getSupabaseAdmin();
+    const reviewLevelId = classRecord.level_id ?? await resolveEkskulReviewLevelId();
+    const reviewBlockName = `Ekskul - ${formatLessonTitle(currentLessonSlot)}`;
+
+    if (reviewLevelId) {
+      const { data: reviewBlock } = await supabase
+        .from('blocks')
+        .select('id')
+        .eq('level_id', reviewLevelId)
+        .eq('name', reviewBlockName)
+        .limit(1)
+        .maybeSingle();
+
+      if (reviewBlock?.id) {
+        const { data: reportStatuses } = await supabase
+          .from('block_reports')
+          .select('coder_id, status')
+          .eq('class_id', classRecord.id)
+          .eq('block_id', reviewBlock.id)
+          .in('coder_id', activeEnrollmentCoderIds);
+
+        const statusByCoderId = new Map((reportStatuses ?? []).map((report) => [report.coder_id, report.status]));
+        const submittedReportCount = activeEnrollmentCoderIds.filter((coderId) =>
+          SUBMITTED_EKSKUL_REPORT_STATUSES.has(statusByCoderId.get(coderId) ?? ''),
+        ).length;
+
+        if (submittedReportCount === activeEnrollmentCoderIds.length) {
+          ekskulReportStatus = 'SUBMITTED';
+        }
+      }
+    }
+  }
 
   const sessionStart = new Date(sessionRecord.date_time);
   const sessionEnd = new Date(sessionStart.getTime() + 90 * 60000);
@@ -312,6 +349,7 @@ export default async function SessionAttendancePage({ params }: PageProps) {
           ekskulReportUrl={ekskulReportUrl}
           canOpenEkskulReport={canOpenEkskulReport}
           ekskulReportLockedReason={ekskulReportLockedReason}
+          ekskulReportStatus={ekskulReportStatus}
         />
 
         {/* Monthly Recap Section */}
@@ -363,4 +401,16 @@ function renderError(title: string, message: string) {
       </div>
     </div>
   );
+}
+
+async function resolveEkskulReviewLevelId() {
+  const supabase = getSupabaseAdmin();
+  const { data } = await supabase
+    .from('levels')
+    .select('id')
+    .eq('name', EKSKUL_REVIEW_LEVEL_NAME)
+    .limit(1)
+    .maybeSingle();
+
+  return data?.id ?? null;
 }

@@ -1,8 +1,9 @@
 'use client';
 
 import Image from 'next/image';
-import { type CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import type { Invoice } from '@/lib/types/invoice';
+import type { PublicInvoicePaymentInstruction, PublicInvoicePaymentOption } from '@/lib/invoicePaymentMethods';
 
 interface BankInfo {
     bank_name: string;
@@ -14,8 +15,13 @@ interface BankInfo {
 
 interface Props {
     invoice: Invoice;
+    publicToken?: string | null;
+    paymentOptions: PublicInvoicePaymentOption[];
+    initialPayment?: PublicInvoicePaymentInstruction | null;
     bankInfo: BankInfo | null;
 }
+
+type PaymentInstruction = PublicInvoicePaymentInstruction;
 
 // Clevio Brand Colors
 const COLORS = {
@@ -31,7 +37,15 @@ const COLORS = {
     textGray: '#6B7280',
 };
 
-export default function InvoiceView({ invoice, bankInfo }: Props) {
+export default function InvoiceView({ invoice, publicToken, paymentOptions, initialPayment, bankInfo }: Props) {
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [selectedPayment, setSelectedPayment] = useState<PaymentInstruction | null>(() => {
+        return initialPayment ?? buildInitialPaymentInstruction(invoice, publicToken ?? null);
+    });
+    const [paymentLoadingMethod, setPaymentLoadingMethod] = useState<string | null>(null);
+    const [paymentError, setPaymentError] = useState<string | null>(null);
+    const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('id-ID').format(amount);
     };
@@ -105,6 +119,46 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
     };
 
     const isPaid = invoice.status === 'PAID';
+
+    const handleChoosePaymentMethod = async (method: string) => {
+        if (!publicToken) {
+            setPaymentError('Link invoice tidak valid. Silakan buka ulang link dari WhatsApp.');
+            return;
+        }
+
+        setPaymentError(null);
+        setCopyFeedback(null);
+        setPaymentLoadingMethod(method);
+
+        try {
+            const response = await fetch(`/api/invoices/${encodeURIComponent(invoice.id)}/payment-method`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ method, token: publicToken })
+            });
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok || !data.payment) {
+                throw new Error(data.error || 'Gagal membuat metode pembayaran.');
+            }
+
+            setSelectedPayment(data.payment);
+            setIsPaymentModalOpen(false);
+        } catch (error) {
+            setPaymentError(error instanceof Error ? error.message : 'Gagal membuat metode pembayaran.');
+        } finally {
+            setPaymentLoadingMethod(null);
+        }
+    };
+
+    const handleCopy = async (value: string, label: string) => {
+        try {
+            await navigator.clipboard.writeText(value);
+            setCopyFeedback(`${label} disalin`);
+        } catch {
+            setCopyFeedback(`Gagal menyalin ${label}`);
+        }
+    };
 
     return (
         <div style={containerStyle} className="invoice-container">
@@ -185,17 +239,15 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
                                 {isPaid ? 'STATUS PEMBAYARAN' : 'METODE PEMBAYARAN'}
                             </div>
                             <div style={cardContentStyle}>
-                                {!isPaid && bankInfo ? (
-                                    <>
-                                        <div style={{ marginBottom: '12px' }}>
-                                            <div style={bankNameStyle}>{bankInfo.bank_name}</div>
-                                            <div style={bankAccountStyle}>{bankInfo.bank_account_number}</div>
-                                            <div style={bankHolderStyle}>a.n {bankInfo.bank_account_holder}</div>
-                                        </div>
-                                        <button onClick={handleContactAdmin} style={waButtonStyle}>
-                                            Konfirmasi Pembayaran
-                                        </button>
-                                    </>
+                                {!isPaid ? (
+                                    <PaymentMethodCard
+                                        payment={selectedPayment}
+                                        onOpenModal={() => setIsPaymentModalOpen(true)}
+                                        onContactAdmin={bankInfo ? handleContactAdmin : undefined}
+                                        onCopy={handleCopy}
+                                        copyFeedback={copyFeedback}
+                                        formatCurrency={formatCurrency}
+                                    />
                                 ) : isPaid ? (
                                     <div style={paidStatusContainerStyle}>
                                         <div style={paidCheckmarkStyle}>✓</div>
@@ -346,10 +398,10 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
                         <div style={{ flex: 1 }}>
                             <div style={termsHeaderStyle}>Syarat & Ketentuan:</div>
                             <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px', fontSize: '11px', color: COLORS.textGray, lineHeight: 1.6 }}>
-                                <li>Pembayaran dapat dilakukan melalui transfer bank ke rekening yang tertera di atas.</li>
-                                <li>Mohon konfirmasi pembayaran melalui WhatsApp ke nomor admin setelah melakukan transfer.</li>
+                                <li>Pembayaran dilakukan dengan memilih metode pembayaran pada invoice ini.</li>
+                                <li>Total bayar dapat berubah sesuai biaya admin metode pembayaran yang dipilih.</li>
+                                <li>Status pembayaran diperbarui otomatis setelah pembayaran berhasil diproses.</li>
                                 <li>Invoice yang telah melewati tanggal jatuh tempo akan dikenakan status OVERDUE.</li>
-                                <li>Untuk pertanyaan lebih lanjut, silakan hubungi admin kami.</li>
                             </ul>
                             {/* Period only for non-REG invoices */}
                             {invoice.invoice_type !== 'REGISTRATION' && (
@@ -374,6 +426,22 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
                     </div>
                 </div>
             </div>
+
+            {isPaymentModalOpen && (
+                <PaymentMethodModal
+                    options={paymentOptions}
+                    loadingMethod={paymentLoadingMethod}
+                    error={paymentError}
+                    onClose={() => {
+                        if (!paymentLoadingMethod) {
+                            setIsPaymentModalOpen(false);
+                            setPaymentError(null);
+                        }
+                    }}
+                    onChoose={handleChoosePaymentMethod}
+                    formatCurrency={formatCurrency}
+                />
+            )}
 
             {/* Print Button */}
             <div style={printContainerStyle}>
@@ -486,6 +554,252 @@ export default function InvoiceView({ invoice, bankInfo }: Props) {
         };
         return <span style={styles[status] || styles.PENDING}>{labels[status] || status}</span>;
     }
+}
+
+function buildInitialPaymentInstruction(invoice: Invoice, publicToken: string | null): PaymentInstruction | null {
+    if (!invoice.payment_method || !invoice.midtrans_order_id || !invoice.midtrans_payment_details) return null;
+    if (!publicToken) return null;
+    const details = invoice.midtrans_payment_details;
+    if (!details || typeof details !== 'object') return null;
+    const value = details as Record<string, unknown>;
+    const method = readString(value, 'method') || invoice.payment_method;
+
+    return {
+        method,
+        label: readString(value, 'label') || invoice.payment_method_label || 'Metode pembayaran',
+        baseAmount: readNumber(value, 'baseAmount') || invoice.payment_base_amount || invoice.total_amount,
+        adminFee: readNumber(value, 'adminFee') ?? invoice.payment_admin_fee ?? 0,
+        total: readNumber(value, 'total') || invoice.payment_total_amount || invoice.total_amount,
+        feeLabel: readString(value, 'feeLabel') || '',
+        bank: readString(value, 'bank'),
+        vaNumber: readString(value, 'vaNumber'),
+        billerCode: readString(value, 'billerCode'),
+        billKey: readString(value, 'billKey'),
+        deeplinkUrl: readString(value, 'deeplinkUrl'),
+        qrImageUrl: method === 'qris'
+            ? `/api/invoices/${encodeURIComponent(invoice.id)}/payment-qr?t=${encodeURIComponent(publicToken)}&order=${encodeURIComponent(invoice.midtrans_order_id)}`
+            : null
+    };
+}
+
+function PaymentMethodCard({
+    payment,
+    onOpenModal,
+    onContactAdmin,
+    onCopy,
+    copyFeedback,
+    formatCurrency
+}: {
+    payment: PaymentInstruction | null;
+    onOpenModal: () => void;
+    onContactAdmin?: () => void;
+    onCopy: (value: string, label: string) => void;
+    copyFeedback: string | null;
+    formatCurrency: (amount: number) => string;
+}) {
+    if (!payment) {
+        return (
+            <div style={paymentEmptyCardStyle}>
+                <div style={paymentEmptyTitleStyle}>Pilih metode pembayaran</div>
+                <div style={paymentEmptyTextStyle}>Pilih QR atau Virtual Account. Biaya admin akan ditampilkan sebelum metode dipakai.</div>
+                <button onClick={onOpenModal} style={primaryPaymentButtonStyle}>
+                    Pilih Metode Pembayaran
+                </button>
+                {onContactAdmin && (
+                    <button onClick={onContactAdmin} style={secondaryPaymentButtonStyle}>
+                        Hubungi Admin
+                    </button>
+                )}
+            </div>
+        );
+    }
+
+    const isQr = payment.method === 'qris';
+    const isGoPay = payment.method === 'gopay';
+    const isMandiriBill = payment.billerCode || payment.billKey;
+    const copyValue = isMandiriBill
+        ? [payment.billerCode, payment.billKey].filter(Boolean).join(' / ')
+        : payment.vaNumber;
+
+    return (
+        <div style={paymentInstructionStyle}>
+            <div style={paymentMethodLabelStyle}>{payment.label}</div>
+            <div style={paymentBreakdownStyle}>
+                <div style={paymentBreakdownRowStyle}>
+                    <span>Tagihan</span>
+                    <strong>Rp {formatCurrency(payment.baseAmount)}</strong>
+                </div>
+                <div style={paymentBreakdownRowStyle}>
+                    <span>Biaya admin</span>
+                    <strong>Rp {formatCurrency(payment.adminFee)}</strong>
+                </div>
+                <div style={paymentTotalRowStyle}>
+                    <span>Total bayar</span>
+                    <strong>Rp {formatCurrency(payment.total)}</strong>
+                </div>
+            </div>
+
+            {isQr && payment.qrImageUrl ? (
+                <div style={qrBoxStyle}>
+                    <img src={payment.qrImageUrl} alt="QR pembayaran" style={qrImageStyle} />
+                    <a href={payment.qrImageUrl} download style={downloadQrButtonStyle}>
+                        Unduh QR
+                    </a>
+                    {payment.deeplinkUrl && (
+                        <a href={payment.deeplinkUrl} target="_blank" rel="noreferrer" style={secondaryLinkButtonStyle}>
+                            Buka Pembayaran
+                        </a>
+                    )}
+                </div>
+            ) : isGoPay ? (
+                <div style={goPayBoxStyle}>
+                    <div style={goPayIntroStyle}>
+                        <span style={goPayIconStyle} aria-hidden="true">
+                            <img src="/gopay-wallet.png" alt="" style={goPayIconImageStyle} />
+                        </span>
+                        <div>
+                            <div style={goPayNameStyle}>GoPay</div>
+                            <div style={goPayDescriptionStyle}>Tombol di bawah akan membuka aplikasi GoPay untuk melanjutkan pembayaran.</div>
+                        </div>
+                    </div>
+                    {payment.deeplinkUrl ? (
+                        <a href={payment.deeplinkUrl} style={goPayDirectButtonStyle} aria-label="Bayar melalui aplikasi GoPay">
+                            <img src="/gopay-wallet.png" alt="" aria-hidden="true" style={goPayButtonIconStyle} />
+                            Bayar via GoPay
+                        </a>
+                    ) : (
+                        <div style={emptyStateStyle}>Link GoPay belum tersedia.</div>
+                    )}
+                </div>
+            ) : isMandiriBill ? (
+                <div style={vaBoxStyle}>
+                    <div style={vaBankStyle}>{payment.bank || 'Mandiri'}</div>
+                    <div style={vaNumberLabelStyle}>Biller Code</div>
+                    <div style={vaNumberStyle}>{payment.billerCode}</div>
+                    <div style={vaNumberLabelStyle}>Bill Key</div>
+                    <div style={vaNumberStyle}>{payment.billKey}</div>
+                    {copyValue && (
+                        <button onClick={() => onCopy(copyValue, 'Kode bayar')} style={copyVaButtonStyle}>
+                            Copy Kode Bayar
+                        </button>
+                    )}
+                </div>
+            ) : payment.vaNumber ? (
+                <div style={vaBoxStyle}>
+                    <div style={vaBankStyle}>{payment.bank || 'Virtual Account'}</div>
+                    <div style={vaNumberLabelStyle}>Nomor Virtual Account</div>
+                    <div style={vaNumberStyle}>{payment.vaNumber}</div>
+                    <button onClick={() => onCopy(payment.vaNumber!, 'Nomor VA')} style={copyVaButtonStyle}>
+                        Copy VA
+                    </button>
+                </div>
+            ) : (
+                <div style={emptyStateStyle}>Instruksi pembayaran sedang diproses.</div>
+            )}
+
+            {copyFeedback && <div style={copyFeedbackStyle}>{copyFeedback}</div>}
+            <button onClick={onOpenModal} style={changeMethodButtonStyle}>
+                Ganti Metode
+            </button>
+        </div>
+    );
+}
+
+function PaymentMethodModal({
+    options,
+    loadingMethod,
+    error,
+    onClose,
+    onChoose,
+    formatCurrency
+}: {
+    options: PublicInvoicePaymentOption[];
+    loadingMethod: string | null;
+    error: string | null;
+    onClose: () => void;
+    onChoose: (method: string) => void;
+    formatCurrency: (amount: number) => string;
+}) {
+    const activeOptions = options.filter((option) => !option.disabled);
+    const [selectedCode, setSelectedCode] = useState(activeOptions[0]?.code ?? '');
+    const selectedOption = options.find((option) => option.code === selectedCode && !option.disabled) ?? activeOptions[0] ?? null;
+    const canChoose = Boolean(selectedOption) && !loadingMethod;
+
+    return (
+        <div style={modalOverlayStyle}>
+            <div style={modalCardStyle}>
+                <div style={modalHeaderStyle}>
+                    <div>
+                        <div style={modalEyebrowStyle}>Metode pembayaran</div>
+                        <h2 style={modalTitleStyle}>Pilih Metode Pembayaran</h2>
+                    </div>
+                    <button onClick={onClose} style={modalCloseButtonStyle} disabled={!!loadingMethod}>×</button>
+                </div>
+
+                <div style={methodListStyle}>
+                    {options.map((option) => (
+                        <button
+                            key={option.code}
+                            type="button"
+                            disabled={option.disabled || !!loadingMethod}
+                            onClick={() => setSelectedCode(option.code)}
+                            style={{
+                                ...methodOptionStyle,
+                                ...(selectedCode === option.code ? methodOptionSelectedStyle : {}),
+                                ...(option.disabled ? methodOptionDisabledStyle : {})
+                            }}
+                        >
+                            <div style={methodOptionTopStyle}>
+                                <div>
+                                    <div style={methodOptionTitleStyle}>
+                                        {option.label}
+                                        {option.badge && <span style={methodBadgeStyle}>{option.badge}</span>}
+                                    </div>
+                                    <div style={methodOptionDescStyle}>{option.description}</div>
+                                </div>
+                                <div style={methodOptionTotalStyle}>Rp {formatCurrency(option.total)}</div>
+                            </div>
+                            <div style={methodFeeStyle}>
+                                <span>Biaya admin: {option.feeLabel}</span>
+                                <strong>+ Rp {formatCurrency(option.adminFee)}</strong>
+                            </div>
+                            {selectedCode === option.code && !option.disabled && (
+                                <div style={methodSelectedHintStyle}>Dipilih</div>
+                            )}
+                            {loadingMethod === option.code && <div style={methodLoadingStyle}>Membuat instruksi pembayaran...</div>}
+                        </button>
+                    ))}
+                </div>
+
+                {error && <div style={paymentErrorStyle}>{error}</div>}
+                <div style={modalFooterStyle}>
+                    <div style={modalNoteStyle}>Setelah klik Pilih, QR atau nomor VA langsung tampil di invoice ini.</div>
+                    <button
+                        type="button"
+                        disabled={!canChoose}
+                        onClick={() => selectedOption && onChoose(selectedOption.code)}
+                        style={{
+                            ...modalChooseButtonStyle,
+                            ...(!canChoose ? modalChooseButtonDisabledStyle : {})
+                        }}
+                    >
+                        {loadingMethod ? 'Memproses...' : 'Pilih'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function readString(value: Record<string, unknown>, key: string) {
+    const candidate = value[key];
+    return typeof candidate === 'string' && candidate.trim() ? candidate.trim() : null;
+}
+
+function readNumber(value: Record<string, unknown>, key: string) {
+    const candidate = value[key];
+    const numberValue = typeof candidate === 'number' ? candidate : Number(candidate);
+    return Number.isFinite(numberValue) ? numberValue : null;
 }
 
 // STYLES
@@ -708,6 +1022,470 @@ const waButtonStyle: CSSProperties = {
     cursor: 'pointer',
     fontSize: '13px',
     marginTop: 'auto'
+};
+
+const paymentEmptyCardStyle: CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    height: '100%'
+};
+
+const paymentEmptyTitleStyle: CSSProperties = {
+    fontSize: '18px',
+    fontWeight: 800,
+    color: COLORS.primaryBlue
+};
+
+const paymentEmptyTextStyle: CSSProperties = {
+    fontSize: '13px',
+    color: COLORS.textGray,
+    lineHeight: 1.5,
+    marginBottom: '8px'
+};
+
+const primaryPaymentButtonStyle: CSSProperties = {
+    width: '100%',
+    padding: '13px 14px',
+    backgroundColor: COLORS.primaryGreen,
+    color: COLORS.white,
+    border: 'none',
+    borderRadius: '12px',
+    fontWeight: 800,
+    cursor: 'pointer',
+    fontSize: '13px',
+    boxShadow: '0 8px 18px rgba(157, 200, 59, 0.28)'
+};
+
+const secondaryPaymentButtonStyle: CSSProperties = {
+    width: '100%',
+    padding: '11px 14px',
+    backgroundColor: COLORS.white,
+    color: COLORS.primaryBlue,
+    border: `1px solid ${COLORS.borderGray}`,
+    borderRadius: '12px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    fontSize: '13px'
+};
+
+const paymentInstructionStyle: CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px'
+};
+
+const paymentMethodLabelStyle: CSSProperties = {
+    fontSize: '17px',
+    fontWeight: 800,
+    color: COLORS.primaryBlue
+};
+
+const paymentBreakdownStyle: CSSProperties = {
+    border: `1px solid ${COLORS.borderGray}`,
+    borderRadius: '14px',
+    padding: '12px',
+    backgroundColor: '#F8FAFC'
+};
+
+const paymentBreakdownRowStyle: CSSProperties = {
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: '12px',
+    fontSize: '12px',
+    color: COLORS.textGray,
+    marginBottom: '7px'
+};
+
+const paymentTotalRowStyle: CSSProperties = {
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: '12px',
+    fontSize: '14px',
+    color: COLORS.primaryBlue,
+    fontWeight: 800,
+    paddingTop: '9px',
+    borderTop: `1px solid ${COLORS.borderGray}`
+};
+
+const qrBoxStyle: CSSProperties = {
+    textAlign: 'center',
+    border: `1px solid ${COLORS.borderGray}`,
+    borderRadius: '14px',
+    padding: '12px',
+    backgroundColor: COLORS.white
+};
+
+const qrImageStyle: CSSProperties = {
+    width: '150px',
+    height: '150px',
+    objectFit: 'contain',
+    display: 'block',
+    margin: '0 auto 10px auto'
+};
+
+const downloadQrButtonStyle: CSSProperties = {
+    display: 'block',
+    width: '100%',
+    padding: '10px',
+    backgroundColor: COLORS.primaryBlue,
+    color: COLORS.white,
+    borderRadius: '10px',
+    fontSize: '12px',
+    fontWeight: 800,
+    textDecoration: 'none',
+    marginBottom: '8px'
+};
+
+const secondaryLinkButtonStyle: CSSProperties = {
+    display: 'block',
+    width: '100%',
+    padding: '10px',
+    backgroundColor: '#E0F2FE',
+    color: COLORS.primaryBlue,
+    borderRadius: '10px',
+    fontSize: '12px',
+    fontWeight: 800,
+    textDecoration: 'none'
+};
+
+const goPayBoxStyle: CSSProperties = {
+    border: `1px solid ${COLORS.borderGray}`,
+    borderRadius: '16px',
+    padding: '14px',
+    backgroundColor: '#F7FCEB',
+    display: 'grid',
+    gap: '14px'
+};
+
+const goPayIntroStyle: CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: '52px minmax(0, 1fr)',
+    alignItems: 'start',
+    gap: '12px'
+};
+
+const goPayIconStyle: CSSProperties = {
+    display: 'inline-flex',
+    width: '52px',
+    height: '52px',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: `1px solid ${COLORS.borderGray}`,
+    borderRadius: '16px',
+    backgroundColor: COLORS.white,
+    boxShadow: '0 6px 16px rgba(31, 41, 55, 0.06)'
+};
+
+const goPayIconImageStyle: CSSProperties = {
+    width: '34px',
+    height: '34px',
+    objectFit: 'contain'
+};
+
+const goPayNameStyle: CSSProperties = {
+    color: '#07152f',
+    fontSize: '22px',
+    fontWeight: 900,
+    lineHeight: 1.1
+};
+
+const goPayDescriptionStyle: CSSProperties = {
+    color: COLORS.textGray,
+    fontSize: '12px',
+    lineHeight: 1.45,
+    marginTop: '6px'
+};
+
+const goPayDirectButtonStyle: CSSProperties = {
+    display: 'inline-flex',
+    width: '100%',
+    minHeight: '54px',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '12px',
+    borderRadius: '16px',
+    background: 'linear-gradient(135deg, #8dd11e 0%, #5eb511 100%)',
+    color: COLORS.white,
+    fontSize: '15px',
+    fontWeight: 900,
+    textDecoration: 'none',
+    boxShadow: '0 12px 26px rgba(94, 181, 17, 0.28)'
+};
+
+const goPayButtonIconStyle: CSSProperties = {
+    width: '26px',
+    height: '26px',
+    objectFit: 'contain',
+    filter: 'brightness(0) invert(1)'
+};
+
+const vaBoxStyle: CSSProperties = {
+    border: `1px solid ${COLORS.borderGray}`,
+    borderRadius: '14px',
+    padding: '14px',
+    backgroundColor: '#F8FAFC'
+};
+
+const vaBankStyle: CSSProperties = {
+    fontSize: '13px',
+    fontWeight: 800,
+    color: COLORS.primaryCyan,
+    textTransform: 'uppercase',
+    marginBottom: '8px'
+};
+
+const vaNumberLabelStyle: CSSProperties = {
+    fontSize: '11px',
+    color: COLORS.textGray,
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    marginTop: '8px'
+};
+
+const vaNumberStyle: CSSProperties = {
+    fontSize: '22px',
+    color: COLORS.primaryBlue,
+    fontWeight: 900,
+    letterSpacing: '0.8px',
+    wordBreak: 'break-all',
+    marginTop: '2px'
+};
+
+const copyVaButtonStyle: CSSProperties = {
+    width: '100%',
+    padding: '10px',
+    marginTop: '12px',
+    backgroundColor: COLORS.primaryBlue,
+    color: COLORS.white,
+    border: 'none',
+    borderRadius: '10px',
+    fontSize: '12px',
+    fontWeight: 800,
+    cursor: 'pointer'
+};
+
+const copyFeedbackStyle: CSSProperties = {
+    fontSize: '12px',
+    color: '#047857',
+    backgroundColor: '#ECFDF5',
+    border: '1px solid #A7F3D0',
+    padding: '8px 10px',
+    borderRadius: '10px'
+};
+
+const changeMethodButtonStyle: CSSProperties = {
+    width: '100%',
+    padding: '10px',
+    backgroundColor: COLORS.white,
+    color: COLORS.primaryBlue,
+    border: `1px solid ${COLORS.borderGray}`,
+    borderRadius: '10px',
+    fontSize: '12px',
+    fontWeight: 800,
+    cursor: 'pointer'
+};
+
+const modalOverlayStyle: CSSProperties = {
+    position: 'fixed',
+    inset: 0,
+    backgroundColor: 'rgba(15, 23, 42, 0.58)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 9999,
+    padding: '24px'
+};
+
+const modalCardStyle: CSSProperties = {
+    width: 'min(720px, 100%)',
+    maxHeight: '90vh',
+    overflowY: 'auto',
+    backgroundColor: COLORS.white,
+    borderRadius: '22px',
+    padding: '26px',
+    boxShadow: '0 30px 80px rgba(15, 23, 42, 0.34)'
+};
+
+const modalHeaderStyle: CSSProperties = {
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: '16px',
+    marginBottom: '18px'
+};
+
+const modalEyebrowStyle: CSSProperties = {
+    fontSize: '12px',
+    color: COLORS.primaryCyan,
+    textTransform: 'uppercase',
+    fontWeight: 900,
+    letterSpacing: '0.5px',
+    marginBottom: '4px'
+};
+
+const modalTitleStyle: CSSProperties = {
+    margin: 0,
+    fontSize: '26px',
+    color: COLORS.primaryBlue,
+    lineHeight: 1.15
+};
+
+const modalCloseButtonStyle: CSSProperties = {
+    width: '36px',
+    height: '36px',
+    borderRadius: '50%',
+    border: `1px solid ${COLORS.borderGray}`,
+    backgroundColor: COLORS.white,
+    color: COLORS.textDark,
+    cursor: 'pointer',
+    fontSize: '24px',
+    lineHeight: 1
+};
+
+const methodListStyle: CSSProperties = {
+    display: 'grid',
+    gap: '12px'
+};
+
+const methodOptionStyle: CSSProperties = {
+    width: '100%',
+    textAlign: 'left',
+    border: `1px solid ${COLORS.borderGray}`,
+    borderRadius: '16px',
+    backgroundColor: COLORS.white,
+    padding: '16px',
+    cursor: 'pointer',
+    transition: 'border-color .15s ease, box-shadow .15s ease'
+};
+
+const methodOptionSelectedStyle: CSSProperties = {
+    borderColor: COLORS.primaryCyan,
+    boxShadow: '0 0 0 3px rgba(0, 176, 215, 0.12)'
+};
+
+const methodOptionDisabledStyle: CSSProperties = {
+    opacity: 0.5,
+    cursor: 'not-allowed',
+    backgroundColor: '#F9FAFB'
+};
+
+const methodOptionTopStyle: CSSProperties = {
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: '16px'
+};
+
+const methodOptionTitleStyle: CSSProperties = {
+    fontSize: '15px',
+    fontWeight: 900,
+    color: COLORS.primaryBlue,
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center',
+    flexWrap: 'wrap'
+};
+
+const methodOptionDescStyle: CSSProperties = {
+    fontSize: '12px',
+    color: COLORS.textGray,
+    marginTop: '4px'
+};
+
+const methodOptionTotalStyle: CSSProperties = {
+    fontSize: '15px',
+    fontWeight: 900,
+    color: COLORS.primaryGreen,
+    whiteSpace: 'nowrap'
+};
+
+const methodBadgeStyle: CSSProperties = {
+    fontSize: '10px',
+    color: '#92400E',
+    backgroundColor: '#FEF3C7',
+    border: '1px solid #FCD34D',
+    borderRadius: '999px',
+    padding: '2px 8px'
+};
+
+const methodFeeStyle: CSSProperties = {
+    marginTop: '12px',
+    paddingTop: '10px',
+    borderTop: `1px solid ${COLORS.lightGray}`,
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: '14px',
+    fontSize: '12px',
+    color: COLORS.textGray
+};
+
+const methodSelectedHintStyle: CSSProperties = {
+    marginTop: '10px',
+    display: 'inline-flex',
+    width: 'fit-content',
+    borderRadius: '999px',
+    backgroundColor: '#E0F2FE',
+    color: COLORS.primaryBlue,
+    padding: '4px 10px',
+    fontSize: '11px',
+    fontWeight: 900
+};
+
+const methodLoadingStyle: CSSProperties = {
+    marginTop: '10px',
+    fontSize: '12px',
+    color: COLORS.primaryCyan,
+    fontWeight: 800
+};
+
+const paymentErrorStyle: CSSProperties = {
+    marginTop: '14px',
+    padding: '10px 12px',
+    borderRadius: '12px',
+    backgroundColor: '#FEF2F2',
+    color: '#991B1B',
+    border: '1px solid #FECACA',
+    fontSize: '13px',
+    fontWeight: 700
+};
+
+const modalFooterStyle: CSSProperties = {
+    position: 'sticky',
+    bottom: '-26px',
+    margin: '18px -26px -26px',
+    padding: '14px 26px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '16px',
+    borderTop: `1px solid ${COLORS.borderGray}`,
+    backgroundColor: COLORS.white
+};
+
+const modalNoteStyle: CSSProperties = {
+    fontSize: '12px',
+    color: COLORS.textGray,
+    lineHeight: 1.5
+};
+
+const modalChooseButtonStyle: CSSProperties = {
+    minWidth: '132px',
+    minHeight: '44px',
+    border: 'none',
+    borderRadius: '12px',
+    backgroundColor: COLORS.primaryGreen,
+    color: COLORS.white,
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: 900,
+    boxShadow: '0 10px 22px rgba(157, 200, 59, 0.25)'
+};
+
+const modalChooseButtonDisabledStyle: CSSProperties = {
+    opacity: 0.55,
+    cursor: 'not-allowed',
+    boxShadow: 'none'
 };
 
 const paidStatusContainerStyle: CSSProperties = {

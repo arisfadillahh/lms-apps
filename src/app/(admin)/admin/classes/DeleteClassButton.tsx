@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import type { MouseEvent } from 'react';
 import { useRouter } from 'next/navigation';
 
 type DeleteClassButtonProps = {
@@ -13,12 +14,22 @@ export default function DeleteClassButton({ classId, className }: DeleteClassBut
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const handleDelete = () => {
+  const handleDelete = (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
     if (isPending) {
       return;
     }
-    const confirmed = window.confirm(`Hapus kelas "${className}"? Semua sesi, block, dan enrollment akan ikut terhapus permanen.`);
-    if (!confirmed) {
+
+    const confirmationName = window.prompt(
+      `Hapus kelas "${className}"?\n\nSemua sesi, block, enrollment, presensi, dan penilaian kelas akan terhapus permanen. Riwayat pembayaran tetap disimpan.\n\nKetik nama kelas untuk melanjutkan:`,
+    );
+    if (confirmationName === null) {
+      return;
+    }
+    if (confirmationName.trim() !== className.trim()) {
+      setErrorMessage('Nama kelas tidak cocok. Penghapusan dibatalkan.');
       return;
     }
 
@@ -27,6 +38,10 @@ export default function DeleteClassButton({ classId, className }: DeleteClassBut
       try {
         const response = await fetch(`/api/admin/classes/${classId}`, {
           method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ confirmationName }),
         });
         if (!response.ok) {
           const payload = await response.json().catch(() => ({}));

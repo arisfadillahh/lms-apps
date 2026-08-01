@@ -10,7 +10,7 @@ export default function ExportEkskulLessonsButton({ planId }: { planId: string }
         try {
             setDownloading(true);
             const response = await fetch(`/api/admin/ekskul/plans/${planId}/export`);
-            if (!response.ok) throw new Error('Gagal mengexport');
+            if (!response.ok) throw new Error('Gagal mengexport lesson');
 
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
@@ -22,6 +22,7 @@ export default function ExportEkskulLessonsButton({ planId }: { planId: string }
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
         } catch (error) {
+            console.error('Export download error:', error);
             alert('Terjadi kesalahan saat mengunduh file.');
         } finally {
             setDownloading(false);
@@ -34,14 +35,24 @@ export default function ExportEkskulLessonsButton({ planId }: { planId: string }
             onClick={handleExport}
             disabled={downloading}
             style={{
-                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-                backgroundColor: '#fff', color: '#334155',
-                border: '1px solid #cbd5e1', padding: '0.5rem 1rem',
-                borderRadius: '0.375rem', fontSize: '0.9rem',
-                cursor: 'pointer', opacity: downloading ? 0.7 : 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                backgroundColor: '#fff',
+                color: '#334155',
+                border: '1px solid #cbd5e1',
+                padding: '0.5rem 1rem',
+                borderRadius: '0.375rem',
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                opacity: downloading ? 0.7 : 1,
             }}
         >
-            {downloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+            {downloading ? (
+                <Loader2 size={16} className="animate-spin" />
+            ) : (
+                <Download size={16} />
+            )}
             <span>{downloading ? 'Mengunduh...' : 'Export ke CSV'}</span>
         </button>
     );

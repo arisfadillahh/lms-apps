@@ -247,6 +247,8 @@ export type PendingEvaluationLesson = {
   lessonTitle: string;
   sessionDates: string[];
   studentsCount: number;
+  missingAttendanceCount: number;
+  canEvaluate: boolean;
 };
 
 export async function getPendingLessonEvaluationsForCoach(coachId: string): Promise<PendingEvaluationLesson[]> {
@@ -269,9 +271,9 @@ export async function getPendingLessonEvaluationsForCoach(coachId: string): Prom
     const classBlocks = klass.type === 'EKSKUL' ? [] : await classesDao.getClassBlocks(klass.id);
     // ONLY evaluate lessons in the CURRENT active block. Do not leak to UPCOMING or COMPLETED blocks.
     const activeBlockIds = new Set(classBlocks.filter(b => b.status === 'CURRENT').map(b => b.block_id));
-    const attendanceRecords = klass.type === 'EKSKUL'
-      ? await attendanceDao.listAttendanceForSessions(completedSessions.map((session) => session.id))
-      : [];
+    const attendanceRecords = await attendanceDao.listAttendanceForSessions(
+      completedSessions.map((session) => session.id),
+    );
     const attendanceBySession = new Map<string, Set<string>>();
     attendanceRecords.forEach((record) => {
       if (!attendanceBySession.has(record.session_id)) {
@@ -309,12 +311,10 @@ export async function getPendingLessonEvaluationsForCoach(coachId: string): Prom
       const relevantEnrollments = activeEnrollments;
 
       if (relevantEnrollments.length === 0) continue;
-      if (
-        klass.type === 'EKSKUL' &&
-        !relevantEnrollments.every((enrollment) => attendanceBySession.get(session.id)?.has(enrollment.coder_id))
-      ) {
-        continue;
-      }
+      const attendedCoderIds = attendanceBySession.get(session.id) ?? new Set<string>();
+      const missingAttendanceCount = relevantEnrollments.filter(
+        (enrollment) => !attendedCoderIds.has(enrollment.coder_id),
+      ).length;
 
       const allEvaluated = relevantEnrollments.every(e => evaluatedCoderIds.has(e.coder_id));
       if (allEvaluated) continue;
@@ -340,7 +340,9 @@ export async function getPendingLessonEvaluationsForCoach(coachId: string): Prom
         blockName: slot.block.name ?? 'Unknown Block',
         lessonTitle: slot.lessonTemplate.title, // Use raw title without (Part X) suffix since it applies to the whole lesson
         sessionDates: sessionDates,
-        studentsCount: activeEnrollments.length
+        studentsCount: activeEnrollments.length,
+        missingAttendanceCount,
+        canEvaluate: missingAttendanceCount === 0,
       });
     }
   }

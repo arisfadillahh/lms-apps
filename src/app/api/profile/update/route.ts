@@ -2,6 +2,12 @@ import { NextResponse } from 'next/server';
 import { getSessionOrThrow } from '@/lib/auth';
 import { usersDao } from '@/lib/dao';
 import { z } from 'zod';
+import { isValidIndonesianMobile, normalizeIndonesianPhone } from '@/lib/phoneNumbers';
+
+const profilePhoneSchema = z.string().trim().max(24).refine(
+    (value) => value === '' || isValidIndonesianMobile(value),
+    'Format nomor WhatsApp tidak valid.',
+);
 
 const updateProfileSchema = z.object({
     fullName: z.string().min(1, "Full Name is required").optional(),
@@ -13,7 +19,7 @@ const updateProfileSchema = z.object({
     schoolGrade: z.string().nullable().optional(),
     parentName: z.string().nullable().optional(),
     parentEmail: z.string().email().nullable().optional().or(z.literal('')),
-    parentContactPhone: z.string().nullable().optional(),
+    parentContactPhone: profilePhoneSchema.nullable().optional(),
     address: z.string().nullable().optional(),
     referralSource: z.string().nullable().optional(),
     // Coach-specific fields
@@ -49,7 +55,11 @@ export async function POST(request: Request) {
         if (data.schoolGrade !== undefined) updatePayload.school_grade = data.schoolGrade || null;
         if (data.parentName !== undefined) updatePayload.parent_name = data.parentName || null;
         if (data.parentEmail !== undefined) updatePayload.parent_email = data.parentEmail || null;
-        if (data.parentContactPhone !== undefined) updatePayload.parent_contact_phone = data.parentContactPhone || null;
+        if (data.parentContactPhone !== undefined) {
+            updatePayload.parent_contact_phone = data.parentContactPhone
+                ? normalizeIndonesianPhone(data.parentContactPhone)
+                : null;
+        }
         if (data.address !== undefined) updatePayload.address = data.address || null;
         if (data.referralSource !== undefined) updatePayload.referral_source = data.referralSource || null;
         // Coach-specific

@@ -8,7 +8,8 @@
 import { notFound } from 'next/navigation';
 import { getInvoiceByNumber, getInvoiceSettings } from '@/lib/dao/invoicesDao';
 import { verifyInvoicePublicToken } from '@/lib/services/invoicePublicAccess';
-import { getWhatsAppStatus } from '@/lib/services/whatsappClient';
+import { getPublicInvoicePaymentOptions } from '@/lib/invoicePaymentMethods';
+import { getStoredInvoicePaymentByInvoiceId, toPublicStoredInvoicePayment } from '@/lib/invoicePaymentStore';
 import InvoiceView from './InvoiceView';
 
 interface Props {
@@ -28,28 +29,22 @@ export default async function PublicInvoicePage({ params, searchParams }: Props)
         notFound();
     }
 
-    // Get settings for bank info
-    const settings = await getInvoiceSettings();
-    
-    // Get WA connected number
-    let waConnectedNumber = '';
-    try {
-        const waStatus = await getWhatsAppStatus();
-        if (waStatus && waStatus.connectedPhone) {
-            waConnectedNumber = waStatus.connectedPhone;
-        }
-    } catch (e) {
-        console.error("Could not fetch WA status", e);
-    }
+    const [settings, storedPayment] = await Promise.all([
+        getInvoiceSettings(),
+        getStoredInvoicePaymentByInvoiceId(invoice.id)
+    ]);
 
     return (
         <InvoiceView
             invoice={invoice}
+            publicToken={token}
+            paymentOptions={getPublicInvoicePaymentOptions(invoice.total_amount)}
+            initialPayment={storedPayment && token ? toPublicStoredInvoicePayment(storedPayment, token) : null}
             bankInfo={settings ? {
                 bank_name: settings.bank_name,
                 bank_account_number: settings.bank_account_number,
                 bank_account_holder: settings.bank_account_holder,
-                admin_whatsapp_number: waConnectedNumber || settings.admin_whatsapp_number,
+                admin_whatsapp_number: settings.admin_whatsapp_number,
                 weekly_invoice_message_template: settings.weekly_invoice_message_template
             } : null}
         />

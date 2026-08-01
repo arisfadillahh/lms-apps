@@ -8,18 +8,21 @@ import CalendarModal from '@/components/coach/CalendarModal';
 import WeeklyScheduleClient from './WeeklyScheduleClient';
 import HeroCountdownClient from './HeroCountdownClient';
 import CoachDraftReportsAlert from './CoachDraftReportsAlert';
+import TrialClassSchedule from './TrialClassSchedule';
 import { StaggerContainer, StaggerItem } from '@/components/animations/StaggerContainer';
+import { listUpcomingTrialClassesForCoach } from '@/lib/dao/trialClassDao';
 
-export const revalidate = 300; // Cache dashboard data for 5 minutes
+export const dynamic = 'force-dynamic';
 
 
 export default async function CoachDashboardPage() {
     const session = await getSessionOrThrow();
-    const [classes, activeSessions, makeUpTasks, pendingLessons] = await Promise.all([
+    const [classes, activeSessions, makeUpTasks, pendingLessons, upcomingTrials] = await Promise.all([
         getCoachClassesWithBlocks(session.user.id),
         getAllCoachSessions(session.user.id),
         makeUpTasksDao.listTasksForCoach(session.user.id),
         getPendingLessonEvaluationsForCoach(session.user.id),
+        listUpcomingTrialClassesForCoach(session.user.id),
     ]);
 
     // Calculate stats
@@ -116,6 +119,10 @@ export default async function CoachDashboardPage() {
                                     </div>
                                 </div>
                             </section>
+                        </StaggerItem>
+
+                        <StaggerItem>
+                            <TrialClassSchedule trials={upcomingTrials} />
                         </StaggerItem>
 
                         <StaggerItem className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

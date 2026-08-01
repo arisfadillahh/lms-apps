@@ -17,6 +17,7 @@ export default function AddEkskulLessonButton({ planId, suggestedOrderIndex }: P
     const [title, setTitle] = useState('');
     const [summary, setSummary] = useState('');
     const [slideUrl, setSlideUrl] = useState('');
+    const [makeUpInstructions, setMakeUpInstructions] = useState('');
     const [estimatedMeetings, setEstimatedMeetings] = useState('1');
     const [orderIndex, setOrderIndex] = useState(String(suggestedOrderIndex));
     const [error, setError] = useState<string | null>(null);
@@ -26,6 +27,7 @@ export default function AddEkskulLessonButton({ planId, suggestedOrderIndex }: P
         setTitle('');
         setSummary('');
         setSlideUrl('');
+        setMakeUpInstructions('');
         setEstimatedMeetings('1');
         setOrderIndex(String(suggestedOrderIndex));
         setError(null);
@@ -48,6 +50,7 @@ export default function AddEkskulLessonButton({ planId, suggestedOrderIndex }: P
                         title: title.trim(),
                         summary: summary.trim() || null,
                         slideUrl: slideUrl.trim() || null,
+                        makeUpInstructions: makeUpInstructions.trim() || null,
                         estimatedMeetings: Number(estimatedMeetings),
                         orderIndex: Number(orderIndex),
                     }),
@@ -110,6 +113,17 @@ export default function AddEkskulLessonButton({ planId, suggestedOrderIndex }: P
                                 onChange={(e) => setSlideUrl(e.target.value)}
                                 placeholder="https://..."
                                 style={inputStyle}
+                            />
+                        </div>
+
+                        <div style={fieldStyle}>
+                            <label style={labelStyle}>Make-Up Task</label>
+                            <textarea
+                                value={makeUpInstructions}
+                                onChange={(e) => setMakeUpInstructions(e.target.value)}
+                                placeholder="Instruksi tugas otomatis untuk coder yang tidak hadir di lesson ini."
+                                rows={4}
+                                style={{ ...inputStyle, resize: 'vertical' }}
                             />
                         </div>
 
@@ -180,6 +194,8 @@ const modalStyle: CSSProperties = {
     borderRadius: '1rem',
     width: '100%',
     maxWidth: '480px',
+    maxHeight: '90vh',
+    overflowY: 'auto',
     boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
 };
 

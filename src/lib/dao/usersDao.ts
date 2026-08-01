@@ -182,21 +182,46 @@ export async function getUsersByIds(ids: string[]): Promise<UserRecord[]> {
 export async function deleteUser(userId: string): Promise<void> {
   const supabase = getSupabaseAdmin();
 
-  // Delete related records first to avoid FK constraint errors
-  // 1. Delete coder_payment_periods
-  await supabase.from('coder_payment_periods' as never).delete().eq('coder_id', userId);
+  // Preserve billing history while removing the hard FK to the deleted user.
+  const { error: invoiceItemsError } = await supabase
+    .from('invoice_items' as any)
+    .update({ coder_id: null })
+    .eq('coder_id', userId);
+  if (invoiceItemsError) {
+    throw new Error(`Failed to detach invoice items: ${invoiceItemsError.message}`);
+  }
 
-  // 2. Delete enrollments
-  await supabase.from('enrollments').delete().eq('coder_id', userId);
+  const { error: paymentPeriodsError } = await supabase
+    .from('coder_payment_periods' as any)
+    .update({ coder_id: null, status: 'EXPIRED' })
+    .eq('coder_id', userId);
+  if (paymentPeriodsError) {
+    throw new Error(`Failed to detach payment periods: ${paymentPeriodsError.message}`);
+  }
 
-  // 3. Delete attendance records
-  await supabase.from('attendance').delete().eq('coder_id', userId);
+  // Delete related learning/access records first to avoid FK constraint errors.
+  const { error: enrollmentError } = await supabase.from('enrollments').delete().eq('coder_id', userId);
+  if (enrollmentError) {
+    throw new Error(`Failed to delete enrollments: ${enrollmentError.message}`);
+  }
 
-  // 4. Delete coder_block_progress
-  await supabase.from('coder_block_progress').delete().eq('coder_id', userId);
+  const { error: attendanceError } = await supabase.from('attendance').delete().eq('coder_id', userId);
+  if (attendanceError) {
+    throw new Error(`Failed to delete attendance records: ${attendanceError.message}`);
+  }
 
-  // 5. Delete invoices
-  await supabase.from('invoices' as never).delete().eq('coder_id', userId);
+  const { error: blockCompletionsError } = await supabase
+    .from('coder_block_completions' as any)
+    .delete()
+    .eq('coder_id', userId);
+  if (blockCompletionsError) {
+    throw new Error(`Failed to delete block completions: ${blockCompletionsError.message}`);
+  }
+
+  const { error: blockProgressError } = await supabase.from('coder_block_progress').delete().eq('coder_id', userId);
+  if (blockProgressError) {
+    throw new Error(`Failed to delete coder block progress: ${blockProgressError.message}`);
+  }
 
   // Delete from Supabase Auth (ignore errors if not exists)
   const { error: authError } = await supabase.auth.admin.deleteUser(userId);

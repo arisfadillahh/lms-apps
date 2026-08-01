@@ -13,6 +13,7 @@ import {
 } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
 import { getAppBaseUrl } from '@/lib/env';
+import { computeLessonSchedule } from '@/lib/services/lessonScheduler';
 import { sendAbsentNotification } from '@/lib/services/whatsappClient';
 import { getInvoiceSettings } from '@/lib/dao/invoicesDao';
 
@@ -107,7 +108,19 @@ export async function POST(request: Request) {
     }
   }
 
-  const makeUpInstructions = classLesson?.make_up_instructions ?? null;
+  let makeUpInstructions = classLesson?.make_up_instructions ?? null;
+  let classLessonId = classLesson?.id ?? null;
+
+  if (classRecord.type === 'EKSKUL' && classRecord.ekskul_lesson_plan_id) {
+    const lessonScheduleMap = await computeLessonSchedule(
+      classRecord.id,
+      classRecord.level_id ?? null,
+      classRecord.ekskul_lesson_plan_id,
+    );
+    const currentLessonSlot = lessonScheduleMap.get(sessionId);
+    makeUpInstructions = currentLessonSlot?.lessonTemplate.make_up_instructions ?? makeUpInstructions;
+    classLessonId = null;
+  }
 
   const result = await attendanceDao.markAttendance({
     sessionId,
@@ -117,7 +130,7 @@ export async function POST(request: Request) {
     recordedBy: coachSession.user.id,
     makeUpDueDate,
     createMakeUpTask: status === 'ABSENT' || status === 'EXCUSED',
-    classLessonId: classLesson?.id,
+    classLessonId,
     instructions: makeUpInstructions ?? undefined,
   });
 

@@ -1,0 +1,644 @@
+.page {
+  --navy: #06183b;
+  --ocean: #057be3;
+  --aqua: #0bbcdf;
+  --sky: #54caed;
+  --green: #4ac34d;
+  --yellow: #f2b929;
+  --orange: #e57a16;
+  --white: #fafbfa;
+  --gray: #e5ecef;
+  --text: #0b1020;
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 12%, rgba(255, 255, 255, 0.9), transparent 15%),
+    radial-gradient(circle at 82% 8%, rgba(242, 185, 41, 0.44), transparent 19%),
+    linear-gradient(155deg, #057be3 0%, #0bbcdf 42%, #54caed 70%, #ffe38a 100%);
+  color: var(--text);
+  font-family: var(--font-geist-sans), "Nunito", system-ui, sans-serif;
+  position: relative;
+}
+
+.page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.26) 1px, transparent 1px);
+  background-size: 18px 18px;
+  opacity: 0.42;
+}
+
+.palm {
+  position: fixed;
+  z-index: 1;
+  pointer-events: none;
+  width: clamp(100px, 22vw, 280px);
+}
+
+.palmLeft {
+  top: 0;
+  left: -36px;
+}
+
+.palmRight {
+  top: 0;
+  right: -44px;
+}
+
+.nav,
+.hero,
+.section,
+.finalCta {
+  position: relative;
+  z-index: 2;
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 0;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+}
+
+.brand img {
+  width: 112px;
+  height: auto;
+  border-radius: 14px;
+  box-shadow: 0 14px 30px rgba(6, 24, 59, 0.12);
+}
+
+.nav div {
+  display: none;
+}
+
+.nav a {
+  color: var(--navy);
+  font-size: 14px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.navCta {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(6, 24, 59, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  padding: 0 18px;
+  box-shadow: 0 12px 26px rgba(6, 24, 59, 0.12);
+}
+
+.floatingChat {
+  position: fixed;
+  z-index: 30;
+  right: max(18px, env(safe-area-inset-right));
+  bottom: max(18px, env(safe-area-inset-bottom));
+  display: inline-flex;
+  width: 58px;
+  height: 58px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 3px solid rgba(255, 255, 255, 0.88);
+  border-radius: 50%;
+  background: #25d366;
+  color: #ffffff;
+  text-decoration: none;
+  box-shadow: 0 18px 36px rgba(6, 24, 59, 0.25), 0 8px 18px rgba(37, 211, 102, 0.24);
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.floatingChat:hover {
+  background: #1ebe5d;
+  transform: translateY(-2px);
+  box-shadow: 0 22px 42px rgba(6, 24, 59, 0.28), 0 10px 22px rgba(37, 211, 102, 0.28);
+}
+
+.whatsappLogo {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+}
+
+.hero {
+  display: grid;
+  gap: 22px;
+  padding: 18px 0 42px;
+}
+
+.heroCopy,
+.heroVisual,
+.problem,
+.section,
+.finalCta {
+  border: 1px solid rgba(255, 255, 255, 0.68);
+  border-radius: 28px;
+  background: rgba(250, 251, 250, 0.92);
+  box-shadow: 0 24px 54px rgba(6, 24, 59, 0.18);
+}
+
+.heroCopy {
+  display: grid;
+  gap: 18px;
+  padding: 24px 20px;
+}
+
+.heroLogo {
+  width: min(340px, 100%);
+  height: auto;
+  filter: drop-shadow(0 18px 28px rgba(6, 24, 59, 0.16));
+}
+
+.hero h1,
+.section h2,
+.finalCta h2 {
+  margin: 0;
+  color: var(--navy);
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 1.04;
+}
+
+.hero h1 {
+  max-width: 11ch;
+  font-size: clamp(42px, 14vw, 74px);
+}
+
+.hero p,
+.section p,
+.finalCta p {
+  margin: 0;
+  color: #425575;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.heroCopy > p {
+  max-width: 50ch;
+}
+
+.heroActions {
+  display: grid;
+  gap: 12px;
+}
+
+.primaryButton,
+.secondaryButton,
+.priceCard a,
+.levelCard a {
+  display: inline-flex;
+  min-height: 54px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border-radius: 18px;
+  padding: 0 20px;
+  font-size: 15px;
+  font-weight: 950;
+  text-decoration: none;
+}
+
+.primaryButton,
+.priceCard a {
+  border: 1px solid #dca313;
+  background: linear-gradient(180deg, var(--yellow), var(--orange));
+  color: var(--navy);
+  box-shadow: 0 18px 28px rgba(229, 122, 22, 0.26);
+}
+
+.secondaryButton,
+.levelCard a {
+  border: 1px solid rgba(84, 202, 237, 0.36);
+  background: #ffffff;
+  color: var(--navy);
+}
+
+.heroBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.heroBadges img {
+  width: auto;
+  height: 58px;
+  max-width: min(100%, 280px);
+  object-fit: contain;
+  filter: drop-shadow(0 12px 18px rgba(6, 24, 59, 0.12));
+}
+
+.heroVisual {
+  min-height: 330px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(222, 250, 255, 0.72)),
+    rgba(250, 251, 250, 0.86);
+  position: relative;
+}
+
+.heroBubble {
+  width: min(500px, 100%);
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 24px 42px rgba(6, 24, 59, 0.18));
+}
+
+.drone {
+  position: absolute;
+  top: 28px;
+  right: 22px;
+  width: min(180px, 38%);
+  height: auto;
+  filter: drop-shadow(0 18px 24px rgba(6, 24, 59, 0.18));
+}
+
+.section {
+  display: grid;
+  gap: 22px;
+  margin-bottom: 22px;
+  padding: 24px 20px;
+}
+
+.sectionHeader {
+  display: grid;
+  gap: 10px;
+  max-width: 720px;
+}
+
+.section h2,
+.finalCta h2 {
+  font-size: clamp(30px, 8vw, 48px);
+}
+
+.problem {
+  display: grid;
+  gap: 18px;
+  margin-bottom: 22px;
+  padding: 24px 20px;
+}
+
+.problem img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  max-width: 560px;
+  object-fit: contain;
+  justify-self: center;
+  border-radius: 24px;
+  background: #dff9ff;
+  box-shadow: 0 18px 36px rgba(6, 24, 59, 0.16);
+}
+
+.levelGrid,
+.priceGrid,
+.galleryGrid,
+.outcomeGrid {
+  display: grid;
+  gap: 14px;
+}
+
+.levelCard,
+.priceCard,
+.galleryCard,
+.outcomeCard,
+.whyList div,
+.faqList details {
+  border: 1px solid rgba(84, 202, 237, 0.24);
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 12px 26px rgba(6, 24, 59, 0.07);
+}
+
+.levelCard {
+  display: grid;
+  gap: 16px;
+  overflow: hidden;
+  padding: 16px;
+}
+
+.levelCard > img {
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  max-height: 250px;
+  object-fit: contain;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #e9fbff, #ffffff);
+}
+
+.levelCard div {
+  display: grid;
+  gap: 10px;
+}
+
+.levelCard h3,
+.priceCard h3,
+.galleryCard h3 {
+  margin: 0;
+  color: var(--navy);
+  font-size: 24px;
+  font-weight: 950;
+}
+
+.levelCard span,
+.priceCard span {
+  color: var(--ocean);
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.levelCard ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.levelCard li {
+  border-radius: 999px;
+  background: #e9f8ff;
+  color: var(--navy);
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.outcomes {
+  background: linear-gradient(135deg, rgba(6, 24, 59, 0.98), rgba(5, 123, 227, 0.94));
+}
+
+.outcomes h2,
+.outcomes p {
+  color: #ffffff;
+}
+
+.outcomes p {
+  opacity: 0.82;
+}
+
+.outcomeCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  color: var(--navy);
+}
+
+.outcomeCard svg {
+  color: var(--ocean);
+  flex: 0 0 auto;
+}
+
+.why {
+  align-items: start;
+}
+
+.whyList {
+  display: grid;
+  gap: 10px;
+}
+
+.whyList div {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 14px;
+  color: var(--navy);
+  font-weight: 900;
+}
+
+.whyList svg {
+  color: var(--green);
+  flex: 0 0 auto;
+}
+
+.priceCard {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+}
+
+.priceCard h3 {
+  font-size: 30px;
+}
+
+.gallery {
+  background: rgba(6, 24, 59, 0.94);
+}
+
+.gallery h2,
+.gallery p {
+  color: #ffffff;
+}
+
+.gallery p {
+  opacity: 0.82;
+}
+
+.galleryCard {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  overflow: hidden;
+  padding: 12px;
+}
+
+.galleryCard img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  object-fit: cover;
+  border-radius: 16px;
+  background: #e9fbff;
+}
+
+.galleryCard div {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.galleryCard h3 {
+  font-size: 18px;
+  line-height: 1.12;
+}
+
+.galleryCard p {
+  color: #53657f;
+  opacity: 1;
+}
+
+.faqList {
+  display: grid;
+  gap: 10px;
+}
+
+.faqList details {
+  overflow: hidden;
+  padding: 0;
+}
+
+.faqList summary {
+  cursor: pointer;
+  color: var(--navy);
+  font-size: 16px;
+  font-weight: 950;
+  list-style: none;
+  padding: 16px;
+}
+
+.faqList summary::-webkit-details-marker {
+  display: none;
+}
+
+.faqList p {
+  border-top: 1px solid #e9f1f7;
+  padding: 0 16px 16px;
+}
+
+.finalCta {
+  justify-items: center;
+  margin-bottom: 42px;
+  padding: 34px 20px;
+  text-align: center;
+}
+
+.finalCta svg {
+  color: var(--orange);
+}
+
+.finalCta p {
+  max-width: 620px;
+}
+
+@media (min-width: 720px) {
+  .nav div {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+  }
+
+  .heroActions,
+  .heroBadges {
+    grid-template-columns: max-content max-content;
+    align-items: center;
+  }
+
+  .levelGrid,
+  .priceGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .outcomeGrid,
+  .galleryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .why,
+  .problem {
+    grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+    align-items: center;
+  }
+}
+
+@media (min-width: 980px) {
+  .nav {
+    padding-top: 22px;
+  }
+
+  .hero {
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 0.78fr);
+    align-items: stretch;
+    min-height: 690px;
+  }
+
+  .heroCopy {
+    padding: 42px;
+  }
+
+  .heroVisual {
+    min-height: 0;
+  }
+
+  .section,
+  .problem {
+    padding: 36px;
+  }
+
+  .outcomeGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .galleryGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .page {
+    padding-bottom: 72px;
+  }
+
+  .nav,
+  .hero,
+  .section,
+  .finalCta {
+    width: min(100% - 20px, 1120px);
+  }
+
+  .brand img {
+    width: 94px;
+  }
+
+  .navCta {
+    min-height: 38px;
+    padding: 0 14px;
+  }
+
+  .hero {
+    padding-top: 4px;
+  }
+
+  .heroCopy,
+  .heroVisual,
+  .problem,
+  .section,
+  .finalCta {
+    border-radius: 24px;
+  }
+
+  .hero h1 {
+    font-size: clamp(38px, 13vw, 52px);
+  }
+
+  .heroVisual {
+    min-height: 300px;
+  }
+
+  .heroLogo {
+    width: min(300px, 100%);
+  }
+
+  .floatingChat {
+    right: max(14px, env(safe-area-inset-right));
+    bottom: max(14px, env(safe-area-inset-bottom));
+    width: 56px;
+    height: 56px;
+  }
+}

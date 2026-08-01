@@ -20,10 +20,11 @@ export function buildPaymentConfirmationMessage(
   invoice: PaymentConfirmationInvoice,
   settings: PaymentConfirmationSettings,
   paidAt: string,
+  invoiceUrlOverride?: string,
 ): string {
   const formattedAmount = new Intl.NumberFormat('id-ID').format(invoice.total_amount);
   const paidDate = formatPaymentConfirmationPaidDate(paidAt);
-  const invoiceUrl = buildInvoicePublicUrl(settings.base_url, invoice);
+  const invoiceUrl = invoiceUrlOverride || buildInvoicePublicUrl(settings.base_url, invoice);
 
   return settings.payment_confirmation_template
     .replace(/{parent_name}/g, invoice.parent_name)

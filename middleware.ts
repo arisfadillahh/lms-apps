@@ -5,21 +5,25 @@ import { getToken } from 'next-auth/jwt';
 import { getRoleDashboardPath } from '@/lib/routing';
 import type { Role } from '@/types/supabase';
 
-const PUBLIC_PATHS = new Set<string>(['/']);
+const PUBLIC_PATHS = new Set<string>(['/', '/holidayclas2026', '/free-trial']);
 
 // Additional public path prefixes (no auth required)
 const PUBLIC_PREFIXES = [
+  '/i',
+  '/certificate',
   '/invoice',
   '/report',
   '/api/cron',
   '/api/jobs/reminders',
   '/api/invoices/seasonal',
+  '/api/free-trial',
   '/api/whatsapp/send',
 ];
 
 type AdminMenuId =
   | 'dashboard'
   | 'users'
+  | 'freeTrials'
   | 'classes'
   | 'curriculum'
   | 'lessonReports'
@@ -62,6 +66,7 @@ const ADMIN_ACCESS_RULES: AdminAccessRule[] = [
   { prefix: '/admin/profile', menus: null },
   { prefix: '/admin/dashboard', menus: null },
   { prefix: '/admin/users', menus: ['users'] },
+  { prefix: '/admin/free-trials', menus: ['freeTrials'] },
   { prefix: '/admin/classes', menus: ['classes'] },
   { prefix: '/admin/curriculum/reports', menus: ['lessonReports'] },
   { prefix: '/admin/curriculum', menus: ['curriculum'] },
@@ -171,11 +176,73 @@ function isPublicPath(pathname: string): boolean {
   if (pathname.startsWith('/api/auth')) {
     return true;
   }
+  if (isPublicInvoicePaymentApiPath(pathname) || pathname === '/api/midtrans/notification') {
+    return true;
+  }
   // Check public prefixes (like /invoice/*)
   if (PUBLIC_PREFIXES.some(prefix => matchesPathPrefix(pathname, prefix))) {
     return true;
   }
   return PUBLIC_PATHS.has(pathname);
+}
+
+function isPublicInvoicePaymentApiPath(pathname: string): boolean {
+  const segments = pathname.split('/').filter(Boolean);
+  return segments[0] === 'api'
+    && segments[1] === 'invoices'
+    && segments.length === 4
+    && (segments[3] === 'payment-method' || segments[3] === 'payment-qr');
+}
+
+function isCoreInvoiceApiRequest(request: NextRequest): boolean {
+  const pathname = request.nextUrl.pathname;
+  const method = request.method.toUpperCase();
+  const segments = pathname.split('/').filter(Boolean);
+
+  if (method === 'POST' && pathname === '/api/invoices') {
+    return true;
+  }
+
+  if (segments[0] !== 'api' || segments[1] !== 'invoices') {
+    return false;
+  }
+
+  if (method === 'GET' && segments.length === 3) {
+    return !['seasonal', 'settings'].includes(segments[2]);
+  }
+
+  if (method === 'PATCH' && segments.length === 3) {
+    return !['seasonal', 'settings'].includes(segments[2]);
+  }
+
+  if (method === 'POST' && segments.length === 4 && segments[3] === 'resend') {
+    return !['seasonal', 'settings'].includes(segments[2]);
+  }
+
+  if (method === 'POST' && segments.length === 4 && segments[3] === 'mark-paid') {
+    return !['seasonal', 'settings'].includes(segments[2]);
+  }
+
+  return false;
+}
+
+function isCoreShortLinkApiRequest(request: NextRequest): boolean {
+  return request.method.toUpperCase() === 'POST' && request.nextUrl.pathname === '/api/short-links';
+}
+
+function isCoreCertificateApiRequest(request: NextRequest): boolean {
+  return request.method.toUpperCase() === 'POST' && request.nextUrl.pathname === '/api/certificates/generate';
+}
+
+function hasCoreApiToken(request: NextRequest): boolean {
+  const expectedToken = process.env.LMS_CORE_API_TOKEN?.trim();
+  if (!expectedToken) {
+    return false;
+  }
+
+  const authorization = request.headers.get('authorization') || '';
+  const actualToken = authorization.replace(/^Bearer\s+/i, '').trim();
+  return actualToken === expectedToken;
 }
 
 function normalizeRole(role: unknown): Role | null {
@@ -322,6 +389,10 @@ function buildForbiddenResponse(request: NextRequest, role: Role | undefined) {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if ((isCoreInvoiceApiRequest(request) || isCoreShortLinkApiRequest(request) || isCoreCertificateApiRequest(request)) && hasCoreApiToken(request)) {
+    return NextResponse.next();
+  }
 
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
 

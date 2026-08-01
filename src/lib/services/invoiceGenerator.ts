@@ -11,14 +11,15 @@ import {
     createInvoice,
     createInvoiceItems,
     getInvoiceSettings,
-    invoiceExistsForParent
+    getMonthlyInvoiceForParent,
+    updateInvoiceSummary
 } from '@/lib/dao/invoicesDao';
 import type { GenerateInvoicesResponse, Invoice, InvoiceItem } from '@/lib/types/invoice';
 
 interface CoderPaymentData {
     id: string;
     coder_id: string;
-    class_id: string;
+    class_id: string | null;
     total_amount: number;
     start_date: string;
     end_date: string;
@@ -132,8 +133,23 @@ export async function generateInvoicesForMonth(
             return result;
         }
 
+        const activeEnrollmentKeys = await getActiveEnrollmentKeys(supabase, periods as unknown as CoderPaymentData[]);
+        const invoiceablePeriods = (periods as unknown as CoderPaymentData[]).filter((period) => {
+            if (!period.class_id) return false;
+            return activeEnrollmentKeys.has(getEnrollmentKey(period.coder_id, period.class_id));
+        });
+        const skippedWithoutEnrollment = periods.length - invoiceablePeriods.length;
+        if (skippedWithoutEnrollment > 0) {
+            console.log(`[InvoiceGenerator] Skipping ${skippedWithoutEnrollment} periods without active class enrollment`);
+        }
+
+        if (invoiceablePeriods.length === 0) {
+            result.errors.push('No invoiceable active payment periods found for this month.');
+            return result;
+        }
+
         // 3. Group by parent phone
-        const parentGroups = groupByParentPhone(periods as unknown as CoderPaymentData[]);
+        const parentGroups = groupByParentPhone(invoiceablePeriods);
         console.log(`[InvoiceGenerator] Grouped into ${parentGroups.length} parent groups`);
 
         // 4. Generate invoice for each parent group
@@ -144,14 +160,6 @@ export async function generateInvoicesForMonth(
                     console.warn(`[InvoiceGenerator] Skipping group ${group.parentName} - No phone`);
                     result.skipped++;
                     result.errors.push(`Skipped: No parent phone for ${group.parentName}`);
-                    continue;
-                }
-
-                // Check if invoice already exists for this parent/month
-                const exists = await invoiceExistsForParent(group.parentPhone, month, year);
-                if (exists) {
-                    console.log(`[InvoiceGenerator] Invoice exists for ${group.parentName}`);
-                    result.skipped++;
                     continue;
                 }
 
@@ -243,6 +251,72 @@ export async function generateInvoicesForMonth(
                 // 2. Fallback to generated group name ("Orang Tua dari...")
                 const finalParentName = ccr.parent_name || group.parentName;
 
+                const periodStartDate = invoiceStartDate.toISOString().split('T')[0];
+                const periodEndDate = invoiceEndDate.toISOString().split('T')[0];
+                const existingInvoice = await getMonthlyInvoiceForParent(group.parentPhone, month, year);
+
+                if (existingInvoice) {
+                    const existingItems = existingInvoice.items ?? [];
+                    const existingPeriodIds = new Set(
+                        existingItems
+                            .map((item) => item.payment_period_id)
+                            .filter((id): id is string => Boolean(id))
+                    );
+                    const itemsToCreate = items.filter((item) => {
+                        return !item.payment_period_id || !existingPeriodIds.has(item.payment_period_id);
+                    });
+
+                    if (itemsToCreate.length === 0) {
+                        console.log(`[InvoiceGenerator] Invoice already has all items for ${group.parentName}`);
+                        result.skipped++;
+                        continue;
+                    }
+
+                    if (existingInvoice.status === 'PAID') {
+                        console.warn(`[InvoiceGenerator] Cannot add missing items to paid invoice ${existingInvoice.invoice_number}`);
+                        result.skipped++;
+                        result.errors.push(`Skipped: Invoice ${existingInvoice.invoice_number} is already PAID but has missing items for ${group.parentName}`);
+                        continue;
+                    }
+
+                    const invoiceItems = await createInvoiceItems(
+                        itemsToCreate.map(item => ({ ...item, invoice_id: existingInvoice.id }))
+                    );
+
+                    if (invoiceItems.length === 0) {
+                        result.errors.push(`Failed to add missing invoice items for ${group.parentName}`);
+                        continue;
+                    }
+
+                    if (invoiceItems.length !== itemsToCreate.length) {
+                        result.errors.push(`Partial update: only added ${invoiceItems.length}/${itemsToCreate.length} missing items for ${group.parentName}`);
+                    }
+
+                    const addedAmount = invoiceItems.reduce((sum, item) => sum + item.final_price, 0);
+                    const existingStartDate = existingInvoice.period_start_date ? new Date(existingInvoice.period_start_date) : invoiceStartDate;
+                    const existingEndDate = existingInvoice.period_end_date ? new Date(existingInvoice.period_end_date) : invoiceEndDate;
+                    const mergedStartDate = existingStartDate < invoiceStartDate ? existingStartDate : invoiceStartDate;
+                    const mergedEndDate = existingEndDate > invoiceEndDate ? existingEndDate : invoiceEndDate;
+
+                    const updatedInvoice = await updateInvoiceSummary(existingInvoice.id, {
+                        total_amount: existingInvoice.total_amount + addedAmount,
+                        period_start_date: mergedStartDate.toISOString().split('T')[0],
+                        period_end_date: mergedEndDate.toISOString().split('T')[0]
+                    });
+
+                    if (!updatedInvoice) {
+                        result.errors.push(`Failed to update invoice total for ${group.parentName}`);
+                        continue;
+                    }
+
+                    result.generated++;
+                    result.invoices.push({
+                        ...updatedInvoice,
+                        items: [...existingItems, ...(invoiceItems as InvoiceItem[])]
+                    });
+                    continue;
+                }
+
                 // Create invoice with period dates
                 const invoice = await createInvoice({
                     ccr_id: ccr.id,
@@ -251,8 +325,8 @@ export async function generateInvoicesForMonth(
                     parent_name: finalParentName,
                     period_month: month,
                     period_year: year,
-                    period_start_date: invoiceStartDate.toISOString().split('T')[0],
-                    period_end_date: invoiceEndDate.toISOString().split('T')[0],
+                    period_start_date: periodStartDate,
+                    period_end_date: periodEndDate,
                     total_amount: totalAmount,
                     due_date: dueDate
                 });
@@ -287,6 +361,36 @@ export async function generateInvoicesForMonth(
         result.errors.push(`Unexpected error: ${String(err)}`);
         return result;
     }
+}
+
+function getEnrollmentKey(coderId: string, classId: string): string {
+    return `${coderId}:${classId}`;
+}
+
+async function getActiveEnrollmentKeys(
+    supabase: ReturnType<typeof getSupabaseAdmin>,
+    periods: CoderPaymentData[]
+): Promise<Set<string>> {
+    const classPeriods = periods.filter((period) => period.class_id);
+    if (classPeriods.length === 0) {
+        return new Set();
+    }
+
+    const coderIds = Array.from(new Set(classPeriods.map((period) => period.coder_id)));
+    const classIds = Array.from(new Set(classPeriods.map((period) => period.class_id as string)));
+
+    const { data, error } = await supabase
+        .from('enrollments')
+        .select('coder_id, class_id')
+        .in('coder_id', coderIds)
+        .in('class_id', classIds)
+        .eq('status', 'ACTIVE');
+
+    if (error) {
+        throw new Error(`Failed to check active enrollments: ${error.message}`);
+    }
+
+    return new Set((data ?? []).map((enrollment) => getEnrollmentKey(enrollment.coder_id, enrollment.class_id)));
 }
 
 /**

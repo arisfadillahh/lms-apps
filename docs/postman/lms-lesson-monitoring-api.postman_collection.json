@@ -1,0 +1,658 @@
+{
+  "info": {
+    "_postman_id": "7d0c3126-40e9-49a0-8f75-lesson-monitoring-clevio",
+    "name": "Clevio LMS - Lesson Monitoring API",
+    "description": "Postman collection untuk API LMS yang berhubungan dengan progress lesson/block dan laporan masalah lesson. Catatan: endpoint yang tersedia sekarang masih memakai NextAuth session cookie, bukan public API key. Untuk production HTTPS, isi variable `nextAuthSecureSessionToken` dari cookie `__Secure-next-auth.session-token`. Untuk local/dev, isi `nextAuthSessionToken` dari cookie `next-auth.session-token`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://lms.clev.io",
+      "type": "string"
+    },
+    {
+      "key": "nextAuthSecureSessionToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "nextAuthSessionToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "classId",
+      "value": "00000000-0000-4000-8000-000000000000",
+      "type": "string"
+    },
+    {
+      "key": "coderId",
+      "value": "00000000-0000-4000-8000-000000000000",
+      "type": "string"
+    },
+    {
+      "key": "lessonTemplateId",
+      "value": "00000000-0000-4000-8000-000000000000",
+      "type": "string"
+    },
+    {
+      "key": "reportId",
+      "value": "00000000-0000-4000-8000-000000000000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth Notes",
+      "item": [
+        {
+          "name": "How to Authenticate",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "__Secure-next-auth.session-token={{nextAuthSecureSessionToken}}; next-auth.session-token={{nextAuthSessionToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "login"
+              ]
+            },
+            "description": "Collection ini memakai session login LMS. Login dulu sebagai ADMIN atau COACH di browser, lalu copy cookie NextAuth ke variable collection. Endpoint ADMIN butuh role ADMIN. Endpoint COACH butuh role COACH."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Progress / Lesson Belum Selesai",
+      "description": "Endpoint existing saat ini menyediakan progress block/journey. Belum ada endpoint khusus yang mengembalikan lesson-level unfinished list. Jika butuh benar-benar daftar lesson belum selesai per class/coder, perlu tambah endpoint baru, misalnya `GET /api/admin/classes/:classId/unfinished-lessons?coderId=:coderId`.",
+      "item": [
+        {
+          "name": "Get Coder Journey Progress in Class",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "__Secure-next-auth.session-token={{nextAuthSecureSessionToken}}; next-auth.session-token={{nextAuthSessionToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/classes/{{classId}}/progress?coderId={{coderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "classes",
+                "{{classId}}",
+                "progress"
+              ],
+              "query": [
+                {
+                  "key": "coderId",
+                  "value": "{{coderId}}",
+                  "description": "User ID coder yang ingin dicek progress-nya."
+                }
+              ]
+            },
+            "description": "Role: ADMIN. Mengembalikan journey block coder di level class tersebut. Status block: `PENDING`, `IN_PROGRESS`, atau `COMPLETED`. Ini bisa dipakai untuk tahu bagian pembelajaran mana yang belum selesai pada level block, bukan lesson detail."
+          },
+          "response": [
+            {
+              "name": "200 - Journey progress",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__Secure-next-auth.session-token={{nextAuthSecureSessionToken}}; next-auth.session-token={{nextAuthSessionToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/classes/{{classId}}/progress?coderId={{coderId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "classes",
+                    "{{classId}}",
+                    "progress"
+                  ],
+                  "query": [
+                    {
+                      "key": "coderId",
+                      "value": "{{coderId}}"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"journey\": [\n    {\n      \"block_id\": \"7f4b2e10-0000-4000-8000-000000000001\",\n      \"block_name\": \"Game Development Basic\",\n      \"status\": \"IN_PROGRESS\",\n      \"journey_order\": 1\n    },\n    {\n      \"block_id\": \"7f4b2e10-0000-4000-8000-000000000002\",\n      \"block_name\": \"App Development\",\n      \"status\": \"PENDING\",\n      \"journey_order\": 2\n    }\n  ]\n}"
+            },
+            {
+              "name": "400 - Missing params",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/classes/{{classId}}/progress",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "classes",
+                    "{{classId}}",
+                    "progress"
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"Missing classId or coderId\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Completed Blocks for Coder",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "__Secure-next-auth.session-token={{nextAuthSecureSessionToken}}; next-auth.session-token={{nextAuthSessionToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/coders/{{coderId}}/progress",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "coders",
+                "{{coderId}}",
+                "progress"
+              ]
+            },
+            "description": "Role: ADMIN. Mengembalikan block yang sudah pernah ditandai selesai untuk coder. Endpoint ini lebih cocok untuk audit completed blocks, bukan daftar lesson belum selesai."
+          },
+          "response": [
+            {
+              "name": "200 - Completed blocks",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__Secure-next-auth.session-token={{nextAuthSecureSessionToken}}; next-auth.session-token={{nextAuthSessionToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/coders/{{coderId}}/progress",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "coders",
+                    "{{coderId}}",
+                    "progress"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"completions\": [\n    {\n      \"id\": \"completion-id\",\n      \"block_id\": \"block-id\",\n      \"completed_at\": \"2026-07-09T10:00:00.000Z\",\n      \"completed_by_admin\": true,\n      \"block_templates\": {\n        \"name\": \"Game Development Basic\",\n        \"level_id\": \"level-id\"\n      }\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Lesson Reports",
+      "description": "Endpoint untuk coach membuat laporan masalah lesson dan admin mengubah status laporan. List laporan di dashboard admin saat ini masih server-render dari database, belum punya GET API JSON terpisah.",
+      "item": [
+        {
+          "name": "Create Lesson Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "__Secure-next-auth.session-token={{nextAuthSecureSessionToken}}; next-auth.session-token={{nextAuthSessionToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lessonTemplateId\": \"{{lessonTemplateId}}\",\n  \"reportType\": \"BUG\",\n  \"description\": \"Slide bagian challenge tidak bisa dibuka.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/coach/lesson-reports",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "coach",
+                "lesson-reports"
+              ]
+            },
+            "description": "Role: COACH. Membuat laporan masalah pada lesson template. `reportType` harus salah satu: `TOO_DIFFICULT`, `UNCLEAR`, `BUG`, `OUTDATED`, `OTHER`. Jika sukses, sistem juga membuat notification untuk semua admin."
+          },
+          "response": [
+            {
+              "name": "201 - Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__Secure-next-auth.session-token={{nextAuthSecureSessionToken}}; next-auth.session-token={{nextAuthSessionToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"lessonTemplateId\": \"{{lessonTemplateId}}\",\n  \"reportType\": \"BUG\",\n  \"description\": \"Slide bagian challenge tidak bisa dibuka.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/coach/lesson-reports",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "coach",
+                    "lesson-reports"
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"report\": {\n    \"id\": \"report-id\",\n    \"lesson_template_id\": \"lesson-template-id\",\n    \"coach_id\": \"coach-user-id\",\n    \"report_type\": \"BUG\",\n    \"description\": \"Slide bagian challenge tidak bisa dibuka.\",\n    \"status\": \"PENDING\",\n    \"created_at\": \"2026-07-09T10:00:00.000Z\"\n  }\n}"
+            },
+            {
+              "name": "400 - Validation failed",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"lessonTemplateId\": \"invalid\",\n  \"reportType\": \"WRONG_TYPE\",\n  \"description\": \"x\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/coach/lesson-reports",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "coach",
+                    "lesson-reports"
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"Validation failed\",\n  \"details\": {\n    \"fieldErrors\": {\n      \"lessonTemplateId\": [\"Invalid UUID\"],\n      \"reportType\": [\"Invalid option\"],\n      \"description\": [\"Too small: expected string to have >=3 characters\"]\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Lesson Report Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "__Secure-next-auth.session-token={{nextAuthSecureSessionToken}}; next-auth.session-token={{nextAuthSessionToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_PROGRESS\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/lesson-reports/{{reportId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "lesson-reports",
+                "{{reportId}}"
+              ]
+            },
+            "description": "Role: ADMIN. Mengubah status laporan lesson. Status valid: `PENDING`, `IN_PROGRESS`, `RESOLVED`, `DISMISSED`."
+          },
+          "response": [
+            {
+              "name": "200 - Updated",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Cookie",
+                    "value": "__Secure-next-auth.session-token={{nextAuthSecureSessionToken}}; next-auth.session-token={{nextAuthSessionToken}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"IN_PROGRESS\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/lesson-reports/{{reportId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "lesson-reports",
+                    "{{reportId}}"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"report\": {\n    \"id\": \"report-id\",\n    \"lesson_template_id\": \"lesson-template-id\",\n    \"coach_id\": \"coach-user-id\",\n    \"report_type\": \"BUG\",\n    \"description\": \"Slide bagian challenge tidak bisa dibuka.\",\n    \"status\": \"IN_PROGRESS\",\n    \"created_at\": \"2026-07-09T10:00:00.000Z\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Needed API Gap",
+      "item": [
+        {
+          "name": "Proposed - Get Unfinished Lessons",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "__Secure-next-auth.session-token={{nextAuthSecureSessionToken}}; next-auth.session-token={{nextAuthSessionToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/classes/{{classId}}/unfinished-lessons?coderId={{coderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "classes",
+                "{{classId}}",
+                "unfinished-lessons"
+              ],
+              "query": [
+                {
+                  "key": "coderId",
+                  "value": "{{coderId}}"
+                }
+              ]
+            },
+            "description": "BELUM ADA DI CODE SAAT INI. Ini recommended endpoint kalau temanmu butuh daftar lesson-level yang belum selesai. Response ideal: `lessons` berisi class lesson yang session-nya belum completed atau belum punya completion/progress."
+          },
+          "response": [
+            {
+              "name": "Proposed 200 - Unfinished lessons",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/classes/{{classId}}/unfinished-lessons?coderId={{coderId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "classes",
+                    "{{classId}}",
+                    "unfinished-lessons"
+                  ],
+                  "query": [
+                    {
+                      "key": "coderId",
+                      "value": "{{coderId}}"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"class_id\": \"class-id\",\n  \"coder_id\": \"coder-id\",\n  \"lessons\": [\n    {\n      \"class_lesson_id\": \"class-lesson-id\",\n      \"lesson_template_id\": \"lesson-template-id\",\n      \"title\": \"Variables and Logic (Part 1)\",\n      \"block_name\": \"Game Development Basic\",\n      \"session_id\": \"session-id\",\n      \"session_status\": \"SCHEDULED\",\n      \"unlock_at\": \"2026-07-09T10:00:00.000Z\",\n      \"order_index\": 1001\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Proposed - List Lesson Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "__Secure-next-auth.session-token={{nextAuthSecureSessionToken}}; next-auth.session-token={{nextAuthSessionToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/lesson-reports?status=PENDING",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "lesson-reports"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING",
+                  "description": "Optional. PENDING, IN_PROGRESS, RESOLVED, DISMISSED."
+                }
+              ]
+            },
+            "description": "BELUM ADA DI CODE SAAT INI. Dashboard admin mengambil laporan langsung dari server component/database. Jika external/integration butuh tahu ada report lesson, endpoint list JSON ini sebaiknya ditambahkan."
+          },
+          "response": [
+            {
+              "name": "Proposed 200 - Lesson reports",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/admin/lesson-reports?status=PENDING",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "lesson-reports"
+                  ],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "PENDING"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"reports\": [\n    {\n      \"id\": \"report-id\",\n      \"status\": \"PENDING\",\n      \"report_type\": \"BUG\",\n      \"description\": \"Slide bagian challenge tidak bisa dibuka.\",\n      \"created_at\": \"2026-07-09T10:00:00.000Z\",\n      \"coach\": {\n        \"id\": \"coach-id\",\n        \"full_name\": \"Coach Name\"\n      },\n      \"lesson\": {\n        \"id\": \"lesson-template-id\",\n        \"title\": \"Variables and Logic\",\n        \"block_id\": \"block-id\"\n      },\n      \"block\": {\n        \"id\": \"block-id\",\n        \"level_id\": \"level-id\"\n      }\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

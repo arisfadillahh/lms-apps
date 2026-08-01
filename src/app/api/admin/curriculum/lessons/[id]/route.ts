@@ -74,20 +74,37 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   try {
+    const hasContentUpdate =
+      Object.prototype.hasOwnProperty.call(updates, 'title') ||
+      Object.prototype.hasOwnProperty.call(updates, 'summary') ||
+      Object.prototype.hasOwnProperty.call(updates, 'makeUpInstructions') ||
+      Object.prototype.hasOwnProperty.call(updates, 'slideUrl') ||
+      Object.prototype.hasOwnProperty.call(updates, 'exampleUrl') ||
+      Object.prototype.hasOwnProperty.call(updates, 'exampleStoragePath');
+    const requiresStructureSync =
+      Object.prototype.hasOwnProperty.call(updates, 'orderIndex') ||
+      Object.prototype.hasOwnProperty.call(updates, 'estimatedMeetingCount');
+
     const lesson = await lessonTemplatesDao.updateLessonTemplate(lessonId, updates);
 
-    if (Object.prototype.hasOwnProperty.call(updates, 'slideUrl')) {
-      await classLessonsDao.syncTemplateLessonSlide(lessonId, lesson.slide_url);
-    }
-
-    if (Object.prototype.hasOwnProperty.call(updates, 'exampleUrl')) {
-      await classLessonsDao.syncTemplateLessonExample(lessonId, lesson.example_url ?? null, null);
-    }
-
-    if (lesson.block_id) {
+    if (requiresStructureSync && lesson.block_id) {
       // Propagate changes (especially duration/title) to active classes
       const { syncClassesForBlockTemplate } = await import('@/lib/services/lessonRebalancer');
       await syncClassesForBlockTemplate(lesson.block_id);
+    } else if (hasContentUpdate) {
+      await classLessonsDao.syncTemplateLessonContent(lessonId, {
+        title: Object.prototype.hasOwnProperty.call(updates, 'title') ? lesson.title : undefined,
+        summary: Object.prototype.hasOwnProperty.call(updates, 'summary') ? lesson.summary ?? null : undefined,
+        makeUpInstructions: Object.prototype.hasOwnProperty.call(updates, 'makeUpInstructions')
+          ? lesson.make_up_instructions ?? null
+          : undefined,
+        slideUrl: Object.prototype.hasOwnProperty.call(updates, 'slideUrl') ? lesson.slide_url ?? null : undefined,
+        exampleUrl: Object.prototype.hasOwnProperty.call(updates, 'exampleUrl') ? lesson.example_url ?? null : undefined,
+        exampleStoragePath: Object.prototype.hasOwnProperty.call(updates, 'exampleStoragePath')
+          ? lesson.example_storage_path ?? null
+          : undefined,
+        estimatedMeetingCount: lesson.estimated_meeting_count ?? null,
+      });
     }
 
     return NextResponse.json({ lesson });

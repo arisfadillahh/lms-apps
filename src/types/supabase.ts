@@ -62,6 +62,54 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['users']['Insert']>;
         Relationships: [];
       };
+      trial_class_submissions: {
+        Row: {
+          id: string;
+          student_name: string;
+          student_grade: string;
+          school_name: string;
+          parent_name: string;
+          phone: string;
+          email: string;
+          trial_mode: 'ONLINE' | 'OFFLINE';
+          notes: string | null;
+          status: 'PENDING' | 'SCHEDULED' | 'CANCELLED' | 'FAILED';
+          coach_id: string | null;
+          scheduled_at: string | null;
+          duration_minutes: number;
+          status_reason: string | null;
+          google_calendar_event_id: string | null;
+          google_meet_url: string | null;
+          assigned_at: string | null;
+          assigned_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          student_name: string;
+          student_grade: string;
+          school_name: string;
+          parent_name: string;
+          phone: string;
+          email: string;
+          trial_mode?: 'ONLINE' | 'OFFLINE';
+          notes?: string | null;
+          status?: 'PENDING' | 'SCHEDULED' | 'CANCELLED' | 'FAILED';
+          coach_id?: string | null;
+          scheduled_at?: string | null;
+          duration_minutes?: number;
+          status_reason?: string | null;
+          google_calendar_event_id?: string | null;
+          google_meet_url?: string | null;
+          assigned_at?: string | null;
+          assigned_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['trial_class_submissions']['Insert']>;
+        Relationships: [];
+      };
       levels: {
         Row: {
           id: string;
@@ -1008,6 +1056,7 @@ export interface Database {
           summary: string | null;
           slide_url: string | null;
           example_url: string | null;
+          make_up_instructions: string | null;
           order_index: number;
           estimated_meetings: number;
           created_at: string;
@@ -1019,6 +1068,7 @@ export interface Database {
           summary?: string | null;
           slide_url?: string | null;
           example_url?: string | null;
+          make_up_instructions?: string | null;
           order_index: number;
           estimated_meetings?: number;
           created_at?: string;

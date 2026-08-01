@@ -141,8 +141,13 @@ export default function ClassListClient({ initialClasses, coaches, levels }: Cla
                     const curriculumProgress = Math.max(0, Math.min(100, Number(klass.curriculumProgress) || 0));
 
                     return (
-                        <Link href={`/admin/classes/${klass.id}`} key={rowKey} style={{ textDecoration: 'none', color: 'inherit', display: 'flex' }}>
-                            <div className="class-card" style={{ flex: 1 }}>
+                        <div key={rowKey} style={{ display: 'flex' }}>
+                            <div className="class-card" style={{ flex: 1, position: 'relative', isolation: 'isolate' }}>
+                                <Link
+                                    href={`/admin/classes/${klass.id}`}
+                                    aria-label={`Buka kelas ${klass.name ?? 'Kelas'}`}
+                                    style={{ position: 'absolute', inset: 0, zIndex: 1 }}
+                                />
                                 <div className="row between">
                                     <div className="row gap-2">
                                         <span className={`chip ${levelTagClass(klass.level_id)}`}>{levelName}</span>
@@ -150,7 +155,7 @@ export default function ClassListClient({ initialClasses, coaches, levels }: Cla
                                         {status === 'DRAFT' && <span className="badge badge-info">Draft</span>}
                                         {status === 'COMPLETED' && <span className="badge badge-neutral">Completed</span>}
                                     </div>
-                                    <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                                    <div style={{ position: 'relative', zIndex: 2 }}>
                                         <ActionDropdown>
                                             <div className="col gap-1" style={{ padding: '4px' }}>
                                                 <DeleteClassButton classId={hasValidId ? klass.id : ''} className={klass.name ?? 'Kelas'} />
@@ -193,7 +198,7 @@ export default function ClassListClient({ initialClasses, coaches, levels }: Cla
                                     <span className="chip"><Users size={14} /> {klass.studentCount || 0}</span>
                                 </div>
                             </div>
-                        </Link>
+                        </div>
                     );
                 })}
 

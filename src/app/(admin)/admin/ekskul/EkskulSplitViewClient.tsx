@@ -10,12 +10,15 @@ import DeleteEkskulPlanButton from './DeleteEkskulPlanButton';
 import AddEkskulLessonButton from './[id]/AddEkskulLessonButton';
 import EditEkskulLessonButton from './[id]/EditEkskulLessonButton';
 import DeleteLessonButton from './[id]/DeleteLessonButton';
+import ExportEkskulLessonsButton from './[id]/ExportEkskulLessonsButton';
+import ImportEkskulLessonsButton from './[id]/ImportEkskulLessonsButton';
 
 type EkskulLesson = {
     id: string;
     title: string;
     summary: string | null;
     slide_url?: string | null;
+    make_up_instructions?: string | null;
     estimated_meetings: number | null;
     order_index: number;
     plan_id: string;
@@ -99,7 +102,9 @@ export default function EkskulSplitViewClient({ plans }: { plans: EkskulPlan[] }
                                     <div style={{ fontSize: 18, fontWeight: 800 }}>{selectedPlan.name}</div>
                                     <div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>{selectedPlan.description || 'Lesson plan kurikulum ekskul'}</div>
                                 </div>
-                                <div className="row gap-2">
+                                <div className="row gap-2" style={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                                    <ExportEkskulLessonsButton planId={selectedPlan.id} />
+                                    <ImportEkskulLessonsButton planId={selectedPlan.id} currentLessonCount={sortedLessons.length} />
                                     <EditEkskulPlanButton plan={selectedPlan as unknown as any} />
                                     <DeleteEkskulPlanButton planId={selectedPlan.id} planName={selectedPlan.name} />
                                 </div>

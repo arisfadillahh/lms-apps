@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   Calendar, Users, Zap, FileText, ArrowRight, Flag, PartyPopper, 
-  GraduationCap, LayoutGrid, ChevronLeft, ChevronRight, Save, X
+  GraduationCap, LayoutGrid, ChevronLeft, ChevronRight, Save, X, AlertTriangle
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -18,6 +18,8 @@ type PendingLesson = {
   lessonTitle: string;
   sessionDates: string[];
   studentsCount: number;
+  missingAttendanceCount: number;
+  canEvaluate: boolean;
 };
 
 type DraftReport = {
@@ -466,7 +468,13 @@ export default function RubricPageClient({ pendingLessons, draftReports }: Rubri
 
         <AnimatePresence mode="popLayout" initial={false}>
           {/* Pending Lessons */}
-          {localPending.map(item => (
+          {localPending.map(item => {
+            const attendanceProgress = item.studentsCount > 0
+              ? Math.round(((item.studentsCount - item.missingAttendanceCount) / item.studentsCount) * 100)
+              : 0;
+            const isLoading = loadingSessionId === item.sessionId;
+
+            return (
             <motion.div
               key={item.sessionId}
               layout
@@ -496,37 +504,60 @@ export default function RubricPageClient({ pendingLessons, draftReports }: Rubri
                       {item.blockName && <span className="bg-sky-50 text-[10px] text-sky-600 px-3 py-1 rounded-full border border-sky-100 font-bold tracking-wider">{item.blockName}</span>}
                     </div>
                     <h3 className="text-xl md:text-2xl font-bold text-slate-800 leading-tight">{item.lessonTitle}</h3>
-                    <div className="flex flex-wrap justify-center md:justify-start gap-4 md:gap-6 text-sm text-slate-500">
-                      <div className="flex items-center gap-2"><Calendar size={16} /><span>{formatDates(item.sessionDates)}</span></div>
-                      <div className="flex items-center gap-2"><Users size={16} /><span>{item.studentsCount} Siswa</span></div>
-                    </div>
-                    <div className="space-y-2 pt-2">
-                      <div className="flex justify-between items-center text-xs font-bold text-slate-400">
-                        <span className="uppercase tracking-widest">Progress</span>
-                        <span className="text-emerald-500">Siap Dinilai</span>
+                     <div className="flex flex-wrap justify-center md:justify-start gap-4 md:gap-6 text-sm text-slate-500">
+                       <div className="flex items-center gap-2"><Calendar size={16} /><span>{formatDates(item.sessionDates)}</span></div>
+                       <div className="flex items-center gap-2"><Users size={16} /><span>{item.studentsCount} Siswa</span></div>
+                     </div>
+                    {!item.canEvaluate && (
+                      <div
+                        role="alert"
+                        className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-left text-sm font-semibold text-red-700"
+                      >
+                        <AlertTriangle size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+                        <span>
+                          Lengkapi presensi {item.missingAttendanceCount} siswa dulu sebelum memberi nilai.
+                        </span>
                       </div>
-                      <div className="w-full bg-slate-100 h-2 md:h-3 rounded-full overflow-hidden p-[2px]">
-                        <motion.div initial={{ width: 0 }} animate={{ width: '100%' }} transition={{ delay: 0.5, duration: 1 }} className="bg-emerald-500 h-full rounded-full" />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="shrink-0 w-full md:w-auto mt-4 md:mt-0">
-                    <button
-                      onClick={() => openEvaluation(item.sessionId)}
-                      disabled={loadingSessionId === item.sessionId}
-                      className="w-full md:w-auto px-8 py-4 bg-emerald-500 text-white font-bold rounded-xl flex items-center justify-center gap-3 hover:bg-emerald-600 hover:scale-105 transition-all shadow-lg shadow-emerald-200 disabled:opacity-60"
-                    >
-                      {loadingSessionId === item.sessionId
-                        ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        : <>Beri Nilai <ArrowRight size={20} strokeWidth={3} /></>
-                      }
+                    )}
+                     <div className="space-y-2 pt-2">
+                       <div className="flex justify-between items-center text-xs font-bold text-slate-400">
+                         <span className="uppercase tracking-widest">Progress</span>
+                        <span className={item.canEvaluate ? 'text-emerald-500' : 'text-red-600'}>
+                          {item.canEvaluate ? 'Siap Dinilai' : 'Presensi Belum Lengkap'}
+                        </span>
+                       </div>
+                       <div className="w-full bg-slate-100 h-2 md:h-3 rounded-full overflow-hidden p-[2px]">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: item.canEvaluate ? '100%' : `${attendanceProgress}%` }}
+                          transition={{ delay: 0.5, duration: 1 }}
+                          className={`${item.canEvaluate ? 'bg-emerald-500' : 'bg-red-500'} h-full rounded-full`}
+                        />
+                       </div>
+                     </div>
+                   </div>
+                   <div className="shrink-0 w-full md:w-auto mt-4 md:mt-0">
+                     <button
+                       onClick={() => openEvaluation(item.sessionId)}
+                      disabled={!item.canEvaluate || isLoading}
+                      className={`w-full md:w-auto px-8 py-4 font-bold rounded-xl flex items-center justify-center gap-3 transition-all ${
+                        item.canEvaluate
+                          ? 'bg-emerald-500 text-white hover:bg-emerald-600 hover:scale-105 shadow-lg shadow-emerald-200 disabled:opacity-60'
+                          : 'bg-slate-200 text-slate-500 cursor-not-allowed shadow-none'
+                      }`}
+                     >
+                      {isLoading
+                         ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                         : <>Beri Nilai <ArrowRight size={20} strokeWidth={3} /></>
+                       }
                     </button>
                   </div>
                 </div>
                 </motion.div>
-              </div>
-            </motion.div>
-          ))}
+               </div>
+             </motion.div>
+            );
+          })}
 
           {/* Draft Reports */}
           {draftReports.map(report => {

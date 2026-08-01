@@ -3,6 +3,7 @@
 import type { CSSProperties } from 'react';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { splitEkskulLessonMakeUp } from '@/lib/ekskulMakeUpInstructions';
 
 type Props = {
     lesson: {
@@ -10,6 +11,7 @@ type Props = {
         title: string;
         summary: string | null;
         slide_url: string | null;
+        make_up_instructions: string | null;
         estimated_meetings: number;
         order_index: number;
     };
@@ -20,10 +22,12 @@ export default function EditEkskulLessonButton({ lesson, planId }: Props) {
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
+    const lessonParts = splitEkskulLessonMakeUp(lesson.summary, lesson.make_up_instructions);
 
     const [title, setTitle] = useState(lesson.title);
-    const [summary, setSummary] = useState(lesson.summary || '');
+    const [summary, setSummary] = useState(lessonParts.summary || '');
     const [slideUrl, setSlideUrl] = useState(lesson.slide_url || '');
+    const [makeUpInstructions, setMakeUpInstructions] = useState(lessonParts.makeUpInstructions || '');
     const [estimatedMeetings, setEstimatedMeetings] = useState(String(lesson.estimated_meetings || 1));
     const [orderIndex, setOrderIndex] = useState(String(lesson.order_index));
     const [error, setError] = useState<string | null>(null);
@@ -50,6 +54,7 @@ export default function EditEkskulLessonButton({ lesson, planId }: Props) {
                         title: title.trim(),
                         summary: summary.trim() || null,
                         slideUrl: slideUrl.trim() || null,
+                        makeUpInstructions: makeUpInstructions.trim() || null,
                         estimatedMeetings: Number(estimatedMeetings),
                         orderIndex: Number(orderIndex),
                     }),
@@ -109,6 +114,17 @@ export default function EditEkskulLessonButton({ lesson, planId }: Props) {
                                 value={slideUrl}
                                 onChange={(e) => setSlideUrl(e.target.value)}
                                 style={inputStyle}
+                            />
+                        </div>
+
+                        <div style={fieldStyle}>
+                            <label style={labelStyle}>Make-Up Task</label>
+                            <textarea
+                                value={makeUpInstructions}
+                                onChange={(e) => setMakeUpInstructions(e.target.value)}
+                                placeholder="Instruksi tugas otomatis untuk coder yang tidak hadir di lesson ini."
+                                rows={4}
+                                style={{ ...inputStyle, resize: 'vertical' }}
                             />
                         </div>
 
@@ -179,6 +195,8 @@ const modalStyle: CSSProperties = {
     borderRadius: '1rem',
     width: '100%',
     maxWidth: '480px',
+    maxHeight: '90vh',
+    overflowY: 'auto',
     boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
 };
 

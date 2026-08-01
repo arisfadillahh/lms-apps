@@ -4,12 +4,14 @@ import { useState, useEffect, type CSSProperties } from 'react';
 import { Reorder, useDragControls } from 'framer-motion';
 import { GripVertical, Save, ExternalLink, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { splitEkskulLessonMakeUp } from '@/lib/ekskulMakeUpInstructions';
 
 type EkskulLesson = {
     id: string;
     title: string;
     summary: string | null;
     slide_url: string | null;
+    make_up_instructions: string | null;
     estimated_meetings: number | null;
     order_index: number;
 };
@@ -19,6 +21,7 @@ type EditableLesson = {
     title: string;
     summary: string;
     slide_url: string;
+    make_up_instructions: string;
     estimated_meetings: number;
     order_index: number;
 };
@@ -32,14 +35,18 @@ export default function EkskulLessonSpreadsheet({ lessons, planId, onClose }: Pr
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
-        const sorted = [...lessons].sort((a, b) => a.order_index - b.order_index).map(l => ({
-            id: l.id,
-            title: l.title,
-            summary: l.summary || '',
-            slide_url: l.slide_url || '',
-            estimated_meetings: l.estimated_meetings || 1,
-            order_index: l.order_index,
-        }));
+        const sorted = [...lessons].sort((a, b) => a.order_index - b.order_index).map(l => {
+            const lessonParts = splitEkskulLessonMakeUp(l.summary, l.make_up_instructions);
+            return {
+                id: l.id,
+                title: l.title,
+                summary: lessonParts.summary || '',
+                slide_url: l.slide_url || '',
+                make_up_instructions: lessonParts.makeUpInstructions || '',
+                estimated_meetings: l.estimated_meetings || 1,
+                order_index: l.order_index,
+            };
+        });
         setItems(sorted);
         setHasChanges(false);
     }, [lessons]);
@@ -62,6 +69,7 @@ export default function EkskulLessonSpreadsheet({ lessons, planId, onClose }: Pr
                 title: item.title,
                 summary: item.summary || null,
                 slideUrl: item.slide_url || null,
+                makeUpInstructions: item.make_up_instructions || null,
                 estimatedMeetings: item.estimated_meetings,
                 orderIndex: item.order_index,
             }));
@@ -87,10 +95,18 @@ export default function EkskulLessonSpreadsheet({ lessons, planId, onClose }: Pr
     };
 
     const resetItems = () => {
-        const sorted = [...lessons].sort((a, b) => a.order_index - b.order_index).map(l => ({
-            id: l.id, title: l.title, summary: l.summary || '',
-            slide_url: l.slide_url || '', estimated_meetings: l.estimated_meetings || 1, order_index: l.order_index,
-        }));
+        const sorted = [...lessons].sort((a, b) => a.order_index - b.order_index).map(l => {
+            const lessonParts = splitEkskulLessonMakeUp(l.summary, l.make_up_instructions);
+            return {
+                id: l.id,
+                title: l.title,
+                summary: lessonParts.summary || '',
+                slide_url: l.slide_url || '',
+                make_up_instructions: lessonParts.makeUpInstructions || '',
+                estimated_meetings: l.estimated_meetings || 1,
+                order_index: l.order_index,
+            };
+        });
         setItems(sorted);
         setHasChanges(false);
     };
@@ -121,6 +137,7 @@ export default function EkskulLessonSpreadsheet({ lessons, planId, onClose }: Pr
                             <div style={headerCellStyle}>Judul Lesson</div>
                             <div style={{ ...headerCellStyle, justifyContent: 'center' }}>Pertemuan</div>
                             <div style={headerCellStyle}>Ringkasan</div>
+                            <div style={headerCellStyle}>Make-Up Task</div>
                             <div style={{ ...headerCellStyle, borderRight: 'none' }}>Slide URL</div>
                         </div>
                         <Reorder.Group axis="y" values={items} onReorder={handleReorder} style={{ listStyle: 'none', padding: 0, margin: 0 }}>
@@ -157,6 +174,9 @@ function SpreadsheetRow({ item, onChange }: { item: EditableLesson; onChange: (i
             <div style={cellStyle}>
                 <textarea value={item.summary} onChange={e => onChange(item.id, 'summary', e.target.value)} style={textareaStyle} placeholder="Ringkasan materi..." />
             </div>
+            <div style={cellStyle}>
+                <textarea value={item.make_up_instructions} onChange={e => onChange(item.id, 'make_up_instructions', e.target.value)} style={textareaStyle} placeholder="Tugas otomatis kalau coder tidak hadir..." />
+            </div>
             <div style={{ ...cellStyle, borderRight: 'none', position: 'relative' }}>
                 <textarea value={item.slide_url} onChange={e => onChange(item.id, 'slide_url', e.target.value)} style={{ ...textareaStyle, paddingRight: '2rem', wordBreak: 'break-all' }} placeholder="https://..." rows={1} />
                 {item.slide_url && (
@@ -167,11 +187,11 @@ function SpreadsheetRow({ item, onChange }: { item: EditableLesson; onChange: (i
     );
 }
 
-const gridTemplate = '50px 1.5fr 110px 2fr 1.5fr';
+const gridTemplate = '50px 1.4fr 110px 1.6fr 1.8fr 1.4fr';
 
 const fullscreenStyle: CSSProperties = { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: '#f1f5f9', zIndex: 9999, display: 'flex', flexDirection: 'column' };
 const topBarStyle: CSSProperties = { background: '#fff', padding: '1rem 2rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' };
-const tableContainerStyle: CSSProperties = { border: '1px solid #94a3b8', borderRadius: '0.75rem', background: '#fff', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', minWidth: '1000px' };
+const tableContainerStyle: CSSProperties = { border: '1px solid #94a3b8', borderRadius: '0.75rem', background: '#fff', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', minWidth: '1280px' };
 const headerRowStyle: CSSProperties = { display: 'grid', gridTemplateColumns: gridTemplate, borderBottom: '1px solid #94a3b8', background: '#e2e8f0', fontSize: '0.85rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', alignItems: 'stretch' };
 const headerCellStyle: CSSProperties = { padding: '0.8rem', borderRight: '1px solid #94a3b8', textAlign: 'left', display: 'flex', alignItems: 'center', height: '100%', fontWeight: 700 };
 const rowStyle: CSSProperties = { display: 'grid', gridTemplateColumns: gridTemplate, borderBottom: '1px solid #94a3b8', background: '#fff', minHeight: '60px', alignItems: 'stretch' };

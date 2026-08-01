@@ -2,13 +2,15 @@
 import {
     Home, Users, GraduationCap, BookOpen, CalendarOff, FileText,
     MessageCircle, Package, Image as ImageIcon, Wallet, BookMarked,
-    Megaphone, Receipt, Settings, UserCheck, ClipboardList, MessageSquare
+    Megaphone, Receipt, Settings, UserCheck, ClipboardList, MessageSquare, UserRoundPlus
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 // Define the Leaf Menu Items (Source of Truth for Icons & Links)
-export const MENU_ITEMS: Record<string, { href: string; label: string; icon: any }> = {
+export const MENU_ITEMS: Record<string, { href: string; label: string; icon: LucideIcon }> = {
     dashboard: { href: '/admin/dashboard', label: 'Dashboard', icon: Home },
     users: { href: '/admin/users', label: 'Pengguna', icon: Users },
+    freeTrials: { href: '/admin/free-trials', label: 'Free Trial', icon: UserRoundPlus },
     classes: { href: '/admin/classes', label: 'Kelas', icon: GraduationCap },
     curriculum: { href: '/admin/curriculum', label: 'Kurikulum', icon: BookOpen },
     lessonReports: { href: '/admin/curriculum/reports', label: 'Laporan Lesson', icon: FileText },
@@ -32,7 +34,7 @@ export const MENU_ITEMS: Record<string, { href: string; label: string; icon: any
 export type SidebarGroup = {
     type: 'group';
     label: string;
-    icon: any;
+    icon: LucideIcon;
     children: string[]; // IDs from MENU_ITEMS
 };
 
@@ -44,6 +46,7 @@ export type SidebarSingle = {
 export const SIDEBAR_STRUCTURE: (SidebarGroup | SidebarSingle)[] = [
     { type: 'single', id: 'dashboard' },
     { type: 'single', id: 'users' },
+    { type: 'single', id: 'freeTrials' },
     {
         type: 'group',
         label: 'Akademik',

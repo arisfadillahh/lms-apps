@@ -13,6 +13,13 @@ export type ClassRecord = TablesRow<'classes'>;
 export type ClassBlockRecord = TablesRow<'class_blocks'>;
 export type EnrollmentRecord = TablesRow<'enrollments'>;
 
+class ClassDeletionBlockedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ClassDeletionBlockedError';
+  }
+}
+
 export type CreateClassBlockInput = {
   classId: string;
   blockId: string;
@@ -203,23 +210,74 @@ export async function deleteClassBlock(id: string): Promise<void> {
 export async function deleteClass(id: string): Promise<void> {
   const supabase = getSupabaseAdmin();
 
-  // Manually cleanup related payment periods first
-  // (This ensures no ghost bills remain if the DB constraint isn't CASCADE)
-  const { error: paymentError } = await supabase
-    .from('coder_payment_periods' as any)
-    .delete()
+  const { count: activeEnrollmentCount, error: enrollmentError } = await supabase
+    .from('enrollments')
+    .select('id', { count: 'exact', head: true })
+    .eq('class_id', id)
+    .eq('status', 'ACTIVE');
+
+  if (enrollmentError) {
+    throw new Error(`Failed to check active enrollments: ${enrollmentError.message}`);
+  }
+  if ((activeEnrollmentCount ?? 0) > 0) {
+    throw new ClassDeletionBlockedError(
+      `Kelas masih memiliki ${activeEnrollmentCount} siswa aktif. Pindahkan atau nonaktifkan siswa terlebih dahulu.`,
+    );
+  }
+
+  const { data: paymentPeriods, error: paymentPeriodLookupError } = await supabase
+    .from('coder_payment_periods')
+    .select('id, status')
     .eq('class_id', id);
 
+  if (paymentPeriodLookupError) {
+    throw new Error(`Failed to check payment periods: ${paymentPeriodLookupError.message}`);
+  }
+
+  const activePaymentPeriodCount = (paymentPeriods ?? []).filter(
+    (period) => period.status === 'ACTIVE',
+  ).length;
+  if (activePaymentPeriodCount > 0) {
+    throw new ClassDeletionBlockedError(
+      `Kelas masih terhubung ke ${activePaymentPeriodCount} periode pembayaran aktif. Selesaikan pemindahan pembayaran terlebih dahulu.`,
+    );
+  }
+
+  // Preserve billing records while releasing the only non-cascading class FK.
+  const { data: detachedPeriods, error: paymentError } = await supabase
+    .from('coder_payment_periods')
+    .update({ class_id: null } as unknown as TablesUpdate<'coder_payment_periods'>)
+    .eq('class_id', id)
+    .select('id');
+
   if (paymentError) {
-    console.warn(`[ClassDelete] Failed to cleanup payment periods for class ${id}:`, paymentError);
-    // We continue to try deleting the class anyway
+    throw new Error(`Failed to preserve payment periods: ${paymentError.message}`);
   }
 
-  const { error } = await supabase.from('classes').delete().eq('id', id);
+  const { data: deletedClasses, error } = await supabase
+    .from('classes')
+    .delete()
+    .eq('id', id)
+    .select('id');
 
-  if (error) {
-    throw new Error(`Failed to delete class: ${error.message}`);
+  if (!error && deletedClasses?.length === 1) {
+    return;
   }
+
+  const detachedPeriodIds = (detachedPeriods ?? []).map((period) => period.id);
+  let rollbackMessage = '';
+  if (detachedPeriodIds.length > 0) {
+    const { error: rollbackError } = await supabase
+      .from('coder_payment_periods')
+      .update({ class_id: id })
+      .in('id', detachedPeriodIds);
+
+    if (rollbackError) {
+      rollbackMessage = ` Payment period rollback also failed: ${rollbackError.message}`;
+    }
+  }
+
+  throw new Error(`Failed to delete class: ${error?.message ?? 'class was not deleted'}.${rollbackMessage}`);
 }
 
 export async function updateClassBlock(
@@ -259,6 +317,7 @@ export async function updateClassBlock(
 export type EnrollCoderInput = {
   classId: string;
   coderId: string;
+  syncActivePaymentPeriod?: boolean;
 };
 
 export async function enrollCoder(input: EnrollCoderInput): Promise<EnrollmentRecord> {
@@ -276,6 +335,28 @@ export async function enrollCoder(input: EnrollCoderInput): Promise<EnrollmentRe
 
   if (error) {
     throw new Error(`Failed to enroll coder: ${error.message}`);
+  }
+
+  if (input.syncActivePaymentPeriod) {
+    const { error: paymentPeriodError } = await supabase
+      .from('coder_payment_periods')
+      .update({ class_id: input.classId })
+      .eq('coder_id', input.coderId)
+      .eq('status', 'ACTIVE');
+
+    if (paymentPeriodError) {
+      const { error: rollbackError } = await supabase
+        .from('enrollments')
+        .delete()
+        .eq('id', data.id);
+
+      const rollbackMessage = rollbackError
+        ? ` Enrollment rollback also failed: ${rollbackError.message}`
+        : '';
+      throw new Error(
+        `Failed to sync active payment period to the new class: ${paymentPeriodError.message}.${rollbackMessage}`,
+      );
+    }
   }
 
   return data;

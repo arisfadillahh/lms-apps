@@ -2,12 +2,14 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { formatIndonesianPhoneInput, normalizeIndonesianPhone } from '@/lib/phoneNumbers';
 
 interface UserProfile {
     username: string;
     fullName: string;
     avatarPath: string | null;
     role: string;
+    parentContactPhone?: string | null;
     // Coach-specific
     coachBio?: string;
     coachSkills?: string[];
@@ -15,6 +17,10 @@ interface UserProfile {
     notifNewClass?: boolean;
     notifLeaveUpdate?: boolean;
     notifSessionReminder?: boolean;
+}
+
+function getErrorMessage(error: unknown) {
+    return error instanceof Error ? error.message : 'Terjadi kesalahan. Silakan coba lagi.';
 }
 
 export default function ProfileForm({ user }: { user: UserProfile }) {
@@ -25,7 +31,7 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
     const [showPassword, setShowPassword] = useState(false);
     const [password, setPassword] = useState('');
     const [currentPassword, setCurrentPassword] = useState('');
-    const [whatsapp, setWhatsapp] = useState(''); // Todo: map to parentContactPhone if used for auth or separate field if needed
+    const [whatsapp, setWhatsapp] = useState(() => formatIndonesianPhoneInput(user.parentContactPhone));
 
     // Coach-specific state initialized from DB
     const [bio, setBio] = useState(user.coachBio || '');
@@ -62,8 +68,8 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
             await fetch('/api/profile/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ avatarPath: data.filePath }) });
             setProfileMessage({ type: 'success', text: 'Foto profil diperbarui' });
             router.refresh();
-        } catch (err: any) {
-            setProfileMessage({ type: 'error', text: err.message });
+        } catch (err: unknown) {
+            setProfileMessage({ type: 'error', text: getErrorMessage(err) });
         } finally {
             setIsUploading(false);
         }
@@ -79,6 +85,7 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     fullName,
+                    parentContactPhone: whatsapp.trim() ? normalizeIndonesianPhone(whatsapp) : null,
                     coachBio: bio,
                     coachSkills: skills,
                     notifNewClass,
@@ -100,8 +107,8 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
 
             setProfileMessage({ type: 'success', text: 'Perubahan berhasil disimpan' });
             router.refresh();
-        } catch (err: any) {
-            setProfileMessage({ type: 'error', text: err.message });
+        } catch (err: unknown) {
+            setProfileMessage({ type: 'error', text: getErrorMessage(err) });
         } finally {
             setIsUpdatingProfile(false);
         }
@@ -206,7 +213,7 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
                                         <input
                                             type="tel"
                                             value={whatsapp}
-                                            onChange={e => setWhatsapp(e.target.value)}
+                                            onChange={e => setWhatsapp(formatIndonesianPhoneInput(e.target.value))}
                                             className="flex-1 rounded-r-xl border border-slate-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 px-4 py-3 text-slate-900 text-sm outline-none transition-all"
                                             placeholder="812xxxxxxxx"
                                         />

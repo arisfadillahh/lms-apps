@@ -3,6 +3,7 @@
 import { useState, type CSSProperties } from 'react';
 import { Pencil, CheckSquare, Square, Table, List } from 'lucide-react';
 
+import { splitEkskulLessonMakeUp } from '@/lib/ekskulMakeUpInstructions';
 import AddEkskulLessonButton from './AddEkskulLessonButton';
 import EditEkskulLessonButton from './EditEkskulLessonButton';
 import DeleteLessonButton from './DeleteLessonButton';
@@ -15,6 +16,7 @@ type EkskulLesson = {
     title: string;
     summary: string | null;
     slide_url: string | null;
+    make_up_instructions: string | null;
     estimated_meetings: number | null;
     order_index: number;
     plan_id: string;
@@ -87,6 +89,7 @@ export default function EkskulLessonList({ planId, lessons }: Props) {
                             <th style={{ ...thStyle, width: '50px' }}>No</th>
                             <th style={thStyle}>Judul Lesson</th>
                             <th style={thStyle}>Pertemuan</th>
+                            <th style={thStyle}>Make-Up Task</th>
                             <th style={thStyle}>Slide</th>
                             <th style={{ ...thStyle, textAlign: 'center', width: '100px' }}>Aksi</th>
                         </tr>
@@ -94,13 +97,14 @@ export default function EkskulLessonList({ planId, lessons }: Props) {
                     <tbody>
                         {sorted.length === 0 ? (
                             <tr>
-                                <td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+                                <td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
                                     Belum ada lesson. Klik &quot;+ Tambah Lesson&quot; untuk memulai.
                                 </td>
                             </tr>
                         ) : (
                             sorted.map((lesson) => {
                                 const isSelected = selectedIds.has(lesson.id);
+                                const lessonParts = splitEkskulLessonMakeUp(lesson.summary, lesson.make_up_instructions);
                                 return (
                                     <tr key={lesson.id} style={trStyle}>
                                         <td style={tdStyle}>
@@ -113,14 +117,21 @@ export default function EkskulLessonList({ planId, lessons }: Props) {
                                         <td style={tdStyle}>{lesson.order_index}</td>
                                         <td style={tdStyle}>
                                             <div style={{ fontWeight: 600, color: '#0f172a' }}>{lesson.title}</div>
-                                            {lesson.summary && (
+                                            {lessonParts.summary && (
                                                 <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.2rem' }}>
-                                                    {lesson.summary.length > 70 ? lesson.summary.slice(0, 70) + '...' : lesson.summary}
+                                                    {lessonParts.summary.length > 70 ? lessonParts.summary.slice(0, 70) + '...' : lessonParts.summary}
                                                 </div>
                                             )}
                                         </td>
                                         <td style={tdStyle}>
                                             {lesson.estimated_meetings ? `${lesson.estimated_meetings} sesi` : '-'}
+                                        </td>
+                                        <td style={tdStyle}>
+                                            {lessonParts.makeUpInstructions ? (
+                                                <span style={taskBadgeStyle}>Ada task</span>
+                                            ) : (
+                                                <span style={{ color: '#cbd5e1' }}>-</span>
+                                            )}
                                         </td>
                                         <td style={tdStyle}>
                                             {lesson.slide_url ? (
@@ -157,6 +168,7 @@ const thStyle: CSSProperties = { padding: '0.75rem 1rem', textAlign: 'left', bac
 const trStyle: CSSProperties = { borderBottom: '1px solid #f1f5f9' };
 const tdStyle: CSSProperties = { padding: '0.75rem 1rem', verticalAlign: 'middle', color: '#334155' };
 const linkStyle: CSSProperties = { color: '#3b82f6', textDecoration: 'none', fontWeight: 500 };
+const taskBadgeStyle: CSSProperties = { display: 'inline-flex', alignItems: 'center', padding: '0.2rem 0.55rem', borderRadius: '999px', background: '#ecfdf5', color: '#047857', fontSize: '0.75rem', fontWeight: 700 };
 const checkboxBtnStyle: CSSProperties = { background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' };
 const bulkActionsStyle: CSSProperties = { padding: '0.75rem 1rem', background: '#f1f5f9', borderRadius: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' };
 const bulkClearBtnStyle: CSSProperties = { padding: '0.4rem 0.8rem', borderRadius: '0.375rem', background: '#fff', color: '#475569', border: '1px solid #e2e8f0', fontWeight: 500, fontSize: '0.85rem', cursor: 'pointer' };

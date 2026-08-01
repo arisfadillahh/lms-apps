@@ -1,5 +1,6 @@
 import { attendanceDao, classLessonsDao, classesDao, coderProgressDao, coderSessionAccessDao, lessonTemplatesDao, materialsDao, rubricsDao, sessionsDao } from '@/lib/dao';
 import { getSoftwareByBlockId } from '@/lib/dao/blockSoftwareDao';
+import { splitEkskulLessonMakeUp } from '@/lib/ekskulMakeUpInstructions';
 import { computeLessonSchedule } from '@/lib/services/lessonScheduler';
 
 export type CoderClassProgress = {
@@ -1282,16 +1283,18 @@ export async function getLessonDetailForCoder(coderId: string, lessonId: string)
       }
     }
 
+    const lessonParts = splitEkskulLessonMakeUp(ekskulLesson.summary, ekskulLesson.make_up_instructions);
+
     return {
       id: ekskulLesson.id,
       class_block_id: 'EKSKUL', // Dummy
       lesson_template_id: null,
       title: ekskulLesson.title,
-      summary: ekskulLesson.summary,
+      summary: lessonParts.summary,
       order_index: ekskulLesson.order_index ?? 0,
       session_id: null,
       unlock_at: null,
-      make_up_instructions: null,
+      make_up_instructions: lessonParts.makeUpInstructions,
       slide_url: ekskulLesson.slide_url,
       coach_example_url: null,
       coach_example_storage_path: null,

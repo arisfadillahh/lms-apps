@@ -45,4 +45,16 @@ describe('invoice payment confirmation helpers', () => {
     expect(message).not.toContain('{paid_date}');
     expect(message).not.toContain('{invoice_url}');
   });
+
+  it('can use a short invoice URL override for WhatsApp payment confirmation', () => {
+    const message = buildPaymentConfirmationMessage(
+      invoice,
+      settings,
+      '2026-05-02T00:00:00.000Z',
+      'https://lms.clev.io/i/Ab7xK2p9',
+    );
+
+    expect(message).toContain('https://lms.clev.io/i/Ab7xK2p9');
+    expect(message).not.toContain('/invoice/CCR001-052026');
+  });
 });

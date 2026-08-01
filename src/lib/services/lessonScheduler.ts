@@ -1,6 +1,7 @@
 // Lesson Scheduler Service - Computes lesson assignments dynamically
 
 import { blocksDao, lessonTemplatesDao, sessionsDao } from '@/lib/dao';
+import { splitEkskulLessonMakeUp } from '@/lib/ekskulMakeUpInstructions';
 import type { LessonTemplateRecord } from '@/lib/dao/lessonTemplatesDao';
 import type { SessionRecord } from '@/lib/dao/sessionsDao';
 import type { BlockRecord } from '@/lib/dao/blocksDao';
@@ -263,6 +264,7 @@ async function buildEkskulSlots(planId: string): Promise<LessonSlot[]> {
     };
 
     for (const lesson of lessons) {
+        const lessonParts = splitEkskulLessonMakeUp(lesson.summary, lesson.make_up_instructions);
         const totalParts = Math.max(1, lesson.estimated_meetings || 1);
 
         // Map EkskulLesson to LessonTemplateRecord shape
@@ -270,7 +272,7 @@ async function buildEkskulSlots(planId: string): Promise<LessonSlot[]> {
             id: lesson.id,
             block_id: 'ekskul-block',
             title: lesson.title,
-            summary: lesson.summary,
+            summary: lessonParts.summary,
             slide_url: lesson.slide_url,
             example_url: lesson.example_url,
             estimated_meeting_count: lesson.estimated_meetings,
@@ -278,7 +280,7 @@ async function buildEkskulSlots(planId: string): Promise<LessonSlot[]> {
             created_at: lesson.created_at,
             updated_at: new Date().toISOString(), // Default if missing
             example_storage_path: null,
-            make_up_instructions: null,
+            make_up_instructions: lessonParts.makeUpInstructions,
         };
 
         for (let part = 1; part <= totalParts; part++) {

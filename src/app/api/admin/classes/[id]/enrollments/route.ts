@@ -5,6 +5,7 @@
 
 import { NextResponse } from 'next/server';
 import { getSessionOrThrow } from '@/lib/auth';
+import { classesDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
@@ -55,30 +56,17 @@ export async function POST(request: Request, context: RouteContext) {
         return NextResponse.json({ error: 'Coder already enrolled in this class' }, { status: 400 });
     }
 
-    // Create enrollment
-    const { data: enrollment, error: enrollError } = await supabase
-        .from('enrollments')
-        .insert({
-            class_id: classId,
-            coder_id: body.coderId,
-            status: 'ACTIVE',
-            enrolled_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-
-    if (enrollError) {
-        console.error('[Create Enrollment] Error:', enrollError);
+    let enrollment;
+    try {
+        enrollment = await classesDao.enrollCoder({
+            classId,
+            coderId: body.coderId,
+            syncActivePaymentPeriod: true,
+        });
+    } catch (error) {
+        console.error('[Create Enrollment] Error:', error);
         return NextResponse.json({ error: 'Failed to create enrollment' }, { status: 500 });
     }
-
-    // Also update the coder's payment period if they have one without class_id
-    await supabase
-        .from('coder_payment_periods')
-        .update({ class_id: classId })
-        .eq('coder_id', body.coderId)
-        .is('class_id', null)
-        .eq('status', 'ACTIVE');
 
     return NextResponse.json({ enrollment }, { status: 201 });
 }

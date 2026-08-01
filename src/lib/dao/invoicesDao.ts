@@ -16,6 +16,14 @@ import type {
 } from '@/lib/types/invoice';
 import { buildInvoicePublicUrl } from '@/lib/services/invoicePublicAccess';
 
+function resolveInvoicePublicBaseUrl(settings?: InvoiceSettings | null): string {
+    return settings?.base_url?.trim()
+        || process.env.NEXT_PUBLIC_APP_URL?.trim()
+        || process.env.NEXT_PUBLIC_BASE_URL?.trim()
+        || process.env.NEXTAUTH_URL?.trim()
+        || 'https://lms.clev.io';
+}
+
 // ============================================================================
 // Invoice Settings
 // ============================================================================
@@ -380,7 +388,8 @@ export async function createInvoice(data: {
             period_end_date: data.period_end_date,
             total_amount: data.total_amount,
             due_date: data.due_date,
-            status: 'PENDING'
+            status: 'PENDING',
+            invoice_type: 'MONTHLY'
         })
         .select()
         .single();
@@ -540,6 +549,65 @@ export async function getInvoiceById(id: string): Promise<Invoice | null> {
     return (data as unknown) as Invoice;
 }
 
+export async function updateExternalInvoiceMetadata(
+    id: string,
+    data: {
+        parent_name?: string | null;
+        parent_phone?: string | null;
+        student_name?: string | null;
+        student_phone?: string | null;
+    }
+): Promise<Invoice | null> {
+    const existing = await getInvoiceById(id);
+    if (!existing) return null;
+
+    const supabase = getSupabaseAdmin();
+    const invoicePatch: Record<string, string> = {};
+    const parentName = cleanInvoiceText(data.parent_name);
+    const parentPhone = cleanInvoiceText(data.parent_phone);
+    const studentName = cleanInvoiceText(data.student_name);
+    const studentPhone = cleanInvoiceText(data.student_phone);
+
+    if (parentName) invoicePatch.parent_name = parentName;
+    if (parentPhone) {
+        invoicePatch.parent_phone = parentPhone;
+        invoicePatch.seasonal_student_phone = parentPhone;
+    }
+    if (studentName && existing.invoice_type === 'SEASONAL') {
+        invoicePatch.seasonal_student_name = studentName;
+    }
+    if (studentPhone && existing.invoice_type === 'SEASONAL') {
+        invoicePatch.seasonal_student_phone = studentPhone;
+    }
+
+    if (Object.keys(invoicePatch).length > 0) {
+        const { error } = await supabase
+            .from('invoices' as any)
+            .update(invoicePatch)
+            .eq('id', id);
+
+        if (error) {
+            console.error('[InvoicesDao] Error updating external invoice metadata:', error);
+            return null;
+        }
+    }
+
+    if (studentName && existing.invoice_type === 'SEASONAL') {
+        const { error } = await supabase
+            .from('invoice_items' as any)
+            .update({ coder_name: studentName })
+            .eq('invoice_id', id)
+            .is('coder_id', null);
+
+        if (error) {
+            console.error('[InvoicesDao] Error updating external invoice item metadata:', error);
+            return null;
+        }
+    }
+
+    return getInvoiceById(id);
+}
+
 export async function listInvoices(filters: InvoiceFilters): Promise<InvoiceListResult> {
     const supabase = getSupabaseAdmin();
     const { month, year, status, search, page = 1, limit = 20 } = filters;
@@ -579,15 +647,14 @@ export async function listInvoices(filters: InvoiceFilters): Promise<InvoiceList
 
     const invoices = (data as unknown) as Invoice[];
     const settings = await getInvoiceSettings();
+    const publicBaseUrl = resolveInvoicePublicBaseUrl(settings);
 
     // Map ccr_numbers to ccr
     invoices.forEach(inv => {
         if ((inv as any).ccr_numbers) {
             inv.ccr = (inv as any).ccr_numbers;
         }
-        if (settings?.base_url) {
-            inv.public_url = buildInvoicePublicUrl(settings.base_url, inv);
-        }
+        inv.public_url = buildInvoicePublicUrl(publicBaseUrl, inv);
     });
 
     return {
@@ -596,6 +663,11 @@ export async function listInvoices(filters: InvoiceFilters): Promise<InvoiceList
         page,
         limit
     };
+}
+
+function cleanInvoiceText(value?: string | null) {
+    const cleaned = String(value ?? '').trim().replace(/\s+/g, ' ');
+    return cleaned || null;
 }
 
 export async function getUnpaidInvoicesForMonth(
@@ -633,17 +705,57 @@ export async function invoiceExistsForParent(
     month: number,
     year: number
 ): Promise<boolean> {
+    const invoice = await getMonthlyInvoiceForParent(parentPhone, month, year);
+    return Boolean(invoice);
+}
+
+export async function getMonthlyInvoiceForParent(
+    parentPhone: string,
+    month: number,
+    year: number
+): Promise<Invoice | null> {
     const supabase = getSupabaseAdmin();
 
-    const { data } = await supabase
+    const { data, error } = await supabase
         .from('invoices' as any)
-        .select('id')
+        .select('*, items:invoice_items(*)')
         .eq('parent_phone', parentPhone)
         .eq('period_month', month)
         .eq('period_year', year)
-        .limit(1);
+        .eq('invoice_type', 'MONTHLY')
+        .maybeSingle();
 
-    return (data?.length || 0) > 0;
+    if (error) {
+        console.error('[InvoicesDao] Error checking monthly invoice:', error);
+        return null;
+    }
+
+    return (data as unknown) as Invoice | null;
+}
+
+export async function updateInvoiceSummary(
+    id: string,
+    data: {
+        total_amount: number;
+        period_start_date: string;
+        period_end_date: string;
+    }
+): Promise<Invoice | null> {
+    const supabase = getSupabaseAdmin();
+
+    const { data: invoice, error } = await supabase
+        .from('invoices' as any)
+        .update(data)
+        .eq('id', id)
+        .select('*, items:invoice_items(*)')
+        .single();
+
+    if (error) {
+        console.error('[InvoicesDao] Error updating invoice summary:', error);
+        return null;
+    }
+
+    return (invoice as unknown) as Invoice;
 }
 
 export async function markInvoiceAsPaid(

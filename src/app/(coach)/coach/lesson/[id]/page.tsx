@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { getSessionOrThrow } from '@/lib/auth';
 import { assertRole } from '@/lib/roles';
 import { lessonTemplatesDao, blocksDao, classesDao } from '@/lib/dao';
+import { splitEkskulLessonMakeUp } from '@/lib/ekskulMakeUpInstructions';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import ReportLessonButton from './ReportLessonButton';
 
@@ -66,18 +67,19 @@ export default async function CoachLessonDetailPage({ params, searchParams }: Pa
                 .maybeSingle();
 
             if (ekskulLesson) {
+                const lessonParts = splitEkskulLessonMakeUp(ekskulLesson.summary, ekskulLesson.make_up_instructions);
                 isEkskulLesson = true;
                 lesson = {
                     id: ekskulLesson.id,
                     block_id: '',
                     title: ekskulLesson.title,
-                    summary: ekskulLesson.summary,
+                    summary: lessonParts.summary,
                     slide_url: ekskulLesson.slide_url,
                     example_url: ekskulLesson.example_url,
                     example_storage_path: null,
                     order_index: ekskulLesson.order_index,
                     estimated_meeting_count: ekskulLesson.estimated_meetings,
-                    make_up_instructions: null,
+                    make_up_instructions: lessonParts.makeUpInstructions,
                     created_at: ekskulLesson.created_at,
                     updated_at: ekskulLesson.created_at,
                 };

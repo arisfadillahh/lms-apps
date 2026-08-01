@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSessionOrThrow } from '@/lib/auth';
+import { serializeEkskulLessonSummary, splitEkskulLessonMakeUp } from '@/lib/ekskulMakeUpInstructions';
 import { assertRole } from '@/lib/roles';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
@@ -51,14 +52,30 @@ export async function POST(_request: Request, { params }: RouteContext) {
         const newLessons = sourceLessons.map((l: any) => ({
             plan_id: newPlan.id,
             title: l.title,
-            summary: l.summary,
+            summary: splitEkskulLessonMakeUp(l.summary, l.make_up_instructions).summary,
             slide_url: l.slide_url,
             example_url: l.example_url,
+            make_up_instructions: splitEkskulLessonMakeUp(l.summary, l.make_up_instructions).makeUpInstructions,
             estimated_meetings: l.estimated_meetings,
             order_index: l.order_index,
         }));
 
-        await supabase.from('ekskul_lessons').insert(newLessons);
+        const { error: insertLessonsError } = await supabase.from('ekskul_lessons').insert(newLessons);
+        if (isMissingMakeUpColumnError(insertLessonsError)) {
+            const fallbackLessons = sourceLessons.map((l: any) => {
+                const parts = splitEkskulLessonMakeUp(l.summary, l.make_up_instructions);
+                return {
+                    plan_id: newPlan.id,
+                    title: l.title,
+                    summary: serializeEkskulLessonSummary(parts.summary, parts.makeUpInstructions),
+                    slide_url: l.slide_url,
+                    example_url: l.example_url,
+                    estimated_meetings: l.estimated_meetings,
+                    order_index: l.order_index,
+                };
+            });
+            await supabase.from('ekskul_lessons').insert(fallbackLessons);
+        }
     }
 
     // Copy software assignments
@@ -74,4 +91,13 @@ export async function POST(_request: Request, { params }: RouteContext) {
     }
 
     return NextResponse.json({ plan: newPlan }, { status: 201 });
+}
+
+function isMissingMakeUpColumnError(error: unknown) {
+    return Boolean(
+        error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        (error as { code?: string }).code === '42703'
+    );
 }

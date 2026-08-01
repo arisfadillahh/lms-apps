@@ -20,6 +20,7 @@ import {
     buildInvoiceReminderIdempotencyKey,
 } from '@/lib/services/reminderIdempotency';
 import { buildInvoicePublicUrl } from '@/lib/services/invoicePublicAccess';
+import { getShortInvoiceUrlOrOriginal } from '@/lib/services/shortLinks';
 import type { Invoice, SendRemindersResponse, WhatsAppSession, WhatsAppStatus } from '@/lib/types/invoice';
 import makeWASocket, {
     useMultiFileAuthState,
@@ -342,6 +343,20 @@ export async function forceResetWhatsApp(): Promise<{ success: boolean; message:
 // Message Sending
 // ============================================================================
 
+async function waitForWhatsAppConnection(timeoutMs = 15000): Promise<boolean> {
+    const startedAt = Date.now();
+
+    while (Date.now() - startedAt < timeoutMs) {
+        if (isConnected && sock) {
+            return true;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    return isConnected && !!sock;
+}
+
 /**
  * Send a single WhatsApp message
  */
@@ -352,32 +367,41 @@ export async function sendWhatsAppMessage(
     if (!isConnected || !sock) {
         // Try one last attempt to reconnect if just starting up
         console.log('[WhatsApp] Not connected, attempting to restore session before sending...');
-        await initializeWhatsApp();
+        const initResult = await initializeWhatsApp();
 
-        if (!isConnected || !sock) {
+        if (!initResult.success) {
+            return { success: false, error: initResult.error || 'WhatsApp not connected' };
+        }
+
+        if (!await waitForWhatsAppConnection()) {
             return { success: false, error: 'WhatsApp not connected' };
         }
     }
 
     try {
-        const normalizedPhone = normalizePhoneNumber(phoneNumber);
-        if (!normalizedPhone) {
-            return { success: false, error: 'Invalid phone number' };
+        const activeSock = sock;
+        if (!isConnected || !activeSock) {
+            return { success: false, error: 'WhatsApp not connected' };
         }
 
-        const jid = `${normalizedPhone}@s.whatsapp.net`;
+        const target = resolveWhatsAppTarget(phoneNumber);
+        if (!target) {
+            return { success: false, error: 'Invalid WhatsApp target' };
+        }
 
-        console.log(`[WhatsApp] Sending to ${jid}`);
+        console.log(`[WhatsApp] Sending to ${target.jid}`);
 
-        // Baileys check: Verify valid number exists on WA
-        const onWhatsAppResult = await sock.onWhatsApp(jid);
+        if (target.kind === 'personal') {
+            // Baileys check: Verify valid number exists on WA
+            const onWhatsAppResult = await activeSock.onWhatsApp(target.jid);
 
-        if (!onWhatsAppResult || !Array.isArray(onWhatsAppResult) || onWhatsAppResult.length === 0 || !onWhatsAppResult[0].exists) {
-            return { success: false, error: `Number ${normalizedPhone} not on WhatsApp` };
+            if (!onWhatsAppResult || !Array.isArray(onWhatsAppResult) || onWhatsAppResult.length === 0 || !onWhatsAppResult[0].exists) {
+                return { success: false, error: `Number ${target.normalizedPhone} not on WhatsApp` };
+            }
         }
 
         // Send Message
-        await sock.sendMessage(jid, { text: message });
+        await activeSock.sendMessage(target.jid, { text: message });
 
         return { success: true };
 
@@ -385,6 +409,76 @@ export async function sendWhatsAppMessage(
         console.error('[WhatsApp] Send error:', error);
         return { success: false, error: String(error) };
     }
+}
+
+export async function sendWhatsAppDocument(params: {
+    phoneNumber: string;
+    document: Buffer;
+    fileName: string;
+    mimeType: string;
+    caption?: string;
+}): Promise<{ success: boolean; error?: string }> {
+    if (!isConnected || !sock) {
+        console.log('[WhatsApp] Not connected, attempting to restore session before sending document...');
+        const initResult = await initializeWhatsApp();
+
+        if (!initResult.success) {
+            return { success: false, error: initResult.error || 'WhatsApp not connected' };
+        }
+
+        if (!await waitForWhatsAppConnection()) {
+            return { success: false, error: 'WhatsApp not connected' };
+        }
+    }
+
+    try {
+        const activeSock = sock;
+        if (!isConnected || !activeSock) {
+            return { success: false, error: 'WhatsApp not connected' };
+        }
+
+        const target = resolveWhatsAppTarget(params.phoneNumber);
+        if (!target) {
+            return { success: false, error: 'Invalid WhatsApp target' };
+        }
+
+        console.log(`[WhatsApp] Sending document to ${target.jid}`);
+
+        if (target.kind === 'personal') {
+            const onWhatsAppResult = await activeSock.onWhatsApp(target.jid);
+
+            if (!onWhatsAppResult || !Array.isArray(onWhatsAppResult) || onWhatsAppResult.length === 0 || !onWhatsAppResult[0].exists) {
+                return { success: false, error: `Number ${target.normalizedPhone} not on WhatsApp` };
+            }
+        }
+
+        await activeSock.sendMessage(target.jid, {
+            document: params.document,
+            fileName: params.fileName,
+            mimetype: params.mimeType,
+            caption: params.caption,
+        });
+
+        return { success: true };
+    } catch (error) {
+        console.error('[WhatsApp] Send document error:', error);
+        return { success: false, error: String(error) };
+    }
+}
+
+function resolveWhatsAppTarget(target: string): { kind: 'group'; jid: string } | { kind: 'personal'; jid: string; normalizedPhone: string } | null {
+    const trimmed = target.trim();
+    if (/^\d+@g\.us$/i.test(trimmed)) {
+        return { kind: 'group', jid: trimmed };
+    }
+    if (/^\d+@s\.whatsapp\.net$/i.test(trimmed)) {
+        const normalizedPhone = trimmed.replace(/@s\.whatsapp\.net$/i, '');
+        return { kind: 'personal', jid: trimmed, normalizedPhone };
+    }
+
+    const normalizedPhone = normalizePhoneNumber(trimmed);
+    if (!normalizedPhone) return null;
+    return { kind: 'personal', jid: `${normalizedPhone}@s.whatsapp.net`, normalizedPhone };
 }
 
 /**
@@ -424,7 +518,7 @@ export async function sendSingleInvoiceReminder(invoiceId: string): Promise<{ su
 
         // Generate message
         console.log(`[WhatsApp] Generating reminder for ${invoice.invoice_number}`);
-        const message = formatInvoiceMessage(invoice, settings);
+        const message = await formatInvoiceMessage(invoice, settings);
 
         console.log(`[WhatsApp] Sending message to ${invoice.parent_phone}`);
 
@@ -778,7 +872,7 @@ export async function sendInvoiceReminders(
                 }
 
                 // Generate message from template
-                const message = formatInvoiceMessage(invoice, settings);
+                const message = await formatInvoiceMessage(invoice, settings);
 
                 const logEntry = await logWhatsappEvent({
                     category: 'INVOICE' as any,
@@ -859,17 +953,18 @@ function normalizePhoneNumber(phone: string): string | null {
 /**
  * Format invoice message using template
  */
-function formatInvoiceMessage(
+async function formatInvoiceMessage(
     invoice: Invoice,
     settings: {
         invoice_message_template: string;
         weekly_invoice_message_template?: string;
         base_url: string;
     }
-): string {
+): Promise<string> {
     // Check for Weekly Registration (REG) - Check by invoice number prefix OR ccr code
     const isWeeklyReg = invoice.invoice_number.startsWith('REG-') || (invoice.ccr && invoice.ccr.ccr_code === 'REG');
-    const invoiceUrl = buildInvoicePublicUrl(settings.base_url, invoice);
+    const longInvoiceUrl = buildInvoicePublicUrl(settings.base_url, invoice);
+    const invoiceUrl = await getShortInvoiceUrlOrOriginal(longInvoiceUrl, invoice, settings.base_url);
 
     // Helper to get student names - Handle multiple students!
     const studentNames = Array.from(new Set(

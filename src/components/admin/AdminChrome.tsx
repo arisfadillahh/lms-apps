@@ -26,6 +26,7 @@ import {
   Search,
   Settings,
   UserCheck,
+  UserRoundPlus,
   Users,
   Wallet,
   X,
@@ -52,6 +53,7 @@ type AdminChromeProps = {
 type MenuId =
   | 'dashboard'
   | 'users'
+  | 'freeTrials'
   | 'classes'
   | 'curriculum'
   | 'lessonReports'
@@ -101,6 +103,7 @@ const FIXED_SHELL = {
 const MENU: MenuItem[] = [
   { id: 'dashboard', href: '/admin/dashboard', label: 'Dashboard', icon: Home },
   { id: 'users', href: '/admin/users', label: 'Pengguna', icon: Users },
+  { id: 'freeTrials', href: '/admin/free-trials', label: 'Free Trial', icon: UserRoundPlus },
   { id: 'classes', href: '/admin/classes', label: 'Kelas', icon: GraduationCap },
   { id: 'curriculum', href: '/admin/curriculum', label: 'Kurikulum', icon: BookOpen },
   { id: 'lessonReports', href: '/admin/curriculum/reports', label: 'Laporan Lesson', icon: FileText },
@@ -124,7 +127,7 @@ const MENU_SECTIONS: Array<{ label: string | null; items: MenuId[] }> = [
   { label: null, items: ['dashboard'] },
   {
     label: 'Akademik',
-    items: ['users', 'classes', 'curriculum', 'ekskul', 'lessonReports', 'evaluations', 'evaluationQuestions', 'reports'],
+    items: ['users', 'freeTrials', 'classes', 'curriculum', 'ekskul', 'lessonReports', 'evaluations', 'evaluationQuestions', 'reports'],
   },
   { label: 'Keuangan', items: ['payments', 'invoices', 'ccr', 'ccrlist'] },
   { label: 'Komunikasi', items: ['whatsapp', 'broadcast'] },
@@ -134,6 +137,7 @@ const MENU_SECTIONS: Array<{ label: string | null; items: MenuId[] }> = [
 const SECTION_TABS = {
   academic: [
     { href: '/admin/users', label: 'Pengguna', menus: ['users'] },
+    { href: '/admin/free-trials', label: 'Free Trial', menus: ['freeTrials'] },
     { href: '/admin/classes', label: 'Kelas', menus: ['classes'] },
     { href: '/admin/curriculum', label: 'Kurikulum', menus: ['curriculum'] },
     { href: '/admin/ekskul', label: 'Ekskul', menus: ['ekskul'] },
@@ -161,6 +165,16 @@ const SECTION_TABS = {
 } satisfies Record<string, RouteTab[]>;
 
 const ROUTE_META: Array<{ match: string; meta: RouteMeta }> = [
+  {
+    match: '/admin/free-trials',
+    meta: {
+      key: 'free-trials',
+      section: 'Akademik',
+      title: 'Free Trial',
+      description: 'Pantau pendaftar trial class dan preferensi jadwal yang dikirim orang tua.',
+      tabs: SECTION_TABS.academic,
+    },
+  },
   {
     match: '/admin/settings/whatsapp',
     meta: {

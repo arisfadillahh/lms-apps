@@ -223,6 +223,101 @@ export async function syncTemplateLessonExample(
   }
 }
 
+export async function syncTemplateLessonContent(
+  lessonTemplateId: string,
+  input: {
+    title?: string | null;
+    summary?: string | null;
+    makeUpInstructions?: string | null;
+    slideUrl?: string | null;
+    exampleUrl?: string | null;
+    exampleStoragePath?: string | null;
+    estimatedMeetingCount?: number | null;
+  },
+): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const sharedPayload: TablesUpdate<'class_lessons'> = {};
+
+  if (Object.prototype.hasOwnProperty.call(input, 'summary')) {
+    sharedPayload.summary = input.summary ?? null;
+  }
+  if (Object.prototype.hasOwnProperty.call(input, 'makeUpInstructions')) {
+    sharedPayload.make_up_instructions = input.makeUpInstructions ?? null;
+  }
+  if (Object.prototype.hasOwnProperty.call(input, 'slideUrl')) {
+    sharedPayload.slide_url = input.slideUrl ?? null;
+  }
+  if (Object.prototype.hasOwnProperty.call(input, 'exampleUrl')) {
+    sharedPayload.coach_example_url = input.exampleUrl ?? null;
+  }
+  if (Object.prototype.hasOwnProperty.call(input, 'exampleStoragePath')) {
+    sharedPayload.coach_example_storage_path = input.exampleStoragePath ?? null;
+  }
+
+  const shouldSyncTitle = Object.prototype.hasOwnProperty.call(input, 'title');
+
+  if (!shouldSyncTitle) {
+    if (Object.keys(sharedPayload).length === 0) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from('class_lessons')
+      .update(sharedPayload)
+      .eq('lesson_template_id', lessonTemplateId);
+
+    if (error) {
+      throw new Error(`Failed to sync template lesson content: ${error.message}`);
+    }
+    return;
+  }
+
+  const { data: lessons, error: fetchError } = await supabase
+    .from('class_lessons')
+    .select('id, class_block_id, order_index')
+    .eq('lesson_template_id', lessonTemplateId);
+
+  if (fetchError) {
+    throw new Error(`Failed to fetch class lessons for content sync: ${fetchError.message}`);
+  }
+
+  const lessonsByBlock = new Map<string, NonNullable<typeof lessons>>();
+  for (const lesson of lessons ?? []) {
+    if (!lesson.class_block_id) {
+      continue;
+    }
+    const current = lessonsByBlock.get(lesson.class_block_id) ?? [];
+    current.push(lesson);
+    lessonsByBlock.set(lesson.class_block_id, current);
+  }
+
+  for (const group of lessonsByBlock.values()) {
+    const ordered = group.slice().sort((a, b) => {
+      if (a.order_index !== b.order_index) {
+        return a.order_index - b.order_index;
+      }
+      return a.id.localeCompare(b.id);
+    });
+    const totalParts = Math.max(1, input.estimatedMeetingCount ?? ordered.length);
+
+    for (let index = 0; index < ordered.length; index += 1) {
+      const payload: TablesUpdate<'class_lessons'> = {
+        ...sharedPayload,
+        title: buildClassLessonTitle(input.title ?? '', totalParts, index + 1),
+      };
+
+      const { error } = await supabase
+        .from('class_lessons')
+        .update(payload)
+        .eq('id', ordered[index].id);
+
+      if (error) {
+        throw new Error(`Failed to sync template lesson content: ${error.message}`);
+      }
+    }
+  }
+}
+
 export async function deleteClassLesson(id: string): Promise<void> {
   const supabase = getSupabaseAdmin();
   const { error } = await supabase.from('class_lessons').delete().eq('id', id);

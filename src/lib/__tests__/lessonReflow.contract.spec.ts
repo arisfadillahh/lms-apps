@@ -27,4 +27,15 @@ describe('admin material reflow contract', () => {
     expect(serviceSource).toContain('Cannot move a lesson from a previous or completed session');
     expect(serviceSource).toContain('buildReflowLessonQueue(blocks, lessonsByBlock, classLessonId, futureSessionIds)');
   });
+
+  it('does not run a full class lesson rebuild for slide-only lesson edits', () => {
+    const routeSource = readSource('src/app/api/admin/curriculum/lessons/[id]/route.ts');
+
+    expect(routeSource).toContain('const requiresStructureSync =');
+    expect(routeSource).toContain("Object.prototype.hasOwnProperty.call(updates, 'orderIndex')");
+    expect(routeSource).toContain("Object.prototype.hasOwnProperty.call(updates, 'estimatedMeetingCount')");
+    expect(routeSource).toContain('await classLessonsDao.syncTemplateLessonContent(lessonId');
+    expect(routeSource).toContain('} else if (hasContentUpdate) {');
+    expect(routeSource).not.toContain('await classLessonsDao.syncTemplateLessonSlide(lessonId');
+  });
 });

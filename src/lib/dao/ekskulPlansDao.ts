@@ -1,6 +1,7 @@
 "use server";
 
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { splitEkskulLessonMakeUp } from '@/lib/ekskulMakeUpInstructions';
 import type { TablesRow } from '@/types/supabase';
 
 export type EkskulLessonPlanRecord = TablesRow<'ekskul_lesson_plans'>;
@@ -38,9 +39,11 @@ export async function getEkskulPlanWithDetails(id: string): Promise<EkskulPlanWi
 
     // Sort lessons by order_index
     if (data && data.ekskul_lessons && Array.isArray(data.ekskul_lessons)) {
-        data.ekskul_lessons.sort((a: EkskulLessonRecord, b: EkskulLessonRecord) =>
-            (a.order_index || 0) - (b.order_index || 0)
-        );
+        data.ekskul_lessons = data.ekskul_lessons
+            .map((lesson: EkskulLessonRecord) => normalizeEkskulLesson(lesson))
+            .sort((a: EkskulLessonRecord, b: EkskulLessonRecord) =>
+                (a.order_index || 0) - (b.order_index || 0)
+            );
     }
 
     return data as EkskulPlanWithDetails | null;
@@ -59,5 +62,18 @@ export async function getEkskulLessonById(lessonId: string): Promise<EkskulLesso
         return null; // Silent fail
     }
 
-    return data as EkskulLessonRecord;
+    return normalizeEkskulLesson(data as EkskulLessonRecord);
+}
+
+function normalizeEkskulLesson(lesson: EkskulLessonRecord): EkskulLessonRecord {
+    const parts = splitEkskulLessonMakeUp(
+        lesson.summary,
+        (lesson as EkskulLessonRecord & { make_up_instructions?: string | null }).make_up_instructions,
+    );
+
+    return {
+        ...lesson,
+        summary: parts.summary,
+        make_up_instructions: parts.makeUpInstructions,
+    };
 }

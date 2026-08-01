@@ -66,6 +66,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       const enrollment = await classesDao.enrollCoder({
         classId: classIdParam,
         coderId: parsed.data.coderId,
+        syncActivePaymentPeriod: true,
       });
 
       const sortedClassBlocks = [...classBlocks].sort(

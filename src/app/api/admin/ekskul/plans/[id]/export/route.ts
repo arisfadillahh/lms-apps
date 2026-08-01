@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getSessionOrThrow } from '@/lib/auth';
+import { splitEkskulLessonMakeUp } from '@/lib/ekskulMakeUpInstructions';
 import { assertRole } from '@/lib/roles';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
 type RouteContext = { params: Promise<{ id: string }> };
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(_request: Request, { params }: RouteContext) {
     const session = await getSessionOrThrow();
@@ -28,14 +31,21 @@ export async function GET(_request: Request, { params }: RouteContext) {
         return NextResponse.json({ error: 'Gagal mengambil lessons' }, { status: 500 });
     }
 
-    // Build CSV
-    const header = 'title,summary,meetings,slide_url';
+    // Build CSV. Keep the public header aligned with weekly lesson import/export.
+    const header = 'title,summary,meetings,slide_url,makeup_instructions';
     const rows = (lessons || []).map((l: any) => {
+        const parts = splitEkskulLessonMakeUp(l.summary, l.make_up_instructions);
         const escape = (v: string | null | undefined) => {
             if (!v) return '';
             return `"${String(v).replace(/"/g, '""')}"`;
         };
-        return [escape(l.title), escape(l.summary), l.estimated_meetings ?? 1, escape(l.slide_url)].join(',');
+        return [
+            escape(l.title),
+            escape(parts.summary),
+            l.estimated_meetings ?? 1,
+            escape(l.slide_url),
+            escape(parts.makeUpInstructions),
+        ].join(',');
     });
 
     const csv = [header, ...rows].join('\n');
@@ -43,7 +53,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
 
     return new Response(csv, {
         headers: {
-            'Content-Type': 'text/csv',
+            'Content-Type': 'text/csv; charset=utf-8',
             'Content-Disposition': `attachment; filename="ekskul-${planName}.csv"`,
         },
     });

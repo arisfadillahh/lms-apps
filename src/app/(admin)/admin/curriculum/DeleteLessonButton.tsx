@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import type { CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import * as Dialog from '@radix-ui/react-dialog';
-import { Trash2, AlertTriangle, X } from 'lucide-react';
+import { Archive, X } from 'lucide-react';
 
 type DeleteLessonButtonProps = {
     lessonId: string;
@@ -18,7 +18,7 @@ export default function DeleteLessonButton({ lessonId, lessonTitle, iconOnly }: 
     const [error, setError] = useState<string | null>(null);
     const [open, setOpen] = useState(false);
 
-    const handleDelete = () => {
+    const handleArchive = () => {
         startTransition(async () => {
             setError(null);
             const response = await fetch(`/api/admin/curriculum/lessons/${lessonId}`, {
@@ -27,7 +27,7 @@ export default function DeleteLessonButton({ lessonId, lessonTitle, iconOnly }: 
 
             if (!response.ok) {
                 const payload = await response.json().catch(() => ({}));
-                setError(payload.error ?? 'Gagal menghapus lesson');
+                setError(payload.error ?? 'Gagal mengarsipkan lesson');
                 return;
             }
 
@@ -40,26 +40,24 @@ export default function DeleteLessonButton({ lessonId, lessonTitle, iconOnly }: 
         <div style={{ display: 'flex', alignItems: 'center' }}>
             <Dialog.Root open={open} onOpenChange={setOpen}>
                 <Dialog.Trigger asChild>
-                    <Dialog.Trigger asChild>
-                        {iconOnly ? (
-                            <button type="button" style={iconOnlyButtonStyle} title="Hapus Lesson">
-                                <Trash2 size={16} />
-                            </button>
-                        ) : (
-                            <button type="button" style={deleteTriggerStyle} title="Hapus Lesson">
-                                <Trash2 size={15} />
-                            </button>
-                        )}
-                    </Dialog.Trigger>
+                    {iconOnly ? (
+                        <button type="button" style={iconOnlyButtonStyle} title="Arsipkan Lesson">
+                            <Archive size={16} />
+                        </button>
+                    ) : (
+                        <button type="button" style={deleteTriggerStyle} title="Arsipkan Lesson">
+                            <Archive size={15} />
+                        </button>
+                    )}
                 </Dialog.Trigger>
                 <Dialog.Portal>
                     <Dialog.Overlay style={overlayStyle} />
                     <Dialog.Content style={contentStyle}>
                         <div style={headerStyle}>
                             <div style={iconContainerStyle}>
-                                <AlertTriangle size={24} color="#dc2626" />
+                                <Archive size={22} color="#b45309" />
                             </div>
-                            <Dialog.Title style={titleStyle}>Hapus Lesson?</Dialog.Title>
+                            <Dialog.Title style={titleStyle}>Arsipkan Lesson?</Dialog.Title>
                             <Dialog.Close asChild>
                                 <button style={closeButtonStyle} aria-label="Close">
                                     <X size={18} />
@@ -68,8 +66,8 @@ export default function DeleteLessonButton({ lessonId, lessonTitle, iconOnly }: 
                         </div>
 
                         <Dialog.Description style={descriptionStyle}>
-                            Anda akan menghapus lesson <strong>"{lessonTitle}"</strong>.
-                            Tindakan ini tidak dapat dibatalkan.
+                            Lesson <strong>{lessonTitle}</strong> tidak akan dipakai untuk jadwal baru.
+                            Sesi yang sudah selesai, rapor, dan tugas make-up tetap disimpan. Jadwal masa depan akan disusun ulang otomatis.
                         </Dialog.Description>
 
                         {error ? <div style={errorStyle}>{error}</div> : null}
@@ -80,8 +78,8 @@ export default function DeleteLessonButton({ lessonId, lessonTitle, iconOnly }: 
                                     Batal
                                 </button>
                             </Dialog.Close>
-                            <button type="button" onClick={handleDelete} style={confirmDeleteButtonStyle} disabled={isPending}>
-                                {isPending ? 'Menghapus...' : 'Ya, Hapus'}
+                            <button type="button" onClick={handleArchive} style={confirmDeleteButtonStyle} disabled={isPending}>
+                                {isPending ? 'Mengarsipkan...' : 'Arsipkan Lesson'}
                             </button>
                         </div>
                     </Dialog.Content>
@@ -97,9 +95,9 @@ const deleteTriggerStyle: CSSProperties = {
     justifyContent: 'center',
     padding: '0.4rem',
     borderRadius: '0.5rem',
-    border: '1px solid #fee2e2',
-    background: '#fff1f2',
-    color: '#dc2626',
+    border: '1px solid #fde68a',
+    background: '#fffbeb',
+    color: '#b45309',
     cursor: 'pointer',
     transition: 'all 0.2s',
 };
@@ -140,7 +138,7 @@ const iconContainerStyle: CSSProperties = {
     width: '40px',
     height: '40px',
     borderRadius: '50%',
-    background: 'rgba(220, 38, 38, 0.1)',
+    background: '#fef3c7',
 };
 
 const titleStyle: CSSProperties = {
@@ -201,7 +199,7 @@ const confirmDeleteButtonStyle: CSSProperties = {
     padding: '0.6rem 1rem',
     borderRadius: '0.5rem',
     border: 'none',
-    background: '#dc2626',
+    background: '#b45309',
     color: '#ffffff',
     fontWeight: 600,
     cursor: 'pointer',

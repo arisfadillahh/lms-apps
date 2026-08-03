@@ -167,6 +167,9 @@ export default function ImportEkskulLessonsButton({ planId, currentLessonCount }
                         <Dialog.Title style={{ fontSize: '1.2rem', fontWeight: 600, color: '#0f172a' }}>
                             Import Lessons dari CSV
                         </Dialog.Title>
+                        <Dialog.Description style={dialogDescriptionStyle}>
+                            Upload CSV untuk menambahkan lesson ekskul beserta ringkasan, jumlah pertemuan, link slide, dan make-up task.
+                        </Dialog.Description>
                         <Dialog.Close asChild>
                             <button style={closeButtonStyle} aria-label="Tutup">
                                 <X size={20} />
@@ -347,6 +350,7 @@ function parsePositiveInteger(value: string, fallback: number) {
 const overlayStyle: CSSProperties = { backgroundColor: 'rgba(0,0,0,0.5)', position: 'fixed', inset: 0, zIndex: 50 };
 const contentStyle: CSSProperties = { backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '90%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', padding: '1.5rem', zIndex: 51 };
 const headerStyle: CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' };
+const dialogDescriptionStyle: CSSProperties = { position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 };
 const closeButtonStyle: CSSProperties = { background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' };
 const instructionsBoxStyle: CSSProperties = { background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '1rem' };
 const codeBlockStyle: CSSProperties = { background: '#1e293b', color: '#e2e8f0', padding: '0.5rem 0.75rem', borderRadius: '6px', fontSize: '0.8rem', fontFamily: 'monospace', overflowX: 'auto' };

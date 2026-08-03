@@ -34,34 +34,18 @@ export async function POST(request: Request) {
     const errors: string[] = [];
 
     for (const update of parsed.data.updates) {
-        const basePayload = {
+        const payload = {
             title: update.title,
-            summary: update.summary ?? null,
+            summary: serializeEkskulLessonSummary(update.summary ?? null, update.makeUpInstructions ?? null),
             slide_url: update.slideUrl || null,
             estimated_meetings: update.estimatedMeetings,
             order_index: update.orderIndex,
         };
-        const payloadWithMakeUpColumn = {
-            ...basePayload,
-            make_up_instructions: update.makeUpInstructions ?? null,
-        };
 
-        let { error } = await supabase
+        const { error } = await supabase
             .from('ekskul_lessons')
-            .update(payloadWithMakeUpColumn)
+            .update(payload)
             .eq('id', update.id);
-
-        if (isMissingMakeUpColumnError(error)) {
-            const fallbackPayload = {
-                ...basePayload,
-                summary: serializeEkskulLessonSummary(update.summary ?? null, update.makeUpInstructions ?? null),
-            };
-            const fallbackResult = await supabase
-                .from('ekskul_lessons')
-                .update(fallbackPayload)
-                .eq('id', update.id);
-            error = fallbackResult.error;
-        }
 
         if (error) errors.push(`${update.title}: ${error.message}`);
     }
@@ -71,13 +55,4 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ success: true, updated: parsed.data.updates.length });
-}
-
-function isMissingMakeUpColumnError(error: unknown) {
-    return Boolean(
-        error &&
-        typeof error === 'object' &&
-        'code' in error &&
-        (error as { code?: string }).code === '42703'
-    );
 }

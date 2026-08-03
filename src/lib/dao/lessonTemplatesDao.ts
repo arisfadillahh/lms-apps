@@ -39,13 +39,21 @@ export async function getLessonTemplateById(id: string): Promise<LessonTemplateR
   return data;
 }
 
-export async function listLessonsByBlock(blockId: string): Promise<LessonTemplateRecord[]> {
+export async function listLessonsByBlock(
+  blockId: string,
+  options: { includeArchived?: boolean } = {},
+): Promise<LessonTemplateRecord[]> {
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
+  let query = supabase
     .from('lesson_templates')
     .select('*')
-    .eq('block_id', blockId)
-    .order('order_index', { ascending: true });
+    .eq('block_id', blockId);
+
+  if (!options.includeArchived) {
+    query = query.eq('is_archived', false);
+  }
+
+  const { data, error } = await query.order('order_index', { ascending: true });
 
   if (error) {
     throw new Error(`Failed to list lesson templates: ${error.message}`);
@@ -67,6 +75,7 @@ export async function createLessonTemplate(input: CreateLessonTemplateInput): Pr
     .from('lesson_templates')
     .select('id, order_index')
     .eq('block_id', input.blockId)
+    .eq('is_archived', false)
     .gte('order_index', input.orderIndex)
     .order('order_index', { ascending: false }); // Highest first to avoid collision
 
@@ -155,6 +164,7 @@ export async function updateLessonTemplate(id: string, updates: UpdateLessonTemp
           .from('lesson_templates')
           .select('id, order_index')
           .eq('block_id', currentLesson.block_id)
+          .eq('is_archived', false)
           .gt('order_index', oldIndex)
           .lte('order_index', newIndex)
           .order('order_index', { ascending: true }); // Process 2 then 3
@@ -179,6 +189,7 @@ export async function updateLessonTemplate(id: string, updates: UpdateLessonTemp
           .from('lesson_templates')
           .select('id, order_index')
           .eq('block_id', currentLesson.block_id)
+          .eq('is_archived', false)
           .gte('order_index', newIndex)
           .lt('order_index', oldIndex)
           .order('order_index', { ascending: false }); // Process 2 then 1
@@ -216,97 +227,78 @@ export async function updateLessonTemplate(id: string, updates: UpdateLessonTemp
 }
 
 export async function deleteLessonTemplate(id: string): Promise<void> {
-  const supabase = getSupabaseAdmin();
+  await archiveLessonTemplate(id);
+}
 
-  // 1. Get the lesson to know block_id and order_index
-  const { data: lesson, error: fetchError } = await supabase
+export async function archiveLessonTemplate(id: string): Promise<LessonTemplateRecord> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
     .from('lesson_templates')
-    .select('block_id, order_index')
+    .update({ is_archived: true, archived_at: new Date().toISOString() })
     .eq('id', id)
+    .eq('is_archived', false)
+    .select('*')
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to archive lesson: ${error.message}`);
+  }
+
+  if (data) return data;
+
+  const existing = await getLessonTemplateById(id);
+  if (!existing) throw new Error('Lesson not found');
+  return existing;
+}
+
+export async function restoreLessonTemplate(id: string): Promise<LessonTemplateRecord> {
+  const supabase = getSupabaseAdmin();
+  const lesson = await getLessonTemplateById(id);
+  if (!lesson) throw new Error('Lesson not found');
+  if (!lesson.is_archived) return lesson;
+
+  const { data: collision } = await supabase
+    .from('lesson_templates')
+    .select('id')
+    .eq('block_id', lesson.block_id)
+    .eq('order_index', lesson.order_index)
+    .eq('is_archived', false)
+    .neq('id', lesson.id)
+    .maybeSingle();
+
+  let targetOrder = lesson.order_index;
+  if (collision) {
+    const { data: activeLessons } = await supabase
+      .from('lesson_templates')
+      .select('order_index')
+      .eq('block_id', lesson.block_id)
+      .eq('is_archived', false)
+      .order('order_index', { ascending: false })
+      .limit(1);
+    targetOrder = (activeLessons?.[0]?.order_index ?? 0) + 1;
+  }
+
+  const { data, error } = await supabase
+    .from('lesson_templates')
+    .update({
+      is_archived: false,
+      archived_at: null,
+      order_index: targetOrder,
+    })
+    .eq('id', id)
+    .select('*')
     .single();
 
-  if (fetchError || !lesson) {
-    throw new Error('Lesson not found');
+  if (error) {
+    throw new Error(`Failed to restore lesson: ${error.message}`);
   }
 
-  // 2. Delete the lesson
-  const { error: deleteError } = await supabase
-    .from('lesson_templates')
-    .delete()
-    .eq('id', id);
-
-  if (deleteError) {
-    throw new Error(`Failed to delete lesson: ${deleteError.message}`);
-  }
-
-  // 3. Shift order index for remaining lessons (decrement those > order_index)
-  // Logic: "close the gap"
-  const { data: lessonsToShift } = await supabase
-    .from('lesson_templates')
-    .select('id, order_index')
-    .eq('block_id', lesson.block_id)
-    .gt('order_index', lesson.order_index)
-    .order('order_index', { ascending: true }); // Lowest first
-
-  if (lessonsToShift && lessonsToShift.length > 0) {
-    for (const les of lessonsToShift) {
-      // Decrement order index
-      await supabase
-        .from('lesson_templates')
-        .update({ order_index: les.order_index - 1 })
-        .eq('id', les.id);
-    }
-  }
+  return data;
 }
 
 export async function deleteLessonTemplatesBulk(ids: string[]): Promise<void> {
-  if (!ids.length) return;
-
-  const supabase = getSupabaseAdmin();
-
-  // 1. Get the block_id from the first lesson to know which block to reorder later.
-  // We assume all lessons belong to the same block for this UI context.
-  // Even if they don't (unlikely given the UI), we can just reorder the block of the first one.
-  const { data: firstLesson, error: fetchError } = await supabase
-    .from('lesson_templates')
-    .select('block_id')
-    .eq('id', ids[0])
-    .single();
-
-  if (fetchError || !firstLesson) {
-    throw new Error('Could not verify lesson block');
-  }
-
-  const blockId = firstLesson.block_id;
-
-  // 2. Delete the lessons
-  const { error: deleteError } = await supabase
-    .from('lesson_templates')
-    .delete()
-    .in('id', ids);
-
-  if (deleteError) {
-    throw new Error(`Failed to delete lessons: ${deleteError.message}`);
-  }
-
-  // 3. Re-normalize order index for the WHOLE block
-  // This is the safest way to ensure 1, 2, 3... sequence without gaps.
-  const { data: remainingLessons } = await supabase
-    .from('lesson_templates')
-    .select('id, order_index')
-    .eq('block_id', blockId)
-    .order('order_index', { ascending: true });
-
-  if (remainingLessons) {
-    for (let i = 0; i < remainingLessons.length; i++) {
-      const correctIndex = i + 1;
-      if (remainingLessons[i].order_index !== correctIndex) {
-        await supabase
-          .from('lesson_templates')
-          .update({ order_index: correctIndex })
-          .eq('id', remainingLessons[i].id);
-      }
-    }
+  for (const id of ids) {
+    await archiveLessonTemplate(id);
   }
 }
 

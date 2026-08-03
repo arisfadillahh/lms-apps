@@ -281,6 +281,8 @@ async function buildEkskulSlots(planId: string): Promise<LessonSlot[]> {
             updated_at: new Date().toISOString(), // Default if missing
             example_storage_path: null,
             make_up_instructions: lessonParts.makeUpInstructions,
+            is_archived: false,
+            archived_at: null,
         };
 
         for (let part = 1; part <= totalParts; part++) {

@@ -5,6 +5,16 @@ import { assertRole } from '@/lib/roles';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
 type RouteContext = { params: Promise<{ id: string }> };
+type EkskulLessonRow = {
+    title: string;
+    summary: string | null;
+    slide_url: string | null;
+    example_url: string | null;
+    estimated_meetings: number | null;
+    order_index: number;
+    make_up_instructions?: string | null;
+};
+type PlanSoftwareRow = { software_id: string };
 
 export async function POST(_request: Request, { params }: RouteContext) {
     const session = await getSessionOrThrow();
@@ -49,32 +59,22 @@ export async function POST(_request: Request, { params }: RouteContext) {
 
     // Duplicate lessons
     if (sourceLessons && sourceLessons.length > 0) {
-        const newLessons = sourceLessons.map((l: any) => ({
-            plan_id: newPlan.id,
-            title: l.title,
-            summary: splitEkskulLessonMakeUp(l.summary, l.make_up_instructions).summary,
-            slide_url: l.slide_url,
-            example_url: l.example_url,
-            make_up_instructions: splitEkskulLessonMakeUp(l.summary, l.make_up_instructions).makeUpInstructions,
-            estimated_meetings: l.estimated_meetings,
-            order_index: l.order_index,
-        }));
+        const newLessons = (sourceLessons as EkskulLessonRow[]).map((l) => {
+            const parts = splitEkskulLessonMakeUp(l.summary, l.make_up_instructions);
+            return {
+                plan_id: newPlan.id,
+                title: l.title,
+                summary: serializeEkskulLessonSummary(parts.summary, parts.makeUpInstructions),
+                slide_url: l.slide_url,
+                example_url: l.example_url,
+                estimated_meetings: l.estimated_meetings,
+                order_index: l.order_index,
+            };
+        });
 
         const { error: insertLessonsError } = await supabase.from('ekskul_lessons').insert(newLessons);
-        if (isMissingMakeUpColumnError(insertLessonsError)) {
-            const fallbackLessons = sourceLessons.map((l: any) => {
-                const parts = splitEkskulLessonMakeUp(l.summary, l.make_up_instructions);
-                return {
-                    plan_id: newPlan.id,
-                    title: l.title,
-                    summary: serializeEkskulLessonSummary(parts.summary, parts.makeUpInstructions),
-                    slide_url: l.slide_url,
-                    example_url: l.example_url,
-                    estimated_meetings: l.estimated_meetings,
-                    order_index: l.order_index,
-                };
-            });
-            await supabase.from('ekskul_lessons').insert(fallbackLessons);
+        if (insertLessonsError) {
+            return NextResponse.json({ error: `Gagal menyalin lessons: ${insertLessonsError.message}` }, { status: 500 });
         }
     }
 
@@ -86,18 +86,9 @@ export async function POST(_request: Request, { params }: RouteContext) {
 
     if (planSoftware && planSoftware.length > 0) {
         await supabase.from('ekskul_plan_software').insert(
-            planSoftware.map((ps: any) => ({ plan_id: newPlan.id, software_id: ps.software_id }))
+            (planSoftware as PlanSoftwareRow[]).map((ps) => ({ plan_id: newPlan.id, software_id: ps.software_id }))
         );
     }
 
     return NextResponse.json({ plan: newPlan }, { status: 201 });
-}
-
-function isMissingMakeUpColumnError(error: unknown) {
-    return Boolean(
-        error &&
-        typeof error === 'object' &&
-        'code' in error &&
-        (error as { code?: string }).code === '42703'
-    );
 }

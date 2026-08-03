@@ -129,7 +129,7 @@ export async function DELETE(request: Request) {
     const { count } = await supabase
         .from('coder_payment_periods')
         .select('*', { count: 'exact', head: true })
-        .eq('plan_id', id);
+        .eq('payment_plan_id', id);
 
     if (count && count > 0) {
         return NextResponse.json({

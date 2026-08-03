@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, type CSSProperties } from 'react';
-import { Pencil, CheckSquare, X, List, Table, Square, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Archive, CheckSquare, List, Pencil, RotateCcw, Square, Table } from 'lucide-react';
 // import * as Checkbox from '@radix-ui/react-checkbox'; // Not installed
 
 import type { LessonTemplateRecord } from '@/lib/dao/lessonTemplatesDao';
@@ -20,14 +21,22 @@ type BlockLessonListProps = {
 };
 
 export default function BlockLessonList({ blockId, lessons }: BlockLessonListProps) {
+  const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [isBulkEditMode, setIsBulkEditMode] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+  const [restoringLessonId, setRestoringLessonId] = useState<string | null>(null);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
 
   // -- Original LessonTable Logic --
   const [selectedLessonIds, setSelectedLessonIds] = useState<Set<string>>(new Set());
   const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
 
-  const sortedLessons = [...lessons].sort((a, b) => a.order_index - b.order_index);
+  const activeLessons = lessons.filter((lesson) => !lesson.is_archived);
+  const archivedLessons = lessons
+    .filter((lesson) => lesson.is_archived)
+    .sort((a, b) => (b.archived_at ?? '').localeCompare(a.archived_at ?? ''));
+  const sortedLessons = [...activeLessons].sort((a, b) => a.order_index - b.order_index);
 
   const toggleSelectAll = () => {
     if (selectedLessonIds.size === sortedLessons.length) {
@@ -44,7 +53,25 @@ export default function BlockLessonList({ blockId, lessons }: BlockLessonListPro
     setSelectedLessonIds(next);
   };
 
-  const editingLesson = lessons.find((l) => l.id === editingLessonId);
+  const editingLesson = activeLessons.find((l) => l.id === editingLessonId);
+  const suggestedOrderIndex = sortedLessons.reduce((max, lesson) => Math.max(max, lesson.order_index), 0) + 1;
+
+  const restoreLesson = async (lessonId: string) => {
+    setRestoringLessonId(lessonId);
+    setRestoreError(null);
+    try {
+      const response = await fetch(`/api/admin/curriculum/lessons/${lessonId}/restore`, { method: 'POST' });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error ?? 'Gagal memulihkan lesson');
+      }
+      router.refresh();
+    } catch (error) {
+      setRestoreError(error instanceof Error ? error.message : 'Gagal memulihkan lesson');
+    } finally {
+      setRestoringLessonId(null);
+    }
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -55,7 +82,12 @@ export default function BlockLessonList({ blockId, lessons }: BlockLessonListPro
         </h3>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <ExportLessonsButton blockId={blockId} />
-          <ImportLessonsButton blockId={blockId} currentLessonCount={lessons.length} />
+          <ImportLessonsButton blockId={blockId} currentLessonCount={activeLessons.length} />
+          {archivedLessons.length > 0 && (
+            <button type="button" onClick={() => setShowArchived((value) => !value)} style={primaryLinkButtonStyle}>
+              <Archive size={16} /> Arsip ({archivedLessons.length})
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setIsBulkEditMode(!isBulkEditMode)}
@@ -79,13 +111,13 @@ export default function BlockLessonList({ blockId, lessons }: BlockLessonListPro
 
       {showForm ? (
         <div style={formWrapperStyle}>
-          <CreateLessonForm blockId={blockId} suggestedOrderIndex={sortedLessons.length} />
+          <CreateLessonForm blockId={blockId} suggestedOrderIndex={suggestedOrderIndex} />
         </div>
       ) : null}
 
       {isBulkEditMode ? (
         <LessonSpreadsheet
-          lessons={lessons}
+          lessons={activeLessons}
           blockId={blockId}
           onClose={() => setIsBulkEditMode(false)}
         />
@@ -128,7 +160,7 @@ export default function BlockLessonList({ blockId, lessons }: BlockLessonListPro
                     </td>
                   </tr>
                 ) : (
-                  sortedLessons.map((lesson) => {
+                  sortedLessons.map((lesson, lessonIndex) => {
                     const isSelected = selectedLessonIds.has(lesson.id);
                     return (
                       <tr key={lesson.id} style={trStyle}>
@@ -147,7 +179,7 @@ export default function BlockLessonList({ blockId, lessons }: BlockLessonListPro
                             </button>
                           </div>
                         </td>
-                        <td style={tdStyle}>{lesson.order_index}</td>
+                        <td style={tdStyle}>{lessonIndex + 1}</td>
                         <td style={tdStyle}>
                           <div style={{ fontWeight: 600, color: '#0f172a' }}>{lesson.title}</div>
                           {lesson.summary && (
@@ -210,6 +242,41 @@ export default function BlockLessonList({ blockId, lessons }: BlockLessonListPro
               </tbody>
             </table>
           </div>
+
+          {showArchived && archivedLessons.length > 0 && (
+            <section style={archiveSectionStyle} aria-label="Lesson yang diarsipkan">
+              <div style={archiveHeaderStyle}>
+                <div>
+                  <h4 style={{ margin: 0, color: '#78350f', fontSize: '0.95rem' }}>Lesson Diarsipkan</h4>
+                  <p style={{ margin: '0.25rem 0 0', color: '#92400e', fontSize: '0.8rem' }}>
+                    Tidak dipakai untuk jadwal baru, tetapi histori pembelajaran tetap tersimpan.
+                  </p>
+                </div>
+              </div>
+              {restoreError && <div style={errorBannerStyle}>{restoreError}</div>}
+              <div style={archiveListStyle}>
+                {archivedLessons.map((lesson) => (
+                  <div key={lesson.id} style={archiveRowStyle}>
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ margin: 0, color: '#334155', fontWeight: 600 }}>{lesson.title}</p>
+                      <p style={{ margin: '0.2rem 0 0', color: '#94a3b8', fontSize: '0.78rem' }}>
+                        Diarsipkan {lesson.archived_at ? new Date(lesson.archived_at).toLocaleString('id-ID') : '-'}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => restoreLesson(lesson.id)}
+                      disabled={restoringLessonId === lesson.id}
+                      style={restoreButtonStyle}
+                    >
+                      <RotateCcw size={15} />
+                      {restoringLessonId === lesson.id ? 'Memulihkan...' : 'Pulihkan'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Quick Actions for Selection (Optional - keeping from original if needed) */}
           {selectedLessonIds.size > 0 && (
@@ -363,4 +430,55 @@ const formWrapperStyle: CSSProperties = {
   padding: '1rem',
   background: '#f8fafc',
   marginBottom: '1rem',
+};
+
+const archiveSectionStyle: CSSProperties = {
+  border: '1px solid #fde68a',
+  borderRadius: '0.5rem',
+  background: '#fffbeb',
+  overflow: 'hidden',
+};
+
+const archiveHeaderStyle: CSSProperties = {
+  padding: '0.9rem 1rem',
+  borderBottom: '1px solid #fde68a',
+};
+
+const archiveListStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+};
+
+const archiveRowStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: '1rem',
+  padding: '0.8rem 1rem',
+  borderBottom: '1px solid #fef3c7',
+  background: '#ffffff',
+};
+
+const restoreButtonStyle: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '0.4rem',
+  padding: '0.5rem 0.75rem',
+  borderRadius: '0.4rem',
+  border: '1px solid #dbe7ef',
+  background: '#ffffff',
+  color: '#1e3a5f',
+  fontWeight: 600,
+  fontSize: '0.82rem',
+  cursor: 'pointer',
+};
+
+const errorBannerStyle: CSSProperties = {
+  margin: '0.75rem 1rem',
+  padding: '0.65rem 0.8rem',
+  borderRadius: '0.4rem',
+  background: '#fef2f2',
+  color: '#b91c1c',
+  fontSize: '0.82rem',
 };

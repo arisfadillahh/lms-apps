@@ -28,6 +28,7 @@ export async function GET(request: Request, context: RouteContext) {
             .from('lesson_templates')
             .select('title, summary, estimated_meeting_count, slide_url, make_up_instructions, order_index')
             .eq('block_id', blockId)
+            .eq('is_archived', false)
             .order('order_index', { ascending: true });
 
         if (error) {

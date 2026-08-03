@@ -23,9 +23,10 @@ export default async function BlockDetailPage({ params }: { params: Promise<{ le
     const block = await blocksDao.getBlockById(blockId);
     if (!level || !block) notFound();
 
-    const lessons = await lessonTemplatesDao.listLessonsByBlock(blockId);
+    const lessons = await lessonTemplatesDao.listLessonsByBlock(blockId, { includeArchived: true });
+    const activeLessons = lessons.filter((lesson) => !lesson.is_archived);
 
-    const totalMeetings = lessons.reduce((sum, l) => sum + (l.estimated_meeting_count || 1), 0);
+    const totalMeetings = activeLessons.reduce((sum, l) => sum + (l.estimated_meeting_count || 1), 0);
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -57,7 +58,7 @@ export default async function BlockDetailPage({ params }: { params: Promise<{ le
             <div style={statsRowStyle}>
                 <div style={statCardStyle}>
                     <span style={statLabelStyle}>Total Lesson</span>
-                    <span style={statValueStyle}>{lessons.length}</span>
+                    <span style={statValueStyle}>{activeLessons.length}</span>
                 </div>
                 <div style={statCardStyle}>
                     <span style={statLabelStyle}>Total Pertemuan</span>

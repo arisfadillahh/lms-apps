@@ -80,6 +80,8 @@ export default async function CoachLessonDetailPage({ params, searchParams }: Pa
                     order_index: ekskulLesson.order_index,
                     estimated_meeting_count: ekskulLesson.estimated_meetings,
                     make_up_instructions: lessonParts.makeUpInstructions,
+                    is_archived: false,
+                    archived_at: null,
                     created_at: ekskulLesson.created_at,
                     updated_at: ekskulLesson.created_at,
                 };

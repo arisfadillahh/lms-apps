@@ -257,6 +257,8 @@ export interface Database {
           order_index: number;
           estimated_meeting_count: number | null;
           make_up_instructions: string | null;
+          is_archived: boolean;
+          archived_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -271,6 +273,8 @@ export interface Database {
           order_index: number;
           estimated_meeting_count?: number | null;
           make_up_instructions?: string | null;
+          is_archived?: boolean;
+          archived_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };

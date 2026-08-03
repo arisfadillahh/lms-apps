@@ -49,10 +49,11 @@ export default function LessonSpreadsheet({ lessons, blockId, onClose }: LessonS
     }, [lessons]);
 
     const handleReorder = (newOrder: EditableLesson[]) => {
-        // Update order_index based on new position
+        // Preserve the existing numeric slots so archived lessons keep their historical order key.
+        const orderSlots = [...items].map((item) => item.order_index).sort((a, b) => a - b);
         const reordered = newOrder.map((item, index) => ({
             ...item,
-            order_index: index + 1
+            order_index: orderSlots[index]
         }));
         setItems(reordered);
         setHasChanges(true);

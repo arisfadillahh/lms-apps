@@ -52,40 +52,21 @@ export async function POST(request: Request) {
         }
     }
 
-    const basePayload = {
+    const payload = {
         plan_id: parsed.data.planId,
         title: parsed.data.title,
-        summary: parsed.data.summary ?? null,
+        summary: serializeEkskulLessonSummary(parsed.data.summary ?? null, parsed.data.makeUpInstructions ?? null),
         slide_url: parsed.data.slideUrl || null,
         example_url: parsed.data.exampleUrl || null,
         estimated_meetings: parsed.data.estimatedMeetings ?? 1,
         order_index: parsed.data.orderIndex,
     };
-    const payloadWithMakeUpColumn = {
-        ...basePayload,
-        make_up_instructions: parsed.data.makeUpInstructions ?? null,
-    };
 
-    let insertQuery = supabase
+    const { data, error } = await supabase
         .from('ekskul_lessons')
-        .insert(payloadWithMakeUpColumn)
+        .insert(payload)
         .select('*')
         .single();
-    let { data, error } = await insertQuery;
-
-    if (isMissingMakeUpColumnError(error)) {
-        const fallbackPayload = {
-            ...basePayload,
-            summary: serializeEkskulLessonSummary(parsed.data.summary ?? null, parsed.data.makeUpInstructions ?? null),
-        };
-        const fallbackResult = await supabase
-            .from('ekskul_lessons')
-            .insert(fallbackPayload)
-            .select('*')
-            .single();
-        data = fallbackResult.data;
-        error = fallbackResult.error;
-    }
 
     if (error) {
         console.error('[Create Ekskul Lesson] Error:', error);
@@ -110,13 +91,4 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ lesson: data }, { status: 201 });
-}
-
-function isMissingMakeUpColumnError(error: unknown) {
-    return Boolean(
-        error &&
-        typeof error === 'object' &&
-        'code' in error &&
-        (error as { code?: string }).code === '42703'
-    );
 }

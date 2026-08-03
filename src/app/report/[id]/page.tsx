@@ -12,6 +12,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import DownloadPdfButton from './DownloadPdfButton';
+import ReportStoryExperience from './ReportStoryExperience';
 import StoryShareButton from './StoryShareButton';
 
 const CLEVIO_LOGO_SRC = '/logo/innovator-camp-logo-dark.png';
@@ -99,10 +100,33 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
   const coder = Array.isArray(report.coder) ? report.coder[0] : report.coder;
   const coach = klass?.coach ? (Array.isArray(klass.coach) ? klass.coach[0] : klass.coach) : null;
 
-  const [{ data: evalCriteria }, { data: lessonTemplates }] = await Promise.all([
+  const [{ data: evalCriteria }, { data: reportClassBlocks }] = await Promise.all([
     supabase.from('evaluation_criteria').select('*').order('order_index'),
-    supabase.from('lesson_templates').select('title, order_index').eq('block_id', report.block_id).order('order_index'),
+    supabase
+      .from('class_blocks')
+      .select('id, start_date')
+      .eq('class_id', report.class_id)
+      .eq('block_id', report.block_id)
+      .order('start_date', { ascending: false })
+      .limit(1),
   ]);
+
+  const reportClassBlockId = reportClassBlocks?.[0]?.id ?? null;
+  const { data: actualClassLessons } = reportClassBlockId
+    ? await supabase
+        .from('class_lessons')
+        .select('title, order_index')
+        .eq('class_block_id', reportClassBlockId)
+        .order('order_index')
+    : { data: null };
+  const { data: fallbackLessonTemplates } = !actualClassLessons || actualClassLessons.length === 0
+    ? await supabase
+        .from('lesson_templates')
+        .select('title, order_index')
+        .eq('block_id', report.block_id)
+        .eq('is_archived', false)
+        .order('order_index')
+    : { data: null };
 
   // Fetch block evaluation (reflection) submitted by the coder for this block
   let blockEvaluation: { answers: Record<string, string> } | null = null;
@@ -165,7 +189,8 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
     };
   }) || [];
 
-  const lessonTitles = (lessonTemplates || []).map(l => l.title);
+  const lessonTitles = (actualClassLessons?.length ? actualClassLessons : fallbackLessonTemplates || [])
+    .map((lesson) => lesson.title);
 
   const pubDate = new Date(report.updated_at || report.created_at).toLocaleDateString('id-ID', {
     day: 'numeric', month: 'long', year: 'numeric',
@@ -197,6 +222,19 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
     percentage: Math.round((item.average / 10) * 100),
     description: item.description,
   }));
+  const reportReflections = blockEvaluation
+    ? (() => {
+        const answers = blockEvaluation.answers;
+        const knownIds = new Set(evalQuestions.map((question) => question.id));
+        const answeredQuestions = evalQuestions
+          .filter((question) => answers[question.id]?.trim())
+          .map((question) => ({ question: question.question, answer: answers[question.id] }));
+        const extras = Object.entries(answers)
+          .filter(([key, value]) => !knownIds.has(key) && value?.trim())
+          .map(([, value]) => ({ question: 'Refleksi Tambahan', answer: value }));
+        return [...answeredQuestions, ...extras];
+      })()
+    : [];
 
   return (
     <div className="report-root min-h-screen bg-[#eef6fb] font-sans text-[#17306b] antialiased">
@@ -266,7 +304,23 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
             <span className="hidden h-8 w-px bg-slate-200 sm:block" aria-hidden="true" />
             <p className="truncate text-sm font-extrabold text-[#22367b] sm:text-base">{reportTitle}</p>
           </div>
-          <DownloadPdfButton />
+          <div className="flex items-center gap-2">
+            <ReportStoryExperience
+              studentName={coder?.full_name ?? 'Coder Clevio'}
+              reportTitle={reportTitle}
+              contextLabel={reportContextLabel}
+              coachName={coach?.full_name ?? 'Clevio Coach'}
+              publishedDate={pubDate}
+              score={scorePercentage}
+              grade={grade}
+              performanceLabel={gradeMessage}
+              performanceSummary={gradeSummary}
+              competencies={storyCompetencies}
+              lessons={lessonTitles}
+              reflections={reportReflections}
+            />
+            <DownloadPdfButton />
+          </div>
         </div>
       </header>
 
@@ -377,19 +431,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
             </section>
           )}
 
-          {blockEvaluation && (() => {
-            const answers = blockEvaluation.answers;
-            const allReflections = evalQuestions
-              .filter((question) => answers[question.id]?.trim())
-              .map((question) => ({ question: question.question, answer: answers[question.id] }));
-            const knownIds = new Set(evalQuestions.map((question) => question.id));
-            const extras = Object.entries(answers)
-              .filter(([key, value]) => !knownIds.has(key) && value?.trim())
-              .map(([, value]) => ({ question: 'Refleksi Tambahan', answer: value }));
-            const finalReflections = [...allReflections, ...extras];
-            if (finalReflections.length === 0) return null;
-
-            return (
+          {reportReflections.length > 0 && (
               <section className="report-section mt-12" data-purpose="reflection-qa">
                 <div className="report-section-heading mb-5 flex items-end justify-between gap-4">
                   <div>
@@ -397,11 +439,11 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
                     <h2 className="mt-1 text-2xl font-black text-[#152c64] sm:text-3xl">Catatan refleksi yang dikirim oleh coder</h2>
                     <p className="mt-1 text-sm font-medium text-[#7184a0]">Jawaban tentang proses, tantangan, dan perkembangan project.</p>
                   </div>
-                  <span className="hidden shrink-0 rounded-full border border-[#d9e6ee] bg-white px-3 py-1.5 text-xs font-bold text-[#7184a0] sm:inline-flex">{finalReflections.length} pertanyaan</span>
+                  <span className="hidden shrink-0 rounded-full border border-[#d9e6ee] bg-white px-3 py-1.5 text-xs font-bold text-[#7184a0] sm:inline-flex">{reportReflections.length} pertanyaan</span>
                 </div>
                 <div className="report-reflection-grid grid gap-4 md:grid-cols-2">
-                  {finalReflections.map((reflection, idx) => (
-                    <article key={`${reflection.question}-${idx}`} className={`${idx === finalReflections.length - 1 && finalReflections.length % 2 === 1 ? 'md:col-span-2' : ''} report-reflection-card rounded-xl border border-[#dbe7ef] bg-white p-5 shadow-[0_8px_24px_rgba(31,63,101,0.05)]`}>
+                  {reportReflections.map((reflection, idx) => (
+                    <article key={`${reflection.question}-${idx}`} className={`${idx === reportReflections.length - 1 && reportReflections.length % 2 === 1 ? 'md:col-span-2' : ''} report-reflection-card rounded-xl border border-[#dbe7ef] bg-white p-5 shadow-[0_8px_24px_rgba(31,63,101,0.05)]`}>
                       <div className="flex items-start gap-3">
                         <span className="flex h-9 min-w-9 shrink-0 items-center justify-center rounded-lg bg-[#1861bd] px-1 text-xs font-black text-white">{(idx + 1).toString().padStart(2, '0')}</span>
                         <div>
@@ -413,8 +455,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
                   ))}
                 </div>
               </section>
-            );
-          })()}
+          )}
         </main>
 
         <footer className="mt-12 rounded-xl bg-[#1d3475] px-5 py-5 text-white shadow-[0_12px_28px_rgba(24,49,111,0.18)] sm:flex sm:items-center sm:justify-between sm:gap-6 sm:px-7" data-purpose="report-actions">

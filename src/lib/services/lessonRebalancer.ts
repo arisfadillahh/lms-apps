@@ -117,8 +117,9 @@ export async function syncClassLessonsStructure(classId: string): Promise<void> 
     // 1. Fetch all blocks for the class
     const { data: blocks } = await supabase
         .from('class_blocks')
-        .select('id, block_id')
-        .eq('class_id', classId);
+        .select('id, block_id, status')
+        .eq('class_id', classId)
+        .in('status', ['CURRENT', 'UPCOMING']);
 
     if (!blocks) return;
 
@@ -130,6 +131,7 @@ export async function syncClassLessonsStructure(classId: string): Promise<void> 
             .from('lesson_templates')
             .select('*')
             .eq('block_id', block.block_id)
+            .eq('is_archived', false)
             .order('order_index');
 
         if (!templates) continue;
@@ -224,18 +226,8 @@ export async function syncClassLessonsStructure(classId: string): Promise<void> 
             }
         }
 
-        // 5. Delete orphaned class_lessons whose lesson_template_id no longer exists
-        //    in this block's templates (i.e. the template was deleted from the curriculum).
-        const validTemplateIds = new Set(templates.map(t => t.id));
-        const orphaned = existingLessons?.filter(
-            l => l.lesson_template_id && !validTemplateIds.has(l.lesson_template_id)
-        ) ?? [];
-
-        if (orphaned.length > 0) {
-            const orphanIds = orphaned.map(l => l.id);
-            console.log(`[syncClassLessonsStructure] Deleting ${orphanIds.length} orphaned class_lessons for block ${block.id}`);
-            await supabase.from('class_lessons').delete().in('id', orphanIds);
-        }
+        // Archived lesson history is intentionally retained. Future copies are removed
+        // by archiveLessonSafely, which checks sessions and make-up references first.
     }
 }
 

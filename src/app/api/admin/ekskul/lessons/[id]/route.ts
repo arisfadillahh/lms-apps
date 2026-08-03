@@ -68,39 +68,20 @@ export async function PATCH(
         }
     }
 
-    const basePayload = {
+    const payload = {
         title: parsed.data.title,
-        summary: parsed.data.summary ?? null,
+        summary: serializeEkskulLessonSummary(parsed.data.summary ?? null, parsed.data.makeUpInstructions ?? null),
         slide_url: parsed.data.slideUrl || null,
         estimated_meetings: parsed.data.estimatedMeetings ?? 1,
         order_index: parsed.data.orderIndex,
     };
-    const payloadWithMakeUpColumn = {
-        ...basePayload,
-        make_up_instructions: parsed.data.makeUpInstructions ?? null,
-    };
 
-    let { data, error } = await supabase
+    const { data, error } = await supabase
         .from('ekskul_lessons')
-        .update(payloadWithMakeUpColumn)
+        .update(payload)
         .eq('id', lessonId)
         .select('*')
         .single();
-
-    if (isMissingMakeUpColumnError(error)) {
-        const fallbackPayload = {
-            ...basePayload,
-            summary: serializeEkskulLessonSummary(parsed.data.summary ?? null, parsed.data.makeUpInstructions ?? null),
-        };
-        const fallbackResult = await supabase
-            .from('ekskul_lessons')
-            .update(fallbackPayload)
-            .eq('id', lessonId)
-            .select('*')
-            .single();
-        data = fallbackResult.data;
-        error = fallbackResult.error;
-    }
 
     if (error) {
         console.error('[Update Ekskul Lesson] Error:', error);
@@ -152,13 +133,4 @@ export async function DELETE(
     }
 
     return NextResponse.json({ success: true });
-}
-
-function isMissingMakeUpColumnError(error: unknown) {
-    return Boolean(
-        error &&
-        typeof error === 'object' &&
-        'code' in error &&
-        (error as { code?: string }).code === '42703'
-    );
 }

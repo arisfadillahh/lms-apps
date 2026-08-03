@@ -129,25 +129,11 @@ export async function DELETE(request: Request, context: RouteContext) {
 
   try {
     // Capture block_id BEFORE deleting — it won't be accessible after.
-    const lesson = await lessonTemplatesDao.getLessonTemplateById(lessonId);
-    const blockId = lesson?.block_id ?? null;
-
-    await lessonTemplatesDao.deleteLessonTemplate(lessonId);
-
-    // Propagate deletion to active classes: remove orphaned class_lessons and rebalance.
-    if (blockId) {
-      try {
-        const { syncClassesForBlockTemplate } = await import('@/lib/services/lessonRebalancer');
-        await syncClassesForBlockTemplate(blockId);
-      } catch (syncError) {
-        console.error('[DELETE lesson] Failed to sync classes after deletion:', syncError);
-        // Non-fatal: template is deleted. Orphaned class_lessons will be cleaned next sync.
-      }
-    }
-
-    return NextResponse.json({ success: true });
+    const { archiveLessonSafely } = await import('@/lib/services/lessonArchive');
+    const result = await archiveLessonSafely(lessonId);
+    return NextResponse.json({ success: true, archived: true, impact: result.impact });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to delete lesson';
+    const message = error instanceof Error ? error.message : 'Failed to archive lesson';
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -223,13 +223,24 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
                                 {/* Password (current + new in one block) */}
                                 <div className="space-y-3">
                                     <label className="block text-sm font-semibold text-slate-700">Password</label>
-                                    <input
-                                        type="password"
-                                        value={currentPassword}
-                                        onChange={e => setCurrentPassword(e.target.value)}
-                                        className="w-full rounded-xl border border-slate-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 px-4 py-3 text-slate-900 text-sm outline-none transition-all"
-                                        placeholder="Password saat ini"
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type={showPassword ? 'text' : 'password'}
+                                            value={currentPassword}
+                                            onChange={e => setCurrentPassword(e.target.value)}
+                                            className="w-full rounded-xl border border-slate-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 px-4 py-3 pr-12 text-slate-900 text-sm outline-none transition-all"
+                                            placeholder="Password saat ini"
+                                        />
+                                        <button
+                                            type="button"
+                                            onMouseDown={e => e.preventDefault()}
+                                            onClick={() => setShowPassword(current => !current)}
+                                            className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                                            aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                                        >
+                                            <span className="material-symbols-outlined text-[20px] leading-none">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                                        </button>
+                                    </div>
                                     <div className="relative">
                                         <input
                                             type={showPassword ? 'text' : 'password'}
@@ -240,10 +251,12 @@ export default function ProfileForm({ user }: { user: UserProfile }) {
                                         />
                                         <button
                                             type="button"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                            onMouseDown={e => e.preventDefault()}
+                                            onClick={() => setShowPassword(current => !current)}
+                                            className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                                            aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
                                         >
-                                            <span className="material-symbols-outlined">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                                            <span className="material-symbols-outlined text-[20px] leading-none">{showPassword ? 'visibility_off' : 'visibility'}</span>
                                         </button>
                                     </div>
                                     {/* Strength Bar */}

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { getSessionOrThrow } from '@/lib/auth';
 import { attendanceDao, sessionsDao, reportsDao, classesDao } from '@/lib/dao';
 import type { UpsertLessonEvaluationInput } from '@/lib/dao/reportsDao';
+import { filterActiveEnrollmentsForSession } from '@/lib/services/enrollmentEligibility';
 import { computeLessonSchedule } from '@/lib/services/lessonScheduler';
 
 export async function POST(req: Request) {
@@ -39,7 +40,8 @@ export async function POST(req: Request) {
     const activeEnrollments = (await classesDao.listEnrollmentsByClass(klass.id)).filter(
       (enrollment) => enrollment.status === 'ACTIVE',
     );
-    const activeCoderIds = new Set(activeEnrollments.map((enrollment) => enrollment.coder_id));
+    const eligibleEnrollments = filterActiveEnrollmentsForSession(activeEnrollments, session.date_time);
+    const activeCoderIds = new Set(eligibleEnrollments.map((enrollment) => enrollment.coder_id));
     const submittedCoderIds = Object.keys(scores as Record<string, unknown>);
     const unknownCoderIds = submittedCoderIds.filter((coderId) => !activeCoderIds.has(coderId));
     if (unknownCoderIds.length > 0) {

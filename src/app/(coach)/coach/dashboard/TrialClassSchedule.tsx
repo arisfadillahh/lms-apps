@@ -16,7 +16,9 @@ export default function TrialClassSchedule({ trials }: TrialClassScheduleProps) 
   if (trials.length === 0) return null;
 
   return (
-    <section className="mb-8 overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)]">
+    <section
+      className="mb-8 overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)]"
+    >
       <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="flex items-center gap-3">
           <span className="material-symbols-outlined flex size-10 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
@@ -72,22 +74,18 @@ export default function TrialClassSchedule({ trials }: TrialClassScheduleProps) 
                   ) : null}
                 </div>
 
-                {isOnline && trial.google_meet_url ? (
+                <div className="w-full border-t border-slate-100 pt-4 xl:w-auto xl:border-t-0 xl:pt-0">
                   <a
-                    href={trial.google_meet_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-extrabold text-white transition-colors hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 xl:w-auto"
+                    href={`/coach/trials/${trial.id}`}
+                    data-testid={`trial-detail-${trial.id}`}
+                    className="trial-detail-action"
+                    style={{ backgroundColor: '#22367b', color: '#ffffff' }}
                   >
-                    <span className="material-symbols-outlined text-xl">video_call</span>
-                    Masuk Google Meet
+                    <span className="material-symbols-outlined text-xl" aria-hidden="true">assignment</span>
+                    <span>Detail Trial</span>
+                    <span className="material-symbols-outlined text-lg" aria-hidden="true">arrow_forward</span>
                   </a>
-                ) : (
-                  <div className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-3 text-xs font-bold text-slate-600 xl:w-auto">
-                    <span className="material-symbols-outlined text-lg">location_on</span>
-                    Trial Offline
-                  </div>
-                )}
+                </div>
               </div>
             </article>
           );

@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { UserPlus, Shield } from 'lucide-react';
 
-import { createUserSchema, roleEnum } from '@/lib/validation/admin';
+import { coderProgramEnum, createUserSchema, roleEnum } from '@/lib/validation/admin';
 import { ADMIN_MENUS } from '@/lib/permissions';
 
 const formSchema = createUserSchema.extend({
@@ -35,6 +35,7 @@ export default function CreateUserForm() {
       username: '',
       password: '',
       role: 'COACH',
+      coderProgram: 'WEEKLY',
       fullName: '',
       parentContactPhone: undefined,
       isActive: true,
@@ -42,6 +43,7 @@ export default function CreateUserForm() {
   });
 
   const selectedRole = watch('role');
+  const selectedCoderProgram = watch('coderProgram');
 
   const handleMenuToggle = (menuId: string) => {
     setSelectedMenus((prev) =>
@@ -89,7 +91,7 @@ export default function CreateUserForm() {
       }
 
       setStatusMessage('User created successfully');
-      reset({ username: '', password: '', role: values.role, fullName: '', parentContactPhone: undefined, isActive: true });
+      reset({ username: '', password: '', role: values.role, coderProgram: 'WEEKLY', fullName: '', parentContactPhone: undefined, isActive: true });
       setSelectedMenus([]);
       router.refresh();
       // Auto-hide success message
@@ -159,11 +161,35 @@ export default function CreateUserForm() {
         </div>
 
         {selectedRole === 'CODER' && (
-          <div style={fieldStyle}>
-            <label style={labelStyle}>Nomor WhatsApp Orang Tua</label>
-            <input style={inputStyle} type="text" placeholder="Contoh: +628123456789" {...register('parentContactPhone')} />
-            {errors.parentContactPhone ? <span style={errorStyle}>{errors.parentContactPhone.message}</span> : null}
-          </div>
+          <>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Program Coder</label>
+              <div style={{ position: 'relative' }}>
+                <select style={{ ...inputStyle, appearance: 'none', cursor: 'pointer' }} {...register('coderProgram')}>
+                  {coderProgramEnum.options.map((program) => (
+                    <option key={program} value={program}>
+                      {program === 'WEEKLY' ? 'Coder Weekly' : 'Coder Ekskul'}
+                    </option>
+                  ))}
+                </select>
+                <div style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#64748b' }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+                </div>
+              </div>
+              {errors.coderProgram ? <span style={errorStyle}>{errors.coderProgram.message}</span> : null}
+            </div>
+
+            <div style={fieldStyle}>
+              <label style={labelStyle}>
+                Nomor WhatsApp Orang Tua{selectedCoderProgram === 'WEEKLY' ? ' *' : ' (Opsional untuk Ekskul)'}
+              </label>
+              <input style={inputStyle} type="tel" placeholder="Contoh: +628123456789" {...register('parentContactPhone')} />
+              {selectedCoderProgram === 'EKSKUL' ? (
+                <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Coder Ekskul tidak memerlukan CCR ID.</span>
+              ) : null}
+              {errors.parentContactPhone ? <span style={errorStyle}>{errors.parentContactPhone.message}</span> : null}
+            </div>
+          </>
         )}
 
         {/* Admin Permissions Section */}

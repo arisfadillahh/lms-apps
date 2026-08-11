@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { getSessionOrThrow } from '@/lib/auth';
 import { serializeEkskulLessonSummary } from '@/lib/ekskulMakeUpInstructions';
 import { assertRole } from '@/lib/roles';
+import { syncEkskulPlanAfterChange } from '@/lib/services/ekskulLessonPlanSync';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
 const bulkUpdateSchema = z.object({
@@ -52,6 +53,22 @@ export async function POST(request: Request) {
 
     if (errors.length > 0) {
         return NextResponse.json({ error: 'Beberapa lesson gagal diupdate', details: errors }, { status: 207 });
+    }
+
+    if (parsed.data.updates.length > 0) {
+        const { data: lesson, error } = await supabase
+            .from('ekskul_lessons')
+            .select('plan_id')
+            .eq('id', parsed.data.updates[0].id)
+            .single();
+
+        if (error) {
+            return NextResponse.json({ error: `Gagal sync lesson plan: ${error.message}` }, { status: 500 });
+        }
+
+        if (lesson?.plan_id) {
+            await syncEkskulPlanAfterChange(lesson.plan_id);
+        }
     }
 
     return NextResponse.json({ success: true, updated: parsed.data.updates.length });

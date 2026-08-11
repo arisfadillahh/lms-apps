@@ -26,11 +26,12 @@ type Template = {
 };
 
 const DEFAULT_TEMPLATE = {
-    content: `Halo Ayah/Bunda,\n\nLaporan hasil belajar *{nama_siswa}* untuk periode *{periode}* di kelas *{nama_kelas}* sudah tersedia.\n\nSilakan lihat detail laporannya melalui link berikut:\n{link_raport}\n\nTerima kasih! 🙏`,
-    variables: ['nama_siswa', 'nama_kelas', 'periode', 'link_raport'],
+    content: `Halo Ayah/Bunda {parent_name},\n\nRapor perkembangan belajar *{nama_siswa}* untuk kelas *{nama_kelas}* periode *{periode}* sudah tersedia.\n\nSilakan buka rapor melalui link berikut:\n{link_raport}\n\nTerima kasih.\n*Clevio Coder Camp*`,
+    variables: ['parent_name', 'nama_siswa', 'nama_kelas', 'periode', 'link_raport'],
 };
 
 const SAMPLE_DATA: Record<string, string> = {
+    parent_name: 'Ayah/Bunda Benjamin',
     nama_siswa: 'Benjamin',
     nama_kelas: 'Scratch Beginner',
     periode: 'Februari 2026',
@@ -114,8 +115,8 @@ export default function WhatsAppReportTemplates({ settings, settingsMsg, savingS
             <div style={cardStyle}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                     <div>
-                        <h3 style={{ ...titleStyle, fontSize: 16 }}>📑 Template Pesan Pengiriman Rapor</h3>
-                        <p style={descStyle}>Pesan yang dikirim ke orang tua saat Admin mempublish rapor block.</p>
+                        <h3 style={{ ...titleStyle, fontSize: 16 }}>Template Pesan Rapor Weekly</h3>
+                        <p style={descStyle}>Pesan khusus yang dikirim ke orang tua saat Admin mengirim rapor weekly. Template Trial Report tersedia terpisah di menu Template WhatsApp.</p>
                     </div>
                     {hasChanges && <span style={unsavedBadge}>Belum disimpan</span>}
                 </div>

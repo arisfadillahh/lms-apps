@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { sessionsDao, classesDao, reportsDao } from '@/lib/dao';
+import { filterActiveEnrollmentsForSession } from '@/lib/services/enrollmentEligibility';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 
 import EvaluationFormClient from './EvaluationFormClient';
@@ -26,9 +27,9 @@ export default async function CoachSessionEvaluationPage({ params }: { params: P
   const slot = lessonMap.get(sessionId);
   if (!slot) redirect('/coach/rubrics');
 
-  // We only evaluate ACTIVE students
+  // We only evaluate students who were already enrolled when this session happened.
   const enrollments = await classesDao.listEnrollmentsByClass(klass.id);
-  const activeStudentIds = enrollments.filter(e => e.status === 'ACTIVE').map(e => e.coder_id);
+  const activeStudentIds = filterActiveEnrollmentsForSession(enrollments, session.date_time).map(e => e.coder_id);
 
   if (activeStudentIds.length === 0) {
     redirect('/coach/rubrics');

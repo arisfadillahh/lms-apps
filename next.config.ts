@@ -18,11 +18,11 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Keep dynamic pages in the client-side router cache for 5 minutes
-  // so navigating back to dashboard doesn't trigger a full re-fetch
+  // Dynamic LMS pages must refetch on navigation so coach/admin dashboards
+  // show newly assigned trials, payments, and evaluation tasks immediately.
   experimental: {
     staleTimes: {
-      dynamic: 300, // seconds - cached for 5 min after first load
+      dynamic: 0,
     },
   },
 };

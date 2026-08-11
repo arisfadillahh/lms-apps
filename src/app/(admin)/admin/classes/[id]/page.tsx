@@ -12,6 +12,7 @@ import {
   exkulCompetenciesDao,
 } from '@/lib/dao';
 import type { ClassLessonRecord } from '@/lib/dao/classLessonsDao';
+import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 
 import AssignSubstituteForm from './AssignSubstituteForm';
 import EnrollCoderForm from './EnrollCoderForm';
@@ -57,8 +58,13 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
 
 
 
-  // Ensure future sessions exist (Rolling 12 sessions)
-  await sessionsDao.ensureFutureSessions(classIdParam);
+  if (klass.type === 'EKSKUL' && (klass as { ekskul_lesson_plan_id?: string | null }).ekskul_lesson_plan_id) {
+    const { syncEkskulClassesForPlan } = await import('@/lib/services/ekskulLessonPlanSync');
+    await syncEkskulClassesForPlan((klass as { ekskul_lesson_plan_id: string }).ekskul_lesson_plan_id);
+  } else {
+    // Ensure future sessions exist (Rolling 12 sessions)
+    await sessionsDao.ensureFutureSessions(classIdParam);
+  }
 
   const [sessions, enrollments, coaches, coders] = await Promise.all([
     sessionsDao.listSessionsByClass(classIdParam),
@@ -106,23 +112,40 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
     .slice()
     .sort((a, b) => new Date(a.block.start_date).getTime() - new Date(b.block.start_date).getTime());
 
-  const lessonMap = new Map<string, string>();
-  for (const bs of blockSummaries) {
-    // Count duplicate titles within this block to detect multi-part lessons
-    const titleCounts = new Map<string, number>();
-    bs.lessons.forEach(l => titleCounts.set(l.title, (titleCounts.get(l.title) || 0) + 1));
+  const lessonMap = new Map<string, { title: string; slideUrl: string | null }>();
+  if (klass.type === 'EKSKUL') {
+    const ekskulLessonSchedule = await computeLessonSchedule(
+      classIdParam,
+      klass.level_id,
+      (klass as { ekskul_lesson_plan_id?: string | null }).ekskul_lesson_plan_id ?? null,
+    );
+    for (const [sessionId, slot] of ekskulLessonSchedule.entries()) {
+      lessonMap.set(sessionId, {
+        title: formatLessonTitle(slot),
+        slideUrl: slot.lessonTemplate.slide_url ?? null,
+      });
+    }
+  } else {
+    for (const bs of blockSummaries) {
+      // Count duplicate titles within this block to detect multi-part lessons
+      const titleCounts = new Map<string, number>();
+      bs.lessons.forEach(l => titleCounts.set(l.title, (titleCounts.get(l.title) || 0) + 1));
 
-    const titleRunningCounts = new Map<string, number>();
-    for (const lesson of bs.lessons) {
-      const total = titleCounts.get(lesson.title) || 1;
-      let displayTitle = lesson.title;
-      if (total > 1) {
-        const current = (titleRunningCounts.get(lesson.title) || 0) + 1;
-        titleRunningCounts.set(lesson.title, current);
-        displayTitle = `${lesson.title} (Part ${current})`;
-      }
-      if (lesson.session_id) {
-        lessonMap.set(lesson.session_id, displayTitle);
+      const titleRunningCounts = new Map<string, number>();
+      for (const lesson of bs.lessons) {
+        const total = titleCounts.get(lesson.title) || 1;
+        let displayTitle = lesson.title;
+        if (total > 1) {
+          const current = (titleRunningCounts.get(lesson.title) || 0) + 1;
+          titleRunningCounts.set(lesson.title, current);
+          displayTitle = `${lesson.title} (Part ${current})`;
+        }
+        if (lesson.session_id) {
+          lessonMap.set(lesson.session_id, {
+            title: displayTitle,
+            slideUrl: lesson.slide_url ?? null,
+          });
+        }
       }
     }
   }
@@ -323,6 +346,7 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
         sessions={sessions} 
         coachMap={coachMap} 
         lessonMap={lessonMap} 
+        showLessonLinks={klass.type === 'EKSKUL'}
         availableLessons={blockSummaries.flatMap((bs, bsIndex) => {
           const blockName = bs.block.block_name ?? `Block ${bsIndex + 1}`;
           const blockOrder = bs.block.block_order_index ?? bsIndex;

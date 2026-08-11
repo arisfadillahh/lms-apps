@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { getSessionOrThrow } from '@/lib/auth';
 import { serializeEkskulLessonSummary } from '@/lib/ekskulMakeUpInstructions';
 import { assertRole } from '@/lib/roles';
+import { reorderEkskulLesson, syncEkskulPlanAfterChange } from '@/lib/services/ekskulLessonPlanSync';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
 const updateLessonSchema = z.object({
@@ -40,34 +41,6 @@ export async function PATCH(
 
     const supabase = getSupabaseAdmin();
 
-    // Check if order changed
-    const currentLesson = await supabase.from('ekskul_lessons').select('order_index').eq('id', lessonId).single();
-
-    if (currentLesson.data && currentLesson.data.order_index !== parsed.data.orderIndex) {
-        // Simple shift logic: if moving to N, shift everything >= N (excluding self) to N+1
-        // (Same simple logic as create, might need more robust swapping for reordering, but basic shift ensures no collision on insert-like move)
-        // A better approach for exact re-ordering is usually complex.
-        // For now, let's just allow duplicate order indices or simple shift.
-        // Let's replicate "insert" shift logic for the target index.
-
-        const { data: lessonsToShift } = await supabase
-            .from('ekskul_lessons')
-            .select('id, order_index')
-            .eq('plan_id', parsed.data.planId)
-            .gte('order_index', parsed.data.orderIndex)
-            .neq('id', lessonId) // Don't shift self
-            .order('order_index', { ascending: false });
-
-        if (lessonsToShift && lessonsToShift.length > 0) {
-            for (const les of lessonsToShift) {
-                await supabase
-                    .from('ekskul_lessons')
-                    .update({ order_index: les.order_index + 1 })
-                    .eq('id', les.id);
-            }
-        }
-    }
-
     const payload = {
         title: parsed.data.title,
         summary: serializeEkskulLessonSummary(parsed.data.summary ?? null, parsed.data.makeUpInstructions ?? null),
@@ -88,7 +61,8 @@ export async function PATCH(
         return NextResponse.json({ error: `Gagal update lesson: ${error.message}` }, { status: 500 });
     }
 
-    // Update plan total count/meetings if needed (optional)
+    await reorderEkskulLesson(parsed.data.planId, lessonId, parsed.data.orderIndex);
+    await syncEkskulPlanAfterChange(parsed.data.planId);
 
     return NextResponse.json({ lesson: data });
 }
@@ -105,7 +79,7 @@ export async function DELETE(
 
     const supabase = getSupabaseAdmin();
 
-    // Get plan_id before deleting (for total_lessons update)
+    // Get plan_id before deleting so we can re-number and sync active ekskul classes.
     const { data: lesson } = await supabase
         .from('ekskul_lessons')
         .select('plan_id')
@@ -121,15 +95,8 @@ export async function DELETE(
         return NextResponse.json({ error: `Gagal menghapus lesson: ${error.message}` }, { status: 500 });
     }
 
-    // Update total_lessons count
     if (lesson?.plan_id) {
-        const { count } = await supabase
-            .from('ekskul_lessons')
-            .select('*', { count: 'exact', head: true })
-            .eq('plan_id', lesson.plan_id);
-        if (count !== null) {
-            await supabase.from('ekskul_lesson_plans').update({ total_lessons: count }).eq('id', lesson.plan_id);
-        }
+        await syncEkskulPlanAfterChange(lesson.plan_id);
     }
 
     return NextResponse.json({ success: true });

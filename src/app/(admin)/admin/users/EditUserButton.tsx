@@ -27,6 +27,7 @@ export default function EditUserButton({ user }: Props) {
 
     const [fullName, setFullName] = useState(user.full_name);
     const [parentContact, setParentContact] = useState(user.parent_contact_phone || '');
+    const [coderProgram, setCoderProgram] = useState<'WEEKLY' | 'EKSKUL'>(user.parent_contact_phone && user.parent_contact_phone !== '000000' ? 'WEEKLY' : 'EKSKUL');
     const [permissions, setPermissions] = useState<string[]>(user.admin_permissions?.menus || []);
     const [error, setError] = useState<string | null>(null);
 
@@ -36,6 +37,7 @@ export default function EditUserButton({ user }: Props) {
     const handleOpen = () => {
         setFullName(user.full_name);
         setParentContact(user.parent_contact_phone || '');
+        setCoderProgram(user.parent_contact_phone && user.parent_contact_phone !== '000000' ? 'WEEKLY' : 'EKSKUL');
         setPermissions(user.admin_permissions?.menus || []);
         setError(null);
         setOpen(true);
@@ -59,6 +61,10 @@ export default function EditUserButton({ user }: Props) {
             setError('Nama lengkap wajib diisi');
             return;
         }
+        if (user.role === 'CODER' && coderProgram === 'WEEKLY' && !parentContact.trim()) {
+            setError('Nomor WhatsApp wajib diisi untuk coder Weekly');
+            return;
+        }
         setError(null);
 
         startTransition(async () => {
@@ -66,7 +72,7 @@ export default function EditUserButton({ user }: Props) {
                 const payload: any = {
                     id: user.id,
                     fullName: fullName.trim(),
-                    parentContactPhone: user.role === 'CODER' ? parentContact.trim() || null : null,
+                    parentContactPhone: user.role === 'CODER' && coderProgram === 'WEEKLY' ? parentContact.trim() || null : null,
                 };
 
                 if (isSuperAdmin && isTargetAdmin) {
@@ -137,19 +143,33 @@ export default function EditUserButton({ user }: Props) {
                         </div>
 
                         {user.role === 'CODER' && (
-                            <div style={fieldStyle}>
-                                <label style={labelStyle}>Kontak Orang Tua (WhatsApp)</label>
-                                <input
-                                    type="tel"
-                                    value={parentContact}
-                                    onChange={(e) => {
-                                        const val = e.target.value.replace(/[^0-9]/g, '');
-                                        setParentContact(val);
-                                    }}
-                                    placeholder="08123456789"
-                                    style={inputStyle}
-                                />
-                            </div>
+                            <>
+                                <div style={fieldStyle}>
+                                    <label style={labelStyle}>Program Coder</label>
+                                    <select
+                                        value={coderProgram}
+                                        onChange={(e) => setCoderProgram(e.target.value as 'WEEKLY' | 'EKSKUL')}
+                                        style={inputStyle}
+                                    >
+                                        <option value="WEEKLY">Coder Weekly</option>
+                                        <option value="EKSKUL">Coder Ekskul</option>
+                                    </select>
+                                </div>
+                                <div style={fieldStyle}>
+                                    <label style={labelStyle}>Kontak Orang Tua (WhatsApp){coderProgram === 'WEEKLY' ? ' *' : ' (Opsional untuk Ekskul)'}</label>
+                                    <input
+                                        type="tel"
+                                        value={parentContact}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace(/[^0-9]/g, '');
+                                            setParentContact(val);
+                                        }}
+                                        placeholder="08123456789"
+                                        style={inputStyle}
+                                    />
+                                    {coderProgram === 'EKSKUL' ? <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Tidak memerlukan CCR ID.</span> : null}
+                                </div>
+                            </>
                         )}
 
                         <div style={{ ...fieldStyle, background: '#f8fafc', padding: '0.75rem', borderRadius: '0.5rem' }}>

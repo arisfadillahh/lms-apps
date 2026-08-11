@@ -67,7 +67,7 @@ export async function POST(_request: Request, { params }: RouteContext) {
                 summary: serializeEkskulLessonSummary(parts.summary, parts.makeUpInstructions),
                 slide_url: l.slide_url,
                 example_url: l.example_url,
-                estimated_meetings: l.estimated_meetings,
+                estimated_meetings: l.estimated_meetings ?? 1,
                 order_index: l.order_index,
             };
         });

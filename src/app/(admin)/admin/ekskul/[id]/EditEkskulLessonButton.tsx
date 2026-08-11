@@ -1,7 +1,7 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { splitEkskulLessonMakeUp } from '@/lib/ekskulMakeUpInstructions';
 
@@ -31,6 +31,19 @@ export default function EditEkskulLessonButton({ lesson, planId }: Props) {
     const [estimatedMeetings, setEstimatedMeetings] = useState(String(lesson.estimated_meetings || 1));
     const [orderIndex, setOrderIndex] = useState(String(lesson.order_index));
     const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!open) return;
+
+        const nextLessonParts = splitEkskulLessonMakeUp(lesson.summary, lesson.make_up_instructions);
+        setTitle(lesson.title);
+        setSummary(nextLessonParts.summary || '');
+        setSlideUrl(lesson.slide_url || '');
+        setMakeUpInstructions(nextLessonParts.makeUpInstructions || '');
+        setEstimatedMeetings(String(lesson.estimated_meetings || 1));
+        setOrderIndex(String(lesson.order_index));
+        setError(null);
+    }, [open, lesson]);
 
     const handleClose = () => {
         setOpen(false);

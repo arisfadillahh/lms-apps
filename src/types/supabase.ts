@@ -110,6 +110,111 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['trial_class_submissions']['Insert']>;
         Relationships: [];
       };
+      trial_assessments: {
+        Row: {
+          id: string;
+          trial_id: string;
+          coach_id: string;
+          status: 'DRAFT' | 'PENDING_ADMIN_REVIEW' | 'APPROVED' | 'PUBLISHED' | 'REGISTRATION_STARTED' | 'INVOICE_CREATED' | 'PAYMENT_PENDING' | 'PAID' | 'CONVERTED';
+          rubric: Json;
+          quick_observations: string[];
+          personalized_observation: string;
+          internal_notes: string | null;
+          recommended_level_id: string | null;
+          recommended_class_id: string | null;
+          recommendation_tags: string[];
+          parent_report_content: Json | null;
+          estimated_start_date: string | null;
+          discount_label: string | null;
+          discount_amount: number;
+          base_price: number | null;
+          final_price: number | null;
+          pricing_id: string | null;
+          payment_plan_id: string | null;
+          public_token: string;
+          submitted_at: string | null;
+          approved_by: string | null;
+          approved_at: string | null;
+          published_at: string | null;
+          report_sent_at: string | null;
+          coder_id: string | null;
+          invoice_id: string | null;
+          payment_period_id: string | null;
+          registration_started_at: string | null;
+          payment_confirmed_at: string | null;
+          converted_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          trial_id: string;
+          coach_id: string;
+          status?: 'DRAFT' | 'PENDING_ADMIN_REVIEW' | 'APPROVED' | 'PUBLISHED' | 'REGISTRATION_STARTED' | 'INVOICE_CREATED' | 'PAYMENT_PENDING' | 'PAID' | 'CONVERTED';
+          rubric?: Json;
+          quick_observations?: string[];
+          personalized_observation?: string;
+          internal_notes?: string | null;
+          recommended_level_id?: string | null;
+          recommended_class_id?: string | null;
+          recommendation_tags?: string[];
+          parent_report_content?: Json | null;
+          estimated_start_date?: string | null;
+          discount_label?: string | null;
+          discount_amount?: number;
+          base_price?: number | null;
+          final_price?: number | null;
+          pricing_id?: string | null;
+          payment_plan_id?: string | null;
+          public_token?: string;
+          submitted_at?: string | null;
+          approved_by?: string | null;
+          approved_at?: string | null;
+          published_at?: string | null;
+          report_sent_at?: string | null;
+          coder_id?: string | null;
+          invoice_id?: string | null;
+          payment_period_id?: string | null;
+          registration_started_at?: string | null;
+          payment_confirmed_at?: string | null;
+          converted_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['trial_assessments']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'trial_assessments_trial_id_fkey';
+            columns: ['trial_id'];
+            referencedRelation: 'trial_class_submissions';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'trial_assessments_coach_id_fkey';
+            columns: ['coach_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'trial_assessments_recommended_level_id_fkey';
+            columns: ['recommended_level_id'];
+            referencedRelation: 'levels';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'trial_assessments_recommended_class_id_fkey';
+            columns: ['recommended_class_id'];
+            referencedRelation: 'classes';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'trial_assessments_invoice_id_fkey';
+            columns: ['invoice_id'];
+            referencedRelation: 'invoices';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       levels: {
         Row: {
           id: string;

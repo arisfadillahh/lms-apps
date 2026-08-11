@@ -12,6 +12,7 @@ import {
   getAiReportGenerationSkipReason,
   hasVisibleOrGeneratableDraft,
 } from '@/lib/services/aiReportGuards';
+import { getRegularReportWindowDays, isRegularReportWindowActive } from '@/lib/services/reportWindows';
 
 const EKSKUL_REVIEW_LEVEL_NAME = 'Ekskul';
 const EKSKUL_REPORT_GENERATION_CONCURRENCY = 4;
@@ -21,6 +22,7 @@ type ClassBlockWithRelations = {
   class_id: string;
   block_id: string;
   start_date: string;
+  pitching_day_date: string | null;
   classes: { id: string; name: string; level_id: string | null } | { id: string; name: string; level_id: string | null }[] | null;
   blocks: { id: string; name: string | null } | { id: string; name: string | null }[] | null;
 };
@@ -136,6 +138,14 @@ async function generateDraftReportsFromClassBlocks(
 
     const classId = klass.id;
     const blockId = block.id;
+
+    if (!isRegularReportWindowActive(cb, now)) {
+      const reason = cb.pitching_day_date
+        ? `Pitching day ${cb.pitching_day_date} is outside the ${getRegularReportWindowDays()} day report window.`
+        : 'No pitching day configured.';
+      console.log(`[${logPrefix}] Block ${block.name} (ID: ${blockId}) skipped: ${reason}`);
+      continue;
+    }
 
     const [lessonMap, classSessions, classLessons] = await Promise.all([
       computeLessonSchedule(classId, klass.level_id),
@@ -625,7 +635,7 @@ export async function generateDraftReportsTask() {
   // it's mapped per class. We scan recent ones.
   const { data: classBlocks, error: blocksError } = await supabase
     .from('class_blocks')
-    .select('id, class_id, block_id, start_date, classes!inner(id, name, level_id), blocks!inner(id, name)')
+    .select('id, class_id, block_id, start_date, pitching_day_date, classes!inner(id, name, level_id), blocks!inner(id, name)')
     .order('start_date', { ascending: false })
     .limit(100);
 
@@ -652,7 +662,7 @@ export async function generateDraftReportsForClasses(classIds: string[]): Promis
 
   const { data: classBlocks, error: blocksError } = await supabase
     .from('class_blocks')
-    .select('id, class_id, block_id, start_date, classes!inner(id, name, level_id), blocks!inner(id, name)')
+    .select('id, class_id, block_id, start_date, pitching_day_date, classes!inner(id, name, level_id), blocks!inner(id, name)')
     .in('class_id', normalizedClassIds)
     .order('start_date', { ascending: false });
 

@@ -4,6 +4,8 @@ import type { ClassBlockRecord } from '@/lib/dao/classesDao';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 import { getSoftwareByBlockId } from '@/lib/dao/blockSoftwareDao';
 import { mergeCoachClassesById, pickNextCoachSession, pickRelevantCoachSessions } from '@/lib/services/coachClassSummary';
+import { filterActiveEnrollmentsForSession } from '@/lib/services/enrollmentEligibility';
+import { isRegularReportWindowActive } from '@/lib/services/reportWindows';
 
 type SoftwareInfo = {
   id: string;
@@ -306,9 +308,7 @@ export async function getPendingLessonEvaluationsForCoach(coachId: string): Prom
 
       const evaluatedCoderIds = new Set((existingEvals || []).map(e => e.coder_id));
 
-      // Include all active enrollments, even if they joined after the session (migrasi late-joiners)
-      // so the coach can evaluate them for past lessons they skipped within the CURRENT block.
-      const relevantEnrollments = activeEnrollments;
+      const relevantEnrollments = filterActiveEnrollmentsForSession(activeEnrollments, session.date_time);
 
       if (relevantEnrollments.length === 0) continue;
       const attendedCoderIds = attendanceBySession.get(session.id) ?? new Set<string>();
@@ -340,7 +340,7 @@ export async function getPendingLessonEvaluationsForCoach(coachId: string): Prom
         blockName: slot.block.name ?? 'Unknown Block',
         lessonTitle: slot.lessonTemplate.title, // Use raw title without (Part X) suffix since it applies to the whole lesson
         sessionDates: sessionDates,
-        studentsCount: activeEnrollments.length,
+        studentsCount: relevantEnrollments.length,
         missingAttendanceCount,
         canEvaluate: missingAttendanceCount === 0,
       });
@@ -384,7 +384,7 @@ export async function getDraftReportsForCoach(coachId: string): Promise<DraftRep
       block_id,
       created_at,
       average_score,
-      classes:class_id(name),
+      classes:class_id(name, type),
       users:coder_id(full_name),
       blocks:block_id(name)
     `)
@@ -397,7 +397,32 @@ export async function getDraftReportsForCoach(coachId: string): Promise<DraftRep
     return [];
   }
 
-  return (data || []).map((row) => {
+  const { data: classBlocks, error: classBlocksError } = await supabase
+    .from('class_blocks')
+    .select('class_id, block_id, pitching_day_date')
+    .in('class_id', classIds);
+
+  if (classBlocksError) {
+    console.error('Failed to fetch class blocks for draft report windows', classBlocksError);
+  }
+  const classBlockLookupFailed = Boolean(classBlocksError);
+
+  const classBlockByKey = new Map(
+    (classBlocks ?? []).map((classBlock) => [
+      `${classBlock.class_id}:${classBlock.block_id}`,
+      classBlock,
+    ]),
+  );
+
+  const now = new Date();
+
+  return (data || []).filter((row) => {
+    const klass = Array.isArray(row.classes) ? row.classes[0] : row.classes;
+    if ((klass as any)?.type === 'EKSKUL') return true;
+    if (classBlockLookupFailed) return true;
+    const classBlock = classBlockByKey.get(`${row.class_id}:${row.block_id}`);
+    return isRegularReportWindowActive(classBlock, now);
+  }).map((row) => {
     const coder = Array.isArray(row.users) ? row.users[0] : row.users;
     const klass = Array.isArray(row.classes) ? row.classes[0] : row.classes;
     const block = Array.isArray(row.blocks) ? row.blocks[0] : row.blocks;

@@ -763,9 +763,12 @@ export async function sendReportNotification(params: {
             if (templateData?.template_content) {
                 // Use DB template — replace variables
                 message = templateData.template_content
+                    .replace(/{parent_name}/g, 'Ayah/Bunda')
                     .replace(/{nama_siswa}/g, params.coderFullName)
                     .replace(/{nama_kelas}/g, params.className)
                     .replace(/{periode}/g, params.period || '-')
+                    .replace(/{jenis_laporan}/g, 'Laporan hasil belajar')
+                    .replace(/{rekomendasi_program}/g, '')
                     .replace(/{link_raport}/g, params.reportUrl);
 
                 // Auto-append link if not present in template

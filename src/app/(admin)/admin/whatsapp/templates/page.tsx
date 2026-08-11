@@ -7,7 +7,7 @@ import { MessageCircle, Save, RefreshCw } from 'lucide-react';
 
 type Template = {
     id: string;
-    category: 'PARENT_ABSENT' | 'REPORT_SEND' | 'REMINDER';
+    category: 'PARENT_ABSENT' | 'REPORT_SEND' | 'TRIAL_REPORT_SEND' | 'REMINDER';
     template_content: string;
     variables: string[];
     updated_at: string;
@@ -15,7 +15,8 @@ type Template = {
 
 const CATEGORIES = [
     { key: 'PARENT_ABSENT', label: 'Notifikasi Absensi ke Orang Tua', description: 'Dikirim ketika anak tidak hadir' },
-    { key: 'REPORT_SEND', label: 'Pengiriman Rapor', description: 'Dikirim bersama file PDF rapor' },
+    { key: 'REPORT_SEND', label: 'Pengiriman Rapor Weekly', description: 'Dikirim saat rapor weekly dikirim ke orang tua' },
+    { key: 'TRIAL_REPORT_SEND', label: 'Pengiriman Trial Report', description: 'Dikirim saat report trial dipublish ke orang tua' },
     { key: 'REMINDER', label: 'Reminder Pembayaran', description: 'Pengingat jatuh tempo pembayaran' },
 ] as const;
 
@@ -25,8 +26,12 @@ const DEFAULT_TEMPLATES: Record<string, { content: string; variables: string[] }
         variables: ['nama_siswa', 'nama_kelas', 'tanggal'],
     },
     REPORT_SEND: {
-        content: 'Halo Bapak/Ibu, berikut adalah rapor {nama_siswa} untuk periode {periode}. Silakan unduh dan simpan sebagai dokumentasi. Terima kasih atas kepercayaan Anda.',
-        variables: ['nama_siswa', 'periode'],
+        content: 'Halo Ayah/Bunda {parent_name},\n\nRapor perkembangan belajar *{nama_siswa}* untuk kelas *{nama_kelas}* periode *{periode}* sudah tersedia.\n\nSilakan buka rapor melalui link berikut:\n{link_raport}\n\nTerima kasih.\n*Clevio Coder Camp*',
+        variables: ['parent_name', 'nama_siswa', 'nama_kelas', 'periode', 'link_raport'],
+    },
+    TRIAL_REPORT_SEND: {
+        content: 'Halo Ayah/Bunda {parent_name},\n\nLaporan hasil Free Trial Class untuk *{nama_siswa}* sudah tersedia.\n\n{rekomendasi_program}\n\nSilakan buka report trial untuk melihat rangkuman dan rekomendasi Coach:\n{link_raport}\n\n{ajakan_daftar}\n\nTerima kasih.\n*Clevio Coder Camp*',
+        variables: ['parent_name', 'nama_siswa', 'jenis_laporan', 'rekomendasi_program', 'link_raport', 'info_diskon', 'ajakan_daftar'],
     },
     REMINDER: {
         content: 'Halo Bapak/Ibu, ini adalah pengingat pembayaran untuk {nama_siswa}. Tagihan sebesar {nominal} akan jatuh tempo pada {tanggal_jatuh_tempo}. Mohon segera melakukan pembayaran. Terima kasih.',

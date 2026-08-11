@@ -62,7 +62,7 @@ export default function WeeklyRegistrationModal({ isOpen, onClose, onSuccess }: 
         name: '',
         pricingId: '',
         paymentPlanId: '',
-        registrationFee: 150000,
+        registrationFee: 300000,
         registrationDiscount: 0,
         discountAmount: 0,
         startDate: new Date().toISOString().split('T')[0]
@@ -137,7 +137,7 @@ export default function WeeklyRegistrationModal({ isOpen, onClose, onSuccess }: 
             name: '',
             pricingId: '',
             paymentPlanId: '',
-            registrationFee: 150000,
+            registrationFee: 300000,
             registrationDiscount: 0,
             discountAmount: 0,
             startDate: new Date().toISOString().split('T')[0]

@@ -38,15 +38,15 @@ export async function listTrialClassSubmissions(limit = 500) {
   return (data ?? []) as unknown as TrialClassSubmissionWithCoach[];
 }
 
-export async function listUpcomingTrialClassesForCoach(
+export async function listActionableTrialClassesForCoach(
   coachId: string,
   now = new Date(),
 ): Promise<TrialClassSubmission[]> {
   const supabase = getSupabaseAdmin();
-  const earliestRelevantStart = new Date(now.getTime() - 4 * 60 * 60 * 1000);
+  const earliestRelevantStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   const { data, error } = await supabase
     .from('trial_class_submissions')
-    .select('*')
+    .select('*, trial_assessments(status)')
     .eq('coach_id', coachId)
     .eq('status', 'SCHEDULED')
     .not('scheduled_at', 'is', null)
@@ -58,11 +58,21 @@ export async function listUpcomingTrialClassesForCoach(
     throw new Error(`Failed to load coach trial classes: ${error.message}`);
   }
 
-  return (data ?? []).filter((trial) => {
-    if (!trial.scheduled_at) return false;
+  return (data ?? []).flatMap((row) => {
+    const trial = row as TrialClassSubmission & {
+      trial_assessments?: { status: string } | Array<{ status: string }> | null;
+    };
+    const assessment = trial.trial_assessments;
+    const assessmentStatus = Array.isArray(assessment)
+      ? assessment[0]?.status
+      : assessment?.status;
 
-    const endTime = new Date(trial.scheduled_at).getTime() + trial.duration_minutes * 60 * 1000;
-    return endTime >= now.getTime();
+    if (assessmentStatus && assessmentStatus !== 'DRAFT') {
+      return [];
+    }
+
+    const { trial_assessments: _assessment, ...submission } = trial;
+    return [submission as TrialClassSubmission];
   });
 }
 

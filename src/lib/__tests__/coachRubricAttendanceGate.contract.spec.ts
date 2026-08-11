@@ -19,6 +19,7 @@ describe('coach rubric attendance gate contract', () => {
     expect(pendingEvaluationSource).toContain('missingAttendanceCount: number');
     expect(pendingEvaluationSource).toContain('canEvaluate: boolean');
     expect(pendingEvaluationSource).toContain('attendanceDao.listAttendanceForSessions(');
+    expect(pendingEvaluationSource).toContain('filterActiveEnrollmentsForSession(activeEnrollments, session.date_time)');
     expect(pendingEvaluationSource).toContain('canEvaluate: missingAttendanceCount === 0');
     expect(pendingEvaluationSource).not.toContain(
       "klass.type === 'EKSKUL' &&\n        !relevantEnrollments.every",

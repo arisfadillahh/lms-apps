@@ -95,26 +95,7 @@ export default function InvoiceView({ invoice, publicToken, paymentOptions, init
             const phone = bankInfo.admin_whatsapp_number.replace(/\D/g, '');
             const normalizedPhone = phone.startsWith('0') ? '62' + phone.substring(1) : phone;
 
-            let message = '';
-
-            // Special template for New Registration (REG code)
-            if (invoice.ccr && invoice.ccr.ccr_code === 'REG') {
-                // NOTE: For 'Contact Admin' button (Parent -> Admin), we use a standard confirmation message,
-                // NOT the 'weekly_invoice_message_template' which is for Admin -> Parent reminders.
-
-                const studentName = invoice.items?.[0]?.coder_name || invoice.parent_name || '-';
-
-                const text = `Halo Admin Finance Clevio,\n\nSaya ingin konfirmasi pembayaran untuk Invoice: ${invoice.invoice_number}\nSiswa: ${studentName}\nProgram: Weekly Class\n\nMohon dibantu proses ya. Terima kasih.`;
-
-                message = encodeURIComponent(text);
-            } else {
-                // Default Invoice Confirmation
-                message = encodeURIComponent(
-                    `Halo Clevio Finance,\n\nSaya ingin konfirmasi pembayaran untuk Invoice: ${invoice.invoice_number}\n\nTerima kasih.`
-                );
-            }
-
-            window.open(`https://wa.me/${normalizedPhone}?text=${message}`, '_blank');
+            window.open(`https://wa.me/${normalizedPhone}`, '_blank');
         }
     };
 
@@ -421,7 +402,7 @@ export default function InvoiceView({ invoice, publicToken, paymentOptions, init
                     {/* Thank You Message - Centered at Bottom */}
                     <div style={{ textAlign: 'center', marginTop: '30px', paddingBottom: '20px' }}>
                         <div style={{ fontSize: '14px', fontWeight: 600, color: COLORS.primaryBlue }}>
-                            Clevio Innovator Camp - Let's Innovate!
+                            Clevio Innovator Camp - Let&apos;s Innovate!
                         </div>
                     </div>
                 </div>
@@ -737,7 +718,7 @@ function PaymentMethodModal({
                 </div>
 
                 <div style={methodListStyle}>
-                    {options.map((option) => (
+                    {activeOptions.map((option) => (
                         <button
                             key={option.code}
                             type="button"

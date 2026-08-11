@@ -7,6 +7,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { assertRole } from '@/lib/roles';
 import { sendReportNotification } from '@/lib/services/whatsappClient';
 import { getAppBaseUrl } from '@/lib/env';
+import { isRegularReportWindowActive } from '@/lib/services/reportWindows';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -25,7 +26,7 @@ export async function POST(_request: NextRequest, context: RouteContext) {
     .from('block_reports')
     .select(`
       *,
-      class:classes(id, name),
+      class:classes(id, name, type),
       block:blocks(id, name),
       coder:users!block_reports_coder_id_fkey(id, full_name, parent_contact_phone)
     `)
@@ -51,6 +52,27 @@ export async function POST(_request: NextRequest, context: RouteContext) {
   const coder = Array.isArray(report.coder) ? report.coder[0] : report.coder;
   const klass = Array.isArray(report.class) ? report.class[0] : report.class;
   const block = Array.isArray(report.block) ? report.block[0] : report.block;
+
+  if (klass && (klass as any).type !== 'EKSKUL') {
+    const { data: classBlock, error: classBlockError } = await supabase
+      .from('class_blocks')
+      .select('pitching_day_date')
+      .eq('class_id', report.class_id)
+      .eq('block_id', report.block_id)
+      .maybeSingle();
+
+    if (classBlockError) {
+      return NextResponse.json({ error: `Gagal memvalidasi jadwal pitching: ${classBlockError.message}` }, { status: 500 });
+    }
+
+    if (!isRegularReportWindowActive(classBlock)) {
+      return NextResponse.json(
+        { error: 'Rapor ini di luar jadwal pitching aktif, jadi tidak bisa dikirim ke orang tua.' },
+        { status: 400 },
+      );
+    }
+  }
+
   const parentPhone = coder?.parent_contact_phone;
 
   if (!parentPhone) {

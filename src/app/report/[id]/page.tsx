@@ -62,6 +62,37 @@ const parseQuestionList = (value: unknown): { id: string; question: string }[] =
   ));
 };
 
+type LessonTitleRow = {
+  title: string | null;
+  order_index?: number | null;
+  lesson_template_id?: string | null;
+  lesson_template?: { title?: string | null; order_index?: number | null } | { title?: string | null; order_index?: number | null }[] | null;
+};
+
+const cleanLessonTitle = (title: string) => title
+  .replace(/\s*[\(\[]\s*(?:part|sesi|session|pertemuan)\s*\d+\s*[\)\]]\s*$/i, '')
+  .replace(/\s*[-–—:]\s*(?:part|sesi|session|pertemuan)\s*\d+\s*$/i, '')
+  .trim();
+
+const getParentLessonTitle = (lesson: LessonTitleRow) => {
+  const template = Array.isArray(lesson.lesson_template)
+    ? lesson.lesson_template[0]
+    : lesson.lesson_template;
+  return cleanLessonTitle(template?.title || lesson.title || '');
+};
+
+const getUniqueLessonTitles = (lessons: LessonTitleRow[]) => {
+  const seen = new Set<string>();
+  return lessons.flatMap((lesson) => {
+    const title = getParentLessonTitle(lesson);
+    if (!title) return [];
+    const key = lesson.lesson_template_id || title.toLowerCase();
+    if (seen.has(key)) return [];
+    seen.add(key);
+    return [title];
+  });
+};
+
 export default async function PublicReportView({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
   const { id } = resolvedParams;
@@ -115,7 +146,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
   const { data: actualClassLessons } = reportClassBlockId
     ? await supabase
         .from('class_lessons')
-        .select('title, order_index')
+        .select('title, order_index, lesson_template_id, lesson_template:lesson_templates(title, order_index)')
         .eq('class_block_id', reportClassBlockId)
         .order('order_index')
     : { data: null };
@@ -189,8 +220,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
     };
   }) || [];
 
-  const lessonTitles = (actualClassLessons?.length ? actualClassLessons : fallbackLessonTemplates || [])
-    .map((lesson) => lesson.title);
+  const lessonTitles = getUniqueLessonTitles(actualClassLessons?.length ? actualClassLessons : fallbackLessonTemplates || []);
 
   const pubDate = new Date(report.updated_at || report.created_at).toLocaleDateString('id-ID', {
     day: 'numeric', month: 'long', year: 'numeric',

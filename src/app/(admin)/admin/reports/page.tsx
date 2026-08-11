@@ -4,6 +4,7 @@ import { Eye, Check, X, Mail, Send } from 'lucide-react';
 import SendReportButton from './SendReportButton';
 import RejectReportButton from './RejectReportButton';
 import PageHead from '@/components/admin/PageHead';
+import { isRegularReportWindowActive } from '@/lib/services/reportWindows';
 
 export const revalidate = 0;
 
@@ -14,6 +15,8 @@ export default async function AdminReportsPage() {
     .from('block_reports')
     .select(`
       id,
+      class_id,
+      block_id,
       average_score,
       grade,
       status,
@@ -33,7 +36,34 @@ export default async function AdminReportsPage() {
   }
 
   const allReports = reports || [];
-  const submittedReports = allReports.filter((r) => r.status === 'SUBMITTED');
+  const classIds = Array.from(new Set(allReports.map((report: any) => report.class_id).filter(Boolean)));
+  const { data: classBlocks, error: classBlocksError } = classIds.length > 0
+    ? await supabase
+        .from('class_blocks')
+        .select('class_id, block_id, pitching_day_date')
+        .in('class_id', classIds)
+    : { data: [], error: null };
+
+  if (classBlocksError) {
+    console.error('[AdminReportsPage] Class blocks Query Error:', classBlocksError);
+  }
+  const classBlockLookupFailed = Boolean(classBlocksError);
+
+  const classBlockByKey = new Map(
+    (classBlocks ?? []).map((classBlock: any) => [
+      `${classBlock.class_id}:${classBlock.block_id}`,
+      classBlock,
+    ]),
+  );
+  const now = new Date();
+  const isReportActionable = (report: any) => {
+    if ((report.class as any)?.type === 'EKSKUL') return true;
+    if (classBlockLookupFailed) return true;
+    const classBlock = classBlockByKey.get(`${report.class_id}:${report.block_id}`);
+    return isRegularReportWindowActive(classBlock, now);
+  };
+
+  const submittedReports = allReports.filter((r) => r.status === 'SUBMITTED' && isReportActionable(r));
   const publishedReports = allReports.filter((r) => r.status === 'PUBLISHED');
 
   return (

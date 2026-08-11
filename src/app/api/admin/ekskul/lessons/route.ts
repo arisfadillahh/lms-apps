@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { getSessionOrThrow } from '@/lib/auth';
 import { serializeEkskulLessonSummary } from '@/lib/ekskulMakeUpInstructions';
 import { assertRole } from '@/lib/roles';
+import { syncEkskulPlanAfterChange } from '@/lib/services/ekskulLessonPlanSync';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
 const createLessonSchema = z.object({
@@ -73,22 +74,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: `Gagal menambah lesson: ${error.message}` }, { status: 500 });
     }
 
-    // Update total_lessons count on the plan (ignore errors)
-    try {
-        const { count } = await supabase
-            .from('ekskul_lessons')
-            .select('*', { count: 'exact', head: true })
-            .eq('plan_id', parsed.data.planId);
-
-        if (count !== null) {
-            await supabase
-                .from('ekskul_lesson_plans')
-                .update({ total_lessons: count })
-                .eq('id', parsed.data.planId);
-        }
-    } catch {
-        // Silently ignore count update errors
-    }
+    await syncEkskulPlanAfterChange(parsed.data.planId);
 
     return NextResponse.json({ lesson: data }, { status: 201 });
 }

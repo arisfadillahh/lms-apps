@@ -121,6 +121,7 @@ export default function UsersTable({ users }: UsersTableProps) {
               <th>Nama</th>
               <th>Username</th>
               <th>Role</th>
+              <th>Program</th>
               <th>Status</th>
               <th>Kontak Orang Tua</th>
               <th />
@@ -129,7 +130,7 @@ export default function UsersTable({ users }: UsersTableProps) {
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan={6} className="empty">
+                <td colSpan={7} className="empty">
                   {hasActiveFilters ? 'Tidak ada pengguna yang sesuai filter.' : 'Belum ada data pengguna.'}
                 </td>
               </tr>
@@ -151,6 +152,15 @@ export default function UsersTable({ users }: UsersTableProps) {
                   </td>
                   <td>
                     <span className={`badge ${roleBadge(user.role)}`}>{user.role}</span>
+                  </td>
+                  <td>
+                    {user.role === 'CODER' ? (
+                      <span className="badge badge-neutral">
+                        {user.parent_contact_phone && user.parent_contact_phone !== '000000' ? 'Weekly' : 'Ekskul'}
+                      </span>
+                    ) : (
+                      <span className="muted">—</span>
+                    )}
                   </td>
                   <td>
                     {user.is_active ? (

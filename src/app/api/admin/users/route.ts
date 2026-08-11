@@ -38,12 +38,15 @@ export async function POST(request: NextRequest) {
   }
 
   const passwordHash = await hashPassword(input.password);
+  const parentContactPhone = input.role === 'CODER' && input.coderProgram === 'EKSKUL'
+    ? null
+    : input.parentContactPhone;
   const user = await usersDao.createUser({
     username: input.username,
     passwordHash,
     role: input.role,
     fullName: input.fullName,
-    parentContactPhone: input.parentContactPhone,
+    parentContactPhone,
     isActive: input.isActive,
     adminPermissions: input.role === 'ADMIN' ? (adminPermissions ?? null) : null,
   });

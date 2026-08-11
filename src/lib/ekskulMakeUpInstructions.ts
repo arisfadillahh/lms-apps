@@ -1,5 +1,7 @@
-const MAKE_UP_START = "\n\n[CLEVIO_EKSKUL_MAKE_UP_TASK]\n";
-const MAKE_UP_END = "\n[/CLEVIO_EKSKUL_MAKE_UP_TASK]";
+const MAKE_UP_START_TOKEN = "[CLEVIO_EKSKUL_MAKE_UP_TASK]";
+const MAKE_UP_END_TOKEN = "[/CLEVIO_EKSKUL_MAKE_UP_TASK]";
+const MAKE_UP_START = `\n\n${MAKE_UP_START_TOKEN}\n`;
+const MAKE_UP_END = `\n${MAKE_UP_END_TOKEN}`;
 
 export type EkskulLessonMakeUpParts = {
   summary: string | null;
@@ -36,7 +38,7 @@ export function serializeEkskulLessonSummary(
 
 function parseSummaryMarker(summary: string | null | undefined): EkskulLessonMakeUpParts {
   const rawSummary = summary ?? "";
-  const startIndex = rawSummary.indexOf(MAKE_UP_START);
+  const startIndex = rawSummary.indexOf(MAKE_UP_START_TOKEN);
   if (startIndex === -1) {
     return {
       summary: normalizeText(rawSummary),
@@ -45,8 +47,8 @@ function parseSummaryMarker(summary: string | null | undefined): EkskulLessonMak
   }
 
   const before = rawSummary.slice(0, startIndex);
-  const afterStart = startIndex + MAKE_UP_START.length;
-  const endIndex = rawSummary.indexOf(MAKE_UP_END, afterStart);
+  const afterStart = startIndex + MAKE_UP_START_TOKEN.length;
+  const endIndex = rawSummary.indexOf(MAKE_UP_END_TOKEN, afterStart);
   if (endIndex === -1) {
     return {
       summary: normalizeText(before),
@@ -54,7 +56,7 @@ function parseSummaryMarker(summary: string | null | undefined): EkskulLessonMak
     };
   }
 
-  const after = rawSummary.slice(endIndex + MAKE_UP_END.length);
+  const after = rawSummary.slice(endIndex + MAKE_UP_END_TOKEN.length);
   return {
     summary: normalizeText(`${before}${after}`),
     makeUpInstructions: normalizeText(rawSummary.slice(afterStart, endIndex)),

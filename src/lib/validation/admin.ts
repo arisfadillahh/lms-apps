@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export const roleEnum = z.enum(['ADMIN', 'COACH', 'CODER']);
+export const coderProgramEnum = z.enum(['WEEKLY', 'EKSKUL']);
 
 export const createUserSchema = z.object({
   username: z
@@ -10,6 +11,7 @@ export const createUserSchema = z.object({
     .regex(/^[a-zA-Z0-9._-]+$/, 'Username may only include letters, numbers, dot, underscore, and hyphen'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   role: roleEnum,
+  coderProgram: coderProgramEnum.optional(),
   fullName: z.string().min(1, 'Full name is required'),
   parentContactPhone: z
     .string()
@@ -18,6 +20,17 @@ export const createUserSchema = z.object({
     .optional()
     .or(z.literal('').transform(() => undefined)),
   isActive: z.boolean().default(true),
+}).superRefine((value, ctx) => {
+  if (value.role !== 'CODER') return;
+
+  if (!value.coderProgram) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['coderProgram'], message: 'Program coder wajib dipilih' });
+    return;
+  }
+
+  if (value.coderProgram === 'WEEKLY' && !value.parentContactPhone) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['parentContactPhone'], message: 'Nomor WhatsApp wajib diisi untuk coder Weekly' });
+  }
 });
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;

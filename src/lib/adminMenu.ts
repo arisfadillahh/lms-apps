@@ -11,6 +11,7 @@ export const MENU_ITEMS: Record<string, { href: string; label: string; icon: Luc
     dashboard: { href: '/admin/dashboard', label: 'Dashboard', icon: Home },
     users: { href: '/admin/users', label: 'Pengguna', icon: Users },
     freeTrials: { href: '/admin/free-trials', label: 'Free Trial', icon: UserRoundPlus },
+    trialAssessments: { href: '/admin/trial-assessments', label: 'Review Trial', icon: ClipboardList },
     classes: { href: '/admin/classes', label: 'Kelas', icon: GraduationCap },
     curriculum: { href: '/admin/curriculum', label: 'Kurikulum', icon: BookOpen },
     lessonReports: { href: '/admin/curriculum/reports', label: 'Laporan Lesson', icon: FileText },
@@ -47,6 +48,7 @@ export const SIDEBAR_STRUCTURE: (SidebarGroup | SidebarSingle)[] = [
     { type: 'single', id: 'dashboard' },
     { type: 'single', id: 'users' },
     { type: 'single', id: 'freeTrials' },
+    { type: 'single', id: 'trialAssessments' },
     {
         type: 'group',
         label: 'Akademik',

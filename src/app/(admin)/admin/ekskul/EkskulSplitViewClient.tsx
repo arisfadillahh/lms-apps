@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import PageHead from '@/components/admin/PageHead';
 import ActionDropdown from '@/components/admin/ActionDropdown';
 import AddEkskulPlanButton from './AddEkskulPlanButton';
@@ -12,6 +11,7 @@ import EditEkskulLessonButton from './[id]/EditEkskulLessonButton';
 import DeleteLessonButton from './[id]/DeleteLessonButton';
 import ExportEkskulLessonsButton from './[id]/ExportEkskulLessonsButton';
 import ImportEkskulLessonsButton from './[id]/ImportEkskulLessonsButton';
+import { splitEkskulLessonMakeUp } from '@/lib/ekskulMakeUpInstructions';
 
 type EkskulLesson = {
     id: string;
@@ -31,7 +31,7 @@ type EkskulPlan = {
     is_active: boolean;
     level: string | null;
     ekskul_lessons: EkskulLesson[];
-    ekskul_plan_software?: any[];
+    ekskul_plan_software?: { software: { id: string; name: string } }[];
 };
 
 export default function EkskulSplitViewClient({ plans }: { plans: EkskulPlan[] }) {
@@ -105,7 +105,7 @@ export default function EkskulSplitViewClient({ plans }: { plans: EkskulPlan[] }
                                 <div className="row gap-2" style={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                                     <ExportEkskulLessonsButton planId={selectedPlan.id} />
                                     <ImportEkskulLessonsButton planId={selectedPlan.id} currentLessonCount={sortedLessons.length} />
-                                    <EditEkskulPlanButton plan={selectedPlan as unknown as any} />
+                                    <EditEkskulPlanButton plan={selectedPlan} />
                                     <DeleteEkskulPlanButton planId={selectedPlan.id} planName={selectedPlan.name} />
                                 </div>
                             </div>
@@ -120,24 +120,34 @@ export default function EkskulSplitViewClient({ plans }: { plans: EkskulPlan[] }
                                 </tr>
                             </thead>
                             <tbody>
-                                {sortedLessons.map((l, index) => (
-                                    <tr key={l.id} className="row-click">
-                                        <td className="mono muted" style={{ width: 48 }}>{String(l.order_index).padStart(2, '0')}</td>
-                                        <td style={{ fontWeight: 600 }}>
-                                            {l.title}
-                                            {l.summary && <div className="muted" style={{ fontSize: 11.5, marginTop: 2, fontWeight: 400 }}>{l.summary}</div>}
-                                        </td>
-                                        <td><span className="chip" style={{ fontSize: 10.5 }}>{l.estimated_meetings} sesi</span></td>
-                                        <td style={{ textAlign: 'right', width: 80 }}>
-                                            <ActionDropdown>
-                                                <div className="col gap-1" style={{ padding: '4px' }}>
-                                                    <EditEkskulLessonButton lesson={l as unknown as any} planId={selectedPlan.id} />
-                                                    <DeleteLessonButton lessonId={l.id} lessonTitle={l.title} planId={selectedPlan.id} />
-                                                </div>
-                                            </ActionDropdown>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {sortedLessons.map((l) => {
+                                    const lessonParts = splitEkskulLessonMakeUp(l.summary, l.make_up_instructions);
+                                    const lessonForEdit = {
+                                        ...l,
+                                        slide_url: l.slide_url ?? null,
+                                        make_up_instructions: lessonParts.makeUpInstructions,
+                                        estimated_meetings: l.estimated_meetings ?? 1,
+                                    };
+
+                                    return (
+                                        <tr key={l.id} className="row-click">
+                                            <td className="mono muted" style={{ width: 48 }}>{String(l.order_index).padStart(2, '0')}</td>
+                                            <td style={{ fontWeight: 600 }}>
+                                                {l.title}
+                                                {lessonParts.summary && <div className="muted" style={{ fontSize: 11.5, marginTop: 2, fontWeight: 400 }}>{lessonParts.summary}</div>}
+                                            </td>
+                                            <td><span className="chip" style={{ fontSize: 10.5 }}>{l.estimated_meetings} sesi</span></td>
+                                            <td style={{ textAlign: 'right', width: 80 }}>
+                                                <ActionDropdown>
+                                                    <div className="col gap-1" style={{ padding: '4px' }}>
+                                                        <EditEkskulLessonButton lesson={lessonForEdit} planId={selectedPlan.id} />
+                                                        <DeleteLessonButton lessonId={l.id} lessonTitle={l.title} planId={selectedPlan.id} />
+                                                    </div>
+                                                </ActionDropdown>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                                 <tr>
                                     <td colSpan={4} style={{ textAlign: 'center', padding: 16 }}>
                                         <AddEkskulLessonButton planId={selectedPlan.id} suggestedOrderIndex={sortedLessons.length + 1} />

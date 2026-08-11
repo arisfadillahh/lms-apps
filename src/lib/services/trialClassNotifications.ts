@@ -37,6 +37,18 @@ export type TrialCoachAssignmentNotificationInput = {
   meetUrl?: string | null;
 };
 
+export type TrialParentReportNotificationInput = {
+  parentName: string;
+  parentPhone: string;
+  studentName: string;
+  recommendedProgram: string;
+  reportUrl: string;
+  templateContent?: string | null;
+  discountLabel?: string | null;
+  discountAmount?: number;
+  planDiscountPercent?: number;
+};
+
 export function buildTrialClassAdminMessage(input: TrialClassNotificationInput) {
   const isOffline = input.trialMode === 'OFFLINE';
 
@@ -171,6 +183,96 @@ export async function sendTrialCoachAssignmentWhatsAppNotification(
     normalizeIndonesianPhone(input.coachPhone),
     buildTrialCoachAssignmentWhatsAppMessage(input),
   );
+}
+
+export function buildTrialParentReportWhatsAppMessage(input: TrialParentReportNotificationInput) {
+  const registrationCta = buildTrialRegistrationCta(input);
+
+  return [
+    `Halo Ayah/Bunda ${input.parentName},`,
+    '',
+    `Laporan hasil *Free Trial Class* ${input.studentName} sudah tersedia.`,
+    '',
+    `Coach melihat ${input.studentName} cocok untuk melanjutkan ke program *${input.recommendedProgram}*.`,
+    '',
+    'Silakan buka report trial berikut untuk melihat rangkuman dan rekomendasi dari Coach:',
+    input.reportUrl,
+    '',
+    registrationCta,
+    '',
+    'Terima kasih.',
+    '*Clevio Coder Camp*',
+  ].join('\n');
+}
+
+function formatTrialCurrency(value: number) {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function getTrialDiscountOffer(input: TrialParentReportNotificationInput) {
+  const offers: string[] = [];
+  const planDiscountPercent = Math.max(0, Number(input.planDiscountPercent) || 0);
+  const discountAmount = Math.max(0, Math.round(Number(input.discountAmount) || 0));
+
+  if (planDiscountPercent > 0) {
+    offers.push(`diskon paket ${planDiscountPercent}%`);
+  }
+  if (discountAmount > 0) {
+    offers.push(input.discountLabel?.trim()
+      ? `${input.discountLabel.trim()} (${formatTrialCurrency(discountAmount)})`
+      : `potongan ${formatTrialCurrency(discountAmount)}`);
+  }
+
+  return offers.join(' dan ');
+}
+
+function buildTrialRegistrationCta(input: TrialParentReportNotificationInput) {
+  const offer = getTrialDiscountOffer(input);
+  if (offer) {
+    return `Yuk lanjut daftar sekarang ke program *${input.recommendedProgram}* melalui tombol pendaftaran di report. Saat ini tersedia ${offer}, selama program promo masih berlaku.`;
+  }
+
+  return `Jika Ayah/Bunda ingin melanjutkan, yuk daftar sekarang ke program *${input.recommendedProgram}* melalui tombol pendaftaran di report.`;
+}
+
+export async function sendTrialParentReportWhatsAppNotification(
+  input: TrialParentReportNotificationInput,
+): Promise<DeliveryResult> {
+  const message = resolveTrialParentReportWhatsAppMessage(input);
+  return deliverMessage(
+    'trial report parent',
+    input.parentPhone,
+    message,
+  );
+}
+
+function resolveTrialParentReportWhatsAppMessage(input: TrialParentReportNotificationInput) {
+  if (input.templateContent) {
+    let message = input.templateContent
+      .replace(/{parent_name}/g, input.parentName)
+      .replace(/{nama_siswa}/g, input.studentName)
+      .replace(/{nama_kelas}/g, 'Free Trial Class')
+      .replace(/{periode}/g, 'Free Trial Class')
+      .replace(/{jenis_laporan}/g, 'Laporan hasil Free Trial Class')
+      .replace(/{rekomendasi_program}/g, `Coach merekomendasikan program *${input.recommendedProgram}*.`)
+      .replace(/{info_diskon}/g, getTrialDiscountOffer(input))
+      .replace(/{ajakan_daftar}/g, buildTrialRegistrationCta(input))
+      .replace(/{link_raport}/g, input.reportUrl);
+
+    if (!message.includes('{ajakan_daftar}') && !message.includes(buildTrialRegistrationCta(input))) {
+      message += `\n\n${buildTrialRegistrationCta(input)}`;
+    }
+    if (!message.includes(input.reportUrl)) {
+      message += `\n\nLink report trial: ${input.reportUrl}`;
+    }
+    return message;
+  }
+
+  return buildTrialParentReportWhatsAppMessage(input);
 }
 
 async function deliverMessage(label: string, target: string, message: string): Promise<DeliveryResult> {

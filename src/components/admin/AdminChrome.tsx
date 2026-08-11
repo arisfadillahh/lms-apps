@@ -54,6 +54,7 @@ type MenuId =
   | 'dashboard'
   | 'users'
   | 'freeTrials'
+  | 'trialAssessments'
   | 'classes'
   | 'curriculum'
   | 'lessonReports'
@@ -104,6 +105,7 @@ const MENU: MenuItem[] = [
   { id: 'dashboard', href: '/admin/dashboard', label: 'Dashboard', icon: Home },
   { id: 'users', href: '/admin/users', label: 'Pengguna', icon: Users },
   { id: 'freeTrials', href: '/admin/free-trials', label: 'Free Trial', icon: UserRoundPlus },
+  { id: 'trialAssessments', href: '/admin/trial-assessments', label: 'Review Trial', icon: ClipboardList },
   { id: 'classes', href: '/admin/classes', label: 'Kelas', icon: GraduationCap },
   { id: 'curriculum', href: '/admin/curriculum', label: 'Kurikulum', icon: BookOpen },
   { id: 'lessonReports', href: '/admin/curriculum/reports', label: 'Laporan Lesson', icon: FileText },
@@ -127,7 +129,7 @@ const MENU_SECTIONS: Array<{ label: string | null; items: MenuId[] }> = [
   { label: null, items: ['dashboard'] },
   {
     label: 'Akademik',
-    items: ['users', 'freeTrials', 'classes', 'curriculum', 'ekskul', 'lessonReports', 'evaluations', 'evaluationQuestions', 'reports'],
+    items: ['users', 'freeTrials', 'trialAssessments', 'classes', 'curriculum', 'ekskul', 'lessonReports', 'evaluations', 'evaluationQuestions', 'reports'],
   },
   { label: 'Keuangan', items: ['payments', 'invoices', 'ccr', 'ccrlist'] },
   { label: 'Komunikasi', items: ['whatsapp', 'broadcast'] },
@@ -138,6 +140,7 @@ const SECTION_TABS = {
   academic: [
     { href: '/admin/users', label: 'Pengguna', menus: ['users'] },
     { href: '/admin/free-trials', label: 'Free Trial', menus: ['freeTrials'] },
+    { href: '/admin/trial-assessments', label: 'Review Trial', menus: ['trialAssessments'] },
     { href: '/admin/classes', label: 'Kelas', menus: ['classes'] },
     { href: '/admin/curriculum', label: 'Kurikulum', menus: ['curriculum'] },
     { href: '/admin/ekskul', label: 'Ekskul', menus: ['ekskul'] },
@@ -165,6 +168,16 @@ const SECTION_TABS = {
 } satisfies Record<string, RouteTab[]>;
 
 const ROUTE_META: Array<{ match: string; meta: RouteMeta }> = [
+  {
+    match: '/admin/trial-assessments',
+    meta: {
+      key: 'trial-assessments',
+      section: 'Akademik',
+      title: 'Review Trial',
+      description: 'Review assessment trial coach, publish parent report, dan pantau conversion weekly.',
+      tabs: SECTION_TABS.academic,
+    },
+  },
   {
     match: '/admin/free-trials',
     meta: {

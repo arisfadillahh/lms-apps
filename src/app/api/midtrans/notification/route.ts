@@ -15,6 +15,7 @@ import {
 import { buildInvoicePublicUrl } from '@/lib/services/invoicePublicAccess';
 import { getShortInvoiceUrlOrOriginal } from '@/lib/services/shortLinks';
 import { buildPaymentConfirmationMessage, resolvePaymentConfirmationTarget } from '@/lib/services/invoicePaymentConfirmation';
+import { markTrialConversionPaidFromInvoice } from '@/lib/services/trialConversion';
 import { sendWhatsAppMessage } from '@/lib/services/whatsappClient';
 import { getStoredInvoicePaymentByOrderId, updateStoredInvoicePaymentStatus } from '@/lib/invoicePaymentStore';
 
@@ -64,7 +65,14 @@ export async function POST(request: NextRequest) {
             }
 
             await extendPaymentPeriodsForInvoice(invoice.id);
+            await markTrialConversionPaidFromInvoice(invoice.id, paidAt ?? new Date().toISOString()).catch((error) => {
+                console.error('[Midtrans] Trial conversion paid hook failed:', error);
+            });
             await sendPaymentConfirmationWhatsApp(paidInvoice, paidAt ?? new Date().toISOString());
+        } else if (mappedStatus === 'paid') {
+            await markTrialConversionPaidFromInvoice(invoice.id, paidAt ?? new Date().toISOString()).catch((error) => {
+                console.error('[Midtrans] Trial conversion paid hook failed:', error);
+            });
         }
 
         return NextResponse.json({ ok: true, updated: true, status: mappedStatus, store: 'file' });
@@ -116,7 +124,14 @@ export async function POST(request: NextRequest) {
         }
 
         await extendPaymentPeriodsForInvoice(invoice.id);
+        await markTrialConversionPaidFromInvoice(invoice.id, paidAt ?? new Date().toISOString()).catch((error) => {
+            console.error('[Midtrans] Trial conversion paid hook failed:', error);
+        });
         await sendPaymentConfirmationWhatsApp(paidInvoice, paidAt ?? new Date().toISOString());
+    } else {
+        await markTrialConversionPaidFromInvoice(invoice.id, paidAt ?? new Date().toISOString()).catch((error) => {
+            console.error('[Midtrans] Trial conversion paid hook failed:', error);
+        });
     }
 
     return NextResponse.json({ ok: true, updated: true, status: mappedStatus });

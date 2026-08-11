@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSessionOrThrow } from '@/lib/auth';
 import { attendanceDao, sessionsDao, classesDao, reportsDao } from '@/lib/dao';
+import { filterActiveEnrollmentsForSession } from '@/lib/services/enrollmentEligibility';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 
 export async function GET(req: Request) {
@@ -33,9 +34,9 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Lesson slot not found' }, { status: 404 });
     }
 
-    // Active enrollments only
+    // Only students who were already enrolled when this session happened.
     const enrollments = await classesDao.listEnrollmentsByClass(klass.id);
-    const activeStudentIds = enrollments.filter(e => e.status === 'ACTIVE').map(e => e.coder_id);
+    const activeStudentIds = filterActiveEnrollmentsForSession(enrollments, session.date_time).map(e => e.coder_id);
 
     if (activeStudentIds.length === 0) {
       return NextResponse.json({ error: 'No active students' }, { status: 404 });

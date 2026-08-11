@@ -10,20 +10,34 @@ import HeroCountdownClient from './HeroCountdownClient';
 import CoachDraftReportsAlert from './CoachDraftReportsAlert';
 import TrialClassSchedule from './TrialClassSchedule';
 import { StaggerContainer, StaggerItem } from '@/components/animations/StaggerContainer';
-import { listUpcomingTrialClassesForCoach } from '@/lib/dao/trialClassDao';
+import { listActionableTrialClassesForCoach } from '@/lib/dao/trialClassDao';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
+function getSettledValue<T>(result: PromiseSettledResult<T>, fallback: T, label: string): T {
+    if (result.status === 'fulfilled') return result.value;
+
+    console.error(`[CoachDashboardPage] Failed to load ${label}`, result.reason);
+    return fallback;
+}
 
 export default async function CoachDashboardPage() {
     const session = await getSessionOrThrow();
-    const [classes, activeSessions, makeUpTasks, pendingLessons, upcomingTrials] = await Promise.all([
+    const [classesResult, activeSessionsResult, makeUpTasksResult, pendingLessonsResult, upcomingTrialsResult] = await Promise.allSettled([
         getCoachClassesWithBlocks(session.user.id),
         getAllCoachSessions(session.user.id),
         makeUpTasksDao.listTasksForCoach(session.user.id),
         getPendingLessonEvaluationsForCoach(session.user.id),
-        listUpcomingTrialClassesForCoach(session.user.id),
+        listActionableTrialClassesForCoach(session.user.id),
     ]);
+
+    const classes = getSettledValue(classesResult, [], 'classes');
+    const activeSessions = getSettledValue(activeSessionsResult, [], 'sessions');
+    const makeUpTasks = getSettledValue(makeUpTasksResult, [], 'make-up tasks');
+    const pendingLessons = getSettledValue(pendingLessonsResult, [], 'pending lesson evaluations');
+    const upcomingTrials = getSettledValue(upcomingTrialsResult, [], 'trial classes');
 
     // Calculate stats
     const today = new Date();

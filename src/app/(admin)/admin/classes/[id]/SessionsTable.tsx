@@ -19,15 +19,21 @@ type ClassLesson = {
     blockOrder: number;
 };
 
+type LessonDisplay = {
+    title: string;
+    slideUrl: string | null;
+};
+
 type SessionsTableProps = {
     classId: string;
     sessions: Session[];
     coachMap: Map<string, string>;
-    lessonMap: Map<string, string>;
+    lessonMap: Map<string, LessonDisplay>;
     availableLessons: ClassLesson[];
+    showLessonLinks?: boolean;
 };
 
-export default function SessionsTable({ classId, sessions, coachMap, lessonMap, availableLessons }: SessionsTableProps) {
+export default function SessionsTable({ classId, sessions, coachMap, lessonMap, availableLessons, showLessonLinks = false }: SessionsTableProps) {
     const pageSize = 10;
 
     // Compute the initial page to show — the page containing the nearest upcoming/current session
@@ -139,9 +145,20 @@ export default function SessionsTable({ classId, sessions, coachMap, lessonMap, 
                                     <td style={{ ...tdStyle, maxWidth: '220px' }}>
                                         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem' }}>
                                             <span style={{ fontWeight: 600, color: '#334155', fontSize: '0.9rem', lineHeight: '1.4' }}>
-                                                {lessonMap.get(session.id) ?? <span style={{ color: '#94a3b8', fontWeight: 400 }}>Belum dialokasikan</span>}
+                                                {lessonMap.get(session.id) ? (
+                                                    <span style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                                        <span>{lessonMap.get(session.id)?.title}</span>
+                                                        {showLessonLinks && lessonMap.get(session.id)?.slideUrl && (
+                                                            <a href={lessonMap.get(session.id)?.slideUrl ?? undefined} target="_blank" rel="noreferrer" style={slideLinkStyle}>
+                                                                Link Slide
+                                                            </a>
+                                                        )}
+                                                    </span>
+                                                ) : (
+                                                    <span style={{ color: '#94a3b8', fontWeight: 400 }}>Belum dialokasikan</span>
+                                                )}
                                             </span>
-                                            {session.status !== 'CANCELLED' && (
+                                            {session.status !== 'CANCELLED' && availableLessons.length > 0 && (
                                                 <button
                                                     onClick={() => setEditingMaterialSession(session)}
                                                     style={{
@@ -216,4 +233,11 @@ const thStyle: React.CSSProperties = {
 const tdStyle: React.CSSProperties = {
     padding: '1.25rem 1.5rem',
     verticalAlign: 'middle'
+};
+
+const slideLinkStyle: React.CSSProperties = {
+    color: '#2563eb',
+    fontSize: '0.78rem',
+    fontWeight: 700,
+    textDecoration: 'none',
 };

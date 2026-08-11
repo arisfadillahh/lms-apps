@@ -60,6 +60,7 @@ export default function LoginForm({ lang = 'id' }: { lang?: 'id' | 'en' }) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showForgotModal, setShowForgotModal] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -182,17 +183,37 @@ export default function LoginForm({ lang = 'id' }: { lang?: 'id' | 'en' }) {
              </p>
              <div className="flex items-center">
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   placeholder="........"
                   disabled={submitting}
                   {...register('password')}
-                  className="w-full p-0 border-none text-base md:text-lg lg:text-xl bg-transparent outline-none text-slate-800 font-extrabold tracking-widest disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full p-0 pr-8 border-none text-base md:text-lg lg:text-xl bg-transparent outline-none text-slate-800 font-extrabold tracking-widest disabled:cursor-not-allowed disabled:opacity-60"
                 />
              </div>
-             <div className="absolute right-3 md:right-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-[16px] h-[16px] md:w-[18px] md:h-[18px]"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-             </div>
+             <button
+                type="button"
+                disabled={submitting}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => setShowPassword((current) => !current)}
+                className="absolute right-2 md:right-4 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#00b0d7]/25 disabled:cursor-not-allowed disabled:opacity-60"
+                aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                aria-pressed={showPassword}
+             >
+                {showPassword ? (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-[16px] h-[16px] md:w-[18px] md:h-[18px]" aria-hidden="true">
+                    <path d="M3 3l18 18" />
+                    <path d="M10.6 10.6A2 2 0 0 0 12 14a2 2 0 0 0 1.4-.6" />
+                    <path d="M9.5 5.2A10.5 10.5 0 0 1 12 5c7 0 11 7 11 7a18.1 18.1 0 0 1-3.1 3.9" />
+                    <path d="M6.6 6.6C3 8.8 1 12 1 12s4 7 11 7c1.8 0 3.3-.4 4.7-1" />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-[16px] h-[16px] md:w-[18px] md:h-[18px]" aria-hidden="true">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                )}
+             </button>
              {errors.password && <span className="text-red-500 text-xs mt-1 block text-left">{errors.password.message}</span>}
           </div>
         </div>

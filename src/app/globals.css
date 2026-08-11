@@ -32,6 +32,14 @@
   --color-clevio-yellow: #ffe60d;
   --color-clevio-purple: #632a7b;
 
+  /* === Legacy LMS brand aliases used across dashboard components === */
+  --color-brand-deep: #0f172a;
+  --color-brand-slate: #1e293b;
+  --color-brand-blue: #22367b;
+  --color-brand-surface: #f8fafc;
+  --color-brand-midnight: #0a1428;
+  --color-brand-sophisticated-blue: #6bb3ff;
+
   /* === Accent Colors (mapped from brand) === */
   --color-coral: #ff9400;
   /* Brand Orange — used as warm accent */
@@ -1102,6 +1110,46 @@
   transition: color 0.15s, border-color 0.15s;
   user-select: none;
   text-decoration: none;
+}
+
+.trial-detail-action {
+  display: inline-flex;
+  min-height: 46px;
+  width: 100%;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #22367b;
+  border-radius: 12px;
+  background-color: #22367b;
+  padding: 11px 20px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-decoration: none;
+  box-shadow: 0 8px 18px -10px rgba(34, 54, 123, 0.8);
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.trial-detail-action:hover {
+  border-color: #182861;
+  background-color: #182861;
+  box-shadow: 0 12px 22px -11px rgba(34, 54, 123, 0.9);
+  transform: translateY(-1px);
+}
+
+.trial-detail-action:focus-visible {
+  outline: 3px solid rgba(0, 176, 215, 0.35);
+  outline-offset: 3px;
+}
+
+@media (min-width: 1280px) {
+  .trial-detail-action {
+    width: auto;
+    min-width: 178px;
+  }
 }
 
 [data-admin-shell='true'] .tab:hover {

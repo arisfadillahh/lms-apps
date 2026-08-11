@@ -452,6 +452,26 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
             const nextSession = sessions
               .filter(s => (new Date(s.date_time) >= now && s.status !== 'COMPLETED' && s.status !== 'CANCELLED'))
               .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime())[0];
+            const sortedActiveSessions = sessions
+              .filter(s => s.status !== 'CANCELLED')
+              .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
+            const nextSessionIndex = nextSession
+              ? sortedActiveSessions.findIndex((session) => session.id === nextSession.id)
+              : -1;
+            const expandedEkskulLessons = plan.ekskul_lessons
+              .slice()
+              .sort((a, b) => a.order_index - b.order_index)
+              .flatMap((lesson) =>
+                Array.from({ length: Math.max(1, lesson.estimated_meetings || 1) }, (_, partIndex) => ({
+                  lesson,
+                  partNumber: partIndex + 1,
+                  totalParts: Math.max(1, lesson.estimated_meetings || 1),
+                })),
+              );
+            const nextLessonEntry = nextSessionIndex >= 0 ? expandedEkskulLessons[nextSessionIndex] ?? null : null;
+            const nextLessonParts = nextLessonEntry
+              ? splitEkskulLessonMakeUp(nextLessonEntry.lesson.summary, nextLessonEntry.lesson.make_up_instructions)
+              : null;
 
             // Calculate estimated total lessons
             const totalLessons = plan.ekskul_lessons.length;
@@ -495,12 +515,14 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
               endDate: klass.end_date,
               estimatedSessions: plan.ekskul_lessons.reduce((acc, l) => acc + (l.estimated_meetings || 1), 0),
               software: software,
-              lessons: nextSession ? [{
-                id: nextSession.id,
-                title: `Sesi: ${new Date(nextSession.date_time).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' })}`,
-                summary: `Jam ${new Date(nextSession.date_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`,
+              lessons: nextSession && nextLessonEntry ? [{
+                id: nextLessonEntry.lesson.id,
+                title: nextLessonEntry.totalParts > 1
+                  ? `${nextLessonEntry.lesson.title} (Part ${nextLessonEntry.partNumber})`
+                  : nextLessonEntry.lesson.title,
+                summary: nextLessonParts?.summary ?? `Jam ${new Date(nextSession.date_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`,
                 orderIndex: 0,
-                slideUrl: null,
+                slideUrl: nextLessonEntry.lesson.slide_url ?? null,
                 status: 'NEXT' as const,
                 scheduledAt: [nextSession.date_time]
               }] : []
@@ -895,6 +917,7 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
         const accessibleLessons = plan.ekskul_lessons
           .sort((a, b) => a.order_index - b.order_index)
           .map((lesson, index) => {
+            const lessonParts = splitEkskulLessonMakeUp(lesson.summary, lesson.make_up_instructions);
             // Try to find matching session date?
             // We assume 1-to-1 mapping based on order
             // This is an estimation for Ekskul as they don't link directly in DB usually
@@ -919,11 +942,12 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
             return {
               id: lesson.id,
               title: lesson.title,
-              summary: null, // Ekskul lessons do not have description in current type definition
+              summary: lessonParts.summary,
               orderIndex: lesson.order_index,
               slideUrl: lesson.slide_url ?? null,
-              exampleUrl: null, // Ekskul doesn't have example_url on lesson table usually?
-              sessionDate: sessionDate
+              exampleUrl: lesson.example_url ?? null,
+              sessionDate,
+              isAccessible: true,
             };
           });
 

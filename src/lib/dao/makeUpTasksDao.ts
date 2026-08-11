@@ -5,6 +5,14 @@ import type { Json, TablesInsert, TablesRow, TablesUpdate } from '@/types/supaba
 
 export type MakeUpTaskRecord = TablesRow<'make_up_tasks'>;
 
+function chunkArray<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
+}
+
 export async function getMakeUpTaskById(id: string): Promise<MakeUpTaskRecord | null> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase.from('make_up_tasks').select('*').eq('id', id).maybeSingle();
@@ -108,6 +116,11 @@ export type CoachMakeUpTask = MakeUpTaskRecord & {
   coder?: { id: string; full_name: string } | null;
 };
 
+type MakeUpTaskWithRelations = MakeUpTaskRecord & {
+  session?: { id: string; class_id: string; date_time: string } | null;
+  coder?: { id: string; full_name: string } | null;
+};
+
 export async function listTasksForCoach(coachId: string): Promise<CoachMakeUpTask[]> {
   const supabase = getSupabaseAdmin();
 
@@ -143,22 +156,26 @@ export async function listTasksForCoach(coachId: string): Promise<CoachMakeUpTas
     return [];
   }
 
-  // Finally, get make-up tasks for those sessions
-  const { data, error } = await supabase
-    .from('make_up_tasks')
-    .select(
-      `
-        *,
-        session:sessions(id, class_id, date_time),
-        coder:users!make_up_tasks_coder_id_fkey(id, full_name)
-      `,
-    )
-    .in('session_id', sessionIds)
-    .in('status', ['PENDING_UPLOAD', 'SUBMITTED'])
-    .order('due_date', { ascending: true });
+  const taskRows: MakeUpTaskWithRelations[] = [];
+  for (const sessionIdBatch of chunkArray(sessionIds, 80)) {
+    const { data, error } = await supabase
+      .from('make_up_tasks')
+      .select(
+        `
+          *,
+          session:sessions(id, class_id, date_time),
+          coder:users!make_up_tasks_coder_id_fkey(id, full_name)
+        `,
+      )
+      .in('session_id', sessionIdBatch)
+      .in('status', ['PENDING_UPLOAD', 'SUBMITTED'])
+      .order('due_date', { ascending: true });
 
-  if (error) {
-    throw new Error(`Failed to fetch coach make-up tasks: ${error.message}`);
+    if (error) {
+      throw new Error(`Failed to fetch coach make-up tasks: ${error.message}`);
+    }
+
+    taskRows.push(...((data ?? []) as MakeUpTaskWithRelations[]));
   }
 
   // Map class information from our earlier query
@@ -172,7 +189,7 @@ export async function listTasksForCoach(coachId: string): Promise<CoachMakeUpTas
     classMap.set(c.id, { id: c.id, name: c.name });
   });
 
-  return (data ?? []).map((task: any) => ({
+  return taskRows.map((task) => ({
     ...task,
     class: task.session?.class_id ? classMap.get(task.session.class_id) ?? null : null,
   })) as CoachMakeUpTask[];

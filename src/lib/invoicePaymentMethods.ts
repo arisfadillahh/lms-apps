@@ -54,101 +54,102 @@ export interface PublicInvoicePaymentInstruction {
     qrImageUrl: string | null;
 }
 
+const DEFAULT_ADMIN_FEE_FIXED = 2_500;
+
 export function getInvoicePaymentOptions(): InvoicePaymentMethodOption[] {
-    const qrGoPayPercent = getPercentEnv(
-        'MIDTRANS_QR_GOPAY_ADMIN_FEE_PERCENT',
-        getPercentEnv('MIDTRANS_GOPAY_ADMIN_FEE_PERCENT', 2)
-    );
-    const vaFixedFee = getNumberEnv('MIDTRANS_VA_ADMIN_FEE_FIXED', 4_000);
-    const vaVatPercent = getPercentEnv('MIDTRANS_FEE_VAT_PERCENT', 11);
-    const vaFeeLabel = vaFixedFee > 0 ? `${formatRupiah(vaFixedFee)} + PPN` : 'Tanpa biaya admin';
+    const adminFeeFixed = getNumberEnv('MIDTRANS_ADMIN_FEE_FIXED', DEFAULT_ADMIN_FEE_FIXED);
+    const adminFeeLabel = adminFeeFixed > 0 ? formatRupiah(adminFeeFixed) : 'Tanpa biaya admin';
 
     return [
         {
             code: 'gopay',
             label: 'GoPay',
             description: 'Bayar langsung melalui aplikasi GoPay atau halaman pembayaran GoPay.',
-            feePercent: qrGoPayPercent,
-            feeLabel: qrGoPayPercent > 0 ? `${formatPercent(qrGoPayPercent)} dari total transaksi` : 'Tanpa biaya admin'
+            feePercent: 0,
+            feeFixed: adminFeeFixed,
+            feeVatPercent: 0,
+            feeLabel: adminFeeLabel
         },
         {
             code: 'qris',
             label: 'QR GoPay',
             description: 'Scan QR pembayaran dari invoice.',
-            feePercent: qrGoPayPercent,
-            feeLabel: qrGoPayPercent > 0 ? `${formatPercent(qrGoPayPercent)} dari total transaksi` : 'Tanpa biaya admin'
+            feePercent: 0,
+            feeFixed: adminFeeFixed,
+            feeVatPercent: 0,
+            feeLabel: adminFeeLabel
         },
         {
             code: 'bsi_va',
             label: 'BSI Virtual Account',
             description: 'Nomor BSI VA langsung tampil di invoice.',
             feePercent: 0,
-            feeFixed: vaFixedFee,
-            feeVatPercent: vaVatPercent,
-            feeLabel: vaFeeLabel
+            feeFixed: adminFeeFixed,
+            feeVatPercent: 0,
+            feeLabel: adminFeeLabel
         },
         {
             code: 'bni_va',
             label: 'BNI Virtual Account',
             description: 'Nomor BNI VA langsung tampil di invoice.',
             feePercent: 0,
-            feeFixed: vaFixedFee,
-            feeVatPercent: vaVatPercent,
-            feeLabel: vaFeeLabel
+            feeFixed: adminFeeFixed,
+            feeVatPercent: 0,
+            feeLabel: adminFeeLabel
         },
         {
             code: 'bri_va',
             label: 'BRI Virtual Account',
             description: 'Nomor BRI VA langsung tampil di invoice.',
             feePercent: 0,
-            feeFixed: vaFixedFee,
-            feeVatPercent: vaVatPercent,
-            feeLabel: vaFeeLabel
+            feeFixed: adminFeeFixed,
+            feeVatPercent: 0,
+            feeLabel: adminFeeLabel
         },
         {
             code: 'permata_va',
             label: 'Permata Virtual Account',
             description: 'Nomor Permata VA langsung tampil di invoice.',
             feePercent: 0,
-            feeFixed: vaFixedFee,
-            feeVatPercent: vaVatPercent,
-            feeLabel: vaFeeLabel
+            feeFixed: adminFeeFixed,
+            feeVatPercent: 0,
+            feeLabel: adminFeeLabel
         },
         {
             code: 'cimb_va',
             label: 'CIMB Niaga Virtual Account',
             description: 'Nomor CIMB Niaga VA langsung tampil di invoice.',
             feePercent: 0,
-            feeFixed: vaFixedFee,
-            feeVatPercent: vaVatPercent,
-            feeLabel: vaFeeLabel
+            feeFixed: adminFeeFixed,
+            feeVatPercent: 0,
+            feeLabel: adminFeeLabel
         },
         {
             code: 'mandiri_bill',
             label: 'Mandiri Bill',
             description: 'Bayar dengan Biller Code dan Bill Key Mandiri.',
             feePercent: 0,
-            feeFixed: vaFixedFee,
-            feeVatPercent: vaVatPercent,
-            feeLabel: vaFeeLabel
+            feeFixed: adminFeeFixed,
+            feeVatPercent: 0,
+            feeLabel: adminFeeLabel
         },
         {
             code: 'other_va',
             label: 'Bank Lain',
             description: 'Virtual Account untuk jaringan bank lain.',
             feePercent: 0,
-            feeFixed: vaFixedFee,
-            feeVatPercent: vaVatPercent,
-            feeLabel: vaFeeLabel
+            feeFixed: adminFeeFixed,
+            feeVatPercent: 0,
+            feeLabel: adminFeeLabel
         },
         {
             code: 'bca_va',
             label: 'BCA Virtual Account',
             description: 'BCA VA sedang disiapkan.',
             feePercent: 0,
-            feeFixed: vaFixedFee,
-            feeVatPercent: vaVatPercent,
-            feeLabel: vaFeeLabel,
+            feeFixed: adminFeeFixed,
+            feeVatPercent: 0,
+            feeLabel: adminFeeLabel,
             disabled: true,
             badge: 'Coming soon'
         }
@@ -156,7 +157,7 @@ export function getInvoicePaymentOptions(): InvoicePaymentMethodOption[] {
 }
 
 export function getPublicInvoicePaymentOptions(baseAmount: number): PublicInvoicePaymentOption[] {
-    return getInvoicePaymentOptions().map((option) => {
+    return getInvoicePaymentOptions().filter((option) => !option.disabled).map((option) => {
         const adminFee = calculateInvoicePaymentAdminFee(baseAmount, option);
         return {
             ...option,
@@ -211,22 +212,11 @@ export function calculateInvoicePaymentAdminFee(
     return fixedFee + feeVat;
 }
 
-function getPercentEnv(name: string, fallback: number) {
-    const raw = process.env[name];
-    if (!raw) return fallback;
-    const value = Number(raw.replace(',', '.'));
-    return Number.isFinite(value) && value >= 0 ? value : fallback;
-}
-
 function getNumberEnv(name: string, fallback: number) {
     const raw = process.env[name];
     if (!raw) return fallback;
     const value = Number(raw.replace(/[^\d.-]/g, ''));
     return Number.isFinite(value) && value >= 0 ? value : fallback;
-}
-
-function formatPercent(value: number) {
-    return `${value.toLocaleString('id-ID', { maximumFractionDigits: 2 })}%`;
 }
 
 function formatRupiah(value: number) {

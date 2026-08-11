@@ -12,9 +12,11 @@ import {
   Sparkles,
   X,
 } from 'lucide-react';
+import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { REPORT_STORY_OVERRIDES } from './ReportStoryExperience.overrides';
 import { REPORT_STORY_CSS } from './ReportStoryExperience.styles';
+import { REPORT_STORY_LAYOUT_FIX } from '../ReportStoryExperience.layoutFix';
 
 type StoryCompetency = {
   name: string;
@@ -88,7 +90,7 @@ export default function ReportStoryExperience(props: ReportStoryExperienceProps)
     () => [...competencies].sort((a, b) => b.percentage - a.percentage),
     [competencies],
   );
-  const visibleLessons = props.lessons.slice(0, 8);
+  const lessonGridDensity = props.lessons.length > 12 ? 'dense' : props.lessons.length > 8 ? 'compact' : 'standard';
   const visibleReflections = props.reflections.slice(0, 4);
   const currentScene = SCENES[currentIndex];
   const isFirst = currentIndex === 0;
@@ -196,7 +198,7 @@ export default function ReportStoryExperience(props: ReportStoryExperienceProps)
 
   return (
     <>
-      <style>{REPORT_STORY_CSS + REPORT_STORY_OVERRIDES}</style>
+              <style>{REPORT_STORY_CSS + REPORT_STORY_OVERRIDES + REPORT_STORY_LAYOUT_FIX}</style>
       <button
         type="button"
         onClick={openStory}
@@ -247,8 +249,22 @@ export default function ReportStoryExperience(props: ReportStoryExperienceProps)
             <main className="app" aria-label="Clevio interactive performance report">
               <header className="topbar">
                 <div className="brand" aria-label="Clevio Innovator Camp">
-                  <span className="brand-mark" aria-hidden="true" />
-                  <span>CLEV.IO</span>
+                  <Image
+                    className="brand-logo brand-logo-dark"
+                    src="/logo/innovator-camp-logo-light.png"
+                    alt="Clevio Innovator Camp"
+                    width={152}
+                    height={57}
+                    priority
+                  />
+                  <Image
+                    className="brand-logo brand-logo-light"
+                    src="/logo/innovator-camp-logo-dark.png"
+                    alt="Clevio Innovator Camp"
+                    width={152}
+                    height={57}
+                    priority
+                  />
                 </div>
 
                 <nav className="progress" aria-label="Tahapan laporan">
@@ -359,17 +375,26 @@ export default function ReportStoryExperience(props: ReportStoryExperienceProps)
                 </article>
 
                 <article className={`slide ${currentScene.id === 'materials' ? 'active' : ''}`} aria-hidden={currentScene.id !== 'materials'}>
-                  <div className="slide-inner skills-layout">
-                    <div>
+                  <div className={`slide-inner skills-board-layout ${lessonGridDensity}`}>
+                    <div className="skills-board-copy">
                       <p className="eyebrow">Skills Unlocked</p>
                       <h2 className="display medium">{props.lessons.length} materi berhasil <span className="accent">dikuasai.</span></h2>
                       <p className="lead">Setiap materi adalah bekal baru untuk membuat karya yang lebih hidup, lebih matang, dan lebih berani.</p>
                       <div className="unlocked">Semua materi block selesai</div>
+                      <div className="skills-board-callout">
+                        <Sparkles aria-hidden="true" />
+                        <div>
+                          <strong>Terus lanjutkan petualanganmu!</strong>
+                          <span>Masih banyak tantangan seru menantimu di level berikutnya.</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="skill-path">
-                      {visibleLessons.map((lesson, index) => (
-                        <div className="skill-node" key={`${lesson}-${index}`}>
-                          <div><div className="skill-badge" style={{ '--i': index } as React.CSSProperties}><Check aria-hidden="true" /></div><strong>{lesson}</strong></div>
+                    <div className="lesson-card-grid" aria-label="Materi yang dikuasai">
+                      {props.lessons.map((lesson, index) => (
+                        <div className="lesson-card" key={`${lesson}-${index}`} style={{ '--i': index } as React.CSSProperties}>
+                          <span className="lesson-index">{index + 1}</span>
+                          <span className="lesson-check"><Check aria-hidden="true" /></span>
+                          <strong>{lesson}</strong>
                         </div>
                       ))}
                     </div>

@@ -38,7 +38,7 @@ export default function AssignPaymentButton({ coderId, coderName, plans, pricing
 
     // New registration fields
     const [isNewRegistration, setIsNewRegistration] = useState(false);
-    const [registrationFee, setRegistrationFee] = useState(150000);
+    const [registrationFee, setRegistrationFee] = useState(300000);
     const [registrationDiscount, setRegistrationDiscount] = useState(0);
 
     // Calculate end date and total

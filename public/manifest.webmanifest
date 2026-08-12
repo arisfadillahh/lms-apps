@@ -1,0 +1,12 @@
+{
+  "name": "Clevio LMS",
+  "short_name": "Clevio LMS",
+  "description": "Learning management system Clevio",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f8fc",
+  "theme_color": "#22367b",
+  "icons": [
+    { "src": "/images/clevio-logo.png", "sizes": "3508x1236", "type": "image/png", "purpose": "any" }
+  ]
+}

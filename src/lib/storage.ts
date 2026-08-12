@@ -30,6 +30,44 @@ export async function uploadReportPdf(storagePath: string, fileBuffer: Buffer): 
   return data.publicUrl;
 }
 
+export async function uploadIssueScreenshot(
+  storagePath: string,
+  fileBuffer: Buffer,
+  contentType: string,
+): Promise<string> {
+  const supabase = getSupabaseAdmin();
+  const bucket = getReportsBucket();
+
+  const { error } = await supabase.storage.from(bucket).upload(storagePath, fileBuffer, {
+    cacheControl: '3600',
+    contentType,
+    upsert: false,
+  });
+
+  if (error) {
+    throw new Error(`Failed to upload issue screenshot: ${error.message}`);
+  }
+
+  const { data } = supabase.storage.from(bucket).getPublicUrl(storagePath);
+  if (!data?.publicUrl) {
+    throw new Error('Failed to resolve issue screenshot URL');
+  }
+
+  return data.publicUrl;
+}
+
+export async function createIssueScreenshotViewUrl(storagePath: string): Promise<string | null> {
+  if (!storagePath) return null;
+  const supabase = getSupabaseAdmin();
+  const bucket = getReportsBucket();
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(storagePath, 60 * 60);
+  if (error) {
+    console.warn('[IssueReport] Failed to create screenshot signed URL', error.message);
+    return null;
+  }
+  return data?.signedUrl || null;
+}
+
 function getLessonExamplesBucket(): string {
   const bucket = process.env.STORAGE_BUCKET_LESSON_EXAMPLES;
   if (!bucket) {

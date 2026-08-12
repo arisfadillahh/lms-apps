@@ -1,7 +1,7 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import { useEffect, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { splitEkskulLessonMakeUp } from '@/lib/ekskulMakeUpInstructions';
 
@@ -31,19 +31,34 @@ export default function EditEkskulLessonButton({ lesson, planId }: Props) {
     const [estimatedMeetings, setEstimatedMeetings] = useState(String(lesson.estimated_meetings || 1));
     const [orderIndex, setOrderIndex] = useState(String(lesson.order_index));
     const [error, setError] = useState<string | null>(null);
+    const [isLoadingLesson, setIsLoadingLesson] = useState(false);
 
-    useEffect(() => {
-        if (!open) return;
-
-        const nextLessonParts = splitEkskulLessonMakeUp(lesson.summary, lesson.make_up_instructions);
-        setTitle(lesson.title);
+    const syncFormFromLesson = (source: Props['lesson'] = lesson) => {
+        const nextLessonParts = splitEkskulLessonMakeUp(source.summary, source.make_up_instructions);
+        setTitle(source.title);
         setSummary(nextLessonParts.summary || '');
-        setSlideUrl(lesson.slide_url || '');
+        setSlideUrl(source.slide_url || '');
         setMakeUpInstructions(nextLessonParts.makeUpInstructions || '');
-        setEstimatedMeetings(String(lesson.estimated_meetings || 1));
-        setOrderIndex(String(lesson.order_index));
+        setEstimatedMeetings(String(source.estimated_meetings || 1));
+        setOrderIndex(String(source.order_index));
         setError(null);
-    }, [open, lesson]);
+    };
+
+    const handleOpen = async () => {
+        syncFormFromLesson();
+        setOpen(true);
+        setIsLoadingLesson(true);
+        try {
+            const response = await fetch(`/api/admin/ekskul/lessons/${lesson.id}?planId=${encodeURIComponent(planId)}`, { cache: 'no-store' });
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok || !payload.lesson) throw new Error(payload.error || 'Gagal mengambil data lesson');
+            syncFormFromLesson(payload.lesson);
+        } catch (caught) {
+            setError(caught instanceof Error ? caught.message : 'Gagal mengambil data lesson terbaru');
+        } finally {
+            setIsLoadingLesson(false);
+        }
+    };
 
     const handleClose = () => {
         setOpen(false);
@@ -90,7 +105,7 @@ export default function EditEkskulLessonButton({ lesson, planId }: Props) {
 
     return (
         <>
-            <button onClick={() => setOpen(true)} style={editButtonStyle}>
+            <button onClick={handleOpen} style={editButtonStyle}>
                 Edit
             </button>
 
@@ -141,8 +156,8 @@ export default function EditEkskulLessonButton({ lesson, planId }: Props) {
                             />
                         </div>
 
-                        <div style={{ display: 'flex', gap: '1rem' }}>
-                            <div style={{ ...fieldStyle, flex: 1 }}>
+                        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                            <div style={{ ...fieldStyle, flex: '1 1 180px', minWidth: 0 }}>
                                 <label style={labelStyle}>Jumlah Pertemuan</label>
                                 <input
                                     type="number"
@@ -152,7 +167,7 @@ export default function EditEkskulLessonButton({ lesson, planId }: Props) {
                                     style={inputStyle}
                                 />
                             </div>
-                            <div style={{ ...fieldStyle, flex: 1 }}>
+                            <div style={{ ...fieldStyle, flex: '1 1 180px', minWidth: 0 }}>
                                 <label style={labelStyle}>Urutan</label>
                                 <input
                                     type="number"
@@ -170,8 +185,8 @@ export default function EditEkskulLessonButton({ lesson, planId }: Props) {
                             <button onClick={handleClose} style={cancelStyle} disabled={isPending}>
                                 Batal
                             </button>
-                            <button onClick={handleSubmit} style={submitStyle} disabled={isPending}>
-                                {isPending ? 'Simpan' : 'Simpan'}
+                            <button onClick={handleSubmit} style={submitStyle} disabled={isPending || isLoadingLesson}>
+                                {isLoadingLesson ? 'Memuat...' : isPending ? 'Menyimpan...' : 'Simpan'}
                             </button>
                         </div>
                     </div>
@@ -197,8 +212,11 @@ const backdropStyle: CSSProperties = {
     inset: 0,
     background: 'rgba(15, 23, 42, 0.6)',
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'center',
+    padding: 'max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom))',
+    overflowY: 'auto',
+    overscrollBehavior: 'contain',
     zIndex: 99999,
 };
 
@@ -208,8 +226,11 @@ const modalStyle: CSSProperties = {
     borderRadius: '1rem',
     width: '100%',
     maxWidth: '480px',
-    maxHeight: '90vh',
+    boxSizing: 'border-box',
+    maxHeight: 'calc(100svh - 24px)',
     overflowY: 'auto',
+    overscrollBehavior: 'contain',
+    margin: '0 auto',
     boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
 };
 
@@ -234,6 +255,7 @@ const labelStyle: CSSProperties = {
 
 const inputStyle: CSSProperties = {
     width: '100%',
+    boxSizing: 'border-box',
     padding: '0.55rem 0.75rem',
     borderRadius: '0.5rem',
     border: '1px solid #cbd5e1',
@@ -243,12 +265,14 @@ const inputStyle: CSSProperties = {
 
 const actionsStyle: CSSProperties = {
     display: 'flex',
+    flexWrap: 'wrap',
     justifyContent: 'flex-end',
     gap: '0.75rem',
     marginTop: '1.25rem',
 };
 
 const cancelStyle: CSSProperties = {
+    flex: '1 1 140px',
     padding: '0.55rem 1rem',
     borderRadius: '0.5rem',
     border: '1px solid #e2e8f0',
@@ -260,6 +284,7 @@ const cancelStyle: CSSProperties = {
 };
 
 const submitStyle: CSSProperties = {
+    flex: '1 1 140px',
     padding: '0.55rem 1rem',
     borderRadius: '0.5rem',
     border: 'none',

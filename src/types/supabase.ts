@@ -62,6 +62,56 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['users']['Insert']>;
         Relationships: [];
       };
+      issue_reports: {
+        Row: {
+          id: string;
+          reporter_id: string | null;
+          reporter_role: 'ADMIN' | 'COACH' | 'CODER';
+          reporter_name: string;
+          title: string;
+          description: string;
+          screenshot_url: string | null;
+          screenshot_storage_path: string | null;
+          page_url: string | null;
+          user_agent: string | null;
+          viewport: Json;
+          status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
+          priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+          admin_notes: string | null;
+          resolution_summary: string | null;
+          resolved_by: string | null;
+          resolved_at: string | null;
+          whatsapp_status: 'PENDING' | 'SENT' | 'FAILED' | 'SKIPPED';
+          whatsapp_error: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          reporter_id?: string | null;
+          reporter_role: 'ADMIN' | 'COACH' | 'CODER';
+          reporter_name: string;
+          title: string;
+          description: string;
+          screenshot_url?: string | null;
+          screenshot_storage_path?: string | null;
+          page_url?: string | null;
+          user_agent?: string | null;
+          viewport?: Json;
+          status?: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
+          priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+          admin_notes?: string | null;
+          resolution_summary?: string | null;
+          resolved_by?: string | null;
+          resolved_at?: string | null;
+          whatsapp_status?: 'PENDING' | 'SENT' | 'FAILED' | 'SKIPPED';
+          whatsapp_error?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['issue_reports']['Insert']>;
+        Relationships: [];
+      };
       trial_class_submissions: {
         Row: {
           id: string;

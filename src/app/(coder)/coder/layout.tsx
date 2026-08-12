@@ -6,6 +6,7 @@ import CoderHeader from './dashboard/CoderHeader';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { redirect } from 'next/navigation';
+import IssueReportButton from '@/components/issue-reports/IssueReportButton';
 
 export default async function CoderLayout({ children }: { children: ReactNode }) {
   const session = await getServerAuthSession();
@@ -47,6 +48,7 @@ export default async function CoderLayout({ children }: { children: ReactNode })
         />
         {children}
       </main>
+      <IssueReportButton role="CODER" />
 
       {/* Responsive CSS for mobile */}
       <style>{`

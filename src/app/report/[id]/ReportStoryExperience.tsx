@@ -129,8 +129,22 @@ export default function ReportStoryExperience(props: ReportStoryExperienceProps)
 
   useEffect(() => {
     if (!isOpen) return;
-    const previousOverflow = document.body.style.overflow;
+    const html = document.documentElement;
+    const previousHtmlOverflow = html.style.overflow;
+    const previousHtmlOverscrollBehavior = html.style.overscrollBehavior;
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousBodyOverscrollBehavior = document.body.style.overscrollBehavior;
+    const previousBodyPosition = document.body.style.position;
+    const previousBodyTop = document.body.style.top;
+    const previousBodyWidth = document.body.style.width;
+    const scrollY = window.scrollY;
+    html.style.overflow = 'hidden';
+    html.style.overscrollBehavior = 'none';
     document.body.style.overflow = 'hidden';
+    document.body.style.overscrollBehavior = 'none';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
 
     const onKeyDown = (event: KeyboardEvent) => {
       const isButton = event.target instanceof HTMLButtonElement;
@@ -145,7 +159,14 @@ export default function ReportStoryExperience(props: ReportStoryExperienceProps)
     window.addEventListener('keydown', onKeyDown);
     document.addEventListener('fullscreenchange', onFullscreenChange);
     return () => {
-      document.body.style.overflow = previousOverflow;
+      html.style.overflow = previousHtmlOverflow;
+      html.style.overscrollBehavior = previousHtmlOverscrollBehavior;
+      document.body.style.overflow = previousBodyOverflow;
+      document.body.style.overscrollBehavior = previousBodyOverscrollBehavior;
+      document.body.style.position = previousBodyPosition;
+      document.body.style.top = previousBodyTop;
+      document.body.style.width = previousBodyWidth;
+      window.scrollTo(0, scrollY);
       window.removeEventListener('keydown', onKeyDown);
       document.removeEventListener('fullscreenchange', onFullscreenChange);
     };

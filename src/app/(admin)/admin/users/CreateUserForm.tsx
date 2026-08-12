@@ -11,7 +11,8 @@ import { UserPlus, Shield } from 'lucide-react';
 import { coderProgramEnum, createUserSchema, roleEnum } from '@/lib/validation/admin';
 import { ADMIN_MENUS } from '@/lib/permissions';
 
-const formSchema = createUserSchema.extend({
+// Keep the required form field while preserving the refinement safely.
+const formSchema = createUserSchema.safeExtend({
   isActive: z.boolean(),
 });
 

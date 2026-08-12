@@ -105,7 +105,7 @@ export default function EkskulSplitViewClient({ plans }: { plans: EkskulPlan[] }
                                 <div className="row gap-2" style={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                                     <ExportEkskulLessonsButton planId={selectedPlan.id} />
                                     <ImportEkskulLessonsButton planId={selectedPlan.id} currentLessonCount={sortedLessons.length} />
-                                    <EditEkskulPlanButton plan={selectedPlan} />
+                                    <EditEkskulPlanButton key={`edit-plan-${selectedPlan.id}`} plan={selectedPlan} />
                                     <DeleteEkskulPlanButton planId={selectedPlan.id} planName={selectedPlan.name} />
                                 </div>
                             </div>
@@ -140,7 +140,7 @@ export default function EkskulSplitViewClient({ plans }: { plans: EkskulPlan[] }
                                             <td style={{ textAlign: 'right', width: 80 }}>
                                                 <ActionDropdown>
                                                     <div className="col gap-1" style={{ padding: '4px' }}>
-                                                        <EditEkskulLessonButton lesson={lessonForEdit} planId={selectedPlan.id} />
+                                                        <EditEkskulLessonButton key={`edit-${l.id}`} lesson={lessonForEdit} planId={selectedPlan.id} />
                                                         <DeleteLessonButton lessonId={l.id} lessonTitle={l.title} planId={selectedPlan.id} />
                                                     </div>
                                                 </ActionDropdown>

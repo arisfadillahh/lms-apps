@@ -5,6 +5,7 @@ import CoachSidebar from './CoachSidebar';
 import PageTransition from '@/components/PageTransition';
 import CoachDashboardHeader from '@/components/coach/CoachDashboardHeader';
 import { redirect } from 'next/navigation';
+import IssueReportButton from '@/components/issue-reports/IssueReportButton';
 
 export default async function CoachLayout({ children }: { children: ReactNode }) {
   const session = await getServerAuthSession();
@@ -75,6 +76,7 @@ export default async function CoachLayout({ children }: { children: ReactNode })
           <PageTransition>{children}</PageTransition>
         </div>
       </main>
+      <IssueReportButton role="COACH" />
     </div>
   );
 }

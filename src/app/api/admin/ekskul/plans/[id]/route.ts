@@ -36,6 +36,14 @@ export async function PATCH(
 
     const supabase = getSupabaseAdmin();
 
+    const { data: currentPlan, error: lookupError } = await supabase
+        .from('ekskul_lesson_plans')
+        .select('id')
+        .eq('id', planId)
+        .maybeSingle();
+    if (lookupError) return NextResponse.json({ error: `Gagal memvalidasi plan: ${lookupError.message}` }, { status: 500 });
+    if (!currentPlan) return NextResponse.json({ error: 'Lesson plan tidak ditemukan' }, { status: 404 });
+
     // 1. Update Plan Details
     const { error: updateError } = await supabase
         .from('ekskul_lesson_plans')

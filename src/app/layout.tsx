@@ -18,6 +18,8 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'Clevio LMS',
   description: 'Learning management system for Clevio Admin, Coach, and Coder roles.',
+  manifest: '/manifest.webmanifest',
+  icons: { icon: '/favicon.ico' },
 };
 
 export default function RootLayout({

@@ -5,6 +5,7 @@ import AdminClientWrapper from '@/components/admin/AdminClientWrapper';
 import AdminChrome from '@/components/admin/AdminChrome';
 import { redirect } from 'next/navigation';
 import { usersDao } from '@/lib/dao';
+import IssueReportButton from '@/components/issue-reports/IssueReportButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,6 +46,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       <AdminClientWrapper>
         <PageTransition>{children}</PageTransition>
       </AdminClientWrapper>
+      <IssueReportButton role="ADMIN" />
     </AdminChrome>
   );
 }

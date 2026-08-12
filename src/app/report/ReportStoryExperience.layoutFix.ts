@@ -2,6 +2,15 @@ export const REPORT_STORY_LAYOUT_FIX = `
 .clevio-story .stage {
   overflow: visible;
 }
+.clevio-story {
+  overscroll-behavior: none;
+  touch-action: pan-y;
+}
+.clevio-story .slide-inner {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
 .clevio-story .slide-inner:has(.primary-btn) {
   overflow: visible;
 }
@@ -235,6 +244,31 @@ export const REPORT_STORY_LAYOUT_FIX = `
   }
   .clevio-story .primary-btn:hover {
     box-shadow: 0 18px 34px rgba(95, 143, 22, .25);
+  }
+}
+@media (max-width: 640px) {
+  .clevio-story .app {
+    height: 100svh;
+    min-height: 0;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+  .clevio-story .slide-inner {
+    max-height: calc(100svh - 160px);
+    padding-bottom: 24px;
+  }
+  .clevio-story .bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .clevio-story.trial-story .slide-inner {
+    max-height: calc(100svh - 160px);
+    overflow: auto;
+    padding: 16px 3px calc(24px + env(safe-area-inset-bottom));
+    scrollbar-width: thin;
+    scrollbar-color: rgba(34, 54, 123, .25) transparent;
+  }
+  .clevio-story.trial-story .slide-inner::-webkit-scrollbar {
+    display: block;
+    width: 4px;
   }
 }
 `;

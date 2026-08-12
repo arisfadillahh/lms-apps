@@ -21,6 +21,8 @@ import {
 } from '@/lib/services/reminderIdempotency';
 import { buildInvoicePublicUrl } from '@/lib/services/invoicePublicAccess';
 import { getShortInvoiceUrlOrOriginal } from '@/lib/services/shortLinks';
+import { sendPushToUsers } from '@/lib/pushNotifications';
+import { createNotification } from '@/lib/dao/notificationsDao';
 import type { Invoice, SendRemindersResponse, WhatsAppSession, WhatsAppStatus } from '@/lib/types/invoice';
 import makeWASocket, {
     useMultiFileAuthState,
@@ -50,6 +52,7 @@ let isConnected = !!sock?.user;
 let connectedPhone: string | null = sock?.user?.id.split(':')[0] || null;
 let currentQRCode: string | null = null;
 let qrRetryCount = 0;
+let lastDisconnectAlertAt = 0;
 
 // ============================================================================
 // Connection Management
@@ -160,6 +163,7 @@ export async function initializeWhatsApp(): Promise<{
                 if (authIssues.includes(statusCode)) {
                     console.log('[WhatsApp] Fatal Auth issue detected, clearing credentials');
                     clearCredentialsAndReset();
+                    await notifyAdminsWhatsAppLogout(statusCode);
                 }
 
                 sock = null;
@@ -265,6 +269,34 @@ export async function getWhatsAppStatus(tryReconnect = false): Promise<WhatsAppS
         qrCode: currentQRCode,
         lastActivity: resolvedLastActivity
     };
+}
+
+async function notifyAdminsWhatsAppLogout(statusCode: number | undefined) {
+    const now = Date.now();
+    if (now - lastDisconnectAlertAt < 60_000) return;
+    lastDisconnectAlertAt = now;
+
+    try {
+        const { data: admins, error } = await getSupabaseAdmin()
+            .from('users')
+            .select('id')
+            .eq('role', 'ADMIN')
+            .eq('is_active', true);
+        if (error) throw error;
+
+        const adminIds = (admins ?? []).map((admin) => admin.id);
+        const title = 'WhatsApp terputus';
+        const message = 'Sesi WhatsApp LMS logout atau tidak valid. Silakan buka menu WhatsApp dan scan QR ulang.';
+        await Promise.all(adminIds.map((adminId) => createNotification(adminId, title, message, 'WHATSAPP_STATUS')));
+        await sendPushToUsers(adminIds, {
+            title,
+            body: message,
+            url: '/admin/whatsapp',
+            tag: `whatsapp-disconnected-${statusCode ?? 'unknown'}`,
+        });
+    } catch (error) {
+        console.error('[WhatsApp] Failed to notify admins about logout', error);
+    }
 }
 
 /**
@@ -462,6 +494,56 @@ export async function sendWhatsAppDocument(params: {
         return { success: true };
     } catch (error) {
         console.error('[WhatsApp] Send document error:', error);
+        return { success: false, error: String(error) };
+    }
+}
+
+export async function sendWhatsAppImage(params: {
+    phoneNumber: string;
+    image: Buffer;
+    mimeType: string;
+    caption: string;
+}): Promise<{ success: boolean; error?: string }> {
+    if (!isConnected || !sock) {
+        console.log('[WhatsApp] Not connected, attempting to restore session before sending image...');
+        const initResult = await initializeWhatsApp();
+
+        if (!initResult.success) {
+            return { success: false, error: initResult.error || 'WhatsApp not connected' };
+        }
+
+        if (!await waitForWhatsAppConnection()) {
+            return { success: false, error: 'WhatsApp not connected' };
+        }
+    }
+
+    try {
+        const activeSock = sock;
+        if (!isConnected || !activeSock) {
+            return { success: false, error: 'WhatsApp not connected' };
+        }
+
+        const target = resolveWhatsAppTarget(params.phoneNumber);
+        if (!target) {
+            return { success: false, error: 'Invalid WhatsApp target' };
+        }
+
+        if (target.kind === 'personal') {
+            const onWhatsAppResult = await activeSock.onWhatsApp(target.jid);
+            if (!onWhatsAppResult?.[0]?.exists) {
+                return { success: false, error: `Number ${target.normalizedPhone} not on WhatsApp` };
+            }
+        }
+
+        await activeSock.sendMessage(target.jid, {
+            image: params.image,
+            mimetype: params.mimeType,
+            caption: params.caption,
+        });
+
+        return { success: true };
+    } catch (error) {
+        console.error('[WhatsApp] Send image error:', error);
         return { success: false, error: String(error) };
     }
 }

@@ -3,7 +3,7 @@
 import { ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, Eye, Rocket, Sparkles, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 
 import { REPORT_STORY_CSS } from '@/app/report/[id]/ReportStoryExperience.styles';
 import { REPORT_STORY_LAYOUT_FIX } from '@/app/report/ReportStoryExperience.layoutFix';
@@ -138,6 +138,39 @@ export default function TrialStoryReport({
     ...(recommendationReasons.length ? recommendationReasons : content.growthOpportunities),
   ].slice(0, 4);
   const canRegister = !invoiceUrl && status === 'PUBLISHED';
+
+  useEffect(() => {
+    if (!storyOpen) return;
+
+    const html = document.documentElement;
+    const previousHtmlOverflow = html.style.overflow;
+    const previousHtmlOverscrollBehavior = html.style.overscrollBehavior;
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousBodyOverscrollBehavior = document.body.style.overscrollBehavior;
+    const previousBodyPosition = document.body.style.position;
+    const previousBodyTop = document.body.style.top;
+    const previousBodyWidth = document.body.style.width;
+    const scrollY = window.scrollY;
+
+    html.style.overflow = 'hidden';
+    html.style.overscrollBehavior = 'none';
+    document.body.style.overflow = 'hidden';
+    document.body.style.overscrollBehavior = 'none';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+
+    return () => {
+      html.style.overflow = previousHtmlOverflow;
+      html.style.overscrollBehavior = previousHtmlOverscrollBehavior;
+      document.body.style.overflow = previousBodyOverflow;
+      document.body.style.overscrollBehavior = previousBodyOverscrollBehavior;
+      document.body.style.position = previousBodyPosition;
+      document.body.style.top = previousBodyTop;
+      document.body.style.width = previousBodyWidth;
+      window.scrollTo(0, scrollY);
+    };
+  }, [storyOpen]);
 
   const slides = [
     {

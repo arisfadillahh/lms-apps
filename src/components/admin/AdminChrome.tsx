@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
-  Bell,
+  Bug,
   BookMarked,
   BookOpen,
   CalendarOff,
@@ -34,6 +34,8 @@ import {
 } from 'lucide-react';
 
 import SignOutButton from '@/components/SignOutButton';
+import NotificationDropdown from '@/components/layout/NotificationDropdown';
+import PwaNotificationButton from '@/components/pwa/PwaNotificationButton';
 import { isSuperAdmin, type AdminPermissions } from '@/lib/permissions';
 
 type AdminChromeUser = {
@@ -71,6 +73,7 @@ type MenuId =
   | 'software'
   | 'banners'
   | 'leave'
+  | 'issueReports'
   | 'settings';
 
 type MenuItem = {
@@ -122,6 +125,7 @@ const MENU: MenuItem[] = [
   { id: 'software', href: '/admin/software', label: 'Software', icon: Package },
   { id: 'banners', href: '/admin/banners', label: 'Banner', icon: ImageIcon },
   { id: 'leave', href: '/admin/leave', label: 'Izin Coach', icon: CalendarOff },
+  { id: 'issueReports', href: '/admin/issue-reports', label: 'Laporan Masalah', icon: Bug },
   { id: 'settings', href: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 
@@ -133,7 +137,7 @@ const MENU_SECTIONS: Array<{ label: string | null; items: MenuId[] }> = [
   },
   { label: 'Keuangan', items: ['payments', 'invoices', 'ccr', 'ccrlist'] },
   { label: 'Komunikasi', items: ['whatsapp', 'broadcast'] },
-  { label: 'Sistem', items: ['software', 'banners', 'leave', 'settings'] },
+  { label: 'Sistem', items: ['software', 'banners', 'leave', 'issueReports', 'settings'] },
 ];
 
 const SECTION_TABS = {
@@ -397,6 +401,15 @@ const ROUTE_META: Array<{ match: string; meta: RouteMeta }> = [
     },
   },
   {
+    match: '/admin/issue-reports',
+    meta: {
+      key: 'issue-reports',
+      section: 'Sistem',
+      title: 'Laporan Masalah LMS',
+      description: 'Tindak lanjuti kendala Coach dan Coder berdasarkan screenshot dan konteks perangkat.',
+    },
+  },
+  {
     match: '/admin/leave',
     meta: {
       key: 'leave',
@@ -611,10 +624,8 @@ export default function AdminChrome({ children, user }: AdminChromeProps) {
 
             <div className="flex1" />
 
-            <button type="button" className="btn btn-icon btn-ghost admin-bell-button" aria-label="Notifikasi">
-              <Bell />
-              <span className="admin-bell-dot" />
-            </button>
+            <NotificationDropdown />
+            <PwaNotificationButton />
 
             <button type="button" className="admin-profile-chip" onClick={() => setProfileOpen((prev) => !prev)}>
               {user.avatarPath ? (

@@ -400,7 +400,11 @@ export async function middleware(request: NextRequest) {
     if (pathname === '/login' || isPublicPath(pathname)) {
       return NextResponse.next();
     }
-    return buildUnauthorizedResponse(request);
+    const requiresRole = ROLE_GUARDS.some((guard) => guard.test(pathname));
+    if (isApiRequest(pathname) || requiresRole) {
+      return buildUnauthorizedResponse(request);
+    }
+    return NextResponse.next();
   }
 
   if (isPublicPath(pathname) && pathname !== '/login') {

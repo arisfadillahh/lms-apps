@@ -31,6 +31,20 @@ export default function EditEkskulPlanButton({ plan }: Props) {
     const [error, setError] = useState<string | null>(null);
     const [confirmDelete, setConfirmDelete] = useState(false);
 
+    const syncFormFromPlan = () => {
+        setName(plan.name);
+        setDescription(plan.description || '');
+        setIsActive(plan.is_active);
+        setSelectedSoftwareIds(plan.ekskul_plan_software?.map((item) => item.software.id) || []);
+        setError(null);
+        setConfirmDelete(false);
+    };
+
+    const handleOpen = () => {
+        syncFormFromPlan();
+        setOpen(true);
+    };
+
     const handleClose = () => {
         setOpen(false);
         setConfirmDelete(false);
@@ -100,7 +114,7 @@ export default function EditEkskulPlanButton({ plan }: Props) {
 
     return (
         <>
-            <button onClick={() => setOpen(true)} style={editBtnStyle}>
+            <button onClick={handleOpen} style={editBtnStyle}>
                 <Edit size={14} /> Edit
             </button>
 
@@ -249,8 +263,11 @@ const backdropStyle: CSSProperties = {
     inset: 0,
     background: 'rgba(15, 23, 42, 0.6)',
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'center',
+    padding: 'max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom))',
+    overflowY: 'auto',
+    overscrollBehavior: 'contain',
     zIndex: 99999,
 };
 
@@ -260,6 +277,11 @@ const modalStyle: CSSProperties = {
     borderRadius: '1rem',
     width: '100%',
     maxWidth: '500px',
+    boxSizing: 'border-box',
+    maxHeight: 'calc(100svh - 24px)',
+    overflowY: 'auto',
+    overscrollBehavior: 'contain',
+    margin: '0 auto',
     boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
 };
 
@@ -284,6 +306,7 @@ const labelStyle: CSSProperties = {
 
 const inputStyle: CSSProperties = {
     width: '100%',
+    boxSizing: 'border-box',
     padding: '0.55rem 0.75rem',
     borderRadius: '0.5rem',
     border: '1px solid #cbd5e1',
@@ -293,12 +316,14 @@ const inputStyle: CSSProperties = {
 
 const actionsStyle: CSSProperties = {
     display: 'flex',
+    flexWrap: 'wrap',
     justifyContent: 'flex-end',
     gap: '0.75rem',
     marginTop: '1.25rem',
 };
 
 const cancelStyle: CSSProperties = {
+    flex: '1 1 140px',
     padding: '0.55rem 1rem',
     borderRadius: '0.5rem',
     border: '1px solid #e2e8f0',
@@ -310,6 +335,7 @@ const cancelStyle: CSSProperties = {
 };
 
 const submitStyle: CSSProperties = {
+    flex: '1 1 140px',
     padding: '0.55rem 1rem',
     borderRadius: '0.5rem',
     border: 'none',

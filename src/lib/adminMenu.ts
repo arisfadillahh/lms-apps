@@ -2,7 +2,7 @@
 import {
     Home, Users, GraduationCap, BookOpen, CalendarOff, FileText,
     MessageCircle, Package, Image as ImageIcon, Wallet, BookMarked,
-    Megaphone, Receipt, Settings, UserCheck, ClipboardList, MessageSquare, UserRoundPlus
+    Megaphone, Receipt, Settings, UserCheck, ClipboardList, MessageSquare, UserRoundPlus, Bug
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -23,6 +23,7 @@ export const MENU_ITEMS: Record<string, { href: string; label: string; icon: Luc
     software: { href: '/admin/software', label: 'Software', icon: Package },
     banners: { href: '/admin/banners', label: 'Banner', icon: ImageIcon },
     leave: { href: '/admin/leave', label: 'Izin Coach', icon: CalendarOff },
+    issueReports: { href: '/admin/issue-reports', label: 'Laporan Masalah', icon: Bug },
     reports: { href: '/admin/reports', label: 'Status Rapor', icon: FileText },
     evaluations: { href: '/admin/evaluations', label: 'Kompetensi Rapor', icon: ClipboardList },
     evaluationQuestions: { href: '/admin/evaluations/questions', label: 'Pertanyaan Refleksi', icon: MessageSquare },
@@ -71,6 +72,6 @@ export const SIDEBAR_STRUCTURE: (SidebarGroup | SidebarSingle)[] = [
         type: 'group',
         label: 'Lainnya',
         icon: Settings,
-        children: ['software', 'banners', 'leave', 'settings']
+        children: ['software', 'banners', 'leave', 'issueReports', 'settings']
     }
 ];

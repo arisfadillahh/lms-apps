@@ -24,6 +24,7 @@ import SessionRowActions from './SessionRowActions';
 import SessionsTable from './SessionsTable';
 import EditCoachForm from './EditCoachForm';
 import AttendanceRecapTable from './AttendanceRecapTable';
+import ChangeClassScheduleModal from './ChangeClassScheduleModal';
 
 type ClassBlockRow = Awaited<ReturnType<typeof classesDao.getClassBlocks>>[number];
 type BlockSummary = {
@@ -200,7 +201,7 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
             <span>•</span>
             Coach Utama: <strong style={{ color: '#334155' }}>{coachMap.get(klass.coach_id) ?? 'Unassigned'}</strong> <EditCoachForm classId={classIdParam} currentCoachId={klass.coach_id} coaches={coaches} />
             <span>•</span>
-            Jadwal: {klass.schedule_day}, {klass.schedule_time} WIB
+            Jadwal: {klass.schedule_day}, {klass.schedule_time} WIB <ChangeClassScheduleModal classId={classIdParam} currentDay={klass.schedule_day} currentTime={klass.schedule_time} />
           </span>
         </div>
       </header>

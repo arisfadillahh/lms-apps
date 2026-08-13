@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type CSSProperties } from 'react';
-import { Pencil, CheckSquare, Square, Table, List } from 'lucide-react';
+import { CheckSquare, ExternalLink, Square, Table } from 'lucide-react';
 
 import { splitEkskulLessonMakeUp } from '@/lib/ekskulMakeUpInstructions';
 import AddEkskulLessonButton from './AddEkskulLessonButton';
@@ -56,11 +56,11 @@ export default function EkskulLessonList({ planId, lessons }: Props) {
     }
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div className="ekskul-lesson-list" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             {/* Header bar */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#1e293b', margin: 0 }}>Daftar Lesson</h3>
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <div className="ekskul-lesson-toolbar" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                     <ExportEkskulLessonsButton planId={planId} />
                     <ImportEkskulLessonsButton planId={planId} currentLessonCount={lessons.length} />
                     <button
@@ -75,8 +75,8 @@ export default function EkskulLessonList({ planId, lessons }: Props) {
             </div>
 
             {/* Table */}
-            <div style={tableContainerStyle}>
-                <table style={tableStyle}>
+            <div className="ekskul-lesson-table-wrap ekskul-lesson-desktop" style={tableContainerStyle}>
+                <table className="ekskul-lesson-table" style={tableStyle}>
                     <thead>
                         <tr>
                             <th style={{ ...thStyle, width: '40px' }}>
@@ -139,7 +139,7 @@ export default function EkskulLessonList({ planId, lessons }: Props) {
                                             ) : <span style={{ color: '#cbd5e1' }}>-</span>}
                                         </td>
                                         <td style={tdStyle}>
-                                            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
+                    <div className="ekskul-lesson-actions" style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
                                                 <EditEkskulLessonButton lesson={lesson as any} planId={planId} />
                                                 <DeleteLessonButton lessonId={lesson.id} lessonTitle={lesson.title} planId={planId} />
                                             </div>
@@ -152,8 +152,63 @@ export default function EkskulLessonList({ planId, lessons }: Props) {
                 </table>
             </div>
 
+            <div className="ekskul-lesson-mobile-list">
+                {sorted.length === 0 ? (
+                    <div className="ekskul-lesson-empty">
+                        Belum ada lesson. Tekan &quot;Tambah Lesson&quot; untuk memulai.
+                    </div>
+                ) : (
+                    sorted.map((lesson) => {
+                        const isSelected = selectedIds.has(lesson.id);
+                        const lessonParts = splitEkskulLessonMakeUp(lesson.summary, lesson.make_up_instructions);
+
+                        return (
+                            <article key={lesson.id} className="ekskul-lesson-mobile-card">
+                                <div className="ekskul-lesson-mobile-head">
+                                    <button
+                                        type="button"
+                                        onClick={() => toggleSelect(lesson.id)}
+                                        className="ekskul-lesson-mobile-select"
+                                        aria-label={`${isSelected ? 'Batalkan pilihan' : 'Pilih'} ${lesson.title}`}
+                                    >
+                                        {isSelected ? <CheckSquare size={21} /> : <Square size={21} />}
+                                    </button>
+                                    <span className="ekskul-lesson-mobile-number">Lesson {lesson.order_index}</span>
+                                    <span className="ekskul-lesson-mobile-session">
+                                        {lesson.estimated_meetings ? `${lesson.estimated_meetings} sesi` : 'Belum diatur'}
+                                    </span>
+                                </div>
+
+                                <div className="ekskul-lesson-mobile-content">
+                                    <h4>{lesson.title}</h4>
+                                    {lessonParts.summary ? <p>{lessonParts.summary}</p> : <p className="is-empty">Belum ada ringkasan.</p>}
+                                </div>
+
+                                <div className="ekskul-lesson-mobile-meta">
+                                    <span className={lessonParts.makeUpInstructions ? 'is-ready' : 'is-empty'}>
+                                        Make-up task: {lessonParts.makeUpInstructions ? 'Ada' : 'Belum ada'}
+                                    </span>
+                                    {lesson.slide_url ? (
+                                        <a href={lesson.slide_url} target="_blank" rel="noreferrer">
+                                            Buka slide <ExternalLink size={14} />
+                                        </a>
+                                    ) : (
+                                        <span className="is-empty">Slide belum ada</span>
+                                    )}
+                                </div>
+
+                                <div className="ekskul-lesson-mobile-actions">
+                                    <EditEkskulLessonButton lesson={lesson as any} planId={planId} />
+                                    <DeleteLessonButton lessonId={lesson.id} lessonTitle={lesson.title} planId={planId} />
+                                </div>
+                            </article>
+                        );
+                    })
+                )}
+            </div>
+
             {selectedIds.size > 0 && (
-                <div style={bulkActionsStyle}>
+                <div className="ekskul-lesson-bulk-actions" style={bulkActionsStyle}>
                     <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{selectedIds.size} lesson dipilih</span>
                     <button style={bulkClearBtnStyle} onClick={() => setSelectedIds(new Set())}>Batalkan Pilihan</button>
                 </div>

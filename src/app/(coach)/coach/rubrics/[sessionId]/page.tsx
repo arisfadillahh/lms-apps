@@ -43,6 +43,17 @@ export default async function CoachSessionEvaluationPage({ params }: { params: P
 
   const criteriaList = await reportsDao.getEvaluationCriteria();
 
+  const { data: savedEvaluations } = await (await import('@/lib/supabaseServer')).getSupabaseAdmin()
+    .from('lesson_evaluations')
+    .select('coder_id, criteria_id, score')
+    .eq('session_id', sessionId);
+
+  const initialScores = (savedEvaluations ?? []).reduce<Record<string, Record<string, string>>>((result, evaluation) => {
+    if (!result[evaluation.coder_id]) result[evaluation.coder_id] = {};
+    result[evaluation.coder_id][evaluation.criteria_id] = String(evaluation.score);
+    return result;
+  }, {});
+
   return (
     <>
       <EvaluationFormClient 
@@ -51,6 +62,7 @@ export default async function CoachSessionEvaluationPage({ params }: { params: P
         criteriaList={criteriaList}
         lessonTitle={formatLessonTitle(slot)}
         blockName={slot.block.name || 'Unknown Block'}
+        initialScores={initialScores}
       />
     </>
   );

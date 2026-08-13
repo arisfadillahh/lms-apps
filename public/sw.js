@@ -1,4 +1,4 @@
-const CACHE_NAME = 'clevio-lms-shell-v1';
+const CACHE_NAME = 'clevio-lms-shell-v2';
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
@@ -9,8 +9,8 @@ self.addEventListener('push', (event) => {
   const title = payload.title || 'Notifikasi Clevio LMS';
   const options = {
     body: payload.body || 'Ada informasi baru di LMS.',
-    icon: '/images/clevio-logo.png',
-    badge: '/images/clevio-logo.png',
+    icon: '/pwa-icon-full-192.png',
+    badge: '/pwa-icon-full-192.png',
     data: { url: payload.url || '/' },
     tag: payload.tag || 'clevio-lms-notification',
     renotify: true,

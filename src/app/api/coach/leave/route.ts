@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { coachLeaveDao, sessionsDao, classesDao } from '@/lib/dao';
+import { createAdminNotifications } from '@/lib/dao/notificationsDao';
 import { assertRole } from '@/lib/roles';
 
 const requestSchema = z.object({
@@ -59,6 +60,23 @@ export async function POST(request: Request) {
     sessionId: parsed.data.sessionId,
     note: parsed.data.note ?? null,
   });
+
+  try {
+    const sessionLabel = new Intl.DateTimeFormat('id-ID', {
+      timeZone: 'Asia/Jakarta',
+      dateStyle: 'full',
+      timeStyle: 'short',
+    }).format(sessionDate);
+    await createAdminNotifications({
+      type: 'COACH_LEAVE',
+      title: 'Pengajuan izin coach baru',
+      message: `${coachSession.user.fullName || coachSession.user.username} mengajukan izin untuk ${classRecord.name} pada ${sessionLabel} WIB.`,
+      pushUrl: '/admin/leave',
+      pushTag: `coach-leave-${requestRecord.id}`,
+    });
+  } catch (notificationError) {
+    console.error('[CoachLeave] Failed to notify admins', notificationError);
+  }
 
   return NextResponse.json({ request: requestRecord }, { status: 201 });
 }

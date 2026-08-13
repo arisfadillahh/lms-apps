@@ -95,6 +95,16 @@ export default async function SessionAttendancePage({ params }: PageProps) {
   const slideTitle = currentLessonSlot ? formatLessonTitle(currentLessonSlot) : null;
   const lessonSummary = currentLessonSlot?.lessonTemplate.summary ?? 'Tidak ada ringkasan materi.';
   const isEkskulClass = classRecord.type === 'EKSKUL';
+  const hasLaterCompletedSession = classSessions.some((item) => (
+    item.status === 'COMPLETED'
+    && new Date(item.date_time).getTime() > new Date(sessionRecord.date_time).getTime()
+  ));
+  const canExtendLesson = Boolean(
+    !isEkskulClass
+    && currentLessonSlot?.classLessonId
+    && currentLessonSlot.partNumber === currentLessonSlot.totalParts
+    && !hasLaterCompletedSession
+  );
 
   // Compute attendance stats
   const totalCoders = attendees.length;
@@ -350,6 +360,9 @@ export default async function SessionAttendancePage({ params }: PageProps) {
           canOpenEkskulReport={canOpenEkskulReport}
           ekskulReportLockedReason={ekskulReportLockedReason}
           ekskulReportStatus={ekskulReportStatus}
+          canExtendLesson={canExtendLesson}
+          extendLessonTitle={slideTitle}
+          nextLessonPart={(currentLessonSlot?.totalParts ?? 0) + 1}
         />
 
         {/* Monthly Recap Section */}

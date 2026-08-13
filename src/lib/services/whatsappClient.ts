@@ -21,8 +21,7 @@ import {
 } from '@/lib/services/reminderIdempotency';
 import { buildInvoicePublicUrl } from '@/lib/services/invoicePublicAccess';
 import { getShortInvoiceUrlOrOriginal } from '@/lib/services/shortLinks';
-import { sendPushToUsers } from '@/lib/pushNotifications';
-import { createNotification } from '@/lib/dao/notificationsDao';
+import { createAdminNotifications } from '@/lib/dao/notificationsDao';
 import type { Invoice, SendRemindersResponse, WhatsAppSession, WhatsAppStatus } from '@/lib/types/invoice';
 import makeWASocket, {
     useMultiFileAuthState,
@@ -53,6 +52,7 @@ let connectedPhone: string | null = sock?.user?.id.split(':')[0] || null;
 let currentQRCode: string | null = null;
 let qrRetryCount = 0;
 let lastDisconnectAlertAt = 0;
+let suppressAuthAlertUntil = 0;
 
 // ============================================================================
 // Connection Management
@@ -160,7 +160,7 @@ export async function initializeWhatsApp(): Promise<{
                 // 401: Unauthorized, 403: Forbidden, DisconnectReason.loggedOut
                 // Note: 515 is "Stream Errored" which is common and should NOT clear creds
                 const authIssues = [DisconnectReason.loggedOut, 401, 403];
-                if (authIssues.includes(statusCode)) {
+                if (authIssues.includes(statusCode) && Date.now() >= suppressAuthAlertUntil) {
                     console.log('[WhatsApp] Fatal Auth issue detected, clearing credentials');
                     clearCredentialsAndReset();
                     await notifyAdminsWhatsAppLogout(statusCode);
@@ -273,26 +273,18 @@ export async function getWhatsAppStatus(tryReconnect = false): Promise<WhatsAppS
 
 async function notifyAdminsWhatsAppLogout(statusCode: number | undefined) {
     const now = Date.now();
-    if (now - lastDisconnectAlertAt < 60_000) return;
+    if (now - lastDisconnectAlertAt < 5 * 60_000) return;
     lastDisconnectAlertAt = now;
 
     try {
-        const { data: admins, error } = await getSupabaseAdmin()
-            .from('users')
-            .select('id')
-            .eq('role', 'ADMIN')
-            .eq('is_active', true);
-        if (error) throw error;
-
-        const adminIds = (admins ?? []).map((admin) => admin.id);
         const title = 'WhatsApp terputus';
         const message = 'Sesi WhatsApp LMS logout atau tidak valid. Silakan buka menu WhatsApp dan scan QR ulang.';
-        await Promise.all(adminIds.map((adminId) => createNotification(adminId, title, message, 'WHATSAPP_STATUS')));
-        await sendPushToUsers(adminIds, {
+        await createAdminNotifications({
+            type: 'WHATSAPP_STATUS',
             title,
-            body: message,
-            url: '/admin/whatsapp',
-            tag: `whatsapp-disconnected-${statusCode ?? 'unknown'}`,
+            message,
+            pushUrl: '/admin/whatsapp',
+            pushTag: `whatsapp-disconnected-${statusCode ?? 'unknown'}`,
         });
     } catch (error) {
         console.error('[WhatsApp] Failed to notify admins about logout', error);
@@ -304,6 +296,7 @@ async function notifyAdminsWhatsAppLogout(statusCode: number | undefined) {
  */
 export async function disconnectWhatsApp(): Promise<boolean> {
     try {
+        suppressAuthAlertUntil = Date.now() + 10000;
         if (sock) {
             sock.end(undefined);
             sock = null;
@@ -329,6 +322,7 @@ export async function disconnectWhatsApp(): Promise<boolean> {
 export async function forceResetWhatsApp(): Promise<{ success: boolean; message: string }> {
     try {
         console.log('[WhatsApp] Force resetting - clearing all session data...');
+        suppressAuthAlertUntil = Date.now() + 10000;
 
         // 1. Close existing socket
         if (sock) {

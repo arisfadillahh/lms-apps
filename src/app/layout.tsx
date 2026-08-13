@@ -4,6 +4,7 @@ import './globals.css';
 
 import { SessionProvider } from '@/components/providers/SessionProvider';
 import MobileScrollFix from '@/components/layout/MobileScrollFix';
+import PwaStartupSplash from '@/components/pwa/PwaStartupSplash';
 
 const geistSans = Geist({
   subsets: ['latin'],
@@ -30,6 +31,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
+        <PwaStartupSplash />
         <MobileScrollFix />
         <SessionProvider>{children}</SessionProvider>
       </body>

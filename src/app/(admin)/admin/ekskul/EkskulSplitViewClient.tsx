@@ -43,16 +43,16 @@ export default function EkskulSplitViewClient({ plans }: { plans: EkskulPlan[] }
     const totalSessions = selectedPlan?.ekskul_lessons?.reduce((sum, l) => sum + (l.estimated_meetings || 1), 0) || 0;
 
     return (
-        <div className="col gap-4">
+        <div className="col gap-4 ekskul-overview-page">
             <PageHead
                 title="Ekskul Plans"
                 desc="Kurikulum ekstrakurikuler — lesson plan per track kompetensi sekolah."
                 actions={<AddEkskulPlanButton />}
             />
 
-            <div className="grid" style={{ gridTemplateColumns: '280px minmax(0,1fr)', gap: '20px' }}>
+            <div className="grid ekskul-overview-layout" style={{ gridTemplateColumns: '280px minmax(0,1fr)', gap: '20px' }}>
                 {/* Track list */}
-                <div className="col gap-2">
+                <div className="col gap-2 ekskul-plan-picker">
                     <div className="muted" style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', padding: '0 4px 4px' }}>
                         Lesson Plan
                     </div>
@@ -62,10 +62,11 @@ export default function EkskulSplitViewClient({ plans }: { plans: EkskulPlan[] }
                         const planLevelName = plan.level || 'Ekskul';
                         
                         return (
-                            <div key={plan.id} onClick={() => setSelectedId(plan.id)}
-                                className="card"
+                            <button key={plan.id} type="button" onClick={() => setSelectedId(plan.id)}
+                                className="card ekskul-plan-picker-card"
+                                aria-pressed={active}
                                 style={{
-                                    padding: 14, cursor: 'pointer',
+                                    padding: 14, cursor: 'pointer', textAlign: 'left', width: '100%', color: 'inherit',
                                     borderColor: active ? 'var(--accent)' : 'var(--border)',
                                     background: active ? 'var(--accent-weak)' : 'var(--surface)',
                                     boxShadow: active ? '0 2px 10px -2px color-mix(in srgb, var(--accent) 30%, transparent)' : 'var(--shadow-sm)',
@@ -79,15 +80,15 @@ export default function EkskulSplitViewClient({ plans }: { plans: EkskulPlan[] }
                                 <div className="muted" style={{ fontSize: 11.5 }}>
                                     {plan.ekskul_lessons?.length || 0} lesson · {planSessions} sesi
                                 </div>
-                            </div>
+                            </button>
                         );
                     })}
                 </div>
 
                 {/* Lesson plan detail */}
                 {selectedPlan ? (
-                    <div className="card">
-                        <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)' }}>
+                    <div className="card ekskul-overview-detail">
+                        <div className="ekskul-overview-detail-head" style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)' }}>
                             <div className="row between" style={{ flexWrap: 'wrap', gap: 10 }}>
                                 <div>
                                     <div className="row gap-2" style={{ marginBottom: 4 }}>
@@ -102,7 +103,7 @@ export default function EkskulSplitViewClient({ plans }: { plans: EkskulPlan[] }
                                     <div style={{ fontSize: 18, fontWeight: 800 }}>{selectedPlan.name}</div>
                                     <div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>{selectedPlan.description || 'Lesson plan kurikulum ekskul'}</div>
                                 </div>
-                                <div className="row gap-2" style={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                                <div className="row gap-2 ekskul-overview-actions" style={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                                     <ExportEkskulLessonsButton planId={selectedPlan.id} />
                                     <ImportEkskulLessonsButton planId={selectedPlan.id} currentLessonCount={sortedLessons.length} />
                                     <EditEkskulPlanButton key={`edit-plan-${selectedPlan.id}`} plan={selectedPlan} />
@@ -110,6 +111,7 @@ export default function EkskulSplitViewClient({ plans }: { plans: EkskulPlan[] }
                                 </div>
                             </div>
                         </div>
+                        <div className="ekskul-overview-desktop-table">
                         <table className="table">
                             <thead>
                                 <tr>
@@ -155,6 +157,37 @@ export default function EkskulSplitViewClient({ plans }: { plans: EkskulPlan[] }
                                 </tr>
                             </tbody>
                         </table>
+                        </div>
+
+                        <div className="ekskul-overview-mobile-lessons">
+                            {sortedLessons.map((lesson) => {
+                                const lessonParts = splitEkskulLessonMakeUp(lesson.summary, lesson.make_up_instructions);
+                                const lessonForEdit = {
+                                    ...lesson,
+                                    slide_url: lesson.slide_url ?? null,
+                                    make_up_instructions: lessonParts.makeUpInstructions,
+                                    estimated_meetings: lesson.estimated_meetings ?? 1,
+                                };
+
+                                return (
+                                    <article className="ekskul-overview-mobile-lesson" key={`mobile-${lesson.id}`}>
+                                        <div className="ekskul-overview-mobile-lesson-head">
+                                            <span className="mono">Lesson {String(lesson.order_index).padStart(2, '0')}</span>
+                                            <span className="chip">{lesson.estimated_meetings || 1} sesi</span>
+                                        </div>
+                                        <h3>{lesson.title}</h3>
+                                        {lessonParts.summary && <p>{lessonParts.summary}</p>}
+                                        <div className="ekskul-overview-mobile-lesson-actions">
+                                            <EditEkskulLessonButton key={`mobile-edit-${lesson.id}`} lesson={lessonForEdit} planId={selectedPlan.id} />
+                                            <DeleteLessonButton lessonId={lesson.id} lessonTitle={lesson.title} planId={selectedPlan.id} />
+                                        </div>
+                                    </article>
+                                );
+                            })}
+                            <div className="ekskul-overview-mobile-add">
+                                <AddEkskulLessonButton planId={selectedPlan.id} suggestedOrderIndex={sortedLessons.length + 1} />
+                            </div>
+                        </div>
                     </div>
                 ) : (
                     <div className="card" style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>

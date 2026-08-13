@@ -105,13 +105,13 @@ export default function EditEkskulLessonButton({ lesson, planId }: Props) {
 
     return (
         <>
-            <button onClick={handleOpen} style={editButtonStyle}>
+            <button type="button" className="ekskul-lesson-edit-button" onClick={handleOpen} style={editButtonStyle}>
                 Edit
             </button>
 
             {open && (
-                <div style={backdropStyle} onClick={handleClose}>
-                    <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
+                <div className="ekskul-lesson-modal-backdrop" style={backdropStyle} onClick={handleClose}>
+                    <div className="ekskul-lesson-modal" style={modalStyle} onClick={(e) => e.stopPropagation()}>
                         <h3 style={titleStyle}>Edit Lesson</h3>
 
                         <div style={fieldStyle}>
@@ -156,7 +156,7 @@ export default function EditEkskulLessonButton({ lesson, planId }: Props) {
                             />
                         </div>
 
-                        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                        <div className="ekskul-lesson-number-fields" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                             <div style={{ ...fieldStyle, flex: '1 1 180px', minWidth: 0 }}>
                                 <label style={labelStyle}>Jumlah Pertemuan</label>
                                 <input
@@ -181,7 +181,7 @@ export default function EditEkskulLessonButton({ lesson, planId }: Props) {
 
                         {error && <p style={errorStyle}>{error}</p>}
 
-                        <div style={actionsStyle}>
+                        <div className="ekskul-lesson-modal-actions" style={actionsStyle}>
                             <button onClick={handleClose} style={cancelStyle} disabled={isPending}>
                                 Batal
                             </button>

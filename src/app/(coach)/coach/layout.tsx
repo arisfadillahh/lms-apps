@@ -31,7 +31,7 @@ export default async function CoachLayout({ children }: { children: ReactNode })
   }
 
   return (
-      <div className="min-h-screen flex antialiased bg-[#f1f5f9] text-[#0f172a] font-sans">
+      <div className="coach-app-shell min-h-screen flex antialiased bg-[#f1f5f9] text-[#0f172a] font-sans">
         {/* Google Fonts: Material Symbols + Plus Jakarta Sans */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
@@ -65,7 +65,7 @@ export default async function CoachLayout({ children }: { children: ReactNode })
       </div>
 
       {/* Main content */}
-      <main className="flex-1 flex flex-col min-h-screen md:ml-[260px] flex-grow px-8 pb-8">
+      <main className="coach-main flex-1 flex flex-col min-h-screen md:ml-[260px] flex-grow px-8 pb-8">
         <CoachDashboardHeader user={{
             id: user.id,
             fullName: user.full_name,

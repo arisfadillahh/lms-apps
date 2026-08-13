@@ -15,6 +15,8 @@ export default function PwaNotificationButton() {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [isIos, setIsIos] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -29,6 +31,11 @@ export default function PwaNotificationButton() {
     if ('Notification' in window && Notification.permission === 'granted') {
       setPushEnabled(true);
     }
+    const standalone = window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+    setIsStandalone(standalone);
+    setIsIos(/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
     return () => window.removeEventListener('beforeinstallprompt', onBeforeInstall);
   }, []);
 
@@ -41,8 +48,14 @@ export default function PwaNotificationButton() {
   }, []);
 
   const install = async () => {
+    if (isStandalone) {
+      setMessage('LMS sudah terpasang di perangkat ini.');
+      return;
+    }
     if (!installPrompt) {
-      setMessage('Gunakan menu browser “Add to Home Screen” untuk memasang LMS.');
+      setMessage(isIos
+        ? 'Di iPhone: tekan Bagikan lalu pilih “Add to Home Screen”.'
+        : 'Buka menu browser lalu pilih “Add to Home Screen” atau “Install app”.');
       return;
     }
     await installPrompt.prompt();
@@ -94,7 +107,7 @@ export default function PwaNotificationButton() {
         title="Install LMS dan atur notifikasi"
         onClick={() => setOpen((value) => !value)}
       >
-        <BellRing size={18} />
+        <Download size={18} />
       </button>
       {open ? (
         <div className="pwa-menu" role="dialog" aria-label="Pengaturan aplikasi LMS">

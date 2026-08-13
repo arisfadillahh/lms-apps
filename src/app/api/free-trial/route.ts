@@ -1,5 +1,6 @@
 import { after, NextResponse } from 'next/server';
 
+import { createAdminNotifications } from '@/lib/dao/notificationsDao';
 import { createTrialClassSubmission } from '@/lib/dao/trialClassDao';
 import { sendTrialClassNotifications } from '@/lib/services/trialClassNotifications';
 import { normalizeIndonesianPhone, trialClassSchema } from '@/lib/validation/trialClass';
@@ -37,6 +38,18 @@ export async function POST(request: Request) {
       trial_mode: parsed.data.trialMode,
       notes: parsed.data.notes || null,
     });
+
+    try {
+      await createAdminNotifications({
+        type: 'FREE_TRIAL',
+        title: 'Pendaftaran free trial baru',
+        message: `${submission.parent_name} mendaftarkan ${submission.student_name} untuk trial ${submission.trial_mode.toLowerCase()}.`,
+        pushUrl: '/admin/free-trials',
+        pushTag: `free-trial-${submission.id}`,
+      });
+    } catch (notificationError) {
+      console.error('[FreeTrial] Failed to notify admins', notificationError);
+    }
 
     after(async () => {
       const delivery = await sendTrialClassNotifications({

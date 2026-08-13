@@ -34,9 +34,9 @@ export default async function CoderLayout({ children }: { children: ReactNode })
   const todayDate = format(new Date(), 'EEEE, d MMMM yyyy', { locale: id });
 
   return (
-    <div className="bg-background-light text-slate-800 font-display min-h-screen antialiased flex">
+    <div className="coder-app-shell bg-background-light text-slate-800 font-display min-h-screen antialiased flex">
       <CoderSidebar session={session} />
-      <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+      <main className="coder-main flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <CoderHeader
           userName={userName}
           fullName={session.user.fullName || 'Coder'}

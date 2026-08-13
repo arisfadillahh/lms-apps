@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -39,6 +39,7 @@ export default function KanbanBoard({ initialReports }: KanbanBoardProps) {
   const [reports, setReports] = useState<Report[]>(initialReports);
   const [dragging, setDragging] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState<string | null>(null);
+  const [mobileColumn, setMobileColumn] = useState(COLUMNS[0].key);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [successId, setSuccessId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
@@ -87,12 +88,33 @@ export default function KanbanBoard({ initialReports }: KanbanBoardProps) {
   return (
     <>
       {/* Board hint */}
-      <div className="muted" style={{ fontSize: 12.5, marginBottom: 2 }}>
+      <div className="kanban-board-hint muted" style={{ fontSize: 12.5, marginBottom: 2 }}>
         💡 Drag kartu ke kolom lain untuk mengubah status laporan secara langsung.
+      </div>
+
+      <div className="kanban-mobile-tabs" role="tablist" aria-label="Filter status laporan">
+        {COLUMNS.map((col) => {
+          const active = mobileColumn === col.key;
+          return (
+            <button
+              key={col.key}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              className={`kanban-mobile-tab ${active ? 'is-active' : ''}`}
+              style={{ '--tab-color': col.color } as CSSProperties}
+              onClick={() => setMobileColumn(col.key)}
+            >
+              <span>{col.label}</span>
+              <strong>{getByStatus(col.key).length}</strong>
+            </button>
+          );
+        })}
       </div>
 
       {/* Kanban grid */}
       <div
+        className="kanban-grid"
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
@@ -107,6 +129,7 @@ export default function KanbanBoard({ initialReports }: KanbanBoardProps) {
           return (
             <div
               key={col.key}
+              className={`kanban-column ${mobileColumn === col.key ? 'kanban-column-active' : ''}`}
               onDragOver={(e) => { e.preventDefault(); setDragOver(col.key); }}
               onDragLeave={() => setDragOver(null)}
               onDrop={(e) => {
@@ -179,7 +202,7 @@ export default function KanbanBoard({ initialReports }: KanbanBoardProps) {
                       setDragging(report.id);
                     }}
                     onDragEnd={() => setDragging(null)}
-                    className="card"
+                    className="card kanban-report-card"
                     style={{
                       padding: 12,
                       gap: 8,

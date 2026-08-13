@@ -31,19 +31,19 @@ export default async function EkskulPlanDetailPage({ params }: PageProps) {
     const totalMeetings = (lessons || []).reduce((sum, l) => sum + (l.estimated_meetings || 1), 0);
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div className="ekskul-plan-page" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <header style={headerStyle}>
                 <div>
                     <Link href="/admin/ekskul" style={backLinkStyle}>← Semua Lesson Plans</Link>
                     <h1 style={titleStyle}>{plan.name}</h1>
                     {plan.description && <p style={subtitleStyle}>{plan.description}</p>}
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                <div className="ekskul-plan-actions" style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
                     <DeletePlanButton planId={planId} planName={plan.name} />
                 </div>
             </header>
 
-            <div style={statsRowStyle}>
+            <div className="ekskul-plan-stats" style={statsRowStyle}>
                 <div style={statCardStyle}>
                     <span style={statLabelStyle}>Total Lesson</span>
                     <span style={statValueStyle}>{(lessons || []).length}</span>

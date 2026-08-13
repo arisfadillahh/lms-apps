@@ -73,13 +73,13 @@ export default function AddEkskulLessonButton({ planId, suggestedOrderIndex }: P
 
     return (
         <>
-            <button onClick={() => { setOrderIndex(String(suggestedOrderIndex)); setOpen(true); }} style={triggerStyle}>
+            <button type="button" onClick={() => { setOrderIndex(String(suggestedOrderIndex)); setOpen(true); }} style={triggerStyle}>
                 + Tambah Lesson
             </button>
 
             {open && (
-                <div style={backdropStyle} onClick={handleClose}>
-                    <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
+                <div className="ekskul-lesson-modal-backdrop" style={backdropStyle} onClick={handleClose}>
+                    <div className="ekskul-lesson-modal" style={modalStyle} onClick={(e) => e.stopPropagation()}>
                         <h3 style={titleStyle}>Tambah Lesson</h3>
 
                         <div style={fieldStyle}>
@@ -127,7 +127,7 @@ export default function AddEkskulLessonButton({ planId, suggestedOrderIndex }: P
                             />
                         </div>
 
-                        <div style={{ display: 'flex', gap: '1rem' }}>
+                        <div className="ekskul-lesson-number-fields" style={{ display: 'flex', gap: '1rem' }}>
                             <div style={{ ...fieldStyle, flex: 1 }}>
                                 <label style={labelStyle}>Jumlah Pertemuan</label>
                                 <input
@@ -152,7 +152,7 @@ export default function AddEkskulLessonButton({ planId, suggestedOrderIndex }: P
 
                         {error && <p style={errorStyle}>{error}</p>}
 
-                        <div style={actionsStyle}>
+                        <div className="ekskul-lesson-modal-actions" style={actionsStyle}>
                             <button onClick={handleClose} style={cancelStyle} disabled={isPending}>
                                 Batal
                             </button>
@@ -183,8 +183,11 @@ const backdropStyle: CSSProperties = {
     inset: 0,
     background: 'rgba(15, 23, 42, 0.6)',
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'center',
+    padding: 'max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom))',
+    overflowY: 'auto',
+    overscrollBehavior: 'contain',
     zIndex: 99999,
 };
 
@@ -194,8 +197,10 @@ const modalStyle: CSSProperties = {
     borderRadius: '1rem',
     width: '100%',
     maxWidth: '480px',
-    maxHeight: '90vh',
+    boxSizing: 'border-box',
+    maxHeight: 'calc(100svh - 24px)',
     overflowY: 'auto',
+    margin: '0 auto',
     boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
 };
 

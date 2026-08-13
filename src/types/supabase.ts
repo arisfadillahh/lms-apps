@@ -494,6 +494,7 @@ export interface Database {
           slide_url: string | null;
           coach_example_url: string | null;
           coach_example_storage_path: string | null;
+          is_extended: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -510,6 +511,7 @@ export interface Database {
           slide_url?: string | null;
           coach_example_url?: string | null;
           coach_example_storage_path?: string | null;
+          is_extended?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -534,6 +536,42 @@ export interface Database {
             referencedColumns: ['id'];
           },
         ];
+      };
+      lesson_extensions: {
+        Row: {
+          id: string;
+          class_id: string;
+          class_block_id: string;
+          lesson_template_id: string | null;
+          source_class_lesson_id: string;
+          added_class_lesson_id: string;
+          source_session_id: string;
+          target_session_id: string | null;
+          extended_by: string | null;
+          extended_by_role: 'COACH' | 'ADMIN';
+          reason: string;
+          previous_parts: number;
+          new_parts: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          class_id: string;
+          class_block_id: string;
+          lesson_template_id?: string | null;
+          source_class_lesson_id: string;
+          added_class_lesson_id: string;
+          source_session_id: string;
+          target_session_id?: string | null;
+          extended_by?: string | null;
+          extended_by_role: 'COACH' | 'ADMIN';
+          reason: string;
+          previous_parts: number;
+          new_parts: number;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['lesson_extensions']['Insert']>;
+        Relationships: [];
       };
       coder_block_progress: {
         Row: {

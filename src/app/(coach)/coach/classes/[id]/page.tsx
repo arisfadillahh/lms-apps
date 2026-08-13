@@ -113,7 +113,7 @@ export default async function ClassDetailPage({ params }: PageProps) {
     const pastSessions = sortedSessions.slice(0, focusIndex).reverse();
 
     return (
-        <div style={{ fontFamily: "'Inter', sans-serif", margin: '0 -2rem', paddingBottom: '2rem' }}>
+        <div className="coach-class-page" style={{ fontFamily: "'Inter', sans-serif", margin: '0 -2rem', paddingBottom: '2rem' }}>
             {/* Main Content Area */}
             <main style={{ backgroundColor: '#f8fafc', minHeight: '100vh' }}>
 

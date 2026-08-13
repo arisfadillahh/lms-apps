@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { getSessionOrThrow } from '@/lib/auth';
+import { createAdminNotifications } from '@/lib/dao/notificationsDao';
 import { assertRole } from '@/lib/roles';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
@@ -36,8 +37,6 @@ export async function POST(request: Request) {
     }
 
     const supabase = getSupabaseAdmin();
-
-    // Get lesson title for better notification
     const { data: lessonTemplate } = await supabase
         .from('lesson_templates')
         .select('title')
@@ -45,8 +44,6 @@ export async function POST(request: Request) {
         .single();
 
     const lessonTitle = lessonTemplate?.title || 'Unknown lesson';
-
-    // Insert the lesson report
     const { data, error } = await (supabase as any)
         .from('lesson_reports')
         .insert({
@@ -63,30 +60,24 @@ export async function POST(request: Request) {
         console.error('[Lesson Report] Error:', error);
         return NextResponse.json({
             error: 'Gagal menyimpan laporan. Pastikan tabel lesson_reports sudah ada.',
-            details: error.message
+            details: error.message,
         }, { status: 500 });
     }
 
-    // Create notification for all admins
-    const { data: admins } = await supabase.from('users').select('id').eq('role', 'ADMIN');
     const coachName = session.user.fullName || 'Coach';
     const reportTypeLabel = REPORT_TYPE_LABELS[parsed.data.reportType] || parsed.data.reportType;
 
-    if (admins && admins.length > 0) {
-        const notifications = admins.map((admin) => ({
-            user_id: admin.id,
+    try {
+        await createAdminNotifications({
             type: 'LESSON_REPORT',
-            title: '📋 Laporan Masalah Lesson',
-            message: `${coachName} melaporkan masalah "${reportTypeLabel}" pada lesson "${lessonTitle}"\n📝 Catatan: ${parsed.data.description}`,
-            is_read: false,
-        }));
-
-        const { error: notifError } = await (supabase as any).from('notifications').insert(notifications);
-        if (notifError) {
-            console.error('[Lesson Report] Notification error:', notifError);
-        }
+            title: 'Laporan masalah lesson',
+            message: `${coachName} melaporkan masalah "${reportTypeLabel}" pada lesson "${lessonTitle}". Catatan: ${parsed.data.description}`,
+            pushUrl: '/admin/curriculum/reports',
+            pushTag: `lesson-report-${data.id}`,
+        });
+    } catch (notificationError) {
+        console.error('[Lesson Report] Notification error:', notificationError);
     }
 
     return NextResponse.json({ report: data }, { status: 201 });
 }
-

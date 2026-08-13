@@ -2,7 +2,8 @@
 
 import { useState, useTransition, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Sparkles, ArchiveRestore, Loader2, Send, ChevronDown } from 'lucide-react';
+import Link from 'next/link';
+import { Sparkles, ArchiveRestore, Loader2, Send, ChevronDown, ClipboardCheck } from 'lucide-react';
 
 export type ReportDescriptionItem = {
   criteriaId: string;
@@ -139,6 +140,7 @@ type Props = {
   averageScore: number | null;
   status: string;
   evaluationAnswers: { question: string; answer: string }[];
+  assessmentHref?: string | null;
 };
 
 export default function ReportReviewClient({
@@ -152,6 +154,7 @@ export default function ReportReviewClient({
   averageScore,
   status,
   evaluationAnswers,
+  assessmentHref,
 }: Props) {
   const router = useRouter();
   const [descriptions, setDescriptions] = useState(initialDescriptions);
@@ -349,7 +352,19 @@ export default function ReportReviewClient({
             </p>
           </div>
 
-          <span className="text-xs font-medium text-slate-400 hidden sm:block">Autosave: On</span>
+          <div className="flex items-center gap-3">
+            {assessmentHref && (
+              <Link
+                href={assessmentHref}
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-blue-700"
+              >
+                <ClipboardCheck size={15} />
+                <span className="hidden sm:inline">Buka Penilaian</span>
+                <span className="sm:hidden">Nilai</span>
+              </Link>
+            )}
+            <span className="text-xs font-medium text-slate-400 hidden sm:block">Autosave: On</span>
+          </div>
         </header>
 
         {/* Error banner */}

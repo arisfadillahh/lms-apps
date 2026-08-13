@@ -40,19 +40,20 @@ export default function DeleteLessonButton({ lessonId, lessonTitle, planId }: Pr
 
     return (
         <>
-            <button onClick={() => setOpen(true)} style={triggerStyle} title="Hapus Lesson">
+            <button type="button" className="ekskul-lesson-delete-button" onClick={() => setOpen(true)} style={triggerStyle} title="Hapus Lesson">
                 <Trash2 size={16} />
+                <span>Hapus</span>
             </button>
 
             {open && (
-                <div style={backdropStyle} onClick={() => setOpen(false)}>
-                    <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
+                <div className="ekskul-lesson-modal-backdrop" style={backdropStyle} onClick={() => setOpen(false)}>
+                    <div className="ekskul-delete-modal" style={modalStyle} onClick={(e) => e.stopPropagation()}>
                         <h3 style={titleStyle}>Hapus Lesson?</h3>
                         <p style={descStyle}>
                             Yakin ingin menghapus lesson <strong>"{lessonTitle}"</strong>?
                         </p>
 
-                        <div style={actionsStyle}>
+                        <div className="ekskul-delete-modal-actions" style={actionsStyle}>
                             <button onClick={() => setOpen(false)} style={cancelStyle} disabled={isPending}>
                                 Batal
                             </button>
@@ -68,7 +69,11 @@ export default function DeleteLessonButton({ lessonId, lessonTitle, planId }: Pr
 }
 
 const triggerStyle: CSSProperties = {
-    padding: '0.4rem',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.4rem',
+    padding: '0.4rem 0.7rem',
     borderRadius: '0.375rem',
     border: 'none',
     background: '#fee2e2',

@@ -1,6 +1,7 @@
 import { after, NextResponse } from 'next/server';
 
 import { getSessionOrThrow } from '@/lib/auth';
+import { createAdminNotifications } from '@/lib/dao/notificationsDao';
 import {
   buildIssueReportWhatsAppMessage,
   formatIssueReportReference,
@@ -95,6 +96,20 @@ export async function POST(request: Request) {
         screenshotStoragePath = null;
         screenshotUploadWarning = 'Report tersimpan dan gambar tetap dikirim ke WhatsApp, tetapi arsip screenshot belum berhasil disimpan.';
       }
+    }
+
+    // Keep the admin notification inbox useful even when WhatsApp is unavailable.
+    // This is intentionally best-effort: a notification failure must not reject a saved report.
+    try {
+      await createAdminNotifications({
+        type: 'ISSUE_REPORT',
+        title: 'Report masalah baru',
+        message: `${report.reporter_name} mengirim report: ${report.title}. Buka menu Laporan Masalah untuk melihat detailnya.`,
+        pushUrl: '/admin/issue-reports',
+        pushTag: `issue-report-${report.id}`,
+      });
+    } catch (notificationError) {
+      console.error('[IssueReport] Failed to create admin notifications', notificationError);
     }
 
     const caption = buildIssueReportWhatsAppMessage({

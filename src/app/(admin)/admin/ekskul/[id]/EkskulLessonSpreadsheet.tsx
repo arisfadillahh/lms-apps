@@ -112,8 +112,8 @@ export default function EkskulLessonSpreadsheet({ lessons, planId, onClose }: Pr
     };
 
     return (
-        <div style={fullscreenStyle}>
-            <div style={topBarStyle}>
+        <div className="ekskul-spreadsheet" style={fullscreenStyle}>
+            <div className="ekskul-spreadsheet-toolbar" style={topBarStyle}>
                 <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Mode Edit Massal — Ekskul Lessons</h2>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -129,10 +129,10 @@ export default function EkskulLessonSpreadsheet({ lessons, planId, onClose }: Pr
                 </div>
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
-                <div style={{ overflowX: 'auto' }}>
-                    <div style={tableContainerStyle}>
-                        <div style={headerRowStyle}>
+            <div className="ekskul-spreadsheet-scroll" style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
+                <div className="ekskul-spreadsheet-table-scroll" style={{ overflowX: 'auto' }}>
+                    <div className="ekskul-spreadsheet-table" style={tableContainerStyle}>
+                        <div className="ekskul-spreadsheet-header" style={headerRowStyle}>
                             <div style={{ ...headerCellStyle, justifyContent: 'center' }}>#</div>
                             <div style={headerCellStyle}>Judul Lesson</div>
                             <div style={{ ...headerCellStyle, justifyContent: 'center' }}>Pertemuan</div>
@@ -161,23 +161,24 @@ function SpreadsheetRow({ item, onChange }: { item: EditableLesson; onChange: (i
     const dragControls = useDragControls();
 
     return (
-        <Reorder.Item value={item} id={item.id} dragListener={false} dragControls={dragControls} style={rowStyle}>
-            <div style={{ ...cellStyle, cursor: 'grab', justifyContent: 'center', alignItems: 'center', paddingTop: '0.8rem', color: '#64748b' }} onPointerDown={e => dragControls.start(e)}>
+        <Reorder.Item className="ekskul-spreadsheet-row" value={item} id={item.id} dragListener={false} dragControls={dragControls} style={rowStyle}>
+            <div className="ekskul-spreadsheet-drag" style={{ ...cellStyle, cursor: 'grab', justifyContent: 'center', alignItems: 'center', paddingTop: '0.8rem', color: '#64748b' }} onPointerDown={e => dragControls.start(e)}>
                 <GripVertical size={20} />
+                <span>Lesson {item.order_index}</span>
             </div>
-            <div style={cellStyle}>
+            <div className="ekskul-spreadsheet-cell" data-label="Judul Lesson" style={cellStyle}>
                 <textarea value={item.title} onChange={e => onChange(item.id, 'title', e.target.value)} style={textareaStyle} placeholder="Judul Lesson" rows={1} />
             </div>
-            <div style={cellStyle}>
+            <div className="ekskul-spreadsheet-cell" data-label="Jumlah Pertemuan" style={cellStyle}>
                 <input type="number" min="0" value={item.estimated_meetings || ''} onChange={e => onChange(item.id, 'estimated_meetings', parseInt(e.target.value) || 0)} style={{ ...inputStyle, textAlign: 'center', height: 'auto', alignSelf: 'flex-start' }} />
             </div>
-            <div style={cellStyle}>
+            <div className="ekskul-spreadsheet-cell" data-label="Ringkasan" style={cellStyle}>
                 <textarea value={item.summary} onChange={e => onChange(item.id, 'summary', e.target.value)} style={textareaStyle} placeholder="Ringkasan materi..." />
             </div>
-            <div style={cellStyle}>
+            <div className="ekskul-spreadsheet-cell" data-label="Make-Up Task" style={cellStyle}>
                 <textarea value={item.make_up_instructions} onChange={e => onChange(item.id, 'make_up_instructions', e.target.value)} style={textareaStyle} placeholder="Tugas otomatis kalau coder tidak hadir..." />
             </div>
-            <div style={{ ...cellStyle, borderRight: 'none', position: 'relative' }}>
+            <div className="ekskul-spreadsheet-cell" data-label="Slide URL" style={{ ...cellStyle, borderRight: 'none', position: 'relative' }}>
                 <textarea value={item.slide_url} onChange={e => onChange(item.id, 'slide_url', e.target.value)} style={{ ...textareaStyle, paddingRight: '2rem', wordBreak: 'break-all' }} placeholder="https://..." rows={1} />
                 {item.slide_url && (
                     <a href={item.slide_url} target="_blank" rel="noreferrer" style={{ position: 'absolute', right: '8px', top: '12px', color: '#3b82f6', zIndex: 10 }}><ExternalLink size={14} /></a>
@@ -190,7 +191,7 @@ function SpreadsheetRow({ item, onChange }: { item: EditableLesson; onChange: (i
 const gridTemplate = '50px 1.4fr 110px 1.6fr 1.8fr 1.4fr';
 
 const fullscreenStyle: CSSProperties = { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: '#f1f5f9', zIndex: 9999, display: 'flex', flexDirection: 'column' };
-const topBarStyle: CSSProperties = { background: '#fff', padding: '1rem 2rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' };
+const topBarStyle: CSSProperties = { background: '#fff', padding: '1rem 2rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' };
 const tableContainerStyle: CSSProperties = { border: '1px solid #94a3b8', borderRadius: '0.75rem', background: '#fff', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', minWidth: '1280px' };
 const headerRowStyle: CSSProperties = { display: 'grid', gridTemplateColumns: gridTemplate, borderBottom: '1px solid #94a3b8', background: '#e2e8f0', fontSize: '0.85rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', alignItems: 'stretch' };
 const headerCellStyle: CSSProperties = { padding: '0.8rem', borderRight: '1px solid #94a3b8', textAlign: 'left', display: 'flex', alignItems: 'center', height: '100%', fontWeight: 700 };

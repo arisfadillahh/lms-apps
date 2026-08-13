@@ -144,9 +144,110 @@
     @apply border-border;
   }
 
+  html,
+  body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
   body {
     @apply bg-background text-foreground;
   }
+
+  img,
+  video,
+  canvas {
+    max-width: 100%;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    max-width: 100%;
+  }
+}
+
+/* Shared responsive guards for the coach, coder, public, and admin shells. */
+.coach-app-shell,
+.coder-app-shell {
+  width: 100%;
+  max-width: 100vw;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.coach-main,
+.coder-main {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.coach-main > *,
+.coder-main > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+[role='dialog'] {
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.invoice-container {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0 !important;
+  max-width: 100%;
+  overflow-x: hidden !important;
+}
+
+.invoice-card {
+  box-sizing: border-box;
+  width: min(980px, 100%) !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+.invoice-card img,
+.invoice-card iframe {
+  max-width: 100%;
+}
+
+[data-admin-shell='true'] .card,
+[data-admin-shell='true'] .admin-route-content,
+[data-admin-shell='true'] .admin-page-stack {
+  min-width: 0;
+  max-width: 100%;
+}
+
+[data-admin-shell='true'] .card {
+  overflow-x: auto;
+}
+
+[data-admin-shell='true'] .table,
+[data-admin-shell='true'] table {
+  max-width: 100%;
+}
+
+[data-admin-shell='true'] .ekskul-lesson-mobile-list {
+  display: none;
+}
+
+[data-admin-shell='true'] .ekskul-overview-mobile-lessons {
+  display: none;
+}
+
+[data-admin-shell='true'] .ekskul-lesson-delete-button span {
+  display: none;
+}
+
+.kanban-board-hint-mobile,
+.kanban-mobile-tabs {
+  display: none;
 }
 
 @keyframes shimmer {
@@ -328,6 +429,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
 }
 
 [data-admin-shell='true'] .topbar {
@@ -1771,8 +1873,102 @@
     padding: 18px 16px 32px;
   }
 
+  .coach-main,
+  .coder-main {
+    width: 100%;
+    margin-left: 0 !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    padding-bottom: 88px !important;
+  }
+
+  .coder-main {
+    height: auto !important;
+    min-height: 100vh;
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
+  }
+
+  .coach-class-page {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  [role='dialog'] {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    max-height: calc(100dvh - 24px) !important;
+  }
+
+  .invoice-container {
+    padding: 16px 12px !important;
+  }
+
+  .invoice-card {
+    border-radius: 16px !important;
+  }
+
+  .invoice-card .header-content {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 16px !important;
+  }
+
+  .invoice-card .invoice-title-section {
+    width: 100%;
+    text-align: left !important;
+  }
+
+  .invoice-card .body-content {
+    padding: 24px 16px !important;
+  }
+
+  .invoice-card .table-container {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .invoice-card .table-container table {
+    min-width: 560px;
+  }
+
+  .invoice-card [style*='padding: 50px 50px 100px 50px'] {
+    padding: 28px 20px 88px !important;
+  }
+
+  .invoice-card .info-section-container {
+    margin-top: -56px !important;
+    padding: 0 14px !important;
+  }
+
+  .invoice-card .info-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
   [data-admin-shell='true'] .topbar {
     padding: 10px 16px;
+    gap: 8px;
+  }
+
+  [data-admin-shell='true'] .topbar .searchbar {
+    min-width: 0;
+  }
+
+  [data-admin-shell='true'] .topbar .admin-search-kbd {
+    display: none;
+  }
+
+  [data-admin-shell='true'] .topbar .btn-icon {
+    flex: 0 0 34px;
+  }
+
+  [data-admin-shell='true'] .admin-route-content,
+  [data-admin-shell='true'] .admin-page-stack,
+  [data-admin-shell='true'] .card {
+    min-width: 0;
   }
 
   [data-admin-shell='true'] .admin-mobile-toggle {
@@ -1794,6 +1990,630 @@
     right: 16px;
     left: 16px;
     width: auto;
+  }
+
+  [data-admin-shell='true'] .ekskul-plan-page {
+    gap: 1rem !important;
+  }
+
+  [data-admin-shell='true'] .ekskul-overview-layout {
+    display: flex !important;
+    flex-direction: column;
+    gap: 14px !important;
+  }
+
+  [data-admin-shell='true'] .ekskul-plan-picker {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px !important;
+  }
+
+  [data-admin-shell='true'] .ekskul-plan-picker > .muted {
+    grid-column: 1 / -1;
+  }
+
+  [data-admin-shell='true'] .ekskul-plan-picker-card {
+    min-width: 0;
+    min-height: 94px;
+    overflow: hidden;
+  }
+
+  [data-admin-shell='true'] .ekskul-plan-picker-card > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  [data-admin-shell='true'] .ekskul-overview-detail {
+    overflow: visible;
+  }
+
+  [data-admin-shell='true'] .ekskul-overview-detail-head {
+    padding: 16px !important;
+  }
+
+  [data-admin-shell='true'] .ekskul-overview-detail-head > .row {
+    align-items: stretch !important;
+  }
+
+  [data-admin-shell='true'] .ekskul-overview-detail-head > .row > div:first-child,
+  [data-admin-shell='true'] .ekskul-overview-actions {
+    width: 100%;
+    min-width: 0;
+  }
+
+  [data-admin-shell='true'] .ekskul-overview-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  [data-admin-shell='true'] .ekskul-overview-actions > * {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  [data-admin-shell='true'] .ekskul-overview-desktop-table {
+    display: none;
+  }
+
+  [data-admin-shell='true'] .ekskul-overview-mobile-lessons {
+    display: grid;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  [data-admin-shell='true'] .ekskul-overview-mobile-lesson {
+    min-width: 0;
+    padding: 13px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+  }
+
+  [data-admin-shell='true'] .ekskul-overview-mobile-lesson-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  [data-admin-shell='true'] .ekskul-overview-mobile-lesson h3 {
+    margin: 12px 0 0;
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  [data-admin-shell='true'] .ekskul-overview-mobile-lesson p {
+    margin: 6px 0 0;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  [data-admin-shell='true'] .ekskul-overview-mobile-lesson-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  [data-admin-shell='true'] .ekskul-overview-mobile-lesson-actions > * {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  [data-admin-shell='true'] .ekskul-overview-mobile-add,
+  [data-admin-shell='true'] .ekskul-overview-mobile-add > * {
+    width: 100%;
+  }
+
+  [data-admin-shell='true'] .ekskul-overview-mobile-add button {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  [data-admin-shell='true'] .ekskul-plan-page h1 {
+    font-size: 1.25rem !important;
+    overflow-wrap: anywhere;
+  }
+
+  [data-admin-shell='true'] .ekskul-plan-actions,
+  [data-admin-shell='true'] .ekskul-lesson-toolbar,
+  [data-admin-shell='true'] .ekskul-lesson-actions {
+    width: 100%;
+  }
+
+  [data-admin-shell='true'] .ekskul-plan-actions > *,
+  [data-admin-shell='true'] .ekskul-lesson-toolbar > * {
+    flex: 1 1 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-list {
+    gap: 1rem !important;
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-list > div:first-child {
+    align-items: stretch !important;
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-list > div:first-child h3 {
+    width: 100%;
+  }
+
+  [data-admin-shell='true'] .ekskul-plan-stats {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px !important;
+  }
+
+  [data-admin-shell='true'] .ekskul-plan-stats > * {
+    min-width: 0;
+    padding: 0.75rem !important;
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-desktop {
+    display: none !important;
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-mobile-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-mobile-card {
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-mobile-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-mobile-select {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: var(--surface-2);
+    color: var(--accent);
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-mobile-number {
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-mobile-session {
+    margin-left: auto;
+    padding: 5px 8px;
+    border-radius: 999px;
+    background: var(--accent-weak);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-mobile-content {
+    padding: 13px 0 11px;
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-mobile-content h4 {
+    margin: 0;
+    color: var(--text);
+    font-size: 16px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-mobile-content p {
+    margin: 7px 0 0;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-mobile-meta {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-mobile-meta > * {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-width: 0;
+    padding: 9px;
+    border-radius: 8px;
+    background: #ecfdf5;
+    color: #047857;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    text-align: center;
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-mobile-meta .is-empty {
+    background: var(--surface-2);
+    color: var(--text-dim);
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-mobile-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-mobile-actions > * {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-delete-button {
+    min-height: 44px;
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-delete-button span {
+    display: inline;
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-edit-button {
+    min-height: 44px;
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-empty {
+    padding: 28px 18px;
+    border: 1px dashed var(--border-strong);
+    border-radius: 10px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-bulk-actions {
+    position: sticky;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    z-index: 5;
+    gap: 10px;
+    box-shadow: var(--shadow);
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-bulk-actions button {
+    min-height: 40px;
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-modal-backdrop {
+    align-items: flex-start !important;
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-modal {
+    padding: 18px 16px 16px !important;
+    border-radius: 12px !important;
+    max-height: calc(100dvh - 24px) !important;
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-number-fields {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px !important;
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-modal-actions {
+    position: sticky;
+    bottom: -16px;
+    z-index: 2;
+    margin: 8px -16px -16px !important;
+    padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-modal-actions button {
+    flex: 1 1 0 !important;
+    min-height: 44px;
+  }
+
+  [data-admin-shell='true'] .ekskul-delete-modal {
+    width: calc(100vw - 24px) !important;
+    max-width: 400px !important;
+    padding: 20px 16px !important;
+    box-sizing: border-box;
+  }
+
+  [data-admin-shell='true'] .ekskul-delete-modal-actions {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  [data-admin-shell='true'] .ekskul-delete-modal-actions button {
+    min-height: 44px;
+  }
+
+  [data-admin-shell='true'] .ekskul-import-dialog {
+    top: max(12px, env(safe-area-inset-top)) !important;
+    transform: translateX(-50%) !important;
+    max-height: calc(100dvh - 24px) !important;
+    padding: 1rem !important;
+  }
+
+  [data-admin-shell='true'] .ekskul-import-header {
+    align-items: flex-start !important;
+    gap: 12px;
+  }
+
+  [data-admin-shell='true'] .ekskul-import-header button {
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+  }
+
+  [data-admin-shell='true'] .ekskul-import-footer {
+    position: sticky;
+    bottom: -16px;
+    z-index: 2;
+    margin: 16px -16px -16px !important;
+    padding: 12px 16px max(12px, env(safe-area-inset-bottom)) !important;
+    background: var(--surface);
+    flex-wrap: wrap;
+  }
+
+  [data-admin-shell='true'] .ekskul-import-footer button {
+    flex: 1 1 140px;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  [data-admin-shell='true'] .ekskul-import-dialog > div:first-child {
+    align-items: flex-start !important;
+  }
+
+  [data-admin-shell='true'] .ekskul-import-table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  [data-admin-shell='true'] .ekskul-import-dialog table {
+    min-width: 480px;
+  }
+
+  [data-admin-shell='true'] .ekskul-import-dialog [style*='justify-content: flex-end'] {
+    flex-wrap: wrap;
+  }
+
+  [data-admin-shell='true'] .ekskul-spreadsheet-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    padding: 0.75rem 1rem !important;
+    flex: 0 0 auto;
+  }
+
+  [data-admin-shell='true'] .ekskul-spreadsheet {
+    height: 100dvh !important;
+  }
+
+  [data-admin-shell='true'] .ekskul-spreadsheet-toolbar h2 {
+    width: 100%;
+    font-size: 1rem !important;
+  }
+
+  [data-admin-shell='true'] .ekskul-spreadsheet-toolbar > div {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem !important;
+  }
+
+  [data-admin-shell='true'] .ekskul-spreadsheet-scroll {
+    padding: 0.75rem !important;
+  }
+
+  [data-admin-shell='true'] .ekskul-spreadsheet-table-scroll {
+    overflow: visible !important;
+  }
+
+  [data-admin-shell='true'] .ekskul-spreadsheet-table {
+    min-width: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    gap: 12px;
+  }
+
+  [data-admin-shell='true'] .ekskul-spreadsheet-header {
+    display: none !important;
+  }
+
+  [data-admin-shell='true'] .ekskul-spreadsheet-row {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    min-width: 0;
+    padding: 0 14px 14px;
+    border: 1px solid var(--border) !important;
+    border-radius: 10px;
+    background: var(--surface);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+
+  [data-admin-shell='true'] .ekskul-spreadsheet-drag {
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    gap: 6px;
+    margin: 0 -14px 12px;
+    padding: 11px 14px !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-muted) !important;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  [data-admin-shell='true'] .ekskul-spreadsheet-cell {
+    min-width: 0;
+    padding: 0 0 12px !important;
+    border-right: 0 !important;
+  }
+
+  [data-admin-shell='true'] .ekskul-spreadsheet-cell::before {
+    content: attr(data-label);
+    margin-bottom: 6px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  [data-admin-shell='true'] .ekskul-spreadsheet-cell input,
+  [data-admin-shell='true'] .ekskul-spreadsheet-cell textarea {
+    min-height: 44px !important;
+    padding: 10px 12px !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px;
+    background: var(--surface) !important;
+  }
+
+  [data-admin-shell='true'] .ekskul-spreadsheet-cell textarea {
+    min-height: 96px !important;
+    overflow-y: auto !important;
+  }
+}
+
+@media (max-width: 420px) {
+  [data-admin-shell='true'] .ekskul-plan-picker,
+  [data-admin-shell='true'] .ekskul-plan-stats,
+  [data-admin-shell='true'] .ekskul-lesson-number-fields,
+  [data-admin-shell='true'] .ekskul-lesson-mobile-meta,
+  [data-admin-shell='true'] .ekskul-overview-actions {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  [data-admin-shell='true'] .ekskul-plan-picker-card {
+    min-height: 0;
+  }
+
+  [data-admin-shell='true'] .ekskul-import-footer,
+  [data-admin-shell='true'] .ekskul-lesson-modal-actions {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .kanban-board-hint-desktop {
+    display: none;
+  }
+
+  .kanban-board-hint-mobile {
+    display: inline;
+  }
+
+  .kanban-mobile-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    margin: 10px 0 12px;
+  }
+
+  .kanban-mobile-tab {
+    display: flex;
+    min-width: 0;
+    min-height: 44px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .kanban-mobile-tab strong {
+    display: inline-flex;
+    min-width: 22px;
+    height: 22px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--text-muted);
+    font-size: 10px;
+  }
+
+  .kanban-mobile-tab.is-active {
+    border-color: var(--tab-color);
+    background: color-mix(in srgb, var(--tab-color) 10%, var(--surface));
+    color: var(--tab-color);
+  }
+
+  .kanban-mobile-tab.is-active strong {
+    background: var(--tab-color);
+    color: #fff;
+  }
+
+  .kanban-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .kanban-report-card {
+    min-width: 0;
+  }
+
+  .kanban-column:not(.kanban-column-active) {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .kanban-mobile-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .kanban-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .kanban-report-card {
+    padding: 14px !important;
+  }
+
+  .kanban-report-card select {
+    min-height: 42px;
   }
 }
 

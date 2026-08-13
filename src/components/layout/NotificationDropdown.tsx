@@ -22,6 +22,22 @@ export default function NotificationDropdown() {
     const [mounted, setMounted] = useState(false);
     const [portalContainer, setPortalContainer] = useState<Element | null>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const triggerRef = useRef<HTMLButtonElement>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
+    const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, width: 360 });
+
+    const updateMenuPosition = () => {
+        const trigger = triggerRef.current;
+        if (!trigger) return;
+
+        const rect = trigger.getBoundingClientRect();
+        const width = Math.min(360, Math.max(280, window.innerWidth - 32));
+        const left = Math.min(
+            Math.max(16, rect.right - width),
+            Math.max(16, window.innerWidth - width - 16),
+        );
+        setMenuPosition({ top: rect.bottom + 8, left, width });
+    };
 
     const fetchNotifications = async () => {
         try {
@@ -81,8 +97,25 @@ export default function NotificationDropdown() {
     }, []);
 
     useEffect(() => {
+        if (!isOpen) return;
+        updateMenuPosition();
+        const handleViewportChange = () => updateMenuPosition();
+        window.addEventListener('resize', handleViewportChange);
+        window.addEventListener('scroll', handleViewportChange, true);
+        return () => {
+            window.removeEventListener('resize', handleViewportChange);
+            window.removeEventListener('scroll', handleViewportChange, true);
+        };
+    }, [isOpen]);
+
+    useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+            const target = event.target as Node;
+            if (
+                dropdownRef.current &&
+                !dropdownRef.current.contains(target) &&
+                !menuRef.current?.contains(target)
+            ) {
                 setIsOpen(false);
             }
         }
@@ -94,7 +127,12 @@ export default function NotificationDropdown() {
         <>
             <div className="relative" ref={dropdownRef} style={{ position: 'relative' }}>
                 <button
+                    ref={triggerRef}
+                    type="button"
                     onClick={() => setIsOpen(!isOpen)}
+                    aria-label={`Buka notifikasi${unreadCount > 0 ? `, ${unreadCount} belum dibaca` : ''}`}
+                    aria-haspopup="dialog"
+                    aria-expanded={isOpen}
                     style={{
                         position: 'relative',
                         padding: '0.7rem',
@@ -130,20 +168,22 @@ export default function NotificationDropdown() {
                     )}
                 </button>
 
-                <AnimatePresence>
-                    {isOpen && (
+                {mounted && portalContainer && isOpen ? createPortal(
+                    <AnimatePresence>
                         <motion.div
+                            ref={menuRef}
                             className="notification-dropdown"
                             initial={{ opacity: 0, y: 10, scale: 0.95 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: 10, scale: 0.95 }}
                             transition={{ duration: 0.1 }}
                             style={{
-                                position: 'absolute',
-                                right: 0,
-                                marginTop: '0.5rem',
-                                width: '360px',
-                                zIndex: 50,
+                                position: 'fixed',
+                                top: menuPosition.top,
+                                left: menuPosition.left,
+                                width: menuPosition.width,
+                                maxWidth: 'calc(100vw - 32px)',
+                                zIndex: 100000,
                                 background: '#ffffff',
                                 borderRadius: '12px',
                                 boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
@@ -214,8 +254,9 @@ export default function NotificationDropdown() {
                                 )}
                             </div>
                         </motion.div>
-                    )}
-                </AnimatePresence>
+                    </AnimatePresence>,
+                    portalContainer,
+                ) : null}
             </div>
 
             {/* Detail Modal Component */}
@@ -244,17 +285,6 @@ export default function NotificationDropdown() {
                     margin-bottom: 1rem;
                 }
                 
-                /* Mobile responsive notification dropdown */
-                @media (max-width: 768px) {
-                    .notification-dropdown {
-                        position: fixed !important;
-                        left: 1rem !important;
-                        right: 1rem !important;
-                        top: 4rem !important;
-                        width: auto !important;
-                        max-width: calc(100vw - 2rem) !important;
-                    }
-                }
             `}</style>
         </>
     );

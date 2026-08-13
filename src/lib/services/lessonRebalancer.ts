@@ -151,8 +151,10 @@ export async function syncClassLessonsStructure(classId: string): Promise<void> 
 
         // 4. Compare and Fix
         for (const template of templates) {
-            const targetCount = Math.max(1, template.estimated_meeting_count || 1);
+            const templateCount = Math.max(1, template.estimated_meeting_count || 1);
             const currentLessons = (existingMap.get(template.id) || []).slice().sort((a, b) => a.order_index - b.order_index);
+            const extensionCount = currentLessons.filter((lesson) => lesson.is_extended === true).length;
+            const targetCount = templateCount + extensionCount;
             let activeLessons = currentLessons;
 
             // A. Expand if needed
@@ -179,16 +181,18 @@ export async function syncClassLessonsStructure(classId: string): Promise<void> 
                 }
             }
 
-            // B. Shrink if needed (Delete extra parts from the end)
+            // B. Shrink template-owned parts if needed, but never delete class-scoped extensions.
             if (currentLessons.length > targetCount) {
-                const toDelete = currentLessons.slice(targetCount);
+                const templateOwnedLessons = currentLessons.filter((lesson) => lesson.is_extended !== true);
+                const toDelete = templateOwnedLessons.slice(templateCount);
                 const idsToDelete = toDelete.map(l => l.id);
 
                 if (idsToDelete.length > 0) {
                     await supabase.from('class_lessons').delete().in('id', idsToDelete);
                 }
 
-                activeLessons = currentLessons.slice(0, targetCount);
+                const deleted = new Set(idsToDelete);
+                activeLessons = currentLessons.filter((lesson) => !deleted.has(lesson.id));
             }
 
             // C. Rename params if duration changed from 1 to >1

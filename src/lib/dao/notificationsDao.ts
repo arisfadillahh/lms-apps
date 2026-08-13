@@ -1,6 +1,7 @@
 "use server";
 
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { sendPushToUsers } from '@/lib/pushNotifications';
 import { TablesInsert } from '@/types/supabase';
 
 // Define explicit type for notification row since types/supabase.ts might not be fully updated yet
@@ -13,6 +14,32 @@ export type NotificationRow = {
     created_at: string;
     type: string;
 };
+
+export type NotificationDeliveryOptions = {
+    pushUrl?: string;
+    pushTag?: string;
+    pushBody?: string;
+};
+
+type AdminNotificationInput = NotificationDeliveryOptions & {
+    title: string;
+    message: string;
+    type?: string;
+};
+
+async function sendAdminPushBestEffort(userIds: string[], input: AdminNotificationInput): Promise<void> {
+    try {
+        await sendPushToUsers(userIds, {
+            title: input.title,
+            body: input.pushBody || input.message,
+            url: input.pushUrl || '/admin/dashboard',
+            tag: input.pushTag || `admin-${input.type || 'system'}`,
+        });
+    } catch (error) {
+        // The website notification is authoritative; a device push may fail independently.
+        console.error('[Notifications] Admin push delivery failed', error);
+    }
+}
 
 export async function getUserNotifications(userId: string, limit = 20): Promise<NotificationRow[]> {
     const supabase = getSupabaseAdmin();
@@ -72,7 +99,13 @@ export async function markAllAsRead(userId: string): Promise<void> {
     }
 }
 
-export async function createNotification(userId: string, title: string, message: string, type = 'SYSTEM'): Promise<void> {
+export async function createNotification(
+    userId: string,
+    title: string,
+    message: string,
+    type = 'SYSTEM',
+    delivery: NotificationDeliveryOptions = {},
+): Promise<void> {
     const supabase = getSupabaseAdmin();
     const payload = {
         user_id: userId,
@@ -88,6 +121,59 @@ export async function createNotification(userId: string, title: string, message:
     if (error) {
         throw new Error(`Failed to create notification: ${error.message}`);
     }
+
+    const shouldAttemptAdminPush = Boolean(delivery.pushUrl || delivery.pushTag || delivery.pushBody);
+    if (!shouldAttemptAdminPush) return;
+
+    try {
+        const { data: recipient, error: recipientError } = await supabase
+            .from('users')
+            .select('id')
+            .eq('id', userId)
+            .eq('role', 'ADMIN')
+            .eq('is_active', true)
+            .maybeSingle();
+
+        if (recipientError) throw recipientError;
+        if (recipient) {
+            await sendAdminPushBestEffort([userId], { title, message, type, ...delivery });
+        }
+    } catch (pushLookupError) {
+        console.error('[Notifications] Failed to resolve admin push recipient', pushLookupError);
+    }
+}
+
+export async function createAdminNotifications(input: AdminNotificationInput): Promise<number> {
+    const supabase = getSupabaseAdmin();
+    const { data: admins, error: adminLookupError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('role', 'ADMIN')
+        .eq('is_active', true);
+
+    if (adminLookupError) {
+        throw new Error(`Failed to find active admins: ${adminLookupError.message}`);
+    }
+
+    const adminIds = (admins ?? []).map((admin) => admin.id);
+    if (adminIds.length === 0) return 0;
+
+    const { error: insertError } = await supabase.from('notifications' as any).insert(
+        adminIds.map((adminId) => ({
+            user_id: adminId,
+            title: input.title,
+            message: input.message,
+            type: input.type || 'SYSTEM',
+            is_read: false,
+        })),
+    );
+
+    if (insertError) {
+        throw new Error(`Failed to create admin notifications: ${insertError.message}`);
+    }
+
+    await sendAdminPushBestEffort(adminIds, input);
+    return adminIds.length;
 }
 
 export async function hasMatchingNotificationToday(

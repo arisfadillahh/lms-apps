@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { getSessionOrThrow } from '@/lib/auth';
+import { createAdminNotifications } from '@/lib/dao/notificationsDao';
 import { getTrialClassSubmission } from '@/lib/dao/trialClassDao';
 import { getOrCreateDraftAssessment, updateAssessment } from '@/lib/dao/trialAssessmentsDao';
 import { assertRole } from '@/lib/roles';
@@ -103,6 +104,18 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       status: 'PENDING_ADMIN_REVIEW',
       submitted_at: new Date().toISOString(),
     });
+
+    try {
+      await createAdminNotifications({
+        type: 'TRIAL_ASSESSMENT',
+        title: 'Penilaian trial siap direview',
+        message: `${session.user.fullName || session.user.username} telah mengirim penilaian trial ${trial.student_name}.`,
+        pushUrl: '/admin/trial-assessments',
+        pushTag: `trial-assessment-${updated.id}`,
+      });
+    } catch (notificationError) {
+      console.error('[TrialAssessment] Failed to notify admins', notificationError);
+    }
 
     return NextResponse.json({ ok: true, assessment: updated });
   } catch (error) {

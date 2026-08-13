@@ -162,8 +162,8 @@ export default function ImportEkskulLessonsButton({ planId, currentLessonCount }
             </Dialog.Trigger>
             <Dialog.Portal>
                 <Dialog.Overlay style={overlayStyle} />
-                <Dialog.Content style={contentStyle}>
-                    <div style={headerStyle}>
+                <Dialog.Content className="ekskul-import-dialog" style={contentStyle}>
+                    <div className="ekskul-import-header" style={headerStyle}>
                         <Dialog.Title style={{ fontSize: '1.2rem', fontWeight: 600, color: '#0f172a' }}>
                             Import Lessons dari CSV
                         </Dialog.Title>
@@ -189,7 +189,8 @@ export default function ImportEkskulLessonsButton({ planId, currentLessonCount }
                             <div style={codeBlockStyle}>
                                 <code>title,summary,meetings,slide_url,makeup_instructions</code>
                             </div>
-                            <table style={sampleTableStyle}>
+                        <div className="ekskul-import-table-scroll">
+                        <table style={sampleTableStyle}>
                                 <thead>
                                     <tr>
                                         <th style={sampleThStyle}>Kolom</th>
@@ -204,7 +205,8 @@ export default function ImportEkskulLessonsButton({ planId, currentLessonCount }
                                     <tr><td style={sampleTdStyle}>slide_url</td><td style={sampleTdStyle}>Tidak</td><td style={sampleTdStyle}>URL slide materi</td></tr>
                                     <tr><td style={sampleTdStyle}>makeup_instructions</td><td style={sampleTdStyle}>Tidak</td><td style={sampleTdStyle}>Task otomatis kalau coder tidak hadir</td></tr>
                                 </tbody>
-                            </table>
+                        </table>
+                        </div>
                             <p style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.75rem' }}>
                                 Tip: gunakan Google Sheets lalu export sebagai CSV.
                             </p>
@@ -238,7 +240,7 @@ export default function ImportEkskulLessonsButton({ planId, currentLessonCount }
                             <h4 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '0.5rem' }}>
                                 Preview ({parsedLessons.length} lessons):
                             </h4>
-                            <div style={previewContainerStyle}>
+                            <div className="ekskul-import-preview" style={previewContainerStyle}>
                                 <table style={previewTableStyle}>
                                     <thead>
                                         <tr>
@@ -280,7 +282,7 @@ export default function ImportEkskulLessonsButton({ planId, currentLessonCount }
                         </div>
                     )}
 
-                    <div style={footerStyle}>
+                    <div className="ekskul-import-footer" style={footerStyle}>
                         {!result ? (
                             <>
                                 <button type="button" style={cancelButtonStyle} onClick={handleClose}>
@@ -348,7 +350,7 @@ function parsePositiveInteger(value: string, fallback: number) {
 }
 
 const overlayStyle: CSSProperties = { backgroundColor: 'rgba(0,0,0,0.5)', position: 'fixed', inset: 0, zIndex: 50 };
-const contentStyle: CSSProperties = { backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '90%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', padding: '1.5rem', zIndex: 51 };
+const contentStyle: CSSProperties = { backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 'min(600px, calc(100vw - 24px))', maxHeight: 'calc(100dvh - 24px)', overflowY: 'auto', padding: '1.5rem', boxSizing: 'border-box', zIndex: 51 };
 const headerStyle: CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' };
 const dialogDescriptionStyle: CSSProperties = { position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 };
 const closeButtonStyle: CSSProperties = { background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' };

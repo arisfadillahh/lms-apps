@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getSessionOrThrow } from '@/lib/auth';
+import { createAdminNotifications } from '@/lib/dao/notificationsDao';
 import { reportsDao, classesDao } from '@/lib/dao';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
@@ -70,6 +71,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     await reportsDao.updateBlockReport(id, {
       status: 'SUBMITTED'
     });
+
+    try {
+      const className = coachClasses.find((coachClass) => coachClass.id === klass.id)?.name || 'kelas';
+      await createAdminNotifications({
+        type: 'REPORT_REVIEW',
+        title: 'Rapor siap direview',
+        message: `${sessionUser.user.fullName || sessionUser.user.username} mengirim rapor dari ${className} untuk direview dan dikirim.`,
+        pushUrl: '/admin/reports',
+        pushTag: `report-review-${id}`,
+      });
+    } catch (notificationError) {
+      console.error('[CoachReport] Failed to notify admins', notificationError);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

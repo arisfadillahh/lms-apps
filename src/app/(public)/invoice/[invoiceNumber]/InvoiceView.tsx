@@ -790,13 +790,15 @@ const containerStyle: CSSProperties = {
     padding: '40px 20px',
     fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
     color: COLORS.textDark,
-    minWidth: '1024px', // Force desktop width even on mobile (triggers scroll/zoom)
-    overflowX: 'auto'  // Allow scrolling
+    width: '100%',
+    boxSizing: 'border-box',
+    overflowX: 'hidden'
 };
 
 const invoiceCardStyle: CSSProperties = {
-    maxWidth: '980px', // Width increased to fill viewport
-    width: '980px',    // Explicit width to prevent squishing
+    maxWidth: '980px',
+    width: '100%',
+    boxSizing: 'border-box',
     margin: '0 auto',
     backgroundColor: COLORS.white,
     borderRadius: '24px',

@@ -13,3 +13,7 @@ Search this file and the linked monthly log before changing related code.
 | 2026-08-13 | INTERNAL-20260813-01 | Coach reports | No direct link from a draft report to its lesson assessment | [2026-08](./2026-08.md#internal-20260813-01-coach-report-assessment-link) |
 | 2026-08-13 | INTERNAL-20260813-02 | Class lesson schedule | No safe per-class way to add one lesson meeting | [2026-08](./2026-08.md#internal-20260813-02-class-scoped-lesson-extension) |
 | 2026-08-13 | INTERNAL-20260813-03 | Admin notifications | Operational queues did not consistently reach installed PWA devices | [2026-08](./2026-08.md#internal-20260813-03-admin-operational-notification-push-fan-out) |
+| 2026-08-13 | INTERNAL-20260813-04 | Ekskul lesson links | No consistent way to store example project URLs | [2026-08](./2026-08.md#internal-20260813-04-ekskul-example-project-links) |
+| 2026-08-13 | INTERNAL-20260813-05 | Ekskul lesson management | Overview did not match the Weekly lesson manager | [2026-08](./2026-08.md#internal-20260813-05-weekly-style-ekskul-lesson-management-ui) |
+| 2026-08-13 | INTERNAL-20260813-06 | Ekskul lesson navigation | Plan list and lesson manager were still shown side by side | [2026-08](./2026-08.md#internal-20260813-06-separate-ekskul-plan-index-and-lesson-manager) |
+| 2026-08-13 | INTERNAL-20260813-07 | Agent workflow and test scope | Fresh checkouts lacked complete workflow context and root tests collected a nested repository | [2026-08](./2026-08.md#internal-20260813-07-cross-device-agent-and-test-boundaries) |

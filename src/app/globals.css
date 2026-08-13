@@ -2052,6 +2052,10 @@
     justify-content: center;
   }
 
+  [data-admin-shell='true'] .ekskul-overview-lesson-manager {
+    padding: 12px !important;
+  }
+
   [data-admin-shell='true'] .ekskul-overview-desktop-table {
     display: none;
   }
@@ -2178,6 +2182,12 @@
     border-radius: 10px;
     background: var(--surface);
     box-shadow: var(--shadow-sm);
+  }
+
+  [data-admin-shell='true'] .ekskul-lesson-mobile-card.is-selected {
+    border-color: #eab308;
+    background: #fefce8;
+    box-shadow: 0 0 0 2px rgb(234 179 8 / 14%);
   }
 
   [data-admin-shell='true'] .ekskul-lesson-mobile-head {
@@ -2617,3 +2627,138 @@
   }
 }
 
+[data-admin-shell='true'] .ekskul-plan-index-list {
+  width: 100%;
+}
+
+[data-admin-shell='true'] .ekskul-plan-index-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px;
+}
+
+[data-admin-shell='true'] .ekskul-plan-index-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+}
+
+[data-admin-shell='true'] .ekskul-plan-index-icon {
+  display: grid;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 8px;
+  color: var(--accent);
+  background: var(--accent-weak);
+}
+
+[data-admin-shell='true'] .ekskul-plan-index-copy {
+  min-width: 0;
+}
+
+[data-admin-shell='true'] .ekskul-plan-index-tags {
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+[data-admin-shell='true'] .ekskul-plan-index-copy h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 17px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+[data-admin-shell='true'] .ekskul-plan-index-copy p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+[data-admin-shell='true'] .ekskul-plan-index-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 16px;
+  margin-top: 10px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+[data-admin-shell='true'] .ekskul-plan-index-meta span {
+  overflow-wrap: anywhere;
+}
+
+[data-admin-shell='true'] .ekskul-plan-index-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+[data-admin-shell='true'] .ekskul-plan-index-empty {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 28px;
+  color: var(--text-muted);
+}
+
+[data-admin-shell='true'] .ekskul-plan-index-empty strong {
+  display: block;
+  color: var(--text);
+}
+
+[data-admin-shell='true'] .ekskul-plan-index-empty p {
+  margin: 4px 0 0;
+}
+
+@media (max-width: 760px) {
+  [data-admin-shell='true'] .ekskul-plan-index-card {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  [data-admin-shell='true'] .ekskul-plan-index-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  [data-admin-shell='true'] .ekskul-plan-index-actions > * {
+    min-width: 0;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  [data-admin-shell='true'] .ekskul-plan-index-actions > a {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 420px) {
+  [data-admin-shell='true'] .ekskul-plan-index-main {
+    gap: 10px;
+  }
+
+  [data-admin-shell='true'] .ekskul-plan-index-icon {
+    flex-basis: 38px;
+    width: 38px;
+    height: 38px;
+  }
+
+  [data-admin-shell='true'] .ekskul-plan-index-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  [data-admin-shell='true'] .ekskul-plan-index-actions > a {
+    grid-column: auto;
+  }
+}

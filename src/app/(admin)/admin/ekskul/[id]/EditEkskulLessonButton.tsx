@@ -11,6 +11,7 @@ type Props = {
         title: string;
         summary: string | null;
         slide_url: string | null;
+        example_url: string | null;
         make_up_instructions: string | null;
         estimated_meetings: number;
         order_index: number;
@@ -27,6 +28,7 @@ export default function EditEkskulLessonButton({ lesson, planId }: Props) {
     const [title, setTitle] = useState(lesson.title);
     const [summary, setSummary] = useState(lessonParts.summary || '');
     const [slideUrl, setSlideUrl] = useState(lesson.slide_url || '');
+    const [exampleUrl, setExampleUrl] = useState(lesson.example_url || '');
     const [makeUpInstructions, setMakeUpInstructions] = useState(lessonParts.makeUpInstructions || '');
     const [estimatedMeetings, setEstimatedMeetings] = useState(String(lesson.estimated_meetings || 1));
     const [orderIndex, setOrderIndex] = useState(String(lesson.order_index));
@@ -38,6 +40,7 @@ export default function EditEkskulLessonButton({ lesson, planId }: Props) {
         setTitle(source.title);
         setSummary(nextLessonParts.summary || '');
         setSlideUrl(source.slide_url || '');
+        setExampleUrl(source.example_url || '');
         setMakeUpInstructions(nextLessonParts.makeUpInstructions || '');
         setEstimatedMeetings(String(source.estimated_meetings || 1));
         setOrderIndex(String(source.order_index));
@@ -82,6 +85,7 @@ export default function EditEkskulLessonButton({ lesson, planId }: Props) {
                         title: title.trim(),
                         summary: summary.trim() || null,
                         slideUrl: slideUrl.trim() || null,
+                        exampleUrl: exampleUrl.trim() || null,
                         makeUpInstructions: makeUpInstructions.trim() || null,
                         estimatedMeetings: Number(estimatedMeetings),
                         orderIndex: Number(orderIndex),
@@ -141,6 +145,17 @@ export default function EditEkskulLessonButton({ lesson, planId }: Props) {
                                 type="url"
                                 value={slideUrl}
                                 onChange={(e) => setSlideUrl(e.target.value)}
+                                style={inputStyle}
+                            />
+                        </div>
+
+                        <div style={fieldStyle}>
+                            <label style={labelStyle}>Link Contoh Project</label>
+                            <input
+                                type="url"
+                                value={exampleUrl}
+                                onChange={(e) => setExampleUrl(e.target.value)}
+                                placeholder="https://..."
                                 style={inputStyle}
                             />
                         </div>

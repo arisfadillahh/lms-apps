@@ -11,6 +11,7 @@ type EkskulLesson = {
     title: string;
     summary: string | null;
     slide_url: string | null;
+    example_url: string | null;
     make_up_instructions: string | null;
     estimated_meetings: number | null;
     order_index: number;
@@ -21,6 +22,7 @@ type EditableLesson = {
     title: string;
     summary: string;
     slide_url: string;
+    example_url: string;
     make_up_instructions: string;
     estimated_meetings: number;
     order_index: number;
@@ -42,6 +44,7 @@ export default function EkskulLessonSpreadsheet({ lessons, planId, onClose }: Pr
                 title: l.title,
                 summary: lessonParts.summary || '',
                 slide_url: l.slide_url || '',
+                example_url: l.example_url || '',
                 make_up_instructions: lessonParts.makeUpInstructions || '',
                 estimated_meetings: l.estimated_meetings || 1,
                 order_index: l.order_index,
@@ -69,6 +72,7 @@ export default function EkskulLessonSpreadsheet({ lessons, planId, onClose }: Pr
                 title: item.title,
                 summary: item.summary || null,
                 slideUrl: item.slide_url || null,
+                exampleUrl: item.example_url || null,
                 makeUpInstructions: item.make_up_instructions || null,
                 estimatedMeetings: item.estimated_meetings,
                 orderIndex: item.order_index,
@@ -102,6 +106,7 @@ export default function EkskulLessonSpreadsheet({ lessons, planId, onClose }: Pr
                 title: l.title,
                 summary: lessonParts.summary || '',
                 slide_url: l.slide_url || '',
+                example_url: l.example_url || '',
                 make_up_instructions: lessonParts.makeUpInstructions || '',
                 estimated_meetings: l.estimated_meetings || 1,
                 order_index: l.order_index,
@@ -138,7 +143,8 @@ export default function EkskulLessonSpreadsheet({ lessons, planId, onClose }: Pr
                             <div style={{ ...headerCellStyle, justifyContent: 'center' }}>Pertemuan</div>
                             <div style={headerCellStyle}>Ringkasan</div>
                             <div style={headerCellStyle}>Make-Up Task</div>
-                            <div style={{ ...headerCellStyle, borderRight: 'none' }}>Slide URL</div>
+                            <div style={headerCellStyle}>Slide URL</div>
+                            <div style={{ ...headerCellStyle, borderRight: 'none' }}>Contoh Project URL</div>
                         </div>
                         <Reorder.Group axis="y" values={items} onReorder={handleReorder} style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                             {items.map(item => (
@@ -178,17 +184,23 @@ function SpreadsheetRow({ item, onChange }: { item: EditableLesson; onChange: (i
             <div className="ekskul-spreadsheet-cell" data-label="Make-Up Task" style={cellStyle}>
                 <textarea value={item.make_up_instructions} onChange={e => onChange(item.id, 'make_up_instructions', e.target.value)} style={textareaStyle} placeholder="Tugas otomatis kalau coder tidak hadir..." />
             </div>
-            <div className="ekskul-spreadsheet-cell" data-label="Slide URL" style={{ ...cellStyle, borderRight: 'none', position: 'relative' }}>
+            <div className="ekskul-spreadsheet-cell" data-label="Slide URL" style={{ ...cellStyle, position: 'relative' }}>
                 <textarea value={item.slide_url} onChange={e => onChange(item.id, 'slide_url', e.target.value)} style={{ ...textareaStyle, paddingRight: '2rem', wordBreak: 'break-all' }} placeholder="https://..." rows={1} />
                 {item.slide_url && (
                     <a href={item.slide_url} target="_blank" rel="noreferrer" style={{ position: 'absolute', right: '8px', top: '12px', color: '#3b82f6', zIndex: 10 }}><ExternalLink size={14} /></a>
+                )}
+            </div>
+            <div className="ekskul-spreadsheet-cell" data-label="Contoh Project URL" style={{ ...cellStyle, borderRight: 'none', position: 'relative' }}>
+                <textarea value={item.example_url} onChange={e => onChange(item.id, 'example_url', e.target.value)} style={{ ...textareaStyle, paddingRight: '2rem', wordBreak: 'break-all' }} placeholder="https://..." rows={1} />
+                {item.example_url && (
+                    <a href={item.example_url} target="_blank" rel="noreferrer" style={{ position: 'absolute', right: '8px', top: '12px', color: '#3b82f6', zIndex: 10 }}><ExternalLink size={14} /></a>
                 )}
             </div>
         </Reorder.Item>
     );
 }
 
-const gridTemplate = '50px 1.4fr 110px 1.6fr 1.8fr 1.4fr';
+const gridTemplate = '50px 1.4fr 110px 1.6fr 1.8fr 1.4fr 1.4fr';
 
 const fullscreenStyle: CSSProperties = { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: '#f1f5f9', zIndex: 9999, display: 'flex', flexDirection: 'column' };
 const topBarStyle: CSSProperties = { background: '#fff', padding: '1rem 2rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' };

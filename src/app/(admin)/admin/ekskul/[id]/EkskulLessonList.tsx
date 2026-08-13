@@ -16,6 +16,7 @@ type EkskulLesson = {
     title: string;
     summary: string | null;
     slide_url: string | null;
+    example_url: string | null;
     make_up_instructions: string | null;
     estimated_meetings: number | null;
     order_index: number;
@@ -33,6 +34,7 @@ export default function EkskulLessonList({ planId, lessons }: Props) {
     const [editingLesson, setEditingLesson] = useState<EkskulLesson | null>(null);
 
     const sorted = [...lessons].sort((a, b) => a.order_index - b.order_index);
+    const isAllSelected = sorted.length > 0 && selectedIds.size === sorted.length;
 
     const toggleSelectAll = () => {
         if (selectedIds.size === sorted.length) setSelectedIds(new Set());
@@ -81,7 +83,7 @@ export default function EkskulLessonList({ planId, lessons }: Props) {
                         <tr>
                             <th style={{ ...thStyle, width: '40px' }}>
                                 <button type="button" onClick={toggleSelectAll} style={checkboxBtnStyle} title="Pilih semua">
-                                    {selectedIds.size === sorted.length && sorted.length > 0
+                                    {isAllSelected
                                         ? <CheckSquare size={20} color="#1e3a5f" />
                                         : <Square size={20} color="#cbd5e1" />}
                                 </button>
@@ -91,13 +93,14 @@ export default function EkskulLessonList({ planId, lessons }: Props) {
                             <th style={thStyle}>Pertemuan</th>
                             <th style={thStyle}>Make-Up Task</th>
                             <th style={thStyle}>Slide</th>
+                            <th style={thStyle}>Contoh Project</th>
                             <th style={{ ...thStyle, textAlign: 'center', width: '100px' }}>Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         {sorted.length === 0 ? (
                             <tr>
-                                <td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+                                <td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
                                     Belum ada lesson. Klik &quot;+ Tambah Lesson&quot; untuk memulai.
                                 </td>
                             </tr>
@@ -106,7 +109,7 @@ export default function EkskulLessonList({ planId, lessons }: Props) {
                                 const isSelected = selectedIds.has(lesson.id);
                                 const lessonParts = splitEkskulLessonMakeUp(lesson.summary, lesson.make_up_instructions);
                                 return (
-                                    <tr key={lesson.id} style={trStyle}>
+                                    <tr key={lesson.id} style={isSelected ? selectedTrStyle : trStyle}>
                                         <td style={tdStyle}>
                                             <div style={{ display: 'flex', justifyContent: 'center' }}>
                                                 <button type="button" onClick={() => toggleSelect(lesson.id)} style={checkboxBtnStyle}>
@@ -139,6 +142,11 @@ export default function EkskulLessonList({ planId, lessons }: Props) {
                                             ) : <span style={{ color: '#cbd5e1' }}>-</span>}
                                         </td>
                                         <td style={tdStyle}>
+                                            {lesson.example_url ? (
+                                                <a href={lesson.example_url} target="_blank" rel="noreferrer" style={linkStyle}>Link Contoh</a>
+                                            ) : <span style={{ color: '#cbd5e1' }}>-</span>}
+                                        </td>
+                                        <td style={tdStyle}>
                     <div className="ekskul-lesson-actions" style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
                                                 <EditEkskulLessonButton lesson={lesson as any} planId={planId} />
                                                 <DeleteLessonButton lessonId={lesson.id} lessonTitle={lesson.title} planId={planId} />
@@ -163,7 +171,7 @@ export default function EkskulLessonList({ planId, lessons }: Props) {
                         const lessonParts = splitEkskulLessonMakeUp(lesson.summary, lesson.make_up_instructions);
 
                         return (
-                            <article key={lesson.id} className="ekskul-lesson-mobile-card">
+                            <article key={lesson.id} className={`ekskul-lesson-mobile-card${isSelected ? ' is-selected' : ''}`}>
                                 <div className="ekskul-lesson-mobile-head">
                                     <button
                                         type="button"
@@ -195,6 +203,13 @@ export default function EkskulLessonList({ planId, lessons }: Props) {
                                     ) : (
                                         <span className="is-empty">Slide belum ada</span>
                                     )}
+                                    {lesson.example_url ? (
+                                        <a href={lesson.example_url} target="_blank" rel="noreferrer">
+                                            Buka contoh project <ExternalLink size={14} />
+                                        </a>
+                                    ) : (
+                                        <span className="is-empty">Contoh project belum ada</span>
+                                    )}
                                 </div>
 
                                 <div className="ekskul-lesson-mobile-actions">
@@ -221,6 +236,7 @@ const tableContainerStyle: CSSProperties = { border: '1px solid #e2e8f0', border
 const tableStyle: CSSProperties = { width: '100%', borderCollapse: 'collapse', background: '#fff', fontSize: '0.9rem' };
 const thStyle: CSSProperties = { padding: '0.75rem 1rem', textAlign: 'left', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 600, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em' };
 const trStyle: CSSProperties = { borderBottom: '1px solid #f1f5f9' };
+const selectedTrStyle: CSSProperties = { ...trStyle, background: '#fefce8' };
 const tdStyle: CSSProperties = { padding: '0.75rem 1rem', verticalAlign: 'middle', color: '#334155' };
 const linkStyle: CSSProperties = { color: '#3b82f6', textDecoration: 'none', fontWeight: 500 };
 const taskBadgeStyle: CSSProperties = { display: 'inline-flex', alignItems: 'center', padding: '0.2rem 0.55rem', borderRadius: '999px', background: '#ecfdf5', color: '#047857', fontSize: '0.75rem', fontWeight: 700 };

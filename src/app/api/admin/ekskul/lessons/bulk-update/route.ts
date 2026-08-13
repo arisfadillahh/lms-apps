@@ -12,6 +12,7 @@ const bulkUpdateSchema = z.object({
         title: z.string().min(1).max(300),
         summary: z.string().nullable().optional(),
         slideUrl: z.string().url().nullable().optional().or(z.literal('')),
+        exampleUrl: z.string().url().nullable().optional().or(z.literal('')),
         makeUpInstructions: z.string().max(2000).nullable().optional(),
         estimatedMeetings: z.number().int().min(0),
         orderIndex: z.number().int().min(1),
@@ -39,6 +40,7 @@ export async function POST(request: Request) {
             title: update.title,
             summary: serializeEkskulLessonSummary(update.summary ?? null, update.makeUpInstructions ?? null),
             slide_url: update.slideUrl || null,
+            example_url: update.exampleUrl || null,
             estimated_meetings: update.estimatedMeetings,
             order_index: update.orderIndex,
         };

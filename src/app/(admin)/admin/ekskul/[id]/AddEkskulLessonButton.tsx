@@ -17,6 +17,7 @@ export default function AddEkskulLessonButton({ planId, suggestedOrderIndex }: P
     const [title, setTitle] = useState('');
     const [summary, setSummary] = useState('');
     const [slideUrl, setSlideUrl] = useState('');
+    const [exampleUrl, setExampleUrl] = useState('');
     const [makeUpInstructions, setMakeUpInstructions] = useState('');
     const [estimatedMeetings, setEstimatedMeetings] = useState('1');
     const [orderIndex, setOrderIndex] = useState(String(suggestedOrderIndex));
@@ -27,6 +28,7 @@ export default function AddEkskulLessonButton({ planId, suggestedOrderIndex }: P
         setTitle('');
         setSummary('');
         setSlideUrl('');
+        setExampleUrl('');
         setMakeUpInstructions('');
         setEstimatedMeetings('1');
         setOrderIndex(String(suggestedOrderIndex));
@@ -50,6 +52,7 @@ export default function AddEkskulLessonButton({ planId, suggestedOrderIndex }: P
                         title: title.trim(),
                         summary: summary.trim() || null,
                         slideUrl: slideUrl.trim() || null,
+                        exampleUrl: exampleUrl.trim() || null,
                         makeUpInstructions: makeUpInstructions.trim() || null,
                         estimatedMeetings: Number(estimatedMeetings),
                         orderIndex: Number(orderIndex),
@@ -111,6 +114,17 @@ export default function AddEkskulLessonButton({ planId, suggestedOrderIndex }: P
                                 type="url"
                                 value={slideUrl}
                                 onChange={(e) => setSlideUrl(e.target.value)}
+                                placeholder="https://..."
+                                style={inputStyle}
+                            />
+                        </div>
+
+                        <div style={fieldStyle}>
+                            <label style={labelStyle}>Link Contoh Project</label>
+                            <input
+                                type="url"
+                                value={exampleUrl}
+                                onChange={(e) => setExampleUrl(e.target.value)}
                                 placeholder="https://..."
                                 style={inputStyle}
                             />

@@ -32,7 +32,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
     }
 
     // Build CSV. Keep the public header aligned with weekly lesson import/export.
-    const header = 'title,summary,meetings,slide_url,makeup_instructions';
+    const header = 'title,summary,meetings,slide_url,example_url,makeup_instructions';
     const rows = (lessons || []).map((l: any) => {
         const parts = splitEkskulLessonMakeUp(l.summary, l.make_up_instructions);
         const escape = (v: string | null | undefined) => {
@@ -44,6 +44,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
             escape(parts.summary),
             l.estimated_meetings ?? 1,
             escape(l.slide_url),
+            escape(l.example_url),
             escape(parts.makeUpInstructions),
         ].join(',');
     });

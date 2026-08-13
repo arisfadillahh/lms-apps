@@ -15,6 +15,7 @@ type ParsedLesson = {
     summary: string;
     estimatedMeetings: number;
     slideUrl?: string;
+    exampleUrl?: string;
     makeUpInstructions?: string;
 };
 
@@ -57,6 +58,7 @@ export default function ImportEkskulLessonsButton({ planId, currentLessonCount }
                 summary: findColumn(header, ['summary', 'ringkasan']),
                 meetings: findColumn(header, ['meetings', 'meeting', 'estimated_meetings', 'pertemuan']),
                 slideUrl: findColumn(header, ['slide_url', 'slideurl', 'slide']),
+                exampleUrl: findColumn(header, ['example_url', 'exampleurl', 'example_project_url', 'contoh_project_url', 'contoh project']),
                 makeUpInstructions: findColumn(header, [
                     'makeup_instructions',
                     'make_up_instructions',
@@ -80,6 +82,7 @@ export default function ImportEkskulLessonsButton({ planId, currentLessonCount }
                         summary: getColumn(columns, columnIndex.summary),
                         estimatedMeetings: parsePositiveInteger(getColumn(columns, columnIndex.meetings), 1),
                         slideUrl: getColumn(columns, columnIndex.slideUrl) || undefined,
+                        exampleUrl: getColumn(columns, columnIndex.exampleUrl) || undefined,
                         makeUpInstructions: getColumn(columns, columnIndex.makeUpInstructions) || undefined,
                     };
                 })
@@ -120,6 +123,7 @@ export default function ImportEkskulLessonsButton({ planId, currentLessonCount }
                             summary: lesson.summary,
                             estimatedMeetings: lesson.estimatedMeetings,
                             slideUrl: lesson.slideUrl || undefined,
+                            exampleUrl: lesson.exampleUrl || undefined,
                             makeUpInstructions: lesson.makeUpInstructions || null,
                             orderIndex,
                         }),
@@ -184,10 +188,10 @@ export default function ImportEkskulLessonsButton({ planId, currentLessonCount }
                                 <strong style={{ color: '#1e40af' }}>Format CSV yang Dibutuhkan:</strong>
                             </div>
                             <p style={{ fontSize: '0.9rem', color: '#334155', marginBottom: '0.75rem' }}>
-                                Buat file CSV dengan kolom berikut. Format ini sama seperti import lesson weekly.
+                                Buat file CSV dengan kolom berikut. Link contoh project bersifat opsional.
                             </p>
                             <div style={codeBlockStyle}>
-                                <code>title,summary,meetings,slide_url,makeup_instructions</code>
+                                <code>title,summary,meetings,slide_url,example_url,makeup_instructions</code>
                             </div>
                         <div className="ekskul-import-table-scroll">
                         <table style={sampleTableStyle}>
@@ -203,6 +207,7 @@ export default function ImportEkskulLessonsButton({ planId, currentLessonCount }
                                     <tr><td style={sampleTdStyle}>summary</td><td style={sampleTdStyle}>Tidak</td><td style={sampleTdStyle}>Ringkasan materi</td></tr>
                                     <tr><td style={sampleTdStyle}>meetings</td><td style={sampleTdStyle}>Tidak</td><td style={sampleTdStyle}>Jumlah pertemuan, default 1</td></tr>
                                     <tr><td style={sampleTdStyle}>slide_url</td><td style={sampleTdStyle}>Tidak</td><td style={sampleTdStyle}>URL slide materi</td></tr>
+                                    <tr><td style={sampleTdStyle}>example_url</td><td style={sampleTdStyle}>Tidak</td><td style={sampleTdStyle}>URL contoh project</td></tr>
                                     <tr><td style={sampleTdStyle}>makeup_instructions</td><td style={sampleTdStyle}>Tidak</td><td style={sampleTdStyle}>Task otomatis kalau coder tidak hadir</td></tr>
                                 </tbody>
                         </table>
@@ -247,6 +252,7 @@ export default function ImportEkskulLessonsButton({ planId, currentLessonCount }
                                             <th style={previewThStyle}>#</th>
                                             <th style={previewThStyle}>Title</th>
                                             <th style={previewThStyle}>Meetings</th>
+                                            <th style={previewThStyle}>Contoh Project</th>
                                             <th style={previewThStyle}>Make-Up Task</th>
                                         </tr>
                                     </thead>
@@ -256,12 +262,13 @@ export default function ImportEkskulLessonsButton({ planId, currentLessonCount }
                                                 <td style={previewTdStyle}>{currentLessonCount + index + 1}</td>
                                                 <td style={previewTdStyle}>{lesson.title}</td>
                                                 <td style={previewTdStyle}>{lesson.estimatedMeetings}</td>
+                                                <td style={previewTdStyle}>{lesson.exampleUrl ? 'Ada' : '-'}</td>
                                                 <td style={previewTdStyle}>{lesson.makeUpInstructions ? 'Ada' : '-'}</td>
                                             </tr>
                                         ))}
                                         {parsedLessons.length > 10 && (
                                             <tr>
-                                                <td colSpan={4} style={{ ...previewTdStyle, textAlign: 'center', color: '#64748b' }}>
+                                                <td colSpan={5} style={{ ...previewTdStyle, textAlign: 'center', color: '#64748b' }}>
                                                     ...dan {parsedLessons.length - 10} lainnya
                                                 </td>
                                             </tr>

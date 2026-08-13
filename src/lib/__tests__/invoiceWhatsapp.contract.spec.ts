@@ -9,19 +9,18 @@ function readSource(relativePath: string) {
 }
 
 describe('invoice WhatsApp target contract', () => {
-  it('uses the connected WhatsApp number first on public invoice confirmation', () => {
+  it('uses the configured admin WhatsApp number on the public invoice', () => {
     const source = readSource('src/app/(public)/invoice/[invoiceNumber]/page.tsx');
 
-    expect(source).toContain("import { getWhatsAppStatus } from '@/lib/services/whatsappClient'");
-    expect(source).toContain('waConnectedNumber = waStatus.connectedPhone');
-    expect(source).toContain('admin_whatsapp_number: waConnectedNumber || settings.admin_whatsapp_number');
+    expect(source).toContain('admin_whatsapp_number: settings.admin_whatsapp_number');
   });
 
-  it('opens wa.me using the configured admin WhatsApp number from bank info', () => {
+  it('opens plain wa.me without a prefilled message', () => {
     const source = readSource('src/app/(public)/invoice/[invoiceNumber]/InvoiceView.tsx');
 
     expect(source).toContain('bankInfo.admin_whatsapp_number.replace');
-    expect(source).toContain('window.open(`https://wa.me/${normalizedPhone}?text=${message}`,');
+    expect(source).toContain("window.open(`https://wa.me/${normalizedPhone}`, '_blank')");
+    expect(source).not.toContain('https://wa.me/${normalizedPhone}?text=');
   });
 
   it('sends admin payment confirmation to the invoice parent phone', () => {

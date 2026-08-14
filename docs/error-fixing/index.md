@@ -22,3 +22,4 @@ Search this file and the linked monthly log before changing related code.
 | 2026-08-14 | INTERNAL-20260814-03 | Trial behavioral safety | Time boundaries and destructive deletion needed behavioral regression coverage | [2026-08](./2026-08.md#internal-20260814-03-behavioral-safety-review-for-trial-time-and-deletion) |
 | 2026-08-14 | INTERNAL-20260814-04 | Admin PWA notifications | Generic Admin bell notifications did not always attempt PWA delivery | [2026-08](./2026-08.md#internal-20260814-04-admin-bell-notifications-must-reach-pwa) |
 | 2026-08-14 | INTERNAL-20260814-05 | Weekly lesson assignment | Rolling sessions continued without lesson mappings | [2026-08](./2026-08.md#internal-20260814-05-rolling-weekly-sessions-lost-lesson-assignments) |
+| 2026-08-14 | INTERNAL-20260814-06 | VPS performance | Crash-looping external WhatsApp bot exhausted CPU | [2026-08](./2026-08.md#internal-20260814-06-vps-cpu-contention-from-a-crash-looping-whatsapp-bot) |

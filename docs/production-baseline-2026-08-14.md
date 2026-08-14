@@ -24,4 +24,6 @@ The active production build did not contain the Coach report `Buka Penilaian` sh
 
 ## Cutover Status
 
-The current VPS directory remains the historical dirty checkout. Follow `docs/production-workflow.md` and perform the documented one-time cutover before treating a Git checkout as the deployment source.
+Completed on 2026-08-14. The first verified Git-based release was `11451119a4deadd696831a8dd6c832d263efe067`; `/root/lms/current` moved to that release only after an isolated build and port-3010 smoke test passed. PM2, Nginx, public routes, protected redirects, Event Manager routing, runtime-data links, and deployed-SHA state were verified. `/root/lms/lms-apps` remains intact as the initial rollback target.
+
+Normal completed tasks now deploy with `/root/lms/deploy-production.sh <origin-production-sha>`. The launcher reads the deployment implementation from the current `origin/production`, while the implementation enforces the VPS lock, exact SHA, isolated build, candidate smoke test, atomic switch, and automatic rollback.

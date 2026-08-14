@@ -82,7 +82,9 @@ Deployments must fail when the checkout is dirty, the SHA is not on `origin/prod
 
 ## One-Time VPS Cutover
 
-The branch setup does not modify or restart production. Schedule the cutover separately:
+Status: completed on 2026-08-14. Production now runs from `/root/lms/current`, releases live under `/root/lms/releases/<sha>`, persistent runtime data lives under `/root/lms/shared`, and `/root/lms/lms-apps` remains available as the initial rollback target.
+
+The completed cutover followed these steps:
 
 1. Record the currently running PM2 process, environment, Node version, and production baseline tag/SHA.
 2. Back up the dirty VPS source outside the deployment directory without including `.env`, sessions, uploads, dependencies, or build output in Git.

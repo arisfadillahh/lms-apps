@@ -18,6 +18,23 @@ export type ForwardAssignmentWindow<
   frontierSessionId: string | null;
 };
 
+export function resolveForwardAssignmentBlocks<
+  TBlock extends { id: string },
+  TLesson extends { id: string },
+>(
+  orderedBlocks: TBlock[],
+  lessonsByBlock: ReadonlyMap<string, TLesson[]>,
+  frontierLessonId: string | null,
+): TBlock[] {
+  if (!frontierLessonId) return orderedBlocks;
+
+  const frontierBlockIndex = orderedBlocks.findIndex((block) =>
+    (lessonsByBlock.get(block.id) ?? []).some((lesson) => lesson.id === frontierLessonId),
+  );
+
+  return frontierBlockIndex >= 0 ? orderedBlocks.slice(frontierBlockIndex) : orderedBlocks;
+}
+
 /**
  * Keeps completed/manual history immutable and only fills the schedule after the
  * latest session that already owns a lesson. Old holes are intentionally ignored.

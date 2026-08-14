@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { resolveForwardAssignmentWindow } from '@/lib/services/lessonAssignmentWindow';
+import {
+  resolveForwardAssignmentBlocks,
+  resolveForwardAssignmentWindow,
+} from '@/lib/services/lessonAssignmentWindow';
 
 const sessions = [
   { id: 'session-1', date_time: '2026-06-05T09:15:00.000Z' },
@@ -46,5 +49,20 @@ describe('resolveForwardAssignmentWindow', () => {
 
     expect(result.lessonQueue.map((lesson) => lesson.id)).toEqual(['manual-next']);
     expect(result.unassignedSessions.map((session) => session.id)).toEqual(['session-3', 'session-4']);
+  });
+
+  it('limits template synchronization to the frontier block and newer blocks', () => {
+    const blocks = [{ id: 'historical' }, { id: 'current' }, { id: 'next' }];
+    const lessonsByBlock = new Map([
+      ['historical', [{ id: 'old-lesson' }]],
+      ['current', [{ id: 'frontier-lesson' }]],
+      ['next', [{ id: 'future-lesson' }]],
+    ]);
+
+    expect(
+      resolveForwardAssignmentBlocks(blocks, lessonsByBlock, 'frontier-lesson').map(
+        (block) => block.id,
+      ),
+    ).toEqual(['current', 'next']);
   });
 });

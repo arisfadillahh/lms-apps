@@ -5,7 +5,10 @@ import { addDays } from 'date-fns';
 import { blocksDao, classLessonsDao, classesDao, coderProgressDao, lessonTemplatesDao, sessionsDao } from '@/lib/dao';
 import { buildClassLessonOrderIndex, buildClassLessonTitle } from '@/lib/dao/classLessonsDao';
 import { resolveBlockRuntimeDates, resolveBlockStatus, resolveCurrentBlockIndex, resolveNextBlockTemplateIndex } from '@/lib/services/blockRuntime';
-import { resolveForwardAssignmentWindow } from '@/lib/services/lessonAssignmentWindow';
+import {
+  resolveForwardAssignmentBlocks,
+  resolveForwardAssignmentWindow,
+} from '@/lib/services/lessonAssignmentWindow';
 import type { ClassLessonRecord } from '@/lib/dao/classLessonsDao';
 import type { ClassRecord } from '@/lib/dao/classesDao';
 import type { LessonTemplateRecord } from '@/lib/dao/lessonTemplatesDao';
@@ -213,7 +216,13 @@ async function ensureLessonCapacity(
   const blocks = await classesDao.getClassBlocks(klass.id);
   const lessonsByBlock = await loadLessons(blocks);
   const lessonTemplateCache = new Map<string, LessonTemplateRecord[]>();
-  await syncLessonsWithTemplates(blocks, lessonsByBlock, lessonTemplateCache);
+  const initialWindow = buildForwardAssignmentWindow(blocks, lessonsByBlock, sessions);
+  const forwardBlocks = resolveForwardAssignmentBlocks(
+    blocks,
+    lessonsByBlock,
+    initialWindow.frontierLessonId,
+  );
+  await syncLessonsWithTemplates(forwardBlocks, lessonsByBlock, lessonTemplateCache);
 
   let assignmentWindow = buildForwardAssignmentWindow(blocks, lessonsByBlock, sessions);
   const unassignedSessions = assignmentWindow.unassignedSessions;

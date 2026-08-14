@@ -12,10 +12,9 @@ type EvaluationFormClientProps = {
   criteriaList: EvaluationCriteriaRecord[];
   lessonTitle: string;
   blockName: string;
-  initialScores?: Record<string, Record<string, string>>;
 };
 
-export default function EvaluationFormClient({ sessionId, students, criteriaList, lessonTitle, blockName, initialScores }: EvaluationFormClientProps) {
+export default function EvaluationFormClient({ sessionId, students, criteriaList, lessonTitle, blockName }: EvaluationFormClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isExiting, setIsExiting] = useState(false);
@@ -27,7 +26,7 @@ export default function EvaluationFormClient({ sessionId, students, criteriaList
     students.forEach(s => {
       initial[s.id] = {};
       criteriaList.forEach(c => {
-        initial[s.id][c.id] = initialScores?.[s.id]?.[c.id] ?? '';
+        initial[s.id][c.id] = ''; // Start empty
       });
     });
     return initial;

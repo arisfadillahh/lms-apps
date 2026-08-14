@@ -87,6 +87,10 @@ Do not treat lint/build warnings that predate the change as new failures, but re
 
 ## Deployment And Git
 
+- `production` is the canonical branch for deployable LMS source. Treat `dev-ver-2` as legacy history; do not merge it into `production` wholesale.
+- On every device, fetch first and create a short-lived `codex/<device>-<task>` branch from `origin/production`. Never start new work from a stale local branch.
+- Do not push feature or fix commits directly to `production`. Push the task branch, verify it, then let one integration owner fast-forward or merge it into `production` after checking that no newer production work is being overwritten.
+- Before integrating, rebase the task branch on the latest `origin/production`, resolve conflicts against current production behavior, and rerun the required checks.
 - The canonical remote is the repository's configured `origin`; do not hardcode credentials or personal access tokens in files or commands saved to the repo.
 - Before pushing, fetch the remote, confirm branch divergence, review the staged diff, and scan changed files for secrets.
 - Stage files explicitly when unrelated or nested repositories exist.
@@ -94,6 +98,10 @@ Do not treat lint/build warnings that predate the change as new failures, but re
 - Do not commit build output, dependency folders, local logs, screenshots used only for debugging, sessions, uploads, backups, or `.env` files.
 - Do not force-push or rewrite shared branch history unless explicitly requested.
 - Production deployment is separate from Git publication. A push does not prove production is updated, and a server hotfix is incomplete until the matching source is committed and pushed.
+- Deploy only an exact commit already present on `origin/production`; record that SHA before and after deployment.
+- Only one production deployment may run at a time. The deploy process must acquire the VPS lock `/var/lock/lms-production-deploy.lock` and fail closed when the lock is held.
+- Never use `scp`, direct source editing, or ad hoc file replacement as the normal deployment path. Never pull, reset, or overwrite a dirty VPS checkout; stop and reconcile it against Git first.
+- Follow `docs/production-workflow.md` for device handoff, integration, deployment, rollback, and the one-time VPS cutover.
 
 ## Completion Checklist
 

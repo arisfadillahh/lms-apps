@@ -8,6 +8,7 @@ import {
   Copy,
   MessageCircle,
   Search,
+  Trash2,
   Video,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -193,6 +194,25 @@ export default function TrialClassTable({
     });
   }
 
+  function deleteTrial(item: TrialClassSubmission) {
+    if (!window.confirm(`Hapus data trial ${item.student_name}? Tindakan ini tidak dapat dibatalkan.`)) return;
+
+    startTransition(async () => {
+      try {
+        setError(null);
+        const response = await fetch(`/api/admin/free-trials/${item.id}`, { method: 'DELETE' });
+        const payload = await response.json().catch(() => null) as { error?: string } | null;
+        if (!response.ok) {
+          setError(payload?.error || 'Gagal menghapus trial.');
+          return;
+        }
+        router.refresh();
+      } catch {
+        setError('Koneksi terputus. Silakan coba lagi.');
+      }
+    });
+  }
+
   async function copyMeetLink(item: TrialClassSubmission) {
     if (!item.google_meet_url) return;
     await navigator.clipboard.writeText(item.google_meet_url);
@@ -221,6 +241,7 @@ export default function TrialClassTable({
               />
             </div>
           </div>
+          {error ? <p role="alert" className="mt-3 text-sm text-red-600">{error}</p> : null}
         </CardHeader>
         <CardContent className="overflow-x-auto px-0">
           <Table>
@@ -328,6 +349,17 @@ export default function TrialClassTable({
                             </Button>
                           </>
                         ) : null}
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-red-600 hover:text-red-700"
+                          title="Hapus trial"
+                          aria-label={`Hapus trial ${item.student_name}`}
+                          onClick={() => deleteTrial(item)}
+                          disabled={isPending}
+                        >
+                          <Trash2 />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>

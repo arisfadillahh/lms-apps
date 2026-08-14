@@ -71,6 +71,18 @@ describe('trial class management contract', () => {
     expect(route).toContain('setTrialClassTerminalStatus');
   });
 
+  it('restricts trial deletion to admins and protects completed assessments', () => {
+    const route = readSource('src/app/api/admin/free-trials/[id]/route.ts');
+
+    expect(route).toContain('export async function DELETE');
+    expect(route).toContain("await assertRole(session, 'ADMIN')");
+    expect(route).toContain('getAssessmentByTrialId');
+    expect(route).toContain("assessment.status !== 'DRAFT'");
+    expect(route).toContain('deleteTrialCalendarEvent');
+    expect(route).toContain('deleteTrialClassSubmission');
+    expect(route).toContain('status: 409');
+  });
+
   it('removes the email action and exposes assign, cancel, failed, and Meet controls', () => {
     const table = readSource('src/app/(admin)/admin/free-trials/TrialClassTable.tsx');
 
@@ -81,6 +93,9 @@ describe('trial class management contract', () => {
     expect(table).toContain('Buka Meet');
     expect(table).toContain('Alasan wajib dicatat');
     expect(table).toContain("item.status === 'SCHEDULED'");
+    expect(table).toContain('Hapus trial');
+    expect(table).toContain("method: 'DELETE'");
+    expect(table).toContain('window.confirm');
   });
 
   it('shows only the signed-in coach upcoming scheduled trials on the coach dashboard', () => {
@@ -91,6 +106,7 @@ describe('trial class management contract', () => {
     expect(dao).toContain(".eq('coach_id', coachId)");
     expect(dao).toContain(".eq('status', 'SCHEDULED')");
     expect(dao).toContain(".not('scheduled_at', 'is', null)");
+    expect(dao).toContain(".gte('scheduled_at', now.toISOString())");
     expect(dao).toContain(".select('*, trial_assessments(status)')");
     expect(dao).toContain('Array.isArray(assessment)');
     expect(dao).toContain("assessmentStatus !== 'DRAFT'");

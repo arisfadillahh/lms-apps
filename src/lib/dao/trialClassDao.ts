@@ -43,14 +43,13 @@ export async function listActionableTrialClassesForCoach(
   now = new Date(),
 ): Promise<TrialClassSubmission[]> {
   const supabase = getSupabaseAdmin();
-  const earliestRelevantStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   const { data, error } = await supabase
     .from('trial_class_submissions')
     .select('*, trial_assessments(status)')
     .eq('coach_id', coachId)
     .eq('status', 'SCHEDULED')
     .not('scheduled_at', 'is', null)
-    .gte('scheduled_at', earliestRelevantStart.toISOString())
+    .gte('scheduled_at', now.toISOString())
     .order('scheduled_at', { ascending: true })
     .limit(20);
 
@@ -146,6 +145,22 @@ export async function setTrialClassTerminalStatus(
 
   if (error) {
     throw new Error(`Failed to update trial class status: ${error.message}`);
+  }
+
+  return data;
+}
+
+export async function deleteTrialClassSubmission(id: string): Promise<TrialClassSubmission> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('trial_class_submissions')
+    .delete()
+    .eq('id', id)
+    .select('*')
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to delete trial class submission: ${error.message}`);
   }
 
   return data;

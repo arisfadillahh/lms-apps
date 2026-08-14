@@ -99,9 +99,11 @@ Do not treat lint/build warnings that predate the change as new failures, but re
 - Do not force-push or rewrite shared branch history unless explicitly requested.
 - Production deployment is separate from Git publication. A push does not prove production is updated, and a server hotfix is incomplete until the matching source is committed and pushed.
 - Deploy only an exact commit already present on `origin/production`; record that SHA before and after deployment.
+- After a normal implementation task is verified and integrated into `origin/production`, deploy that exact SHA to the VPS in the same task unless the user explicitly says not to deploy or asks for inspection only.
 - Only one production deployment may run at a time. The deploy process must acquire the VPS lock `/var/lock/lms-production-deploy.lock` and fail closed when the lock is held.
 - Never use `scp`, direct source editing, or ad hoc file replacement as the normal deployment path. Never pull, reset, or overwrite a dirty VPS checkout; stop and reconcile it against Git first.
 - Follow `docs/production-workflow.md` for device handoff, integration, deployment, rollback, and the one-time VPS cutover.
+- Use `/root/lms/deploy-production.sh <production-sha>` after the one-time cutover. Never report completion until the deployed SHA, PM2 status, smoke checks, and rollback target are known.
 
 ## Completion Checklist
 

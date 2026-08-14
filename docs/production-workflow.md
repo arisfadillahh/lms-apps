@@ -59,7 +59,7 @@ Record the resulting SHA. Publishing Git does not deploy the application.
 
 ## Deploy An Exact Production SHA
 
-The current VPS checkout contains historical direct-copy changes. Do not run this section until the one-time cutover has been completed and verified.
+After the one-time cutover, every normal implementation task is deployed immediately after its verified commit is integrated into `origin/production`, unless the user explicitly requests no deployment or inspection only.
 
 Every later deployment must:
 
@@ -69,6 +69,14 @@ Every later deployment must:
 4. Check out that exact SHA, install locked dependencies, run the build, and only then reload PM2.
 5. Verify the PM2 process, health route, recent logs, and deployed SHA.
 6. Release the lock even when a step fails.
+
+Run the committed deployment workflow with:
+
+```bash
+ssh root@72.61.213.46 "bash /root/lms/deploy-production.sh <production-sha>"
+```
+
+The script refuses a SHA that is not the current `origin/production` head, builds and smoke-tests a separate release first, switches `/root/lms/current` atomically, and rolls PM2 back to the previous release when post-switch health checks fail.
 
 Deployments must fail when the checkout is dirty, the SHA is not on `origin/production`, the build fails, or another deployment holds the lock. Do not fall back to `scp` or editing source on the VPS.
 

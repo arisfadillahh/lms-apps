@@ -18,7 +18,7 @@ describe('admin notification push contract', () => {
     expect(pushIndex).toBeGreaterThan(insertIndex);
     expect(dao).toContain(".eq('role', 'ADMIN')");
     expect(dao).toContain(".eq('is_active', true)");
-    expect(dao).toContain('if (!shouldAttemptAdminPush) return');
+    expect(dao).toContain('await sendAdminPushBestEffort([userId], { title, message, type, ...delivery });');
     expect(dao).toContain("console.error('[Notifications] Admin push delivery failed'");
   });
 

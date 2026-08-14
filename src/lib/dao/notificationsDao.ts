@@ -122,9 +122,6 @@ export async function createNotification(
         throw new Error(`Failed to create notification: ${error.message}`);
     }
 
-    const shouldAttemptAdminPush = Boolean(delivery.pushUrl || delivery.pushTag || delivery.pushBody);
-    if (!shouldAttemptAdminPush) return;
-
     try {
         const { data: recipient, error: recipientError } = await supabase
             .from('users')
@@ -136,6 +133,9 @@ export async function createNotification(
 
         if (recipientError) throw recipientError;
         if (recipient) {
+            // Every notification visible to an active Admin in the bell is also
+            // eligible for PWA delivery. Event-specific metadata is optional;
+            // the dashboard fallback keeps generic notifications actionable.
             await sendAdminPushBestEffort([userId], { title, message, type, ...delivery });
         }
     } catch (pushLookupError) {

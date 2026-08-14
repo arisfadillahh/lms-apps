@@ -26,6 +26,9 @@ describe('production deployment contract', () => {
     expect(script).toContain('ln -sfn "$SHARED_DIR/.env"');
     expect(script).toContain('baileys_auth_info');
     expect(script).toContain('public-uploads');
+    expect(script.indexOf('npm run build')).toBeLessThan(
+      script.indexOf('ln -s "$SHARED_DIR/$runtime_dir"'),
+    );
     expect(script).toContain('rollback()');
     expect(script).toContain('switch_current "$PREVIOUS_TARGET"');
   });

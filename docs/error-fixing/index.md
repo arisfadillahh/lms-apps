@@ -17,3 +17,4 @@ Search this file and the linked monthly log before changing related code.
 | 2026-08-13 | INTERNAL-20260813-05 | Ekskul lesson management | Overview did not match the Weekly lesson manager | [2026-08](./2026-08.md#internal-20260813-05-weekly-style-ekskul-lesson-management-ui) |
 | 2026-08-13 | INTERNAL-20260813-06 | Ekskul lesson navigation | Plan list and lesson manager were still shown side by side | [2026-08](./2026-08.md#internal-20260813-06-separate-ekskul-plan-index-and-lesson-manager) |
 | 2026-08-13 | INTERNAL-20260813-07 | Agent workflow and test scope | Fresh checkouts lacked complete workflow context and root tests collected a nested repository | [2026-08](./2026-08.md#internal-20260813-07-cross-device-agent-and-test-boundaries) |
+| 2026-08-14 | INTERNAL-20260814-01 | Production deployment | Candidate build rejected a shared runtime symlink before cutover | [2026-08](./2026-08.md#internal-20260814-01-atomic-deploy-build-rejected-shared-runtime-symlink) |

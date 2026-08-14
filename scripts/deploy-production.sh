@@ -70,24 +70,30 @@ fi
 
 ln -sfn "$SHARED_DIR/.env" "$RELEASE_DIR/.env"
 
+# Turbopack rejects project-directory symlinks that point outside the release
+# root. Keep runtime directories absent while compiling, then attach them only
+# after the build has completed.
 for runtime_dir in .uploads baileys_auth_info .data; do
-  if [[ -d "$SHARED_DIR/$runtime_dir" ]]; then
-    rm -rf "$RELEASE_DIR/$runtime_dir"
-    ln -s "$SHARED_DIR/$runtime_dir" "$RELEASE_DIR/$runtime_dir"
-  fi
+  rm -rf "$RELEASE_DIR/$runtime_dir"
 done
-
-if [[ -d "$SHARED_DIR/public-uploads" ]]; then
-  mkdir -p "$RELEASE_DIR/public"
-  rm -rf "$RELEASE_DIR/public/uploads"
-  ln -s "$SHARED_DIR/public-uploads" "$RELEASE_DIR/public/uploads"
-fi
+rm -rf "$RELEASE_DIR/public/uploads"
 
 (
   cd "$RELEASE_DIR"
   npm ci
   npm run build
 ) >"$BUILD_LOG" 2>&1
+
+for runtime_dir in .uploads baileys_auth_info .data; do
+  if [[ -d "$SHARED_DIR/$runtime_dir" ]]; then
+    ln -s "$SHARED_DIR/$runtime_dir" "$RELEASE_DIR/$runtime_dir"
+  fi
+done
+
+if [[ -d "$SHARED_DIR/public-uploads" ]]; then
+  mkdir -p "$RELEASE_DIR/public"
+  ln -s "$SHARED_DIR/public-uploads" "$RELEASE_DIR/public/uploads"
+fi
 
 if ss -ltn "sport = :$SMOKE_PORT" | grep -q LISTEN; then
   echo "Port smoke test $SMOKE_PORT sedang digunakan." >&2

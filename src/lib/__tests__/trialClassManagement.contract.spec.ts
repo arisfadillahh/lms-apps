@@ -76,11 +76,8 @@ describe('trial class management contract', () => {
 
     expect(route).toContain('export async function DELETE');
     expect(route).toContain("await assertRole(session, 'ADMIN')");
-    expect(route).toContain('getAssessmentByTrialId');
-    expect(route).toContain("assessment.status !== 'DRAFT'");
-    expect(route).toContain('deleteTrialCalendarEvent');
-    expect(route).toContain('deleteTrialClassSubmission');
-    expect(route).toContain('status: 409');
+    expect(route).toContain('deleteTrialForAdmin');
+    expect(route).toContain('TrialDeletionError');
   });
 
   it('removes the email action and exposes assign, cancel, failed, and Meet controls', () => {

@@ -38,6 +38,39 @@ export async function listTrialClassSubmissions(limit = 500) {
   return (data ?? []) as unknown as TrialClassSubmissionWithCoach[];
 }
 
+export function isUpcomingTrial(scheduledAt: string | null, now: Date): boolean {
+  if (!scheduledAt) return false;
+  const scheduledTime = new Date(scheduledAt).getTime();
+  return Number.isFinite(scheduledTime) && scheduledTime >= now.getTime();
+}
+
+type TrialClassRowWithAssessment = TrialClassSubmission & {
+  trial_assessments?: { status: string } | Array<{ status: string }> | null;
+};
+
+export function filterActionableTrialClassRows(
+  rows: TrialClassRowWithAssessment[],
+  now: Date,
+): TrialClassSubmission[] {
+  return rows.flatMap((trial) => {
+    if (trial.status !== 'SCHEDULED' || !isUpcomingTrial(trial.scheduled_at, now)) {
+      return [];
+    }
+
+    const assessment = trial.trial_assessments;
+    const assessmentStatus = Array.isArray(assessment)
+      ? assessment[0]?.status
+      : assessment?.status;
+
+    if (assessmentStatus && assessmentStatus !== 'DRAFT') {
+      return [];
+    }
+
+    const { trial_assessments: _assessment, ...submission } = trial;
+    return [submission as TrialClassSubmission];
+  });
+}
+
 export async function listActionableTrialClassesForCoach(
   coachId: string,
   now = new Date(),
@@ -57,22 +90,10 @@ export async function listActionableTrialClassesForCoach(
     throw new Error(`Failed to load coach trial classes: ${error.message}`);
   }
 
-  return (data ?? []).flatMap((row) => {
-    const trial = row as TrialClassSubmission & {
-      trial_assessments?: { status: string } | Array<{ status: string }> | null;
-    };
-    const assessment = trial.trial_assessments;
-    const assessmentStatus = Array.isArray(assessment)
-      ? assessment[0]?.status
-      : assessment?.status;
-
-    if (assessmentStatus && assessmentStatus !== 'DRAFT') {
-      return [];
-    }
-
-    const { trial_assessments: _assessment, ...submission } = trial;
-    return [submission as TrialClassSubmission];
-  });
+  return filterActionableTrialClassRows(
+    (data ?? []) as unknown as TrialClassRowWithAssessment[],
+    now,
+  );
 }
 
 export async function getTrialClassSubmission(id: string): Promise<TrialClassSubmissionWithCoach | null> {

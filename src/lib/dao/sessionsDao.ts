@@ -365,9 +365,12 @@ export async function ensureFutureSessions(classId: string, weeksAhead = 12): Pr
     time: classRecord.schedule_time,
   });
 
-  // NOTE: We intentionally do NOT call reassignLessonsToSessions here.
-  // That call was causing all manual "Ubah Materi" shifts to be reset on every page load.
-  // The rebalancer is still triggered from session cancel/reschedule events when truly needed.
+  // Fill only the newly opened schedule window. Preserve mode keeps completed and
+  // manually shifted lesson assignments intact.
+  if (newSessions.length > 0) {
+    const { autoAssignLessonsForClass } = await import('@/lib/services/lessonAutoAssign');
+    await autoAssignLessonsForClass(classId, { mode: 'preserve' });
+  }
 
   return newSessions.length;
 }

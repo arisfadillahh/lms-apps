@@ -217,8 +217,9 @@ async function ensureLessonCapacity(
   const lessonsByBlock = await loadLessons(blocks);
   const lessonTemplateCache = new Map<string, LessonTemplateRecord[]>();
   const initialWindow = buildForwardAssignmentWindow(blocks, lessonsByBlock, sessions);
+  const orderedBlocks = blocks.slice().sort(compareBlocksByScheduleOrder);
   const forwardBlocks = resolveForwardAssignmentBlocks(
-    blocks,
+    orderedBlocks,
     lessonsByBlock,
     initialWindow.frontierLessonId,
   );

@@ -3,6 +3,7 @@
 import type { CSSProperties } from 'react';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { Pencil } from 'lucide-react';
 import { splitEkskulLessonMakeUp } from '@/lib/ekskulMakeUpInstructions';
 
 type Props = {
@@ -109,8 +110,15 @@ export default function EditEkskulLessonButton({ lesson, planId }: Props) {
 
     return (
         <>
-            <button type="button" className="ekskul-lesson-edit-button" onClick={handleOpen} style={editButtonStyle}>
-                Edit
+            <button
+                type="button"
+                className="ekskul-lesson-edit-button"
+                onClick={handleOpen}
+                style={editButtonStyle}
+                aria-label={`Edit lesson ${lesson.title}`}
+            >
+                <Pencil size={17} />
+                <span>Edit</span>
             </button>
 
             {open && (
@@ -212,6 +220,10 @@ export default function EditEkskulLessonButton({ lesson, planId }: Props) {
 }
 
 const editButtonStyle: CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.4rem',
     padding: '0.4rem 0.8rem',
     borderRadius: '0.5rem',
     border: '1px solid #cbd5e1',

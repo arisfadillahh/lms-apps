@@ -34,4 +34,25 @@ describe('ekskul lesson management UI contracts', () => {
     expect(manager).not.toContain('handleBulkDelete');
     expect(manager).not.toContain("method: 'DELETE'");
   });
+
+  it('keeps edit actions visible and bound to the same lesson on mobile', () => {
+    const weekly = readSource('src/app/(admin)/admin/curriculum/BlockLessonList.tsx');
+    const ekskul = readSource('src/app/(admin)/admin/ekskul/[id]/EkskulLessonList.tsx');
+    const ekskulEdit = readSource('src/app/(admin)/admin/ekskul/[id]/EditEkskulLessonButton.tsx');
+    const styles = readSource('src/app/globals.css');
+
+    expect(weekly).toContain('className="weekly-lesson-desktop"');
+    expect(weekly).toContain('className="weekly-lesson-mobile-list"');
+    expect(weekly).toContain('onClick={() => setEditingLessonId(lesson.id)}');
+    expect(weekly).toContain('className="weekly-lesson-mobile-edit"');
+    expect(weekly).toContain('aria-label={`Edit lesson ${lesson.title}`}');
+    expect(ekskul).toContain('className="ekskul-lesson-mobile-actions"');
+    expect(ekskul).toContain('<EditEkskulLessonButton lesson={lesson as any} planId={planId} />');
+    expect(ekskulEdit).toContain('className="ekskul-lesson-edit-button"');
+    expect(ekskulEdit).toContain('aria-label={`Edit lesson ${lesson.title}`}');
+    expect(styles).toContain("[data-admin-shell='true'] .weekly-lesson-desktop");
+    expect(styles).toContain("[data-admin-shell='true'] .weekly-lesson-mobile-list");
+    expect(styles).toContain("[data-admin-shell='true'] .weekly-lesson-mobile-actions > *");
+    expect(styles).toContain('min-height: 44px;');
+  });
 });

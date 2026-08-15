@@ -50,10 +50,13 @@ type TrialClassRowWithAssessment = TrialClassSubmission & {
 
 export function filterActionableTrialClassRows(
   rows: TrialClassRowWithAssessment[],
-  now: Date,
+  _now = new Date(),
 ): TrialClassSubmission[] {
   return rows.flatMap((trial) => {
-    if (trial.status !== 'SCHEDULED' || !isUpcomingTrial(trial.scheduled_at, now)) {
+    // Keep an unfinished scheduled trial visible after its start time so the
+    // assigned Coach can still submit the assessment. Completed assessments
+    // are filtered below; terminal trial statuses remain excluded.
+    if (trial.status !== 'SCHEDULED' || !trial.scheduled_at || !Number.isFinite(new Date(trial.scheduled_at).getTime())) {
       return [];
     }
 
@@ -82,9 +85,8 @@ export async function listActionableTrialClassesForCoach(
     .eq('coach_id', coachId)
     .eq('status', 'SCHEDULED')
     .not('scheduled_at', 'is', null)
-    .gte('scheduled_at', now.toISOString())
     .order('scheduled_at', { ascending: true })
-    .limit(20);
+    .limit(100);
 
   if (error) {
     throw new Error(`Failed to load coach trial classes: ${error.message}`);

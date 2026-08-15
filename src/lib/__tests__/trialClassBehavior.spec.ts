@@ -30,10 +30,12 @@ function trialRow(
 }
 
 describe('trial dashboard behavioral boundaries', () => {
-  it('includes exactly-now and future trials, excludes past trials, and preserves draft access', () => {
+  it('keeps scheduled trials visible until assessment is completed', () => {
     const cancelled = { ...trialRow('cancelled', '2026-08-14T10:15:00.000Z'), status: 'CANCELLED' as const };
     const rows = [
-      trialRow('before', '2026-08-14T09:59:59.999Z'),
+      trialRow('before-unassessed', '2026-08-14T09:59:59.999Z'),
+      trialRow('before-draft', '2026-08-14T09:59:59.999Z', 'DRAFT'),
+      trialRow('before-submitted', '2026-08-14T09:59:59.999Z', 'PENDING_ADMIN_REVIEW'),
       trialRow('at-boundary', '2026-08-14T10:00:00.000Z', 'DRAFT'),
       trialRow('after', '2026-08-14T10:00:00.001Z'),
       trialRow('submitted', '2026-08-14T10:30:00.000Z', 'PENDING_ADMIN_REVIEW'),
@@ -42,7 +44,7 @@ describe('trial dashboard behavioral boundaries', () => {
 
     const result = filterActionableTrialClassRows(rows, now);
 
-    expect(result.map((trial) => trial.id)).toEqual(['at-boundary', 'after']);
+    expect(result.map((trial) => trial.id)).toEqual(['before-unassessed', 'before-draft', 'at-boundary', 'after']);
   });
 
   it('does not treat a null or invalid schedule as actionable', () => {

@@ -24,3 +24,4 @@ Search this file and the linked monthly log before changing related code.
 | 2026-08-14 | INTERNAL-20260814-05 | Weekly lesson assignment | Rolling sessions continued without lesson mappings | [2026-08](./2026-08.md#internal-20260814-05-rolling-weekly-sessions-lost-lesson-assignments) |
 | 2026-08-14 | INTERNAL-20260814-06 | VPS performance | Crash-looping external WhatsApp bot exhausted CPU | [2026-08](./2026-08.md#internal-20260814-06-vps-cpu-contention-from-a-crash-looping-whatsapp-bot) |
 | 2026-08-14 | INTERNAL-20260814-07 | Mobile lesson management | Weekly and Ekskul edit actions were not discoverable on phones | [2026-08](./2026-08.md#internal-20260814-07-mobile-lesson-edit-actions) |
+| 2026-08-15 | INTERNAL-20260815-01 | Coach trial dashboard | Unassessed scheduled trial disappeared after its start time | [2026-08](./2026-08.md#internal-20260815-01-unassessed-trial-disappeared-after-scheduled-time) |

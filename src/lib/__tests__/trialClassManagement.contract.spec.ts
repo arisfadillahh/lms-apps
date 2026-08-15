@@ -95,7 +95,7 @@ describe('trial class management contract', () => {
     expect(table).toContain('window.confirm');
   });
 
-  it('shows only the signed-in coach upcoming scheduled trials on the coach dashboard', () => {
+  it('shows the signed-in coach scheduled trials until assessment completion', () => {
     const dao = readSource('src/lib/dao/trialClassDao.ts');
     const dashboard = readSource('src/app/(coach)/coach/dashboard/page.tsx');
     const schedule = readSource('src/app/(coach)/coach/dashboard/TrialClassSchedule.tsx');
@@ -103,7 +103,8 @@ describe('trial class management contract', () => {
     expect(dao).toContain(".eq('coach_id', coachId)");
     expect(dao).toContain(".eq('status', 'SCHEDULED')");
     expect(dao).toContain(".not('scheduled_at', 'is', null)");
-    expect(dao).toContain(".gte('scheduled_at', now.toISOString())");
+    expect(dao).not.toContain(".gte('scheduled_at', now.toISOString())");
+    expect(dao).toContain('.limit(100)');
     expect(dao).toContain(".select('*, trial_assessments(status)')");
     expect(dao).toContain('Array.isArray(assessment)');
     expect(dao).toContain("assessmentStatus !== 'DRAFT'");

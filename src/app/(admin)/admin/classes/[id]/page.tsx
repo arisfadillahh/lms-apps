@@ -39,6 +39,16 @@ type PageProps = {
   params: Promise<{ id: string }>;
 };
 
+const scheduleDayLabels: Record<string, string> = {
+  MONDAY: 'Senin',
+  TUESDAY: 'Selasa',
+  WEDNESDAY: 'Rabu',
+  THURSDAY: 'Kamis',
+  FRIDAY: 'Jumat',
+  SATURDAY: 'Sabtu',
+  SUNDAY: 'Minggu',
+};
+
 export default async function AdminClassDetailPage({ params }: PageProps) {
   const resolvedParams = await params;
   const rawId = resolvedParams.id ?? '';
@@ -163,6 +173,7 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
 
   const coachMap = new Map(coaches.map((coach) => [coach.id, coach.full_name]));
   const coderMap = new Map(coders.map((coder) => [coder.id, coder.full_name]));
+  const scheduleDayLabel = scheduleDayLabels[klass.schedule_day ?? ''] ?? klass.schedule_day ?? 'Belum diatur';
   const enrolledCoderIds = new Set(enrollments.map((enrollment) => enrollment.coder_id));
   const availableCoders = coders.filter((coder) => !enrolledCoderIds.has(coder.id));
 
@@ -201,10 +212,22 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
             <span>•</span>
             Coach Utama: <strong style={{ color: '#334155' }}>{coachMap.get(klass.coach_id) ?? 'Unassigned'}</strong> <EditCoachForm classId={classIdParam} currentCoachId={klass.coach_id} coaches={coaches} />
             <span>•</span>
-            Jadwal: {klass.schedule_day}, {klass.schedule_time} WIB <ChangeClassScheduleModal classId={classIdParam} currentDay={klass.schedule_day} currentTime={klass.schedule_time} />
+            Jadwal: {scheduleDayLabel}, {klass.schedule_time ?? 'Belum diatur'} WIB
           </span>
         </div>
       </header>
+
+      <section style={scheduleCardStyle} aria-labelledby="recurring-schedule-title">
+        <div style={scheduleCardContentStyle}>
+          <p style={scheduleEyebrowStyle}>JADWAL BERULANG</p>
+          <h2 id="recurring-schedule-title" style={scheduleTitleStyle}>Atur jadwal kelas ke depan</h2>
+          <p style={scheduleValueStyle}>{scheduleDayLabel} · {klass.schedule_time ?? 'Belum diatur'} WIB</p>
+          <p style={scheduleDescriptionStyle}>
+            Ubah hari atau jam untuk seluruh sesi mendatang yang masih terjadwal. Sesi yang sudah selesai atau diliburkan tetap aman dan tidak ikut bergeser.
+          </p>
+        </div>
+        <ChangeClassScheduleModal classId={classIdParam} currentDay={klass.schedule_day} currentTime={klass.schedule_time} />
+      </section>
 
       {klass.type === 'WEEKLY' ? (
         <section style={cardStyle}>
@@ -500,6 +523,26 @@ const cardStyle: CSSProperties = {
   width: '100%',
   overflow: 'hidden',
 };
+
+const scheduleCardStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: '1.25rem',
+  flexWrap: 'wrap',
+  padding: '1.1rem 1.25rem',
+  marginBottom: '1.25rem',
+  border: '1px solid #bfdbfe',
+  borderRadius: '14px',
+  background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 72%)',
+  boxShadow: '0 8px 24px rgba(30, 64, 175, 0.07)',
+};
+
+const scheduleCardContentStyle: CSSProperties = { flex: '1 1 320px', minWidth: 0 };
+const scheduleEyebrowStyle: CSSProperties = { margin: 0, color: '#2563eb', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.08em' };
+const scheduleTitleStyle: CSSProperties = { margin: '0.2rem 0 0', color: '#1e293b', fontSize: '1.05rem', fontWeight: 800 };
+const scheduleValueStyle: CSSProperties = { margin: '0.35rem 0 0', color: '#1e3a8a', fontSize: '1rem', fontWeight: 750 };
+const scheduleDescriptionStyle: CSSProperties = { maxWidth: '720px', margin: '0.35rem 0 0', color: '#64748b', fontSize: '0.82rem', lineHeight: 1.5 };
 
 const sectionHeaderStyle: CSSProperties = {
   display: 'flex',

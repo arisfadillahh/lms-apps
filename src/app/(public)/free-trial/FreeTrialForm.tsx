@@ -163,7 +163,7 @@ export default function FreeTrialForm() {
             />
           </FormField>
 
-          <FormField id="phone" label="Nomor telepon" error={errors.phone?.message}>
+          <FormField id="phone" label="Nomor telepon orang tua" error={errors.phone?.message}>
             <Input
               id="phone"
               type="tel"

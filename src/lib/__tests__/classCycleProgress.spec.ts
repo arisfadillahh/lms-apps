@@ -4,6 +4,7 @@ import {
   listCurrentCycleBlocks,
   pickCurrentCycleProgressBlock,
   resolveCycleLessonProgress,
+  resolveSessionProgress,
 } from '@/lib/services/classCycleProgress';
 
 describe('listCurrentCycleBlocks', () => {
@@ -78,6 +79,29 @@ describe('resolveCycleLessonProgress', () => {
       completedLessons: 1,
       totalLessons: 3,
       percent: 33,
+    });
+  });
+});
+
+describe('resolveSessionProgress', () => {
+  it('calculates Ekskul progress from completed sessions and excludes cancelled sessions', () => {
+    expect(resolveSessionProgress([
+      { status: 'COMPLETED' },
+      { status: 'COMPLETED' },
+      { status: 'SCHEDULED' },
+      { status: 'CANCELLED' },
+    ])).toEqual({
+      completedSessions: 2,
+      totalSessions: 3,
+      percent: 67,
+    });
+  });
+
+  it('returns zero when an Ekskul class has no sessions', () => {
+    expect(resolveSessionProgress([])).toEqual({
+      completedSessions: 0,
+      totalSessions: 0,
+      percent: 0,
     });
   });
 });

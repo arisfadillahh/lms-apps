@@ -97,3 +97,17 @@ export function resolveCycleLessonProgress(
     percent: totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0,
   };
 }
+
+export function resolveSessionProgress(
+  sessions: Array<Pick<CycleSession, 'status'>>,
+): { completedSessions: number; totalSessions: number; percent: number } {
+  const activeSessions = sessions.filter((session) => session.status !== 'CANCELLED');
+  const completedSessions = activeSessions.filter((session) => session.status === 'COMPLETED').length;
+  const totalSessions = activeSessions.length;
+
+  return {
+    completedSessions,
+    totalSessions,
+    percent: totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0,
+  };
+}

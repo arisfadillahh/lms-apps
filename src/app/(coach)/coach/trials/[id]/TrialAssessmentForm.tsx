@@ -29,6 +29,7 @@ import {
   TRIAL_AVAILABILITY_DAY_OPTIONS,
   TRIAL_AVAILABILITY_TIME_OPTIONS,
 } from '@/lib/services/trialAvailability';
+import { trialAssessmentSubmissionSchema } from '@/lib/services/trialAssessmentSubmission';
 
 export type LevelOption = { id: string; name: string; order_index: number };
 
@@ -137,18 +138,26 @@ export default function TrialAssessmentForm({ trial, assessment, levels }: Props
     }
 
     startTransition(async () => {
+      const submission = trialAssessmentSubmissionSchema.safeParse({
+        rubric,
+        quickObservations,
+        personalizedObservation: personalizedObservation.trim(),
+        internalNotes: internalNotes.trim() || null,
+        recommendedLevelId,
+        recommendationTags,
+        availableDays,
+        availableTimeSlots,
+      });
+      if (!submission.success) {
+        setError('Data assessment belum lengkap atau tidak valid. Periksa kembali pilihan dan isi penilaian.');
+        return;
+      }
+
       const response = await fetch(`/api/coach/trials/${trial.id}/assessment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          rubric,
-          quickObservations,
-          personalizedObservation: personalizedObservation.trim(),
-          internalNotes: internalNotes.trim() || null,
-          recommendedLevelId,
-          recommendationTags,
-          availableDays,
-          availableTimeSlots,
+          ...submission.data,
         }),
       });
       const payload = await response.json().catch(() => null) as { error?: string } | null;

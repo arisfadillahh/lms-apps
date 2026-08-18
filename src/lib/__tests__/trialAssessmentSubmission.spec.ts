@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { trialAssessmentSubmissionSchema } from '@/lib/services/trialAssessmentSubmission';
+import {
+  TRIAL_PERSONALIZED_OBSERVATION_MAX_LENGTH,
+  trialAssessmentSubmissionSchema,
+} from '@/lib/services/trialAssessmentSubmission';
 
 describe('trial assessment submission validation', () => {
   const completePayload = {
@@ -42,6 +45,21 @@ describe('trial assessment submission validation', () => {
       trialAssessmentSubmissionSchema.safeParse({
         ...completePayload,
         rubric: { ...completePayload.rubric, engagement_curiosity: 5 },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('accepts a long coach observation within the supported limit', () => {
+    const parsed = trialAssessmentSubmissionSchema.safeParse({
+      ...completePayload,
+      personalizedObservation: 'a'.repeat(TRIAL_PERSONALIZED_OBSERVATION_MAX_LENGTH),
+    });
+
+    expect(parsed.success).toBe(true);
+    expect(
+      trialAssessmentSubmissionSchema.safeParse({
+        ...completePayload,
+        personalizedObservation: 'a'.repeat(TRIAL_PERSONALIZED_OBSERVATION_MAX_LENGTH + 1),
       }).success,
     ).toBe(false);
   });

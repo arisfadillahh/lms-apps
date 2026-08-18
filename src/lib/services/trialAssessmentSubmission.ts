@@ -6,6 +6,8 @@ const rubricValue = z.coerce.number().int().min(1).max(4);
 const availabilityDay = z.enum(TRIAL_AVAILABILITY_DAY_OPTIONS.map((option) => option.value) as [string, ...string[]]);
 const availabilityTime = z.enum(TRIAL_AVAILABILITY_TIME_OPTIONS.map((option) => option.value) as [string, ...string[]]);
 
+export const TRIAL_PERSONALIZED_OBSERVATION_MAX_LENGTH = 2000;
+
 export const trialAssessmentSubmissionSchema = z.object({
   rubric: z.object({
     engagement_curiosity: rubricValue,
@@ -15,7 +17,7 @@ export const trialAssessmentSubmissionSchema = z.object({
     communication_following_instructions: rubricValue,
   }),
   quickObservations: z.array(z.string().trim().min(2).max(120)).min(1).max(3),
-  personalizedObservation: z.string().trim().min(20).max(800),
+  personalizedObservation: z.string().trim().min(20).max(TRIAL_PERSONALIZED_OBSERVATION_MAX_LENGTH),
   internalNotes: z.string().trim().max(1200).nullable().optional(),
   recommendedLevelId: z.string().uuid(),
   recommendationTags: z.array(z.string().trim().min(2).max(140)).max(6).default([]),

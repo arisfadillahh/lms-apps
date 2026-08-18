@@ -29,7 +29,10 @@ import {
   TRIAL_AVAILABILITY_DAY_OPTIONS,
   TRIAL_AVAILABILITY_TIME_OPTIONS,
 } from '@/lib/services/trialAvailability';
-import { trialAssessmentSubmissionSchema } from '@/lib/services/trialAssessmentSubmission';
+import {
+  TRIAL_PERSONALIZED_OBSERVATION_MAX_LENGTH,
+  trialAssessmentSubmissionSchema,
+} from '@/lib/services/trialAssessmentSubmission';
 
 export type LevelOption = { id: string; name: string; order_index: number };
 
@@ -271,8 +274,12 @@ export default function TrialAssessmentForm({ trial, assessment, levels }: Props
                 value={personalizedObservation}
                 onChange={(event) => setPersonalizedObservation(event.target.value)}
                 placeholder="Contoh: Saat trial, Ananda terlihat antusias mencoba fitur baru dan mulai berani bertanya ketika project tidak berjalan sesuai harapan."
+                maxLength={TRIAL_PERSONALIZED_OBSERVATION_MAX_LENGTH}
                 rows={5}
               />
+              <p className="text-xs text-slate-500">
+                {personalizedObservation.length.toLocaleString('id-ID')} / {TRIAL_PERSONALIZED_OBSERVATION_MAX_LENGTH.toLocaleString('id-ID')} karakter
+              </p>
             </div>
 
             <div className="grid gap-2">

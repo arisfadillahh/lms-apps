@@ -3,7 +3,13 @@
 import { useState, useRef, useEffect, ReactNode } from 'react';
 import { MoreVertical } from 'lucide-react';
 
-export default function ActionDropdown({ children }: { children: ReactNode }) {
+export default function ActionDropdown({
+    children,
+    label = 'Buka menu aksi',
+}: {
+    children: ReactNode;
+    label?: string;
+}) {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -20,6 +26,7 @@ export default function ActionDropdown({ children }: { children: ReactNode }) {
     return (
         <div className="dropdown" ref={dropdownRef} style={{ position: 'relative', display: 'inline-block' }}>
             <button 
+                type="button"
                 onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -27,6 +34,8 @@ export default function ActionDropdown({ children }: { children: ReactNode }) {
                 }} 
                 className="btn btn-sm btn-ghost"
                 style={{ padding: '4px 8px' }}
+                aria-label={label}
+                title={label}
             >
                 <MoreVertical size={16} />
             </button>

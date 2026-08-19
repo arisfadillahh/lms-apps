@@ -258,7 +258,28 @@ export function buildTrialInvoiceUrl(invoice: Invoice) {
   return buildInvoicePublicUrl(baseUrl, invoice);
 }
 
-export async function markTrialConversionPaidFromInvoice(invoiceId: string, paidAt: string) {
+export type TrialConversionPaidResult =
+  | { updated: false; reason: string }
+  | {
+      updated: true;
+      assessmentId: string;
+      coderId: string;
+      coderUsername: string | null;
+      studentName: string;
+      parentName: string;
+      parentPhone: string;
+      recommendedLevel: string;
+      invoiceNumber: string;
+      totalAmount: number;
+      ccrCode: string;
+      weeklyRegistrationReady: true;
+      awaitingManualClassAssignment: true;
+    };
+
+export async function markTrialConversionPaidFromInvoice(
+  invoiceId: string,
+  paidAt: string,
+): Promise<TrialConversionPaidResult> {
   const assessment = await findAssessmentByInvoiceId(invoiceId);
   if (!assessment) return { updated: false, reason: 'not_trial_conversion' };
   if (assessment.status === 'PAID' || (assessment.status === 'CONVERTED' && assessment.converted_at)) {
@@ -336,6 +357,13 @@ export async function markTrialConversionPaidFromInvoice(invoiceId: string, paid
     assessmentId: assessment.id,
     coderId: coder.id,
     ccrCode: ccr.ccr_code,
+    coderUsername: (coder as { username?: string | null }).username ?? null,
+    studentName: detail.trial.student_name,
+    parentName: detail.trial.parent_name,
+    parentPhone: detail.trial.phone,
+    recommendedLevel: detail.recommended_level?.name ?? 'Belum ditentukan',
+    invoiceNumber: invoice.invoice_number,
+    totalAmount: Number(invoice.total_amount),
     weeklyRegistrationReady: true,
     awaitingManualClassAssignment: true,
   };

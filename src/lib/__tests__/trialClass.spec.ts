@@ -5,6 +5,7 @@ import {
   buildTrialClassParentMessage,
   buildTrialCoachAssignmentWebsiteMessage,
   buildTrialCoachAssignmentWhatsAppMessage,
+  buildTrialConversionAdminMessage,
   type TrialCoachAssignmentNotificationInput,
   type TrialClassNotificationInput,
 } from '@/lib/services/trialClassNotifications';
@@ -179,5 +180,26 @@ describe('trial class WhatsApp notifications', () => {
     expect(message).not.toContain('*Jadwal:*');
     expect(message).not.toContain('*Lokasi:*');
     expect(message).not.toContain('Bukit Golf Riverside');
+  });
+});
+
+describe('trial conversion notifications', () => {
+  it('clearly tells Admin that a paid trial created an LMS account and needs class assignment', () => {
+    const message = buildTrialConversionAdminMessage({
+      assessmentId: 'assessment-id',
+      studentName: 'Alya Putri',
+      parentName: 'Budi Putra',
+      parentPhone: '6281212022628',
+      recommendedLevel: 'Creator',
+      invoiceNumber: 'INV-TRIAL-001',
+      totalAmount: 500000,
+      coderUsername: 'trial.alya.2628',
+      ccrCode: 'CCR123',
+    });
+
+    expect(message).toContain('*Trial berhasil daftar setelah pembayaran*');
+    expect(message).toContain('*Username LMS:* trial.alya.2628');
+    expect(message).toContain('Akun LMS sudah dibuat otomatis');
+    expect(message).toContain('Segera assign coder ke kelas Weekly');
   });
 });

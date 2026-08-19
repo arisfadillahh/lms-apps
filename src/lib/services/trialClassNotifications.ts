@@ -49,6 +49,18 @@ export type TrialParentReportNotificationInput = {
   planDiscountPercent?: number;
 };
 
+export type TrialConversionNotificationInput = {
+  assessmentId: string;
+  studentName: string;
+  parentName: string;
+  parentPhone: string;
+  recommendedLevel: string;
+  invoiceNumber: string;
+  totalAmount: number;
+  coderUsername?: string | null;
+  ccrCode?: string | null;
+};
+
 export function buildTrialClassAdminMessage(input: TrialClassNotificationInput) {
   const isOffline = input.trialMode === 'OFFLINE';
 
@@ -247,6 +259,37 @@ export async function sendTrialParentReportWhatsAppNotification(
     'trial report parent',
     input.parentPhone,
     message,
+  );
+}
+
+export function buildTrialConversionAdminMessage(input: TrialConversionNotificationInput) {
+  return [
+    '*Trial berhasil daftar setelah pembayaran*',
+    '',
+    `*Anak:* ${input.studentName}`,
+    `*Orang tua:* ${input.parentName}`,
+    `*WA orang tua:* ${input.parentPhone}`,
+    `*Level rekomendasi:* ${input.recommendedLevel}`,
+    `*Invoice:* ${input.invoiceNumber}`,
+    `*Total dibayar:* ${formatTrialCurrency(input.totalAmount)}`,
+    input.ccrCode ? `*CCR:* ${input.ccrCode}` : null,
+    input.coderUsername ? `*Username LMS:* ${input.coderUsername}` : null,
+    '',
+    '*Catatan:* Akun LMS sudah dibuat otomatis setelah pembayaran terkonfirmasi.',
+    '*Tindak lanjut:* Segera assign coder ke kelas Weekly yang sesuai dari dashboard Admin.',
+    '',
+    '*Sumber:* Trial Class',
+  ].filter((line): line is string => line !== null).join('\n');
+}
+
+export async function sendTrialConversionAdminWhatsAppNotification(
+  input: TrialConversionNotificationInput,
+): Promise<DeliveryResult> {
+  const adminGroupJid = process.env.TRIAL_CLASS_ADMIN_WA_GROUP_JID || DEFAULT_ADMIN_GROUP_JID;
+  return deliverMessage(
+    'trial conversion admin group',
+    adminGroupJid,
+    buildTrialConversionAdminMessage(input),
   );
 }
 

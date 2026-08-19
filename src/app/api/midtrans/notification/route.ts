@@ -16,6 +16,8 @@ import { buildInvoicePublicUrl } from '@/lib/services/invoicePublicAccess';
 import { getShortInvoiceUrlOrOriginal } from '@/lib/services/shortLinks';
 import { buildPaymentConfirmationMessage, resolvePaymentConfirmationTarget } from '@/lib/services/invoicePaymentConfirmation';
 import { markTrialConversionPaidFromInvoice } from '@/lib/services/trialConversion';
+import { createAdminNotifications } from '@/lib/dao/notificationsDao';
+import { sendTrialConversionAdminWhatsAppNotification } from '@/lib/services/trialClassNotifications';
 import { sendWhatsAppMessage } from '@/lib/services/whatsappClient';
 import { getStoredInvoicePaymentByOrderId, updateStoredInvoicePaymentStatus } from '@/lib/invoicePaymentStore';
 
@@ -65,14 +67,10 @@ export async function POST(request: NextRequest) {
             }
 
             await extendPaymentPeriodsForInvoice(invoice.id);
-            await markTrialConversionPaidFromInvoice(invoice.id, paidAt ?? new Date().toISOString()).catch((error) => {
-                console.error('[Midtrans] Trial conversion paid hook failed:', error);
-            });
+            await processTrialConversionPaid(invoice.id, paidAt ?? new Date().toISOString());
             await sendPaymentConfirmationWhatsApp(paidInvoice, paidAt ?? new Date().toISOString());
         } else if (mappedStatus === 'paid') {
-            await markTrialConversionPaidFromInvoice(invoice.id, paidAt ?? new Date().toISOString()).catch((error) => {
-                console.error('[Midtrans] Trial conversion paid hook failed:', error);
-            });
+            await processTrialConversionPaid(invoice.id, paidAt ?? new Date().toISOString());
         }
 
         return NextResponse.json({ ok: true, updated: true, status: mappedStatus, store: 'file' });
@@ -124,17 +122,59 @@ export async function POST(request: NextRequest) {
         }
 
         await extendPaymentPeriodsForInvoice(invoice.id);
-        await markTrialConversionPaidFromInvoice(invoice.id, paidAt ?? new Date().toISOString()).catch((error) => {
-            console.error('[Midtrans] Trial conversion paid hook failed:', error);
-        });
+        await processTrialConversionPaid(invoice.id, paidAt ?? new Date().toISOString());
         await sendPaymentConfirmationWhatsApp(paidInvoice, paidAt ?? new Date().toISOString());
     } else {
-        await markTrialConversionPaidFromInvoice(invoice.id, paidAt ?? new Date().toISOString()).catch((error) => {
-            console.error('[Midtrans] Trial conversion paid hook failed:', error);
-        });
+        await processTrialConversionPaid(invoice.id, paidAt ?? new Date().toISOString());
     }
 
     return NextResponse.json({ ok: true, updated: true, status: mappedStatus });
+}
+
+async function processTrialConversionPaid(invoiceId: string, paidAt: string) {
+    try {
+        const conversion = await markTrialConversionPaidFromInvoice(invoiceId, paidAt);
+        if (!conversion.updated) return conversion;
+
+        const message = [
+            `Trial ${conversion.studentName} sudah berhasil daftar setelah pembayaran terkonfirmasi.`,
+            `Akun LMS otomatis dibuat dengan username ${conversion.coderUsername || '(cek data Coder)'}.`,
+            `Level rekomendasi: ${conversion.recommendedLevel}.`,
+            'Admin perlu segera assign coder ke kelas Weekly yang sesuai.',
+        ].join(' ');
+
+        const deliveryResults = await Promise.allSettled([
+            createAdminNotifications({
+                title: 'Trial berhasil daftar',
+                message,
+                type: 'TRIAL_CONVERSION',
+                pushUrl: '/admin/trial-assessments',
+                pushTag: `trial-conversion-${conversion.assessmentId}`,
+            }),
+            sendTrialConversionAdminWhatsAppNotification({
+                assessmentId: conversion.assessmentId,
+                studentName: conversion.studentName,
+                parentName: conversion.parentName,
+                parentPhone: conversion.parentPhone,
+                recommendedLevel: conversion.recommendedLevel,
+                invoiceNumber: conversion.invoiceNumber,
+                totalAmount: conversion.totalAmount,
+                coderUsername: conversion.coderUsername,
+                ccrCode: conversion.ccrCode,
+            }),
+        ]);
+
+        for (const result of deliveryResults) {
+            if (result.status === 'rejected') {
+                console.error('[Midtrans] Trial conversion notification failed:', result.reason);
+            }
+        }
+
+        return conversion;
+    } catch (error) {
+        console.error('[Midtrans] Trial conversion paid hook failed:', error);
+        return { updated: false, reason: 'conversion_hook_failed' as const };
+    }
 }
 
 async function sendPaymentConfirmationWhatsApp(invoice: Awaited<ReturnType<typeof markInvoiceAsPaid>>, paidAt: string) {

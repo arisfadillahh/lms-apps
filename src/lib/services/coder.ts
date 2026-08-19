@@ -2,6 +2,8 @@ import { attendanceDao, classLessonsDao, classesDao, coderProgressDao, coderSess
 import { getSoftwareByBlockId } from '@/lib/dao/blockSoftwareDao';
 import { splitEkskulLessonMakeUp } from '@/lib/ekskulMakeUpInstructions';
 import { computeLessonSchedule } from '@/lib/services/lessonScheduler';
+import { isEkskulLessonAccessible } from '@/lib/services/coderLessonAccess';
+export { isEkskulLessonAccessible } from '@/lib/services/coderLessonAccess';
 
 export type CoderClassProgress = {
   classId: string;
@@ -910,10 +912,11 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
         }
 
         const sessions = await sessionsDao.listSessionsByClass(klass.id);
-        const completedSessions = sessions.filter(s => s.status === 'COMPLETED').length;
+        const completedEkskulSessions = sessions
+          .filter(s => s.status === 'COMPLETED')
+          .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
 
-        // Map Ekskul Lessons to "Accessible Lessons"
-        // Logic: Lesson is accessible if index < completedSessions OR if it's the current one (index == completedSessions)
+        // Map Ekskul lessons to the curriculum order. Only completed sessions unlock links.
         const accessibleLessons = plan.ekskul_lessons
           .sort((a, b) => a.order_index - b.order_index)
           .map((lesson, index) => {
@@ -922,15 +925,10 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
             // We assume 1-to-1 mapping based on order
             // This is an estimation for Ekskul as they don't link directly in DB usually
 
-            // Completed sessions
-            const sortedSessions = sessions
-              .filter(s => s.status === 'COMPLETED')
-              .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
-
             let sessionDate: string | null = null;
-            if (index < sortedSessions.length) {
-              sessionDate = sortedSessions[index].date_time;
-            } else if (index === sortedSessions.length) {
+            if (index < completedEkskulSessions.length) {
+              sessionDate = completedEkskulSessions[index].date_time;
+            } else if (index === completedEkskulSessions.length) {
               // Check if there is a current/upcoming session
               const nextSession = sessions
                 .filter(s => new Date(s.date_time) >= now && s.status !== 'COMPLETED' && s.status !== 'CANCELLED')
@@ -947,7 +945,7 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
               slideUrl: lesson.slide_url ?? null,
               exampleUrl: lesson.example_url ?? null,
               sessionDate,
-              isAccessible: true,
+              isAccessible: isEkskulLessonAccessible(index, completedEkskulSessions.length),
             };
           });
 
@@ -1280,12 +1278,6 @@ export async function getLessonDetailForCoder(coderId: string, lessonId: string)
 
     if (!activeEkskulClass) return null;
 
-    // Check access - similar to list logic
-    // If it's Ekskul, we might just allow access to everything if enrolled?
-    // Or follow the "session completed" logic?
-    // For now, let's allow access if enrolled, to fix the 404. 
-    // User said "Materi yang sudah dipelajari".
-
     // Calculate session date mapping
     const plan = await import('@/lib/dao/ekskulPlansDao').then(m => m.getEkskulPlanWithDetails(planId));
     let sessionDate: string | null = null;
@@ -1295,16 +1287,24 @@ export async function getLessonDetailForCoder(coderId: string, lessonId: string)
       const sortedLessons = plan.ekskul_lessons.sort((a, b) => a.order_index - b.order_index);
       const lessonIndex = sortedLessons.findIndex(l => l.id === lessonId);
 
-      if (lessonIndex !== -1) {
+        if (lessonIndex !== -1) {
         const sessions = await sessionsDao.listSessionsByClass(activeEkskulClass.id);
-        const sortedSessions = sessions
-          .filter(s => s.status !== 'CANCELLED') // Should we exclude cancelled? Probably yes.
+        const completedEkskulSessions = sessions
+          .filter(s => s.status === 'COMPLETED')
           .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
 
-        if (lessonIndex < sortedSessions.length) {
-          sessionDate = sortedSessions[lessonIndex].date_time;
+        if (!isEkskulLessonAccessible(lessonIndex, completedEkskulSessions.length)) {
+          return null;
         }
+
+        if (lessonIndex < completedEkskulSessions.length) {
+          sessionDate = completedEkskulSessions[lessonIndex].date_time;
+        }
+      } else {
+        return null;
       }
+    } else {
+      return null;
     }
 
     const lessonParts = splitEkskulLessonMakeUp(ekskulLesson.summary, ekskulLesson.make_up_instructions);

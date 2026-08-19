@@ -95,6 +95,19 @@ describe('trial class management contract', () => {
     expect(table).toContain('window.confirm');
   });
 
+  it('shows trial outcome analytics and only counts paid conversions as registered', () => {
+    const freeTrialsPage = readSource('src/app/(admin)/admin/free-trials/page.tsx');
+    const assessmentsPage = readSource('src/app/(admin)/admin/trial-assessments/page.tsx');
+    const lifecycle = readSource('src/lib/services/trialLifecycle.ts');
+
+    expect(freeTrialsPage).toContain('deriveTrialOutcome');
+    expect(freeTrialsPage).toContain('COMPLETED_REGISTERED');
+    expect(tableSource()).toContain('TRIAL_OUTCOME_LABELS');
+    expect(lifecycle).toContain("if (invoiceStatus === 'PAID')");
+    expect(assessmentsPage).toContain("item.invoice?.status === 'PAID'");
+    expect(assessmentsPage).toContain('Sudah bayar / daftar');
+  });
+
   it('shows the signed-in coach scheduled trials until assessment completion', () => {
     const dao = readSource('src/lib/dao/trialClassDao.ts');
     const dashboard = readSource('src/app/(coach)/coach/dashboard/page.tsx');
@@ -167,7 +180,15 @@ describe('trial class management contract', () => {
     expect(conversion).toContain('!assessment.recommended_level_id');
     expect(conversion).not.toContain('!assessment.recommended_class_id');
     expect(conversion).not.toContain(".from('enrollments')");
+    expect(conversion).toContain('coder_id: null');
+    expect(conversion).toContain('getOrCreateTrialCoder(detail)');
+    expect(conversion).toContain(".from('coder_payment_periods' as any)");
+    expect(conversion).toContain('Trial conversion hanya boleh diproses setelah invoice lunas.');
     expect(conversion).toContain("status: 'PAID'");
     expect(conversion).toContain('awaitingManualClassAssignment: true');
   });
 });
+
+function tableSource() {
+  return readSource('src/app/(admin)/admin/free-trials/TrialClassTable.tsx');
+}

@@ -4,6 +4,7 @@ import PageHead from '@/components/admin/PageHead';
 import { Button } from '@/components/ui/button';
 import { listTrialClassSubmissions } from '@/lib/dao/trialClassDao';
 import { listUsersByRole } from '@/lib/dao/usersDao';
+import { deriveTrialOutcome } from '@/lib/services/trialLifecycle';
 import {
   getGoogleCalendarOAuthConnectionInfo,
   isGoogleTrialCalendarConfigured,
@@ -40,6 +41,26 @@ export default async function AdminFreeTrialsPage() {
   const pendingCount = submissions.filter((item) => item.status === 'PENDING').length;
   const scheduledCount = submissions.filter((item) => item.status === 'SCHEDULED').length;
   const stoppedCount = submissions.filter((item) => item.status === 'CANCELLED' || item.status === 'FAILED').length;
+  const outcomeCounts = submissions.reduce(
+    (counts, item) => {
+      const assessment = Array.isArray(item.trial_assessments)
+        ? item.trial_assessments[0]
+        : item.trial_assessments;
+      const outcome = deriveTrialOutcome({
+        scheduleStatus: item.status,
+        assessmentStatus: assessment?.status,
+        invoiceStatus: assessment?.invoice?.status,
+      });
+      counts[outcome] += 1;
+      return counts;
+    },
+    {
+      NOT_YET_TRIAL: 0,
+      COMPLETED_NOT_REGISTERED: 0,
+      COMPLETED_REGISTERED: 0,
+      NOT_PROCEEDING: 0,
+    } as Record<'NOT_YET_TRIAL' | 'COMPLETED_NOT_REGISTERED' | 'COMPLETED_REGISTERED' | 'NOT_PROCEEDING', number>,
+  );
   const googleCalendarConfigured = isGoogleTrialCalendarConfigured();
   const googleOAuth = getGoogleCalendarOAuthConnectionInfo();
 
@@ -72,6 +93,13 @@ export default async function AdminFreeTrialsPage() {
         <Stat label="Menunggu Assign" value={pendingCount} icon={<CalendarClock size={16} />} />
         <Stat label="Terjadwal" value={scheduledCount} icon={<CalendarCheck size={16} />} />
         <Stat label="Tidak Dilanjutkan" value={stoppedCount} icon={<CircleX size={16} />} />
+      </div>
+
+      <div className="grid grid-4" style={{ marginBottom: 18 }}>
+        <Stat label="Belum Trial" value={outcomeCounts.NOT_YET_TRIAL} icon={<CalendarClock size={16} />} />
+        <Stat label="Trial Selesai, Belum Daftar" value={outcomeCounts.COMPLETED_NOT_REGISTERED} icon={<Users size={16} />} />
+        <Stat label="Trial Selesai, Sudah Daftar" value={outcomeCounts.COMPLETED_REGISTERED} icon={<CalendarCheck size={16} />} />
+        <Stat label="Tidak Jadi Sebelum Trial" value={outcomeCounts.NOT_PROCEEDING} icon={<CircleX size={16} />} />
       </div>
 
       <TrialClassTable

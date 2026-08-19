@@ -57,7 +57,7 @@ export default async function AdminTrialAssessmentsPage() {
   const reviewQueue = assessments.filter((item) => item.status === 'PENDING_ADMIN_REVIEW');
   const pending = reviewQueue.length;
   const published = assessments.filter((item) => item.status === 'PUBLISHED' || item.status === 'INVOICE_CREATED').length;
-  const converted = assessments.filter((item) => item.status === 'CONVERTED').length;
+  const converted = assessments.filter((item) => item.invoice?.status === 'PAID').length;
 
   return (
     <div className="admin-page-stack">
@@ -70,7 +70,7 @@ export default async function AdminTrialAssessmentsPage() {
         <Stat label="Total assessment" value={assessments.length} icon={<Users size={16} />} />
         <Stat label="Perlu review" value={pending} icon={<Clock size={16} />} />
         <Stat label="Report terkirim" value={published} icon={<Send size={16} />} />
-        <Stat label="Converted" value={converted} icon={<FileCheck2 size={16} />} />
+        <Stat label="Sudah bayar / daftar" value={converted} icon={<FileCheck2 size={16} />} />
       </div>
 
       <Card>

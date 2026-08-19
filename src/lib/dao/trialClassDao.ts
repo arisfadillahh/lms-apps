@@ -6,6 +6,15 @@ export type TrialClassStatus = TrialClassSubmission['status'];
 export type TrialClassSubmissionWithCoach = TrialClassSubmission & {
   coach: { id: string; full_name: string; username: string } | null;
 };
+export type TrialClassAdminSubmission = TrialClassSubmissionWithCoach & {
+  trial_assessments?: {
+    status: string;
+    invoice?: { status: string } | null;
+  } | Array<{
+    status: string;
+    invoice?: { status: string } | null;
+  }> | null;
+};
 
 export type CreateTrialClassSubmissionInput = Pick<
   TrialClassSubmission,
@@ -23,11 +32,11 @@ export async function createTrialClassSubmission(input: CreateTrialClassSubmissi
   return data;
 }
 
-export async function listTrialClassSubmissions(limit = 500) {
+export async function listTrialClassSubmissions(limit = 500): Promise<TrialClassAdminSubmission[]> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from('trial_class_submissions')
-    .select('*, coach:users!trial_class_submissions_coach_id_fkey(id, full_name, username)')
+    .select('*, coach:users!trial_class_submissions_coach_id_fkey(id, full_name, username), trial_assessments(status, invoice:invoices!trial_assessments_invoice_id_fkey(status))')
     .order('created_at', { ascending: false })
     .limit(limit);
 
@@ -35,7 +44,7 @@ export async function listTrialClassSubmissions(limit = 500) {
     throw new Error(`Failed to load trial class submissions: ${error.message}`);
   }
 
-  return (data ?? []) as unknown as TrialClassSubmissionWithCoach[];
+  return (data ?? []) as unknown as TrialClassAdminSubmission[];
 }
 
 export function isUpcomingTrial(scheduledAt: string | null, now: Date): boolean {

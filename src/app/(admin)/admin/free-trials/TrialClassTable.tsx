@@ -31,10 +31,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { OFFLINE_TRIAL_ADDRESS, OFFLINE_TRIAL_SCHEDULE } from '@/lib/validation/trialClass';
+import {
+  deriveTrialOutcome,
+  TRIAL_OUTCOME_LABELS,
+  TRIAL_OUTCOME_STYLES,
+  type TrialOutcomeStatus,
+} from '@/lib/services/trialLifecycle';
 import type { Database } from '@/types/supabase';
 
 type TrialClassSubmission = Database['public']['Tables']['trial_class_submissions']['Row'] & {
   coach: { id: string; full_name: string; username: string } | null;
+  trial_assessments?: {
+    status: string;
+    invoice?: { status: string } | null;
+  } | Array<{
+    status: string;
+    invoice?: { status: string } | null;
+  }> | null;
 };
 type CoachOption = { id: string; name: string };
 type TerminalStatus = 'CANCELLED' | 'FAILED';
@@ -102,6 +115,18 @@ export default function TrialClassTable({
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  function getTrialOutcome(item: TrialClassSubmission): TrialOutcomeStatus {
+    const assessment = Array.isArray(item.trial_assessments)
+      ? item.trial_assessments[0]
+      : item.trial_assessments;
+
+    return deriveTrialOutcome({
+      scheduleStatus: item.status,
+      assessmentStatus: assessment?.status,
+      invoiceStatus: assessment?.invoice?.status,
+    });
+  }
+
   const normalizedQuery = query.trim().toLowerCase();
   const filtered = useMemo(() => {
     if (!normalizedQuery) return submissions;
@@ -117,6 +142,7 @@ export default function TrialClassTable({
         item.notes ?? '',
         item.coach?.full_name ?? '',
         STATUS_LABELS[item.status],
+        TRIAL_OUTCOME_LABELS[getTrialOutcome(item)],
       ].some((value) => value.toLowerCase().includes(normalizedQuery)),
     );
   }, [normalizedQuery, submissions]);
@@ -265,6 +291,7 @@ export default function TrialClassTable({
                 </TableRow>
               ) : filtered.map((item) => {
                 const isTerminal = item.status === 'CANCELLED' || item.status === 'FAILED';
+                const outcome = getTrialOutcome(item);
                 return (
                   <TableRow key={item.id}>
                     <TableCell className="whitespace-nowrap pl-6 text-xs text-muted-foreground">
@@ -292,7 +319,10 @@ export default function TrialClassTable({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={STATUS_STYLES[item.status]}>{STATUS_LABELS[item.status]}</Badge>
+                      <div className="flex min-w-48 flex-col items-start gap-1">
+                        <Badge variant="outline" className={STATUS_STYLES[item.status]}>{STATUS_LABELS[item.status]}</Badge>
+                        <Badge variant="outline" className={TRIAL_OUTCOME_STYLES[outcome]}>{TRIAL_OUTCOME_LABELS[outcome]}</Badge>
+                      </div>
                     </TableCell>
                     <TableCell className="whitespace-normal text-sm">
                       {item.status === 'SCHEDULED' && item.scheduled_at ? (

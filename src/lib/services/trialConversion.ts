@@ -144,10 +144,7 @@ export async function createOrGetTrialConversionInvoice(assessmentId: string) {
   }
 
   const supabase = getSupabaseAdmin();
-  const [coder, paymentPlan] = await Promise.all([
-    getOrCreateTrialCoder(assessment),
-    getDefaultPaymentPlan(assessment.payment_plan_id),
-  ]);
+  const paymentPlan = await getDefaultPaymentPlan(assessment.payment_plan_id);
 
   const { data: pricing, error: pricingError } = await supabase
     .from('pricing')
@@ -216,7 +213,6 @@ export async function createOrGetTrialConversionInvoice(assessmentId: string) {
       if (existingInvoice) {
         await updateAssessment(assessment.id, {
           invoice_id: (existingInvoice as any).id,
-          coder_id: coder.id,
           payment_plan_id: paymentPlan.id,
           status: 'INVOICE_CREATED',
           registration_started_at: assessment.registration_started_at ?? new Date().toISOString(),
@@ -231,7 +227,8 @@ export async function createOrGetTrialConversionInvoice(assessmentId: string) {
     .from('invoice_items' as any)
     .insert({
       invoice_id: (invoice as any).id,
-      coder_id: coder.id,
+      // Do not create a coder or Weekly payment record before the invoice is paid.
+      coder_id: null,
       coder_name: assessment.trial.student_name,
       class_name: `Level ${assessment.recommended_level?.name ?? 'Weekly Class'}`,
       level_name: assessment.recommended_level?.name ?? 'Weekly Class',
@@ -248,7 +245,6 @@ export async function createOrGetTrialConversionInvoice(assessmentId: string) {
 
   await updateAssessment(assessment.id, {
     invoice_id: (invoice as any).id,
-    coder_id: coder.id,
     payment_plan_id: paymentPlan.id,
     status: 'INVOICE_CREATED',
     registration_started_at: new Date().toISOString(),
@@ -268,8 +264,8 @@ export async function markTrialConversionPaidFromInvoice(invoiceId: string, paid
   if (assessment.status === 'PAID' || (assessment.status === 'CONVERTED' && assessment.converted_at)) {
     return { updated: false, reason: 'already_paid' };
   }
-  if (!assessment.coder_id || !assessment.pricing_id) {
-    throw new Error('Trial conversion belum memiliki coder atau pricing lengkap.');
+  if (!assessment.pricing_id) {
+    throw new Error('Trial conversion belum memiliki pricing lengkap.');
   }
 
   const supabase = getSupabaseAdmin();
@@ -279,6 +275,10 @@ export async function markTrialConversionPaidFromInvoice(invoiceId: string, paid
   ]);
   if (!detail?.trial) throw new Error('Data trial conversion tidak lengkap.');
   if (!invoice) throw new Error('Invoice conversion tidak ditemukan.');
+  if (invoice.status !== 'PAID') throw new Error('Trial conversion hanya boleh diproses setelah invoice lunas.');
+
+  const coder = await getOrCreateTrialCoder(detail);
+  const paymentPlan = await getDefaultPaymentPlan(detail.payment_plan_id);
 
   const ccr = await getOrCreateCCR(detail.trial.phone, detail.trial.parent_name);
   if (!ccr) throw new Error('Gagal membuat CCR setelah pembayaran trial.');
@@ -287,7 +287,45 @@ export async function markTrialConversionPaidFromInvoice(invoiceId: string, paid
     await supabase.from('invoices' as any).update({ ccr_id: ccr.id }).eq('id', invoice.id);
   }
 
+  let paymentPeriodId = detail.payment_period_id;
+  if (!paymentPeriodId) {
+    const estimatedStart = detail.estimated_start_date
+      ? new Date(`${detail.estimated_start_date}T00:00:00+07:00`)
+      : new Date(paidAt);
+    const periodEnd = addMonths(estimatedStart, paymentPlan.duration_months || 1);
+    periodEnd.setDate(periodEnd.getDate() - 1);
+    const { data: paymentPeriod, error: paymentPeriodError } = await supabase
+      .from('coder_payment_periods' as any)
+      .insert({
+        coder_id: coder.id,
+        class_id: null,
+        payment_plan_id: paymentPlan.id,
+        pricing_id: detail.pricing_id,
+        start_date: format(estimatedStart, 'yyyy-MM-dd'),
+        end_date: format(periodEnd, 'yyyy-MM-dd'),
+        total_amount: Number(detail.final_price ?? invoice.total_amount),
+        status: 'ACTIVE',
+      })
+      .select('id')
+      .single();
+
+    if (paymentPeriodError || !paymentPeriod) {
+      throw new Error(`Gagal membuat periode Weekly setelah pembayaran: ${paymentPeriodError?.message || 'data tidak tersedia'}`);
+    }
+    paymentPeriodId = (paymentPeriod as unknown as { id: string }).id;
+  }
+
+  const { error: invoiceItemError } = await supabase
+    .from('invoice_items' as any)
+    .update({ coder_id: coder.id, payment_period_id: paymentPeriodId })
+    .eq('invoice_id', invoice.id);
+  if (invoiceItemError) {
+    throw new Error(`Gagal menghubungkan invoice ke akun Weekly: ${invoiceItemError.message}`);
+  }
+
   await updateAssessment(assessment.id, {
+    coder_id: coder.id,
+    payment_period_id: paymentPeriodId,
     status: 'PAID',
     payment_confirmed_at: paidAt,
     converted_at: null,
@@ -296,8 +334,9 @@ export async function markTrialConversionPaidFromInvoice(invoiceId: string, paid
   return {
     updated: true,
     assessmentId: assessment.id,
-    coderId: assessment.coder_id,
+    coderId: coder.id,
     ccrCode: ccr.ccr_code,
+    weeklyRegistrationReady: true,
     awaitingManualClassAssignment: true,
   };
 }

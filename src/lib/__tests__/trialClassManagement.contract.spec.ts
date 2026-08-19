@@ -181,10 +181,11 @@ describe('trial class management contract', () => {
     expect(conversion).not.toContain('!assessment.recommended_class_id');
     expect(conversion).not.toContain(".from('enrollments')");
     expect(conversion).toContain('coder_id: null');
-    expect(conversion).toContain('getOrCreateTrialCoder(detail)');
-    expect(conversion).toContain(".from('coder_payment_periods' as any)");
+    expect(conversion).not.toContain('getOrCreateTrialCoder');
+    expect(conversion).not.toContain(".from('coder_payment_periods' as any)");
     expect(conversion).toContain('Trial conversion hanya boleh diproses setelah invoice lunas.');
     expect(conversion).toContain("status: 'PAID'");
+    expect(conversion).toContain('requiresAdminAccountCreation: true');
     expect(conversion).toContain('awaitingManualClassAssignment: true');
   });
 });

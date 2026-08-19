@@ -57,8 +57,6 @@ export type TrialConversionNotificationInput = {
   recommendedLevel: string;
   invoiceNumber: string;
   totalAmount: number;
-  coderUsername?: string | null;
-  ccrCode?: string | null;
 };
 
 export function buildTrialClassAdminMessage(input: TrialClassNotificationInput) {
@@ -272,11 +270,9 @@ export function buildTrialConversionAdminMessage(input: TrialConversionNotificat
     `*Level rekomendasi:* ${input.recommendedLevel}`,
     `*Invoice:* ${input.invoiceNumber}`,
     `*Total dibayar:* ${formatTrialCurrency(input.totalAmount)}`,
-    input.ccrCode ? `*CCR:* ${input.ccrCode}` : null,
-    input.coderUsername ? `*Username LMS:* ${input.coderUsername}` : null,
     '',
-    '*Catatan:* Akun LMS sudah dibuat otomatis setelah pembayaran terkonfirmasi.',
-    '*Tindak lanjut:* Segera assign coder ke kelas Weekly yang sesuai dari dashboard Admin.',
+    '*Catatan:* Akun LMS belum dibuat otomatis.',
+    '*Tindak lanjut Admin:* Buat akun LMS secara manual, lalu assign coder ke kelas Weekly yang sesuai dari dashboard Admin.',
     '',
     '*Sumber:* Trial Class',
   ].filter((line): line is string => line !== null).join('\n');

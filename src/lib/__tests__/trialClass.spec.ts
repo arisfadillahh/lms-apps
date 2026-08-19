@@ -184,7 +184,7 @@ describe('trial class WhatsApp notifications', () => {
 });
 
 describe('trial conversion notifications', () => {
-  it('clearly tells Admin that a paid trial created an LMS account and needs class assignment', () => {
+  it('clearly tells Admin to create the LMS account manually after payment', () => {
     const message = buildTrialConversionAdminMessage({
       assessmentId: 'assessment-id',
       studentName: 'Alya Putri',
@@ -193,13 +193,12 @@ describe('trial conversion notifications', () => {
       recommendedLevel: 'Creator',
       invoiceNumber: 'INV-TRIAL-001',
       totalAmount: 500000,
-      coderUsername: 'trial.alya.2628',
-      ccrCode: 'CCR123',
     });
 
     expect(message).toContain('*Trial berhasil daftar setelah pembayaran*');
-    expect(message).toContain('*Username LMS:* trial.alya.2628');
-    expect(message).toContain('Akun LMS sudah dibuat otomatis');
-    expect(message).toContain('Segera assign coder ke kelas Weekly');
+    expect(message).toContain('Akun LMS belum dibuat otomatis');
+    expect(message).toContain('Buat akun LMS secara manual');
+    expect(message).toContain('assign coder ke kelas Weekly');
+    expect(message).not.toContain('Username LMS');
   });
 });

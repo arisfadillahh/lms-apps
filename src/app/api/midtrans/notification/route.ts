@@ -138,9 +138,9 @@ async function processTrialConversionPaid(invoiceId: string, paidAt: string) {
 
         const message = [
             `Trial ${conversion.studentName} sudah berhasil daftar setelah pembayaran terkonfirmasi.`,
-            `Akun LMS otomatis dibuat dengan username ${conversion.coderUsername || '(cek data Coder)'}.`,
+            'Akun LMS belum dibuat otomatis.',
             `Level rekomendasi: ${conversion.recommendedLevel}.`,
-            'Admin perlu segera assign coder ke kelas Weekly yang sesuai.',
+            'Admin perlu membuat akun LMS secara manual lalu assign coder ke kelas Weekly yang sesuai.',
         ].join(' ');
 
         const deliveryResults = await Promise.allSettled([
@@ -159,8 +159,6 @@ async function processTrialConversionPaid(invoiceId: string, paidAt: string) {
                 recommendedLevel: conversion.recommendedLevel,
                 invoiceNumber: conversion.invoiceNumber,
                 totalAmount: conversion.totalAmount,
-                coderUsername: conversion.coderUsername,
-                ccrCode: conversion.ccrCode,
             }),
         ]);
 

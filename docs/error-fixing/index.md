@@ -29,3 +29,4 @@ Search this file and the linked monthly log before changing related code.
 | 2026-08-18 | INTERNAL-20260818-02 | Coach trial assessment | Long observation text was rejected before saving | [2026-08](./2026-08.md#internal-20260818-02-coach-trial-observation-length-rejected) |
 | 2026-08-18 | INTERNAL-20260818-03 | Admin class schedule | Existing recurring schedule control was easy to miss | [2026-08](./2026-08.md#internal-20260818-03-recurring-class-schedule-control-was-hard-to-discover) |
 | 2026-08-18 | INTERNAL-20260818-04 | Admin class progress | Active Ekskul classes showed 0% despite completed sessions | [2026-08](./2026-08.md#internal-20260818-04-ekskul-class-progress-stayed-at-zero) |
+| 2026-08-19 | INTERNAL-20260819-01 | Trial management and conversion | Trial outcomes were unclear and coder registration started before payment | [2026-08](./2026-08.md#internal-20260819-01-trial-outcome-and-paid-conversion-gate) |

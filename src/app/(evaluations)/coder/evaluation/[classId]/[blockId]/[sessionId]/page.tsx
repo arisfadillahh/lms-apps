@@ -1,3 +1,6 @@
+import Link from 'next/link';
+import { CheckCircle2 } from 'lucide-react';
+
 import { getSessionOrThrow } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import BlockEvaluationClient from './BlockEvaluationClient';
@@ -9,12 +12,41 @@ export default async function BlockEvaluationPage({
   params: Promise<{ classId: string; blockId: string; sessionId: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  await getSessionOrThrow();
+  const session = await getSessionOrThrow();
   const { classId, blockId, sessionId } = await params;
   const resolvedParams = await searchParams;
   const evalSessionId = typeof resolvedParams.evalSessionId === 'string' ? resolvedParams.evalSessionId : undefined;
 
   const supabase = getSupabaseAdmin();
+
+  const { data: existingEvaluation } = await supabase
+    .from('block_evaluations')
+    .select('id')
+    .eq('coder_id', session.user.id)
+    .eq('class_id', classId)
+    .eq('block_id', blockId)
+    .eq('session_id', sessionId)
+    .maybeSingle();
+
+  if (existingEvaluation) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#162b46] p-6 text-center text-white">
+        <section className="w-full max-w-lg rounded-3xl border border-white/15 bg-white/10 p-8 shadow-2xl backdrop-blur-sm">
+          <CheckCircle2 className="mx-auto mb-5 text-clevio-green" size={64} aria-hidden="true" />
+          <h1 className="text-3xl font-black">Evaluasi sudah selesai</h1>
+          <p className="mt-3 text-white/70">
+            Jawaban evaluasimu sudah tersimpan. Kamu tidak perlu mengisi sesi yang sama lagi.
+          </p>
+          <Link
+            href="/coder/dashboard"
+            className="mt-7 inline-flex min-h-12 items-center justify-center rounded-2xl bg-white px-6 py-3 font-black text-clevio-navy transition-colors hover:bg-slate-100"
+          >
+            Kembali ke Dashboard
+          </Link>
+        </section>
+      </main>
+    );
+  }
 
   // Fetch class, block, coach, level data in parallel
   const [{ data: classData }, { data: blockData }] = await Promise.all([

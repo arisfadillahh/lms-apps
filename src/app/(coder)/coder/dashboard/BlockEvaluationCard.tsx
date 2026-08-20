@@ -4,6 +4,10 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getSupabaseBrowser } from '@/lib/supabaseBrowser';
 import { GraduationCap, Sparkles, ChevronRight, PanelsTopLeft } from 'lucide-react';
+import {
+  resolveCoderEvaluationDashboardMode,
+  type CoderEvaluationDashboardMode,
+} from '@/lib/coderEvaluationDashboard';
 
 type BlockEvaluationCardProps = {
   classId: string;
@@ -15,6 +19,7 @@ type ActiveEvaluationSession = {
   block_id: string;
   session_id: string | null;
   status: 'in_progress' | 'completed' | string;
+  created_at: string;
 };
 
 type ActiveEvaluationSessionFilter = {
@@ -34,7 +39,7 @@ type ActiveEvaluationSessionClient = {
 
 export default function BlockEvaluationCard({ classId, userId }: BlockEvaluationCardProps) {
   const [activeSession, setActiveSession] = useState<ActiveEvaluationSession | null>(null);
-  const [evaluationSubmitted, setEvaluationSubmitted] = useState(false);
+  const [mode, setMode] = useState<CoderEvaluationDashboardMode>('HIDDEN');
   const supabase = getSupabaseBrowser();
 
   useEffect(() => {
@@ -47,7 +52,7 @@ export default function BlockEvaluationCard({ classId, userId }: BlockEvaluation
       const evaluationSessionClient = supabase as unknown as ActiveEvaluationSessionClient;
       const { data } = await evaluationSessionClient
         .from('block_evaluation_sessions')
-        .select('id, block_id, session_id, status')
+        .select('id, block_id, session_id, status, created_at')
         .eq('class_id', classId)
         .in('status', ['in_progress', 'completed'])
         .order('created_at', { ascending: false })
@@ -61,23 +66,63 @@ export default function BlockEvaluationCard({ classId, userId }: BlockEvaluation
           blockId: data.block_id,
           sessionId: data.session_id,
         });
-        const res = await fetch(`/api/coder/block-evaluations?${params.toString()}`);
         let alreadySubmitted = false;
-        
-        if (res.ok) {
-           const json = await res.json();
-           alreadySubmitted = json.submitted;
+        let checkedAt = new Date();
+
+        try {
+          const res = await fetch(`/api/coder/block-evaluations?${params.toString()}`);
+          if (res.ok) {
+            const json = await res.json();
+            alreadySubmitted = json.submitted;
+            const serverTime = Date.parse(json.serverTime);
+            if (Number.isFinite(serverTime)) checkedAt = new Date(serverTime);
+          }
+        } catch {
+          // Keep the evaluation action available when its status check is temporarily unavailable.
         }
 
-        const portfolioResponse = await fetch(`/api/coder/portfolios?evaluationSessionId=${data.id}`);
-        const portfolioBody = portfolioResponse.ok ? await portfolioResponse.json() : { portfolios: [] };
-        const alreadyStartedPortfolio = (portfolioBody.portfolios || []).some(
-          (portfolio: { evaluation_session_id?: string | null }) => portfolio.evaluation_session_id === data.id,
-        );
+        if (!alreadySubmitted) {
+          setMode('EVALUATION');
+          setActiveSession(data);
+          return;
+        }
 
-        setEvaluationSubmitted(alreadySubmitted);
-        setActiveSession(alreadySubmitted && alreadyStartedPortfolio ? null : data);
+        const recentMode = resolveCoderEvaluationDashboardMode({
+          status: data.status,
+          createdAt: data.created_at,
+          now: checkedAt,
+          evaluationSubmitted: true,
+          portfolioStarted: false,
+        });
+
+        if (recentMode !== 'PORTFOLIO') {
+          setMode('HIDDEN');
+          setActiveSession(null);
+          return;
+        }
+
+        let alreadyStartedPortfolio = false;
+        try {
+          const portfolioResponse = await fetch(`/api/coder/portfolios?evaluationSessionId=${data.id}`);
+          const portfolioBody = portfolioResponse.ok ? await portfolioResponse.json() : { portfolios: [] };
+          alreadyStartedPortfolio = (portfolioBody.portfolios || []).some(
+            (portfolio: { evaluation_session_id?: string | null }) => portfolio.evaluation_session_id === data.id,
+          );
+        } catch {
+          // A temporary portfolio API failure must not affect the completed evaluation state.
+        }
+
+        const nextMode = resolveCoderEvaluationDashboardMode({
+          status: data.status,
+          createdAt: data.created_at,
+          now: checkedAt,
+          evaluationSubmitted: true,
+          portfolioStarted: alreadyStartedPortfolio,
+        });
+        setMode(nextMode);
+        setActiveSession(nextMode === 'HIDDEN' ? null : data);
       } else {
+        setMode('HIDDEN');
         setActiveSession(null);
       }
     };
@@ -112,8 +157,7 @@ export default function BlockEvaluationCard({ classId, userId }: BlockEvaluation
     };
   }, [classId, userId, supabase]);
 
-  // Remove unused import if we don't need it (supabase is still used. Wait, supabase is used for realtime channel)
-  if (!activeSession) return null;
+  if (!activeSession || mode === 'HIDDEN') return null;
 
   return (
     <div className="relative bg-gradient-to-br from-violet-600 to-indigo-700 rounded-3xl p-6 mb-6 overflow-hidden shadow-xl shadow-violet-500/20 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -136,27 +180,35 @@ export default function BlockEvaluationCard({ classId, userId }: BlockEvaluation
             <Sparkles className="text-yellow-300 animate-pulse" size={14} />
           </div>
           <h4 className="text-white font-black text-lg leading-tight mb-1">
-            {evaluationSubmitted ? 'Refleksi selesai, waktunya simpan karya!' : activeSession.status === 'completed' ? 'Evaluasi Telah Tersedia!' : 'Coach Telah Membuka Sesi Evaluasi!'}
+            {mode === 'PORTFOLIO'
+              ? 'Refleksi selesai, waktunya simpan karya!'
+              : activeSession.status === 'completed'
+                ? 'Evaluasi Telah Tersedia!'
+                : 'Coach Telah Membuka Sesi Evaluasi!'}
           </h4>
           <p className="text-violet-200 text-sm font-medium leading-snug">
-            {evaluationSubmitted ? 'Buat portofolio dari project di block ini. Kamu juga bisa melanjutkannya nanti dari menu Rapor & Portofolio.' : activeSession.status === 'completed' ? 'Selesaikan refleksi dan simpan project yang kamu banggakan.' : 'Coach sedang memandu refleksi. Kamu juga bisa mulai mengisi portofolio.'}
+            {mode === 'PORTFOLIO'
+              ? 'Buat portofolio dari project di block ini. Kamu juga bisa melanjutkannya nanti dari menu Rapor & Portofolio.'
+              : activeSession.status === 'completed'
+                ? 'Selesaikan refleksimu terlebih dahulu sebelum mengisi portofolio.'
+                : 'Coach sedang memandu refleksi. Selesaikan evaluasimu terlebih dahulu.'}
           </p>
         </div>
 
         {/* CTA */}
         <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto">
-          {!evaluationSubmitted && <Link
+          {mode === 'EVALUATION' && <Link
             href={`/coder/evaluation/${classId}/${activeSession.block_id}/${activeSession.session_id}?evalSessionId=${activeSession.id}`}
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 font-black text-violet-700 shadow-lg transition-all hover:bg-violet-50 active:scale-95 sm:w-auto"
           >
             Masuk Evaluasi <ChevronRight size={18} />
           </Link>}
-          <Link
+          {mode === 'PORTFOLIO' && <Link
             href={`/coder/reports/portfolio/new?classId=${classId}&blockId=${activeSession.block_id}&evaluationSessionId=${activeSession.id}`}
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-lime-300 px-6 py-3 font-black text-violet-950 shadow-lg transition-all hover:bg-lime-200 active:scale-95 sm:w-auto"
           >
             <PanelsTopLeft size={18} /> Isi Portofolio
-          </Link>
+          </Link>}
         </div>
       </div>
     </div>

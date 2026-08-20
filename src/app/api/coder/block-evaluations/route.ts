@@ -102,9 +102,10 @@ export async function GET(req: Request) {
     const classId = searchParams.get('classId');
     const blockId = searchParams.get('blockId');
     const sessionId = searchParams.get('sessionId');
+    const serverTime = new Date().toISOString();
 
     if (!blockId) {
-      return NextResponse.json({ submitted: false });
+      return NextResponse.json({ submitted: false, serverTime });
     }
 
     const supabase = getSupabaseAdmin();
@@ -124,7 +125,7 @@ export async function GET(req: Request) {
 
     const { data } = await query.maybeSingle();
 
-    return NextResponse.json({ submitted: !!data, id: data?.id ?? null });
+    return NextResponse.json({ submitted: !!data, id: data?.id ?? null, serverTime });
   } catch (e) {
     console.error('[block-evaluations GET] Unexpected:', e);
     return NextResponse.json({ error: 'Server error.' }, { status: 500 });

@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { listTrialAssessmentsForAdmin } from '@/lib/dao/trialAssessmentsDao';
 import type { TrialAssessmentRecord } from '@/lib/dao/trialAssessmentsDao';
+import { isTrialAssessmentSubmitted } from '@/lib/services/trialLifecycle';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,10 +55,11 @@ function Stat({ label, value, icon }: { label: string; value: number; icon: Reac
 
 export default async function AdminTrialAssessmentsPage() {
   const assessments = await listTrialAssessmentsForAdmin();
-  const reviewQueue = assessments.filter((item) => item.status === 'PENDING_ADMIN_REVIEW');
+  const submittedAssessments = assessments.filter((item) => isTrialAssessmentSubmitted(item.status));
+  const reviewQueue = submittedAssessments.filter((item) => item.status === 'PENDING_ADMIN_REVIEW');
   const pending = reviewQueue.length;
-  const published = assessments.filter((item) => item.status === 'PUBLISHED' || item.status === 'INVOICE_CREATED').length;
-  const converted = assessments.filter((item) => item.invoice?.status === 'PAID').length;
+  const published = submittedAssessments.filter((item) => item.status === 'PUBLISHED' || item.status === 'INVOICE_CREATED').length;
+  const converted = submittedAssessments.filter((item) => item.invoice?.status === 'PAID').length;
 
   return (
     <div className="admin-page-stack">
@@ -67,7 +69,7 @@ export default async function AdminTrialAssessmentsPage() {
       />
 
       <div className="grid grid-4" style={{ marginBottom: 18 }}>
-        <Stat label="Total assessment" value={assessments.length} icon={<Users size={16} />} />
+        <Stat label="Total assessment" value={submittedAssessments.length} icon={<Users size={16} />} />
         <Stat label="Perlu review" value={pending} icon={<Clock size={16} />} />
         <Stat label="Report terkirim" value={published} icon={<Send size={16} />} />
         <Stat label="Sudah bayar / daftar" value={converted} icon={<FileCheck2 size={16} />} />

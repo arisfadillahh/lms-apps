@@ -1,8 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import { deriveTrialOutcome } from '@/lib/services/trialLifecycle';
+import { deriveTrialOutcome, isTrialAssessmentSubmitted } from '@/lib/services/trialLifecycle';
 
 describe('trial outcome lifecycle', () => {
+  it('counts only non-draft assessments as submitted coach assessments', () => {
+    expect(isTrialAssessmentSubmitted('DRAFT')).toBe(false);
+    expect(isTrialAssessmentSubmitted(null)).toBe(false);
+    expect(isTrialAssessmentSubmitted('PENDING_ADMIN_REVIEW')).toBe(true);
+    expect(isTrialAssessmentSubmitted('PAID')).toBe(true);
+  });
+
   it('keeps a pending or scheduled trial in the not-yet-trial bucket', () => {
     expect(deriveTrialOutcome({ scheduleStatus: 'PENDING' })).toBe('NOT_YET_TRIAL');
     expect(deriveTrialOutcome({ scheduleStatus: 'SCHEDULED', assessmentStatus: 'DRAFT' })).toBe('NOT_YET_TRIAL');
@@ -34,4 +41,3 @@ describe('trial outcome lifecycle', () => {
     expect(deriveTrialOutcome({ scheduleStatus: 'FAILED' })).toBe('NOT_PROCEEDING');
   });
 });
-

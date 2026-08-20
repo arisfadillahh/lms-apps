@@ -7,6 +7,7 @@ type ReportLessonButtonProps = {
     lessonId: string;
     lessonTitle: string;
     coachId: string;
+    lessonSource?: 'WEEKLY' | 'EKSKUL';
 };
 
 const REPORT_TYPES = [
@@ -17,7 +18,7 @@ const REPORT_TYPES = [
     { value: 'OTHER', label: 'Lainnya' },
 ];
 
-export default function ReportLessonButton({ lessonId, lessonTitle, coachId }: ReportLessonButtonProps) {
+export default function ReportLessonButton({ lessonId, lessonTitle, coachId, lessonSource = 'WEEKLY' }: ReportLessonButtonProps) {
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
@@ -44,7 +45,7 @@ export default function ReportLessonButton({ lessonId, lessonTitle, coachId }: R
                 const res = await fetch('/api/coach/lesson-reports', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ lessonTemplateId: lessonId, reportType, description: description.trim() }),
+                    body: JSON.stringify({ lessonTemplateId: lessonId, lessonSource, reportType, description: description.trim() }),
                 });
                 if (!res.ok) {
                     const data = await res.json().catch(() => ({}));

@@ -400,10 +400,14 @@
 }
 
 [data-admin-shell='true'] .sidebar {
-  position: sticky;
+  position: fixed;
   top: 0;
-  align-self: start;
-  height: 100vh;
+  left: 0;
+  bottom: 0;
+  width: var(--sidebar-w);
+  height: 100dvh;
+  min-height: 0;
+  z-index: 30;
   background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex;
@@ -413,6 +417,7 @@
 
 [data-admin-shell='true'] .sidebar-scroll {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 10px 10px 20px;
 }
@@ -428,6 +433,7 @@
 
 [data-admin-shell='true'] .main {
   min-width: 0;
+  grid-column: 2;
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
@@ -1859,6 +1865,10 @@
 @media (max-width: 700px) {
   [data-admin-shell='true'] {
     grid-template-columns: 1fr;
+  }
+
+  [data-admin-shell='true'] .main {
+    grid-column: 1;
   }
 
   [data-admin-shell='true'] .sidebar,

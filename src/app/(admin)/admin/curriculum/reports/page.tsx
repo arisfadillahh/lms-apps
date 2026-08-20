@@ -8,6 +8,19 @@ import KanbanBoard from './KanbanBoard';
 
 export const dynamic = 'force-dynamic';
 
+const EKSKUL_LESSON_TITLE = /^\[Ekskul lesson: ([^\]]+)\]\s*/;
+
+function getEmbeddedEkskulLesson(report: { description?: string | null }) {
+  const match = report.description?.match(EKSKUL_LESSON_TITLE);
+  if (!match) return null;
+
+  return {
+    id: '',
+    title: match[1],
+    block_id: '',
+  };
+}
+
 export default async function LessonReportsPage() {
   const session = await getSessionOrThrow();
   await assertRole(session, 'ADMIN');
@@ -49,7 +62,14 @@ export default async function LessonReportsPage() {
         block = blockData;
       }
 
-      return { ...report, coach, lesson, block };
+      const embeddedEkskulLesson = getEmbeddedEkskulLesson(report);
+      return {
+        ...report,
+        description: report.description?.replace(EKSKUL_LESSON_TITLE, '').trim() ?? '',
+        coach,
+        lesson: lesson ?? embeddedEkskulLesson,
+        block,
+      };
     })
   );
 

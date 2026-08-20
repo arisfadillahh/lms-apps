@@ -16,6 +16,7 @@ const REPORT_TYPE_LABELS: Record<string, string> = {
 
 const reportSchema = z.object({
     lessonTemplateId: z.string().uuid(),
+    lessonSource: z.enum(['WEEKLY', 'EKSKUL']).default('WEEKLY'),
     reportType: z.enum(['TOO_DIFFICULT', 'UNCLEAR', 'BUG', 'OUTDATED', 'OTHER']),
     description: z.string().min(3).max(1000),
 });
@@ -37,20 +38,47 @@ export async function POST(request: Request) {
     }
 
     const supabase = getSupabaseAdmin();
-    const { data: lessonTemplate } = await supabase
-        .from('lesson_templates')
-        .select('title')
-        .eq('id', parsed.data.lessonTemplateId)
-        .single();
+    let lessonTitle = 'Unknown lesson';
+    let lessonTemplateId: string | null = parsed.data.lessonTemplateId;
 
-    const lessonTitle = lessonTemplate?.title || 'Unknown lesson';
+    if (parsed.data.lessonSource === 'EKSKUL') {
+        const { data: ekskulLesson } = await supabase
+            .from('ekskul_lessons')
+            .select('title')
+            .eq('id', parsed.data.lessonTemplateId)
+            .maybeSingle();
+
+        if (!ekskulLesson) {
+            return NextResponse.json({ error: 'Lesson Ekskul tidak ditemukan' }, { status: 404 });
+        }
+
+        lessonTitle = ekskulLesson.title;
+        lessonTemplateId = null;
+    } else {
+        const { data: lessonTemplate } = await supabase
+            .from('lesson_templates')
+            .select('title')
+            .eq('id', parsed.data.lessonTemplateId)
+            .maybeSingle();
+
+        if (!lessonTemplate) {
+            return NextResponse.json({ error: 'Lesson tidak ditemukan' }, { status: 404 });
+        }
+
+        lessonTitle = lessonTemplate.title;
+    }
+
+    const persistedDescription = parsed.data.lessonSource === 'EKSKUL'
+        ? `[Ekskul lesson: ${lessonTitle}]\n\n${parsed.data.description}`
+        : parsed.data.description;
+
     const { data, error } = await (supabase as any)
         .from('lesson_reports')
         .insert({
-            lesson_template_id: parsed.data.lessonTemplateId,
+            lesson_template_id: lessonTemplateId,
             coach_id: session.user.id,
             report_type: parsed.data.reportType,
-            description: parsed.data.description,
+            description: persistedDescription,
             status: 'PENDING',
         })
         .select('*')

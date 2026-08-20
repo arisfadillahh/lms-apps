@@ -198,9 +198,12 @@ export default async function CoachLessonDetailPage({ params, searchParams }: Pa
                                     Game Sample
                                 </a>
                             )}
-                            {!isEkskulLesson && (
-                                <ReportLessonButton lessonId={lesson.id} lessonTitle={lesson.title} coachId={session.user.id} />
-                            )}
+                            <ReportLessonButton
+                                lessonId={lesson.id}
+                                lessonTitle={lesson.title}
+                                coachId={session.user.id}
+                                lessonSource={isEkskulLesson ? 'EKSKUL' : 'WEEKLY'}
+                            />
                         </div>
 
                     </div>

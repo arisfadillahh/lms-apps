@@ -24,6 +24,10 @@ export type TrialOutcomeInput = {
   invoiceStatus?: string | null;
 };
 
+export function isTrialAssessmentSubmitted(status?: string | null): boolean {
+  return Boolean(status && status !== 'DRAFT');
+}
+
 export function deriveTrialOutcome({
   scheduleStatus,
   assessmentStatus,
@@ -38,10 +42,9 @@ export function deriveTrialOutcome({
     return 'COMPLETED_REGISTERED';
   }
 
-  if (assessmentStatus && assessmentStatus !== 'DRAFT') {
+  if (isTrialAssessmentSubmitted(assessmentStatus)) {
     return 'COMPLETED_NOT_REGISTERED';
   }
 
   return 'NOT_YET_TRIAL';
 }
-

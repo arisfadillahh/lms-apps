@@ -9,6 +9,7 @@ const NAV_LINKS = [
     { href: '/coach/rubrics', label: 'Rubrik & Penilaian', icon: 'analytics' },
     { href: '/coach/makeup', label: 'Tugas Susulan', icon: 'history_edu' },
     { href: '/coach/leave', label: 'Pengajuan Izin', icon: 'mail_lock' },
+    { href: '/coach/portfolios', label: 'Review Portofolio', icon: 'photo_library' },
 ];
 
 export default function CoachSidebar() {

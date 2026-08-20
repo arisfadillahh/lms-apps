@@ -2,13 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, BookOpen, RefreshCw, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, BookOpen, RefreshCw, PanelsTopLeft } from 'lucide-react';
 
 const NAV_LINKS = [
     { href: '/coder/dashboard', label: 'Dashboard', icon: LayoutDashboard, activeBg: 'bg-pastel-pink', activeText: 'text-coral', hoverBg: 'hover:bg-pastel-pink', hoverText: 'hover:text-coral' },
     { href: '/coder/materials', label: 'Materi', icon: BookOpen, activeBg: 'bg-pastel-blue', activeText: 'text-sky', hoverBg: 'hover:bg-pastel-blue', hoverText: 'hover:text-sky' },
     { href: '/coder/makeup', label: 'Tugas Susulan', icon: RefreshCw, activeBg: 'bg-pastel-yellow', activeText: 'text-amber-600', hoverBg: 'hover:bg-pastel-yellow', hoverText: 'hover:text-amber-600' },
-    { href: '/coder/reports', label: 'Rapor', icon: BarChart3, activeBg: 'bg-pastel-green', activeText: 'text-clevio-green', hoverBg: 'hover:bg-pastel-green', hoverText: 'hover:text-clevio-green' },
+    { href: '/coder/reports', label: 'Rapor & Portofolio', icon: PanelsTopLeft, activeBg: 'bg-pastel-green', activeText: 'text-clevio-green', hoverBg: 'hover:bg-pastel-green', hoverText: 'hover:text-clevio-green' },
 ];
 
 type CoderSidebarProps = {

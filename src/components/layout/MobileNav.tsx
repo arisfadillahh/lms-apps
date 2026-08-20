@@ -24,13 +24,14 @@ const COACH_LINKS: NavLink[] = [
     { href: '/coach/rubrics', label: 'Rubrik', icon: ClipboardCheck },
     { href: '/coach/makeup', label: 'Tugas Susulan', icon: FileUp },
     { href: '/coach/leave', label: 'Pengajuan Izin', icon: CalendarOff },
+    { href: '/coach/portfolios', label: 'Review Portofolio', icon: ImageIcon },
 ];
 
 const CODER_LINKS: NavLink[] = [
     { href: '/coder/dashboard', label: 'Dashboard', icon: Home },
     { href: '/coder/materials', label: 'Materi', icon: BookOpen },
     { href: '/coder/makeup', label: 'Tugas Susulan', icon: FileUp },
-    { href: '/coder/reports', label: 'Rapor', icon: FileText },
+    { href: '/coder/reports', label: 'Rapor & Portofolio', icon: ImageIcon },
 ];
 
 type MobileNavProps = {

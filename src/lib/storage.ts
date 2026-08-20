@@ -109,3 +109,37 @@ export async function deleteLessonExample(storagePath: string): Promise<void> {
     throw new Error(`Failed to delete lesson example: ${error.message}`);
   }
 }
+
+export async function uploadPortfolioScreenshot(
+  storagePath: string,
+  fileBuffer: Buffer,
+  contentType: string,
+): Promise<string> {
+  const supabase = getSupabaseAdmin();
+  const bucket = getReportsBucket();
+  const { error } = await supabase.storage.from(bucket).upload(storagePath, fileBuffer, {
+    cacheControl: '3600',
+    contentType,
+    upsert: false,
+  });
+
+  if (error) {
+    throw new Error(`Failed to upload portfolio screenshot: ${error.message}`);
+  }
+
+  const { data } = supabase.storage.from(bucket).getPublicUrl(storagePath);
+  if (!data?.publicUrl) {
+    throw new Error('Failed to resolve portfolio screenshot URL');
+  }
+  return data.publicUrl;
+}
+
+export async function deletePortfolioScreenshots(storagePaths: string[]): Promise<void> {
+  if (storagePaths.length === 0) return;
+  const supabase = getSupabaseAdmin();
+  const bucket = getReportsBucket();
+  const { error } = await supabase.storage.from(bucket).remove(storagePaths);
+  if (error) {
+    throw new Error(`Failed to delete portfolio screenshots: ${error.message}`);
+  }
+}

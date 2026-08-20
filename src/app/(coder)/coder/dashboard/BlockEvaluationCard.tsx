@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getSupabaseBrowser } from '@/lib/supabaseBrowser';
-import { GraduationCap, Sparkles, ChevronRight } from 'lucide-react';
+import { GraduationCap, Sparkles, ChevronRight, PanelsTopLeft } from 'lucide-react';
 
 type BlockEvaluationCardProps = {
   classId: string;
@@ -34,6 +34,7 @@ type ActiveEvaluationSessionClient = {
 
 export default function BlockEvaluationCard({ classId, userId }: BlockEvaluationCardProps) {
   const [activeSession, setActiveSession] = useState<ActiveEvaluationSession | null>(null);
+  const [evaluationSubmitted, setEvaluationSubmitted] = useState(false);
   const supabase = getSupabaseBrowser();
 
   useEffect(() => {
@@ -68,12 +69,14 @@ export default function BlockEvaluationCard({ classId, userId }: BlockEvaluation
            alreadySubmitted = json.submitted;
         }
 
-        if (alreadySubmitted) {
-          // Already completed — don't show the card anymore
-          setActiveSession(null);
-        } else {
-          setActiveSession(data);
-        }
+        const portfolioResponse = await fetch(`/api/coder/portfolios?evaluationSessionId=${data.id}`);
+        const portfolioBody = portfolioResponse.ok ? await portfolioResponse.json() : { portfolios: [] };
+        const alreadyStartedPortfolio = (portfolioBody.portfolios || []).some(
+          (portfolio: { evaluation_session_id?: string | null }) => portfolio.evaluation_session_id === data.id,
+        );
+
+        setEvaluationSubmitted(alreadySubmitted);
+        setActiveSession(alreadySubmitted && alreadyStartedPortfolio ? null : data);
       } else {
         setActiveSession(null);
       }
@@ -133,20 +136,28 @@ export default function BlockEvaluationCard({ classId, userId }: BlockEvaluation
             <Sparkles className="text-yellow-300 animate-pulse" size={14} />
           </div>
           <h4 className="text-white font-black text-lg leading-tight mb-1">
-            {activeSession.status === 'completed' ? 'Evaluasi Telah Tersedia!' : 'Coach Telah Membuka Sesi Evaluasi!'}
+            {evaluationSubmitted ? 'Refleksi selesai, waktunya simpan karya!' : activeSession.status === 'completed' ? 'Evaluasi Telah Tersedia!' : 'Coach Telah Membuka Sesi Evaluasi!'}
           </h4>
           <p className="text-violet-200 text-sm font-medium leading-snug">
-            {activeSession.status === 'completed' ? 'Yuk selesaikan evaluasi ini secara mandiri.' : 'Yuk masuk sekarang. Coach sedang menunggumu di ruangan evaluasi.'}
+            {evaluationSubmitted ? 'Buat portofolio dari project di block ini. Kamu juga bisa melanjutkannya nanti dari menu Rapor & Portofolio.' : activeSession.status === 'completed' ? 'Selesaikan refleksi dan simpan project yang kamu banggakan.' : 'Coach sedang memandu refleksi. Kamu juga bisa mulai mengisi portofolio.'}
           </p>
         </div>
 
         {/* CTA */}
-        <Link
-          href={`/coder/evaluation/${classId}/${activeSession.block_id}/${activeSession.session_id}?evalSessionId=${activeSession.id}`}
-          className="shrink-0 w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-white text-violet-700 font-black rounded-2xl hover:bg-violet-50 transition-all shadow-lg active:scale-95 animate-bounce"
-        >
-          Masuk Evaluasi <ChevronRight size={18} />
-        </Link>
+        <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto">
+          {!evaluationSubmitted && <Link
+            href={`/coder/evaluation/${classId}/${activeSession.block_id}/${activeSession.session_id}?evalSessionId=${activeSession.id}`}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 font-black text-violet-700 shadow-lg transition-all hover:bg-violet-50 active:scale-95 sm:w-auto"
+          >
+            Masuk Evaluasi <ChevronRight size={18} />
+          </Link>}
+          <Link
+            href={`/coder/reports/portfolio/new?classId=${classId}&blockId=${activeSession.block_id}&evaluationSessionId=${activeSession.id}`}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-lime-300 px-6 py-3 font-black text-violet-950 shadow-lg transition-all hover:bg-lime-200 active:scale-95 sm:w-auto"
+          >
+            <PanelsTopLeft size={18} /> Isi Portofolio
+          </Link>
+        </div>
       </div>
     </div>
   );

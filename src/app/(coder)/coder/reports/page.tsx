@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { getSessionOrThrow } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { StaggerContainer, StaggerItem } from '../StaggerWrapper';
+import PortfolioTabs from '@/components/portfolio/PortfolioTabs';
 
 export default async function CoderReportsPage() {
   const session = await getSessionOrThrow();
@@ -32,12 +33,16 @@ export default async function CoderReportsPage() {
       <StaggerItem>
         <header>
           <h1 className="text-3xl font-black text-clevio-navy tracking-tight mb-1 flex items-center gap-3">
-            <FileText className="text-clevio-green" size={28} /> Rapor Clevio
+            <FileText className="text-clevio-green" size={28} /> Rapor & Portofolio
           </h1>
           <p className="text-sm font-bold text-slate-400">
             Lihat perkembangan dan hasil belajar kamu di setiap Block.
           </p>
         </header>
+      </StaggerItem>
+
+      <StaggerItem>
+        <PortfolioTabs active="reports" />
       </StaggerItem>
 
       {/* Reports Section */}

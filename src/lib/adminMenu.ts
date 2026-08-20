@@ -2,7 +2,7 @@
 import {
     Home, Users, GraduationCap, BookOpen, CalendarOff, FileText,
     MessageCircle, Package, Image as ImageIcon, Wallet, BookMarked,
-    Megaphone, Receipt, Settings, UserCheck, ClipboardList, MessageSquare, UserRoundPlus, Bug
+    Megaphone, Receipt, Settings, UserCheck, ClipboardList, MessageSquare, UserRoundPlus, Bug, PanelsTopLeft
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -25,6 +25,7 @@ export const MENU_ITEMS: Record<string, { href: string; label: string; icon: Luc
     leave: { href: '/admin/leave', label: 'Izin Coach', icon: CalendarOff },
     issueReports: { href: '/admin/issue-reports', label: 'Laporan Masalah', icon: Bug },
     reports: { href: '/admin/reports', label: 'Status Rapor', icon: FileText },
+    portfolios: { href: '/admin/portfolios', label: 'Portofolio Coder', icon: PanelsTopLeft },
     evaluations: { href: '/admin/evaluations', label: 'Kompetensi Rapor', icon: ClipboardList },
     evaluationQuestions: { href: '/admin/evaluations/questions', label: 'Pertanyaan Refleksi', icon: MessageSquare },
     whatsapp: { href: '/admin/whatsapp', label: 'WhatsApp', icon: MessageCircle },
@@ -54,7 +55,7 @@ export const SIDEBAR_STRUCTURE: (SidebarGroup | SidebarSingle)[] = [
         type: 'group',
         label: 'Akademik',
         icon: GraduationCap,
-        children: ['classes', 'curriculum', 'lessonReports', 'ekskul', 'evaluations', 'evaluationQuestions', 'reports']
+        children: ['classes', 'curriculum', 'lessonReports', 'ekskul', 'evaluations', 'evaluationQuestions', 'reports', 'portfolios']
     },
     {
         type: 'group',

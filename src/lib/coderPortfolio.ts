@@ -1,5 +1,34 @@
 import { z } from 'zod';
 
+export function buildCoderPortfolioClasses(enrollments: any[] = [], classBlocks: any[] = []) {
+  const seen = new Set<string>();
+
+  return enrollments.flatMap((item: any) => {
+    const selectedClass = Array.isArray(item.classes) ? item.classes[0] : item.classes;
+    if (!selectedClass || seen.has(selectedClass.id) || !['WEEKLY', 'EKSKUL'].includes(selectedClass.type)) return [];
+    seen.add(selectedClass.id);
+
+    const blocks = classBlocks
+      .flatMap((row: any) => {
+        if (row.class_id !== selectedClass.id) return [];
+        const block = Array.isArray(row.blocks) ? row.blocks[0] : row.blocks;
+        return block ? [{ id: block.id, name: block.name, orderIndex: Number(block.order_index) || 0 }] : [];
+      })
+      .sort((left: any, right: any) =>
+        left.orderIndex - right.orderIndex || left.name.localeCompare(right.name) || left.id.localeCompare(right.id),
+      )
+      .map(({ id, name }: any) => ({ id, name }));
+
+    return [{
+      id: selectedClass.id,
+      name: selectedClass.name,
+      type: selectedClass.type as 'WEEKLY' | 'EKSKUL',
+      levelName: Array.isArray(selectedClass.levels) ? selectedClass.levels[0]?.name : selectedClass.levels?.name,
+      blocks,
+    }];
+  });
+}
+
 export const PORTFOLIO_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as const;
 export const PORTFOLIO_MAX_IMAGE_BYTES = 1024 * 1024;
 export const PORTFOLIO_MAX_SCREENSHOTS = 5;

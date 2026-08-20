@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { makeStablePortfolioSlug } from '@/lib/coderPortfolio';
+import { buildCoderPortfolioClasses, makeStablePortfolioSlug } from '@/lib/coderPortfolio';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
 export async function getCoderPortfolioWorkspace(coderId: string) {
@@ -16,27 +16,11 @@ export async function getCoderPortfolioWorkspace(coderId: string) {
 
   const classIds = [...new Set((enrollments ?? []).map((item: any) => item.class_id))] as string[];
   const { data: classBlocks, error: blockError } = classIds.length > 0
-    ? await supabase.from('class_blocks').select('class_id, block_id, blocks(id, name)').in('class_id', classIds).order('order_index')
+    ? await supabase.from('class_blocks').select('class_id, block_id, blocks(id, name, order_index)').in('class_id', classIds)
     : { data: [], error: null };
   if (blockError) throw blockError;
 
-  const seen = new Set<string>();
-  const classes = (enrollments ?? []).flatMap((item: any) => {
-    const selectedClass = Array.isArray(item.classes) ? item.classes[0] : item.classes;
-    if (!selectedClass || seen.has(selectedClass.id) || !['WEEKLY', 'EKSKUL'].includes(selectedClass.type)) return [];
-    seen.add(selectedClass.id);
-    return [{
-      id: selectedClass.id,
-      name: selectedClass.name,
-      type: selectedClass.type as 'WEEKLY' | 'EKSKUL',
-      levelName: Array.isArray(selectedClass.levels) ? selectedClass.levels[0]?.name : selectedClass.levels?.name,
-      blocks: (classBlocks ?? []).flatMap((row: any) => {
-        if (row.class_id !== selectedClass.id) return [];
-        const block = Array.isArray(row.blocks) ? row.blocks[0] : row.blocks;
-        return block ? [{ id: block.id, name: block.name }] : [];
-      }),
-    }];
-  });
+  const classes = buildCoderPortfolioClasses(enrollments ?? [], classBlocks ?? []);
 
   const slug = makeStablePortfolioSlug(coderId);
   const { data: existingProfile, error: profileReadError } = await supabase

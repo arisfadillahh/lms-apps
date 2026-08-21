@@ -203,6 +203,71 @@ html[data-coder-theme='dark'] .coder-app-shell {
   color-scheme: dark;
 }
 
+html[data-coder-theme='dark'] .coder-app-shell .coder-sidebar {
+  background: #111f33 !important;
+  border-color: #2d4563 !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .coder-sidebar [data-coder-nav] {
+  color: var(--coder-muted) !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .coder-sidebar [data-coder-nav]:hover,
+html[data-coder-theme='dark'] .coder-app-shell .coder-sidebar [data-coder-nav].bg-pastel-pink,
+html[data-coder-theme='dark'] .coder-app-shell .coder-sidebar [data-coder-nav].bg-pastel-blue,
+html[data-coder-theme='dark'] .coder-app-shell .coder-sidebar [data-coder-nav].bg-pastel-green,
+html[data-coder-theme='dark'] .coder-app-shell .coder-sidebar [data-coder-nav].bg-pastel-yellow {
+  background: #1b314b !important;
+  color: #e6f0ff !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .coder-sidebar [data-coder-nav='/coder/makeup'].bg-pastel-yellow {
+  background: #273b51 !important;
+  color: #ffd27d !important;
+  box-shadow: inset 3px 0 0 #f0b856;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .coder-main > header {
+  background: rgba(13, 23, 40, 0.96) !important;
+  border-color: #2d4563 !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .coder-makeup-instruction {
+  background: #243246 !important;
+  border-color: #806b3a !important;
+  color: #ffd27d !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .coder-makeup-feedback {
+  background: #193b35 !important;
+  border-color: #2d7964 !important;
+  color: #a9ebc9 !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .coder-makeup-status-pending_upload {
+  background: #273b51 !important;
+  border-color: #806b3a !important;
+  color: #ffd27d !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .coder-makeup-status-submitted {
+  background: #173653 !important;
+  border-color: #2a7190 !important;
+  color: #91ddf7 !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .coder-makeup-status-reviewed {
+  background: #193b35 !important;
+  border-color: #2d7964 !important;
+  color: #a9ebc9 !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .coder-makeup-upload-card {
+  background: var(--coder-surface-soft) !important;
+  border-color: var(--coder-border) !important;
+  color: var(--coder-text) !important;
+}
+
 html[data-coder-theme='light'] .coder-app-shell {
   color-scheme: light;
 }
@@ -214,8 +279,23 @@ html[data-coder-theme='dark'] .coder-app-shell [class*='bg-white/'] {
 
 html[data-coder-theme='dark'] .coder-app-shell .bg-slate-50,
 html[data-coder-theme='dark'] .coder-app-shell .bg-slate-100,
+html[data-coder-theme='dark'] .coder-app-shell [class*='bg-slate-50/'],
+html[data-coder-theme='dark'] .coder-app-shell [class*='bg-slate-100/'],
 html[data-coder-theme='dark'] .coder-app-shell [class*='bg-[#f6f7f8]'] {
   background-color: var(--coder-surface-soft) !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell [class*='from-pastel-blue/'],
+html[data-coder-theme='dark'] .coder-app-shell [class*='from-pastel-green/'],
+html[data-coder-theme='dark'] .coder-app-shell [class*='from-slate-50'],
+html[data-coder-theme='dark'] .coder-app-shell [class*='from-white'] {
+  background-image: linear-gradient(145deg, var(--coder-surface-soft), var(--coder-surface) 55%, var(--coder-surface)) !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell [class*='via-white'],
+html[data-coder-theme='dark'] .coder-app-shell [class*='to-white'] {
+  --tw-gradient-via: var(--coder-surface);
+  --tw-gradient-to: var(--coder-surface);
 }
 
 html[data-coder-theme='dark'] .coder-app-shell .bg-pastel-blue,
@@ -252,6 +332,26 @@ html[data-coder-theme='dark'] .coder-app-shell .text-slate-300,
 html[data-coder-theme='dark'] .coder-app-shell [class*='text-[#1e3a5f]/40'],
 html[data-coder-theme='dark'] .coder-app-shell [class*='text-[#1e3a5f]/60'] {
   color: var(--coder-muted) !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .text-sky,
+html[data-coder-theme='dark'] .coder-app-shell [class*='text-sky/'] {
+  color: #79d9ff !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .text-clevio-green,
+html[data-coder-theme='dark'] .coder-app-shell [class*='text-clevio-green/'] {
+  color: #b9e86e !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .text-amber-600,
+html[data-coder-theme='dark'] .coder-app-shell .text-amber-700,
+html[data-coder-theme='dark'] .coder-app-shell .text-orange-700 {
+  color: #ffd27d !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .text-coral {
+  color: #ff9d91 !important;
 }
 
 html[data-coder-theme='dark'] .coder-app-shell .border-slate-50,

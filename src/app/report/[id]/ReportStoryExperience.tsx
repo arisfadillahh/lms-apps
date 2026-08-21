@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { REPORT_STORY_OVERRIDES } from './ReportStoryExperience.overrides';
 import { REPORT_STORY_CSS } from './ReportStoryExperience.styles';
 import { REPORT_STORY_LAYOUT_FIX } from '../ReportStoryExperience.layoutFix';
@@ -68,6 +69,7 @@ export default function ReportStoryExperience(props: ReportStoryExperienceProps)
   const [currentIndex, setCurrentIndex] = useState(0);
   const [animatedScore, setAnimatedScore] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [portalReady, setPortalReady] = useState(false);
   const storyRootRef = useRef<HTMLDivElement | null>(null);
   const touchStartX = useRef<number | null>(null);
 
@@ -95,6 +97,10 @@ export default function ReportStoryExperience(props: ReportStoryExperienceProps)
   const currentScene = SCENES[currentIndex];
   const isFirst = currentIndex === 0;
   const isLast = currentIndex === SCENES.length - 1;
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
 
   const closeStory = useCallback(async () => {
     if (document.fullscreenElement) await document.exitFullscreen().catch(() => undefined);
@@ -231,8 +237,9 @@ export default function ReportStoryExperience(props: ReportStoryExperienceProps)
         <span className="sr-only sm:hidden">Putar ulang cerita rapor</span>
       </button>
 
-      <AnimatePresence>
-        {isOpen && (
+      {portalReady && typeof document !== 'undefined' ? createPortal(
+        <AnimatePresence>
+          {isOpen && (
           <motion.div
             ref={storyRootRef}
             role="dialog"
@@ -475,8 +482,10 @@ export default function ReportStoryExperience(props: ReportStoryExperienceProps)
               </footer>
             </main>
           </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>,
+        document.body,
+      ) : null}
     </>
   );
 }

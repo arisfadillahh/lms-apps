@@ -1,4 +1,22 @@
 export const REPORT_STORY_LAYOUT_FIX = `
+.clevio-story {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  max-width: none !important;
+  height: 100dvh !important;
+  max-height: none !important;
+  margin: 0 !important;
+  z-index: 2147483000 !important;
+  isolation: isolate;
+  contain: paint;
+  overflow: hidden !important;
+}
+.clevio-story .app {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+}
 .clevio-story .stage {
   overflow: visible;
 }

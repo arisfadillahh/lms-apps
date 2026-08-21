@@ -81,8 +81,8 @@ export default function MakeUpUploadForm({ taskId, submittedFiles, status }: Mak
   // Show submitted link with edit button
   if (isSubmitted && !isEditing) {
     return (
-      <div style={containerStyle}>
-        <div style={{ ...submittedBoxStyle, animation: 'fadeIn 0.3s ease-in' }}>
+      <div className="coder-makeup-upload" style={containerStyle}>
+        <div className="coder-makeup-upload-card" style={{ ...submittedBoxStyle, animation: 'fadeIn 0.3s ease-in' }}>
           <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Karya yang Dikumpulkan
           </div>
@@ -127,8 +127,8 @@ export default function MakeUpUploadForm({ taskId, submittedFiles, status }: Mak
 
   // Show upload form
   return (
-    <div style={containerStyle}>
-      <div style={{ ...formCardStyle, animation: 'fadeIn 0.3s ease-in' }}>
+    <div className="coder-makeup-upload" style={containerStyle}>
+      <div className="coder-makeup-upload-card" style={{ ...formCardStyle, animation: 'fadeIn 0.3s ease-in' }}>
         <div style={formHeaderStyle}>Link Google Drive</div>
         <input
           type="text"

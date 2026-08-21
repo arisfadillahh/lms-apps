@@ -5,9 +5,9 @@ import { useEffect, useRef, useState } from 'react';
 
 import styles from './IssueReportButton.module.css';
 
-type Props = { role: 'ADMIN' | 'COACH' | 'CODER' };
+type Props = { role: 'ADMIN' | 'COACH' | 'CODER'; placement?: 'floating' | 'sidebar' };
 
-export default function IssueReportButton({ role }: Props) {
+export default function IssueReportButton({ role, placement = 'floating' }: Props) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -102,7 +102,7 @@ export default function IssueReportButton({ role }: Props) {
 
   return (
     <>
-      <button type="button" className={styles.trigger} onClick={() => setOpen(true)} aria-label="Laporkan masalah LMS">
+      <button type="button" className={placement === 'sidebar' ? styles.sidebarTrigger : styles.trigger} onClick={() => setOpen(true)} aria-label="Laporkan masalah LMS">
         <Bug size={18} /> <span className={styles.triggerLabel}>Laporkan Masalah</span>
       </button>
 

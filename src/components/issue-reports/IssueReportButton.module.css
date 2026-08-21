@@ -22,6 +22,26 @@
 .trigger:hover { background: #17285f; transform: translateY(-1px); }
 .trigger:focus-visible { outline: 3px solid rgba(0, 176, 215, 0.35); outline-offset: 3px; }
 
+.sidebarTrigger {
+  display: inline-flex;
+  width: 100%;
+  min-height: 46px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 0 15px;
+  border: 1px solid #dce4f2;
+  border-radius: 14px;
+  background: #f8fafc;
+  color: #22367b;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.sidebarTrigger:hover { border-color: #b9c9e3; background: #eef4ff; }
+.sidebarTrigger:focus-visible { outline: 3px solid rgba(0, 176, 215, 0.35); outline-offset: 3px; }
+
 .backdrop {
   position: fixed;
   inset: 0;

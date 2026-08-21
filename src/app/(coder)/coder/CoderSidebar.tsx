@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, BookOpen, RefreshCw, PanelsTopLeft } from 'lucide-react';
+import IssueReportButton from '@/components/issue-reports/IssueReportButton';
 
 const NAV_LINKS = [
     { href: '/coder/dashboard', label: 'Dashboard', icon: LayoutDashboard, activeBg: 'bg-pastel-pink', activeText: 'text-coral', hoverBg: 'hover:bg-pastel-pink', hoverText: 'hover:text-coral' },
@@ -54,6 +55,9 @@ export default function CoderSidebar({ session }: CoderSidebarProps) {
                         );
                     })}
                 </nav>
+            </div>
+            <div className="px-8 pb-8">
+                <IssueReportButton role="CODER" placement="sidebar" />
             </div>
         </aside>
     );

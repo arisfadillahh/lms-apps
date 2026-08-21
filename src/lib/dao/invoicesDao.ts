@@ -182,28 +182,51 @@ export async function assignCCRToParent(
     parentName?: string
 ): Promise<CCRNumber | null> {
     const supabase = getSupabaseAdmin();
+    const normalizedCode = ccrCode.trim().toUpperCase();
 
     // Validate CCR code format
-    if (!/^CCR[0-9]{3,}$/.test(ccrCode)) {
+    if (!/^CCR[0-9]{3,}$/.test(normalizedCode)) {
         console.error('[InvoicesDao] Invalid CCR code format:', ccrCode);
         return null;
     }
 
     // Check if CCR code already exists
-    const existingCode = await getCCRByCode(ccrCode);
+    const existingCode = await getCCRByCode(normalizedCode);
     if (existingCode && existingCode.parent_phone !== parentPhone) {
-        console.error('[InvoicesDao] CCR code already assigned to different parent:', ccrCode);
+        console.error('[InvoicesDao] CCR code already assigned to different parent:', normalizedCode);
         return null;
     }
 
-    // Check if parent already has CCR
+    // An existing parent record is editable from the assignment queue. The old
+    // behavior returned the existing value here, so edits appeared to save but
+    // reverted after the queue was refreshed.
     const existingParent = await getCCRByPhone(parentPhone);
     if (existingParent) {
-        return existingParent;
+        if (existingParent.ccr_code === normalizedCode && !parentName) {
+            return existingParent;
+        }
+
+        const { data: updatedCCR, error: updateError } = await supabase
+            .from('ccr_numbers' as any)
+            .update({
+                ccr_code: normalizedCode,
+                ccr_sequence: parseInt(normalizedCode.substring(3), 10),
+                ...(parentName?.trim() ? { parent_name: parentName.trim() } : {})
+            })
+            .eq('id', existingParent.id)
+            .select()
+            .single();
+
+        if (updateError) {
+            console.error('[InvoicesDao] Error updating assigned CCR:', updateError);
+            return null;
+        }
+
+        return (updatedCCR as unknown) as CCRNumber;
     }
 
     // Extract sequence from CCR code
-    const sequence = parseInt(ccrCode.substring(3), 10);
+    const sequence = parseInt(normalizedCode.substring(3), 10);
 
     // Create new CCR
     const { data: newCCR, error } = await supabase
@@ -211,7 +234,7 @@ export async function assignCCRToParent(
         .insert({
             parent_phone: parentPhone,
             ccr_sequence: sequence,
-            ccr_code: ccrCode,
+            ccr_code: normalizedCode,
             parent_name: parentName || null
         })
         .select()

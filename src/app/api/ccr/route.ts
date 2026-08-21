@@ -57,7 +57,10 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { parent_phone, ccr_code, parent_name } = body;
+        const { parent_phone, parent_name } = body;
+        const ccr_code = typeof body.ccr_code === 'string'
+            ? body.ccr_code.trim().toUpperCase()
+            : body.ccr_code;
 
         // Validate
         if (!parent_phone || !ccr_code) {

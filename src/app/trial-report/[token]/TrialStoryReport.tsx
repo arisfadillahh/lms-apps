@@ -134,7 +134,7 @@ const STORY_CSS_OVERRIDE = `
 .trial-story .skill-badge svg{width:27px;height:27px}
 .trial-story .skill-node strong{max-width:none;margin-top:12px;font-size:14px;line-height:1.3}
 @media (max-width:640px){.trial-story .skill-path{gap:10px}.trial-story .skill-node{min-height:108px;padding:14px;border-radius:18px}.trial-story .skill-badge{width:46px;height:46px;border-radius:14px}.trial-story .skill-badge svg{width:23px;height:23px}.trial-story .skill-node strong{margin-top:8px;font-size:12px}}
-.trial-story .coach-layout{gap:16px;align-content:stretch;grid-template-rows:minmax(0,1fr) auto;min-height:0}
+.trial-story .coach-layout{gap:16px;align-content:stretch;grid-template-rows:minmax(0,1fr) auto auto;min-height:0}
 .trial-story .coach-copy{max-width:1180px;min-height:0;display:flex;flex-direction:column;justify-content:center}
 .trial-story .coach-copy .display.medium{max-width:900px;font-size:clamp(34px,3.8vw,56px);line-height:.98;text-wrap:balance}
 .trial-story .coach-copy .eyebrow{margin-bottom:10px}
@@ -147,7 +147,11 @@ const STORY_CSS_OVERRIDE = `
 .trial-story .coach-card ul{gap:6px}
 .trial-story .coach-card li{padding-left:17px;font-size:12px;line-height:1.3}
 .trial-story .coach-card li::before{width:8px;height:8px}
+.trial-story .recommendation-highlight{justify-self:center;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:230px;padding:10px 28px;border:1px solid rgba(181,255,56,.45);border-radius:18px;background:linear-gradient(135deg,rgba(181,255,56,.14),rgba(72,212,255,.08));box-shadow:0 12px 30px rgba(181,255,56,.1);text-align:center}
+.trial-story .recommendation-highlight span{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:rgba(239,244,255,.72)}
+.trial-story .recommendation-highlight strong{font-size:22px;line-height:1.1;color:var(--green-bright)}
 @media (max-width:640px){.trial-story .coach-layout{gap:10px}.trial-story .coach-copy .display.medium{font-size:clamp(28px,8vw,40px)}.trial-story .coach-quote{font-size:11px;line-height:1.32}.trial-story .coach-signature{font-size:12px}.trial-story .coach-columns{gap:8px}.trial-story .coach-card{padding:12px;border-radius:16px}.trial-story .coach-card h3{font-size:13px}.trial-story .coach-card li{font-size:11px}}
+@media (max-width:640px){.trial-story .recommendation-highlight{min-width:190px;padding:9px 22px}.trial-story .recommendation-highlight strong{font-size:19px}}
 `;
 
 export default function TrialStoryReport({
@@ -181,7 +185,6 @@ export default function TrialStoryReport({
     (item) => item.trim().toLowerCase() !== 'sesuai kemampuan saat ini',
   );
   const recommendationItems = [
-    `Level ${recommendedLevel}`,
     'Fokus pembelajaran: project management, public speaking, dan big project.',
     ...(recommendationReasons.length ? recommendationReasons : content.growthOpportunities),
   ].slice(0, 4);
@@ -338,6 +341,10 @@ export default function TrialStoryReport({
                 ))}
               </ul>
             </div>
+          </div>
+          <div className="recommendation-highlight">
+            <span>Level rekomendasi</span>
+            <strong>{recommendedLevel}</strong>
           </div>
         </div>
       ),

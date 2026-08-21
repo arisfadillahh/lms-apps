@@ -207,10 +207,10 @@ export function buildTrialParentReportContent(input: {
     triedToday: input.triedToday?.length
       ? input.triedToday
       : [
-          'Basic Logic: memecahkan puzzle coding level 1-10 di Blockly.',
-          'Instruksi bertahap: menyusun perintah sesuai urutan untuk melihat hasilnya.',
-          'Interaksi sederhana: mencoba respons dan aksi dasar dalam project.',
-          'Mini Project Trial: menggabungkan logika, instruksi, dan ide menjadi karya kecil.',
+          'Basic Logic: Mengenal cara berpikir logis melalui tantangan sederhana.',
+          'Instruksi bertahap: Mengikuti instruksi secara bertahap untuk memahami hubungan antara perintah dan hasil.',
+          'Interaksi sederhana: Mencoba interaksi dasar dan melihat bagaimana pilihan menghasilkan respons.',
+          'Mini Project Trial: Menggabungkan beberapa langkah menjadi karya kecil sesuai arahan Coach.',
         ],
     strengths: strengths.length ? strengths : fallbackStrengths,
     growthOpportunities: growthOpportunities.length

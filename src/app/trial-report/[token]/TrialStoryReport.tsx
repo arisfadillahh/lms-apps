@@ -59,10 +59,10 @@ function initials(name: string) {
 }
 
 const ACTIVITY_DETAILS: Record<string, string> = {
-  'Basic Logic': 'Logika coding: memecahkan puzzle coding level 1-10 di Blockly.',
-  'Instruksi bertahap': 'Instruksi bertahap: menyusun perintah sesuai urutan untuk melihat hasilnya.',
-  'Interaksi sederhana': 'Interaksi sederhana: mencoba respons dan aksi dasar dalam project.',
-  'Mini Project Trial': 'Mini project: menggabungkan logika, instruksi, dan ide menjadi karya kecil.',
+  'Basic Logic': 'Mengenal cara berpikir logis melalui tantangan sederhana.',
+  'Instruksi bertahap': 'Mengikuti instruksi secara bertahap untuk memahami hubungan antara perintah dan hasil.',
+  'Interaksi sederhana': 'Mencoba interaksi dasar dan melihat bagaimana pilihan menghasilkan respons.',
+  'Mini Project Trial': 'Menggabungkan beberapa langkah menjadi karya kecil sesuai arahan Coach.',
 };
 
 const PARENT_STATUS_LABELS = new Set(['Sedang Dibangun', 'Mulai Berkembang', 'Berkembang Baik', 'Menonjol']);
@@ -71,7 +71,8 @@ function toActivityCard(value: string) {
   const clean = value.trim();
   const separator = clean.indexOf(':');
   if (separator > 0) {
-    return { title: clean.slice(0, separator).trim(), detail: clean.slice(separator + 1).trim() };
+    const title = clean.slice(0, separator).trim();
+    return { title, detail: ACTIVITY_DETAILS[title] ?? clean.slice(separator + 1).trim() };
   }
   return { title: clean, detail: ACTIVITY_DETAILS[clean] ?? 'Mencoba aktivitas coding melalui project bertahap.' };
 }

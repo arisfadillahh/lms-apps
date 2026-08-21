@@ -62,6 +62,7 @@ describe('trial assessment parent content', () => {
 
     expect(content.triedToday).toHaveLength(4);
     expect(content.triedToday.every((activity) => activity.includes(':'))).toBe(true);
-    expect(content.triedToday[0]).toContain('Blockly');
+    expect(content.triedToday[0]).toBe('Basic Logic: Mengenal cara berpikir logis melalui tantangan sederhana.');
+    expect(content.triedToday.join(' ')).not.toContain('Blockly');
   });
 });

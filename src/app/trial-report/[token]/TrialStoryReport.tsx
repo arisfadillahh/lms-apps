@@ -331,7 +331,7 @@ export default function TrialStoryReport({
               </ul>
             </div>
             <div className="coach-card growth">
-              <h3>Arah belajar berikutnya</h3>
+              <h3>Rekomendasi Coach</h3>
               <ul>
                 {recommendationItems.map((item) => (
                   <li key={item}>{item}</li>
@@ -349,18 +349,13 @@ export default function TrialStoryReport({
           <div className="final-emblem"><Rocket /></div>
           <p className="eyebrow">Continue The Journey</p>
           <h2 className="display medium slide-copy-safe">
-              {studentName}
+            Selamat datang, <span className="accent">{studentName}</span>
           </h2>
           <p className="lead">
-            Selamat datang di LEVEL {recommendedLevel}, tempat {studentName} akan belajar berinovasi membuat
-            berbagai karya digital yang menantang secara teknis, belajar project management secara profesional,
-            dan berlatih menjadi technopreneur yang berdampak.
+            Selamat datang di {recommendedLevel} di mana kita akan belajar berinovasi membuat berbagai karya digital
+            yang menantang secara teknis, belajar project management secara profesional, dan berlatih menjadi
+            technopreneur yang berdampak menciptakan perubahan.
           </p>
-          {recommendedLevel && recommendedLevel !== 'Weekly Class' ? (
-            <div className="mini-summary">
-              <span>Level rekomendasi: <strong>{recommendedLevel}</strong></span>
-            </div>
-          ) : null}
           <div className="final-actions">
             <button type="button" className="primary-btn" onClick={startRegistration}>
               {invoiceUrl ? 'Buka Invoice' : 'Daftar Sekarang'} <ArrowRight />

@@ -58,10 +58,51 @@ function initials(name: string) {
     .join('');
 }
 
+const ACTIVITY_DETAILS: Record<string, string> = {
+  'Basic Logic': 'Logika coding: memecahkan puzzle coding level 1-10 di Blockly.',
+  'Instruksi bertahap': 'Instruksi bertahap: menyusun perintah sesuai urutan untuk melihat hasilnya.',
+  'Interaksi sederhana': 'Interaksi sederhana: mencoba respons dan aksi dasar dalam project.',
+  'Mini Project Trial': 'Mini project: menggabungkan logika, instruksi, dan ide menjadi karya kecil.',
+};
+
+const PARENT_STATUS_LABELS = new Set(['Sedang Dibangun', 'Mulai Berkembang', 'Berkembang Baik', 'Menonjol']);
+
+function toActivityCard(value: string) {
+  const clean = value.trim();
+  const separator = clean.indexOf(':');
+  if (separator > 0) {
+    return { title: clean.slice(0, separator).trim(), detail: clean.slice(separator + 1).trim() };
+  }
+  return { title: clean, detail: ACTIVITY_DETAILS[clean] ?? 'Mencoba aktivitas coding melalui project bertahap.' };
+}
+
+function formatActivityForReport(value: string) {
+  const item = toActivityCard(value);
+  return `${item.title}: ${item.detail}`;
+}
+
+function stripParentStatus(value: string) {
+  const separator = value.lastIndexOf(':');
+  if (separator > 0 && PARENT_STATUS_LABELS.has(value.slice(separator + 1).trim())) {
+    return value.slice(0, separator).trim();
+  }
+  return value;
+}
+
 const STORY_CSS_OVERRIDE = `
 .trial-story .progress{grid-template-columns:repeat(5,1fr)}
 .trial-story .metric-score{font-size:13px;max-width:120px;text-align:right;color:var(--green-bright)}
 .trial-story .metric-track span{width:100%!important}
+.trial-story .metric-score,.trial-story .metric-track{display:none}
+.trial-story .trial-results-layout{grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:clamp(24px,4vw,64px)}
+.trial-story .trial-results-layout .metric-list{grid-template-columns:repeat(2,minmax(0,1fr));align-content:center;gap:12px}
+.trial-story .trial-results-layout .metric-row{display:block;min-height:150px;padding:18px;border:1px solid rgba(255,255,255,.12);border-radius:20px;background:linear-gradient(145deg,rgba(255,255,255,.09),rgba(255,255,255,.025))}
+.trial-story .trial-results-layout .metric-icon{margin-bottom:12px}
+.trial-story .trial-results-layout .metric-copy strong{display:block;font-size:13px;line-height:1.25}
+.trial-story .trial-results-layout .metric-copy:after{content:'';display:block;margin-top:10px;height:3px;width:100%;border-radius:999px;background:linear-gradient(90deg,var(--purple),var(--cyan))}
+.trial-story .activity-card{min-height:148px!important;align-content:start!important}
+.trial-story .activity-card strong{margin-top:12px!important}
+.trial-story .activity-card span{display:block;margin-top:7px;max-width:28ch;color:rgba(239,244,255,.72);font-size:11px;line-height:1.35}
 .trial-story .skill-node{min-height:132px}
 .trial-story .skill-badge{color:var(--cyan)}
 .trial-story .overview-score{display:none}
@@ -83,7 +124,7 @@ const STORY_CSS_OVERRIDE = `
 .trial-story .skill-node:nth-child(n+5){transform:none}
 .trial-story .skill-badge{width:72px;height:72px;border-radius:22px}
 .trial-story .skill-node strong{max-width:128px;font-size:12px;line-height:1.3}
-@media (max-width:640px){.trial-story .skills-layout{gap:12px}.trial-story .skill-path{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:14px 0}.trial-story .skill-node{min-height:116px}.trial-story .skill-node strong{max-width:130px;font-size:12px}}
+@media (max-width:640px){.trial-story .skills-layout{gap:12px}.trial-story .skill-path{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:14px 0}.trial-story .skill-node{min-height:116px}.trial-story .skill-node strong{max-width:130px;font-size:12px}.trial-story .trial-results-layout{grid-template-columns:1fr;gap:14px}.trial-story .trial-results-layout .metric-list{gap:8px}.trial-story .trial-results-layout .metric-row{min-height:126px;padding:13px}.trial-story .trial-results-layout .metric-copy strong{font-size:11px}.trial-story .activity-card{min-height:116px!important}.trial-story .activity-card span{font-size:10px}}
 .trial-story .skill-path{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:0}
 .trial-story .skill-path::before{display:none}
 .trial-story .skill-node{min-height:148px;align-content:center;justify-items:start;text-align:left;padding:20px;border:1px solid rgba(255,255,255,.12);border-radius:22px;background:linear-gradient(145deg,rgba(255,255,255,.09),rgba(255,255,255,.025));box-shadow:0 20px 50px rgba(0,0,0,.16)}
@@ -130,11 +171,17 @@ export default function TrialStoryReport({
   const [isPending, startTransition] = useTransition();
 
   const potentialPreview = useMemo(() => content.potential.slice(0, 5), [content.potential]);
+  const activityPreview = useMemo(() => content.triedToday.slice(0, 4).map(toActivityCard), [content.triedToday]);
+  const displayStrengths = useMemo(
+    () => (content.strengths.length ? content.strengths : content.highlights).map(stripParentStatus).filter(Boolean),
+    [content.highlights, content.strengths],
+  );
   const recommendationReasons = content.recommendationReasons.filter(
     (item) => item.trim().toLowerCase() !== 'sesuai kemampuan saat ini',
   );
   const recommendationItems = [
-    `Lanjutkan ke level ${recommendedLevel}`,
+    `Level ${recommendedLevel}`,
+    'Fokus pembelajaran: project management, public speaking, dan big project.',
     ...(recommendationReasons.length ? recommendationReasons : content.growthOpportunities),
   ].slice(0, 4);
   const canRegister = !invoiceUrl && status === 'PUBLISHED';
@@ -178,20 +225,19 @@ export default function TrialStoryReport({
       render: () => (
         <div className="intro-layout">
           <div className="intro-copy">
-            <p className="eyebrow">Trial Class Discovery</p>
+            <p className="eyebrow">Trial Class Report</p>
             <h1 className="display medium slide-copy-safe">
-              Perjalanan coding {studentName} <span className="accent">baru dimulai.</span>
+              {studentName}'s Journey to Become an <span className="accent">Innovator</span>
             </h1>
             <p className="lead">
-              Dari sesi trial {trialMode === 'ONLINE' ? 'online' : 'offline'}, Coach melihat beberapa potensi awal
-              yang bisa dikembangkan lewat project bertahap.
+              Bagaimana hasil observasi Coach {coachName} dari hasil sesi trial? Yuk lihat di sini.
             </p>
             <div className="intro-actions">
               <button type="button" className="primary-btn" onClick={() => setActiveIndex(1)}>
-                Mulai lihat report <ArrowRight />
+                Full Report <ArrowRight />
               </button>
               <button type="button" className="secondary-btn" onClick={() => setStoryOpen(false)}>
-                Lihat ringkasan <Eye />
+                Ringkasan <Eye />
               </button>
             </div>
           </div>
@@ -210,27 +256,25 @@ export default function TrialStoryReport({
       ),
     },
     {
-      key: 'potential',
+      key: 'tried',
       render: () => (
-        <div className="stats-layout">
+        <div className="skills-layout">
           <div>
-            <p className="eyebrow">Potensi yang Terlihat</p>
+            <p className="eyebrow">Kegiatan Trial</p>
             <h2 className="display medium slide-copy-safe">
-              Sinyal awal yang <span className="accent">menonjol</span> saat trial.
+              Berikut aktivitas yang dilakukan selama sesi trial.
             </h2>
             <p className="lead">
-              Bagian ini merangkum kecenderungan belajar yang terlihat tanpa menampilkan skor internal.
+              Dari beberapa aktivitas ini Coach belajar mengenali potensi, minat, serta cara belajar {studentName}.
             </p>
+            <span className="unlocked">Aktivitas trial selesai dicoba</span>
           </div>
-          <div className="metric-list">
-            {potentialPreview.map((item, index) => (
-              <div key={item.key} className="metric-row">
-                <div className="metric-icon"><Sparkles /></div>
-                <div className="metric-copy">
-                  <strong>{item.name}</strong>
-                  <div className="metric-track" style={{ '--value': 100 } as React.CSSProperties}><span /></div>
-                </div>
-                <div className="metric-score">{item.status}</div>
+          <div className="skill-path">
+            {activityPreview.map((item, index) => (
+              <div key={`${item.title}-${index}`} className="skill-node activity-card" style={{ '--i': index } as React.CSSProperties}>
+                <div className="skill-badge"><Check /></div>
+                <strong>{item.title}</strong>
+                <span>{item.detail}</span>
               </div>
             ))}
           </div>
@@ -238,24 +282,26 @@ export default function TrialStoryReport({
       ),
     },
     {
-      key: 'tried',
+      key: 'potential',
       render: () => (
-        <div className="skills-layout">
+        <div className="stats-layout trial-results-layout">
           <div>
-            <p className="eyebrow">Yang Dicoba Hari Ini</p>
+            <p className="eyebrow">Hasil Trial</p>
             <h2 className="display medium slide-copy-safe">
-              Beberapa aktivitas sudah <span className="accent">dikenalkan.</span>
+              Beberapa hal yang diobservasi Coach selama sesi trial.
             </h2>
             <p className="lead">
-              Trial bukan tanda semua materi sudah dikuasai, tapi langkah awal untuk melihat minat dan cara belajar.
+              {studentName} memiliki beberapa potensi penting yang dibutuhkan untuk menjadi innovator muda.
             </p>
-            <span className="unlocked">Aktivitas trial selesai dicoba</span>
           </div>
-          <div className="skill-path">
-            {content.triedToday.slice(0, 4).map((item, index) => (
-              <div key={item} className="skill-node" style={{ '--i': index } as React.CSSProperties}>
-                <div className="skill-badge"><Check /></div>
-                <strong>{item}</strong>
+          <div className="metric-list">
+            {potentialPreview.map((item) => (
+              <div key={item.key} className="metric-row">
+                <div className="metric-icon"><Sparkles /></div>
+                <div className="metric-copy">
+                  <strong>{item.name}</strong>
+                  <span>{item.description}</span>
+                </div>
               </div>
             ))}
           </div>
@@ -269,7 +315,7 @@ export default function TrialStoryReport({
           <div className="coach-copy">
             <p className="eyebrow">Coach Insight</p>
             <h2 className="display medium slide-copy-safe">
-              Catatan dari <span className="accent">{coachName}</span>
+              Catatan dari Coach <span className="accent">{coachName}</span>
             </h2>
             <p className="coach-quote">“{content.coachMessage}”</p>
             <p className="coach-signature">{coachName}</p>
@@ -278,7 +324,7 @@ export default function TrialStoryReport({
             <div className="coach-card strength">
               <h3>Kekuatan utama</h3>
               <ul>
-                {(content.strengths.length ? content.strengths : content.highlights).slice(0, 4).map((item) => (
+                {displayStrengths.slice(0, 3).map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
@@ -302,11 +348,12 @@ export default function TrialStoryReport({
           <div className="final-emblem"><Rocket /></div>
           <p className="eyebrow">Continue The Journey</p>
           <h2 className="display medium slide-copy-safe">
-            Lanjutkan ke level <span className="accent">{recommendedLevel}</span>
+              {studentName}
           </h2>
           <p className="lead">
-            Program ini direkomendasikan agar {studentName} bisa mengembangkan minat yang terlihat saat trial
-            lewat pembelajaran weekly yang lebih konsisten.
+            Selamat datang di LEVEL {recommendedLevel}, tempat {studentName} akan belajar berinovasi membuat
+            berbagai karya digital yang menantang secara teknis, belajar project management secara profesional,
+            dan berlatih menjadi technopreneur yang berdampak.
           </p>
           {recommendedLevel && recommendedLevel !== 'Weekly Class' ? (
             <div className="mini-summary">
@@ -429,9 +476,9 @@ export default function TrialStoryReport({
           </section>
 
           <section className="grid gap-6 lg:grid-cols-2">
-            <ReportBox title="Potensi yang terlihat" items={content.potential.map((item) => `${item.name}: ${item.status}. ${item.description}`)} />
-            <ReportBox title="Yang dicoba hari ini" items={content.triedToday} />
-            <ReportBox title="Kekuatan utama" items={content.strengths.length ? content.strengths : content.highlights} />
+            <ReportBox title="Potensi yang terlihat" items={content.potential.map((item) => `${item.name}: ${item.description}`)} />
+            <ReportBox title="Yang dicoba hari ini" items={content.triedToday.map(formatActivityForReport)} />
+            <ReportBox title="Kekuatan utama" items={displayStrengths} />
             <ReportBox
               title="Rekomendasi Coach"
               items={[

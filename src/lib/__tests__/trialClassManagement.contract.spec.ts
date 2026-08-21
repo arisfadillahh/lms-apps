@@ -175,7 +175,7 @@ describe('trial class management contract', () => {
     expect(approveRoute).not.toContain('recommendedClassId');
     expect(approveRoute).not.toContain('estimatedStartDate');
     expect(approveRoute).toContain('recommended_class_id: null');
-    expect(parentReport).toContain('Lanjutkan ke level');
+    expect(parentReport).toContain('Level ${recommendedLevel}');
     expect(parentReport).not.toContain('recommendedClass');
     expect(conversion).toContain('!assessment.recommended_level_id');
     expect(conversion).not.toContain('!assessment.recommended_class_id');

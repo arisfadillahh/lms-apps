@@ -193,7 +193,7 @@ export function buildTrialParentReportContent(input: {
   const strengths = potential
     .filter((item) => item.status === 'Menonjol' || item.status === 'Berkembang Baik')
     .slice(0, 3)
-    .map((item) => `${item.name}: ${item.status}`);
+    .map((item) => item.name);
 
   const fallbackStrengths = input.quickObservations.slice(0, 3);
   const growthOpportunities = potential
@@ -206,7 +206,12 @@ export function buildTrialParentReportContent(input: {
     potential,
     triedToday: input.triedToday?.length
       ? input.triedToday
-      : ['Basic Logic', 'Instruksi bertahap', 'Interaksi sederhana', 'Mini Project Trial'],
+      : [
+          'Basic Logic: memecahkan puzzle coding level 1-10 di Blockly.',
+          'Instruksi bertahap: menyusun perintah sesuai urutan untuk melihat hasilnya.',
+          'Interaksi sederhana: mencoba respons dan aksi dasar dalam project.',
+          'Mini Project Trial: menggabungkan logika, instruksi, dan ide menjadi karya kecil.',
+        ],
     strengths: strengths.length ? strengths : fallbackStrengths,
     growthOpportunities: growthOpportunities.length
       ? growthOpportunities

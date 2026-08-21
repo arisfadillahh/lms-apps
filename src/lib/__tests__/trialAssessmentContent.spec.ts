@@ -49,5 +49,19 @@ describe('trial assessment parent content', () => {
       'Menonjol',
     ]);
     expect(JSON.stringify(content)).not.toMatch(/"rating"|score|dikuasai/i);
+    expect(content.strengths).not.toContain('Engagement & Curiosity: Menonjol');
+  });
+
+  it('provides detailed default trial activities for the parent story', () => {
+    const content = buildTrialParentReportContent({
+      rubric,
+      quickObservations: [],
+      personalizedObservation: 'Catatan Coach.',
+      recommendationTags: [],
+    });
+
+    expect(content.triedToday).toHaveLength(4);
+    expect(content.triedToday.every((activity) => activity.includes(':'))).toBe(true);
+    expect(content.triedToday[0]).toContain('Blockly');
   });
 });

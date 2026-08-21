@@ -73,6 +73,10 @@ function ExperienceNav() {
 }
 
 function Portal({ model }: { model: PortfolioExperienceModel }) {
+  const programLabel = model.programTypes.length > 0
+    ? model.programTypes.map((program) => program === 'WEEKLY' ? 'Weekly' : 'Ekskul').join(' · ')
+    : 'Coder portfolio';
+
   return (
     <div className="relative grid min-h-[420px] place-items-center [perspective:1000px] sm:min-h-[560px]">
       <div className="absolute size-[min(560px,88vw)] rounded-full border border-white/10" />
@@ -82,7 +86,7 @@ function Portal({ model }: { model: PortfolioExperienceModel }) {
         <div className="absolute size-[56%] rotate-[-7deg] rounded-[42%_58%_64%_36%] bg-gradient-to-br from-clevio-green via-[#caf05d] to-clevio-cyan shadow-[0_0_50px_rgba(0,176,215,.34)]" />
         <div className="relative z-10 grid w-[71%] grid-cols-[auto_1fr_auto] items-center gap-3 rounded-3xl border border-white/15 bg-[#0e1740]/75 p-4 shadow-2xl backdrop-blur-xl">
           <div className="grid size-14 place-items-center rounded-2xl bg-gradient-to-br from-clevio-cyan to-clevio-green text-xl font-black text-[#0e1740]">{model.initials}</div>
-          <div className="min-w-0"><span className="block text-[9px] font-black uppercase tracking-[.14em] text-clevio-green">Coder Portfolio</span><strong className="block truncate text-lg">{model.fullName}</strong><p className="m-0 truncate text-xs text-white/60">{model.levelName || 'Coder'} · {model.season}</p></div>
+          <div className="min-w-0"><span className="block text-[9px] font-black uppercase tracking-[.14em] text-clevio-green">{programLabel}</span><strong className="block truncate text-lg">{model.fullName}</strong><p className="m-0 truncate text-xs text-white/60">{model.levelName || 'Coder'}{model.schoolVisible && model.schoolName ? ` · ${model.schoolName}` : ''}</p></div>
           <Sparkles className="text-clevio-green" size={18} />
         </div>
       </div>
@@ -114,14 +118,61 @@ function SectionHeader({ number, title, description }: { number: string; title: 
 }
 
 function JourneySection({ model }: { model: PortfolioExperienceModel }) {
+  const orbitLabels = model.journey.length > 0 ? model.journey.slice(0, 4).map((item) => item.label) : ['Belum ada skill'];
+
   return <section id="journey" className="relative z-10 px-5 py-24 sm:px-8 sm:py-28"><div className="mx-auto max-w-6xl"><SectionHeader number="01" title="Learning Journey" description={`Bukan hanya apa yang ${model.firstName} selesaikan, tetapi juga bagaimana cara berpikirnya tumbuh saat membangun karya.`} /><div className="grid gap-4 lg:grid-cols-[1.03fr_.97fr]">
-    <article className="relative min-h-[560px] overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/[.08] to-white/[.035] p-6 shadow-2xl sm:p-7"><div className="flex items-start gap-3"><span className="grid size-12 place-items-center rounded-2xl bg-clevio-green text-[#0e1740]"><BrainCircuit size={22} /></span><div><small className="block text-[9px] font-black uppercase tracking-[.14em] text-clevio-green">Latest reflection</small><strong className="block max-w-md text-xl leading-tight sm:text-2xl">Dari mengikuti langkah menjadi berani mengambil keputusan.</strong></div></div><div className="relative grid min-h-[330px] place-items-center"><div className="absolute size-64 rounded-full border border-white/10 shadow-[0_0_0_34px_rgba(0,176,215,.025),0_0_0_70px_rgba(157,200,59,.02)]" /><div className="relative grid size-40 place-items-center rounded-full bg-gradient-to-br from-clevio-green to-[#c6e854] text-center text-[#0e1740] shadow-[0_25px_60px_rgba(157,200,59,.18)]"><div><Sparkles className="mx-auto" size={26} /><strong className="block text-3xl">{model.stats.reflections}</strong><span className="block text-[9px] font-black uppercase tracking-[.13em]">Refleksi tersimpan</span></div></div><span className="absolute left-0 top-10 rounded-xl border border-white/10 bg-[#0e1740]/80 px-3 py-2 text-xs font-black text-white/75 backdrop-blur">Ideas</span><span className="absolute right-0 top-16 rounded-xl border border-white/10 bg-[#0e1740]/80 px-3 py-2 text-xs font-black text-white/75 backdrop-blur">Logic</span><span className="absolute bottom-9 left-2 rounded-xl border border-white/10 bg-[#0e1740]/80 px-3 py-2 text-xs font-black text-white/75 backdrop-blur">Iteration</span><span className="absolute bottom-2 right-0 rounded-xl border border-white/10 bg-[#0e1740]/80 px-3 py-2 text-xs font-black text-white/75 backdrop-blur">Sharing</span></div><div className="flex gap-3 border-t border-white/10 pt-5 text-clevio-green"><Sparkles className="shrink-0" size={20} /><p className="m-0 text-sm font-semibold leading-relaxed text-white/65">{model.latestStory.learningReflection}</p></div></article>
+    <article className="relative min-h-[560px] overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/[.08] to-white/[.035] p-6 shadow-2xl sm:p-7"><div className="flex items-start gap-3"><span className="grid size-12 place-items-center rounded-2xl bg-clevio-green text-[#0e1740]"><BrainCircuit size={22} /></span><div><small className="block text-[9px] font-black uppercase tracking-[.14em] text-clevio-green">Latest reflection</small><strong className="block max-w-md text-xl leading-tight sm:text-2xl">{model.projects[0]?.snapshot.title || 'Belum ada project terbaru'}</strong></div></div><div className="relative grid min-h-[330px] place-items-center"><div className="absolute size-64 rounded-full border border-white/10 shadow-[0_0_0_34px_rgba(0,176,215,.025),0_0_0_70px_rgba(157,200,59,.02)]" /><div className="relative grid size-40 place-items-center rounded-full bg-gradient-to-br from-clevio-green to-[#c6e854] text-center text-[#0e1740] shadow-[0_25px_60px_rgba(157,200,59,.18)]"><div><Sparkles className="mx-auto" size={26} /><strong className="block text-3xl">{model.stats.reflections}</strong><span className="block text-[9px] font-black uppercase tracking-[.13em]">Refleksi tersimpan</span></div></div>{orbitLabels.map((label, index) => <span key={`${label}-${index}`} className={`absolute rounded-xl border border-white/10 bg-[#0e1740]/80 px-3 py-2 text-xs font-black text-white/75 backdrop-blur ${index === 0 ? 'left-0 top-10' : index === 1 ? 'right-0 top-16' : index === 2 ? 'bottom-9 left-2' : 'bottom-2 right-0'}`}>{label}</span>)}</div><div className="flex gap-3 border-t border-white/10 pt-5 text-clevio-green"><Sparkles className="shrink-0" size={20} /><p className="m-0 text-sm font-semibold leading-relaxed text-white/65">{model.latestStory.learningReflection}</p></div></article>
     <div className="grid gap-3">{model.journey.length > 0 ? model.journey.map((item) => <article key={item.label} className="relative grid min-h-28 grid-cols-[auto_1fr_auto] gap-3 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-white/[.08] to-white/[.035] p-5"><span className="grid size-10 place-items-center rounded-xl bg-clevio-green text-sm font-black text-[#0e1740]">{item.count}</span><div><strong className="text-base sm:text-lg">{item.label}</strong><p className="m-0 mt-1 text-xs leading-relaxed text-white/60">{item.detail}</p></div><span className="text-xl font-black text-clevio-green">{item.percent}%</span><div className="absolute inset-x-5 bottom-3 h-1 overflow-hidden rounded-full bg-white/10"><i className="block h-full rounded-full bg-gradient-to-r from-clevio-cyan to-clevio-green" style={{ width: `${item.percent}%` }} /></div></article>) : <article className="rounded-3xl border border-dashed border-white/15 p-6 text-white/60">Skill akan muncul setelah ada project yang disetujui Coach.</article>}<article className="rounded-3xl border border-white/10 bg-gradient-to-br from-clevio-cyan/10 to-white/[.035] p-5"><div className="flex items-center gap-2 text-clevio-green"><Sparkles size={21} /><strong>Next step</strong></div><p className="mt-3 text-sm font-semibold leading-relaxed text-white/70">{model.latestStory.nextSteps}</p></article></div>
   </div></div></section>;
 }
 
 function CharacterSection({ model }: { model: PortfolioExperienceModel }) {
-  return <section id="character" className="relative z-10 px-5 py-24 sm:px-8 sm:py-28"><div className="mx-auto max-w-6xl"><SectionHeader number="03" title="Beyond the Code" description={`Portfolio ini juga menyimpan kebiasaan berkarya yang terlihat dari cara ${model.firstName} merancang, mencoba, merefleksikan, dan melanjutkan project.`} /><div className="grid gap-6 lg:grid-cols-[.92fr_1.08fr]"><div className="relative grid min-h-[480px] place-items-center overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_40%_39%,rgba(157,200,59,.42),transparent_24%),radial-gradient(circle_at_70%_56%,rgba(0,176,215,.31),transparent_27%),linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.035))]"><div className="absolute size-72 rounded-full border border-white/10 sm:size-96" /><div className="absolute size-56 rounded-full border border-dashed border-clevio-green/40 sm:size-72" /><div className="relative grid size-48 place-items-center rounded-[44%_56%_63%_37%] bg-gradient-to-br from-clevio-green to-clevio-cyan text-[#0e1740] shadow-[0_30px_75px_rgba(0,176,215,.23)]"><Rocket size={40} /><span className="absolute mt-28 text-2xl font-black tracking-[-.03em]">GROW</span></div><span className="absolute left-4 top-20 rounded-xl border border-white/10 bg-[#0e1740]/80 px-3 py-2 text-xs font-black text-white/75 backdrop-blur">Curious</span><span className="absolute right-4 top-28 rounded-xl border border-white/10 bg-[#0e1740]/80 px-3 py-2 text-xs font-black text-white/75 backdrop-blur">Focused</span><span className="absolute bottom-20 left-5 rounded-xl border border-white/10 bg-[#0e1740]/80 px-3 py-2 text-xs font-black text-white/75 backdrop-blur">Collaborative</span></div><div className="grid content-center">{model.traits.map((trait, index) => <article key={trait.label} className="grid min-h-24 grid-cols-[44px_1fr] items-center gap-3 border-b border-white/10"><span className="text-xs font-black tracking-[.12em] text-clevio-green">0{index + 1}</span><div><strong className="text-lg">{trait.label}</strong><p className="m-0 mt-1 text-xs leading-relaxed text-white/60">{trait.detail}</p></div></article>)}<div className="mt-5 grid grid-cols-[auto_1fr] gap-3 rounded-2xl bg-clevio-green p-5 text-[#0e1740]"><Sparkles size={24} /><div><small className="block text-[9px] font-black uppercase tracking-[.12em]">Positive growth signal</small><strong className="block text-base leading-tight">Berani mencoba, mampu merefleksikan, dan siap membangun bab berikutnya.</strong></div></div></div></div></div></section>;
+  const latestProject = model.projects[0]?.snapshot;
+  const programLabel = model.programTypes.length > 0
+    ? model.programTypes.map((program) => program === 'WEEKLY' ? 'Weekly' : 'Ekskul').join(' · ')
+    : 'Belum ada program tercatat';
+  const statChips = [
+    { label: 'Project', value: model.stats.projects },
+    { label: 'Skill', value: model.stats.skills },
+    { label: 'Refleksi', value: model.stats.reflections },
+  ];
+
+  return (
+    <section id="character" className="relative z-10 px-5 py-24 sm:px-8 sm:py-28">
+      <div className="mx-auto max-w-6xl">
+        <SectionHeader number="03" title="Beyond the Code" description={`Portfolio ini juga menyimpan kebiasaan berkarya yang terlihat dari cara ${model.firstName} merancang, mencoba, merefleksikan, dan melanjutkan project.`} />
+        <div className="grid gap-6 lg:grid-cols-[.96fr_1.04fr]">
+          <article className="relative min-h-[560px] overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_50%_45%,rgba(157,200,59,.22),transparent_26%),linear-gradient(145deg,rgba(255,255,255,.09),rgba(255,255,255,.035))] p-5 shadow-2xl sm:p-8">
+            <div className="relative z-10 flex items-start justify-between gap-3">
+              <div>
+                <small className="block text-[9px] font-black uppercase tracking-[.16em] text-clevio-green">Growth snapshot</small>
+                <strong className="mt-1 block max-w-[18rem] text-xl leading-tight">{latestProject?.title || 'Belum ada project terbaru'}</strong>
+              </div>
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-black uppercase tracking-[.12em] text-white/60">{programLabel}</span>
+            </div>
+            <div className="relative grid min-h-[350px] place-items-center">
+              <div className="absolute size-[min(430px,84vw)] rounded-full border border-white/10" />
+              <div className="absolute size-[min(330px,66vw)] rounded-full border border-dashed border-clevio-green/40" />
+              <div className="absolute size-[min(500px,96vw)] rounded-full border border-white/10 opacity-25" />
+              <div className="relative grid size-[min(220px,54vw)] place-items-center rounded-[43%_57%_62%_38%] bg-gradient-to-br from-clevio-green via-[#c9ef5b] to-clevio-cyan text-[#0e1740] shadow-[0_30px_75px_rgba(0,176,215,.25)]">
+                <div className="text-center"><Rocket className="mx-auto mb-3" size={34} /><span className="block text-4xl font-black tracking-[-.06em]">{model.initials}</span><span className="mt-1 block text-[10px] font-black uppercase tracking-[.16em]">{model.firstName}</span></div>
+              </div>
+              <span className="absolute left-0 top-12 max-w-[45%] rounded-xl border border-white/10 bg-[#0e1740]/85 px-3 py-2 text-xs font-black text-white/75 backdrop-blur">{model.journey[0]?.label || 'Belum ada skill'}</span>
+              {model.levelName && <span className="absolute right-0 top-20 max-w-[45%] rounded-xl border border-white/10 bg-[#0e1740]/85 px-3 py-2 text-xs font-black text-white/75 backdrop-blur">{model.levelName}</span>}
+              {model.schoolVisible && model.schoolName && <span className="absolute bottom-8 left-0 max-w-[52%] rounded-xl border border-white/10 bg-[#0e1740]/85 px-3 py-2 text-xs font-black text-white/75 backdrop-blur">{model.schoolName}</span>}
+            </div>
+            <div className="relative z-10 grid grid-cols-3 gap-2 border-t border-white/10 pt-5">
+              {statChips.map((stat) => <div key={stat.label} className="rounded-2xl border border-white/10 bg-white/[.045] px-3 py-3"><strong className="block text-xl text-clevio-green">{stat.value}</strong><span className="text-[9px] font-black uppercase tracking-[.12em] text-white/50">{stat.label}</span></div>)}
+            </div>
+          </article>
+          <div className="grid content-center gap-0">
+            {model.traits.map((trait, index) => <article key={trait.label} className="grid min-h-28 grid-cols-[44px_1fr] items-start gap-3 border-b border-white/10 py-5 first:pt-0"><span className="text-xs font-black tracking-[.12em] text-clevio-green">0{index + 1}</span><div><strong className="text-lg">{trait.label}</strong><p className="m-0 mt-2 text-sm leading-relaxed text-white/60">{trait.detail}</p></div></article>)}
+            <div className="mt-6 rounded-2xl border border-clevio-green/30 bg-clevio-green/10 p-5"><div className="flex items-center gap-2 text-clevio-green"><Sparkles size={20} /><strong>Next step dari project terbaru</strong></div><p className="m-0 mt-3 text-sm font-semibold leading-relaxed text-white/70">{model.latestStory.nextSteps}</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 export default function PublicPortfolioExperience({ model }: { model: PortfolioExperienceModel }) {

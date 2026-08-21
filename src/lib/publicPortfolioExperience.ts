@@ -74,6 +74,10 @@ export function buildPortfolioExperienceModel(input: PortfolioExperienceInput): 
     nextSteps: latest?.nextSteps || 'Project berikutnya akan menambahkan bab baru di sini.',
   };
 
+  const latestProjectType = latest?.projectType?.trim() || 'Project terbaru';
+  const latestProgram = latest?.programType === 'EKSKUL' ? 'Perjalanan ekskul' : latest?.programType === 'WEEKLY' ? 'Perjalanan weekly' : 'Perjalanan coder';
+  const focusSkill = journey[0]?.label ? `Skill: ${journey[0].label}` : 'Skill yang dipraktikkan';
+
   return {
     ...input,
     firstName,
@@ -87,10 +91,10 @@ export function buildPortfolioExperienceModel(input: PortfolioExperienceInput): 
     journey,
     latestStory,
     traits: [
-      { label: 'Ownership', detail: latestStory.roleContribution },
-      { label: 'Refleksi', detail: latestStory.learningReflection },
-      { label: 'Eksperimen', detail: `Mengeksplorasi ${Math.max(skillCounts.size, 0)} skill dari karya yang sudah disetujui.` },
-      { label: 'Next chapter', detail: latestStory.nextSteps },
+      { label: latestProjectType, detail: latest?.summary || 'Ringkasan project akan muncul setelah project disetujui Coach.' },
+      { label: latestProgram, detail: latestStory.roleContribution },
+      { label: focusSkill, detail: journey[0]?.detail || 'Skill akan muncul setelah ada project yang disetujui Coach.' },
+      { label: 'Next step', detail: latestStory.nextSteps },
     ],
   };
 }

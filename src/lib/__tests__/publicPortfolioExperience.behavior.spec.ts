@@ -41,6 +41,9 @@ describe('public portfolio experience model', () => {
     expect(model.stats).toEqual({ projects: 2, skills: 3, reflections: 2 });
     expect(model.journey[0]).toMatchObject({ label: 'Problem Solving', count: 2, percent: 100 });
     expect(model.latestStory.learningReflection).toContain('Belajar');
+    expect(model.traits[0]).toMatchObject({ label: 'Game', detail: 'Project game edukasi untuk belajar sambil bermain.' });
+    expect(model.traits[2].label).toBe('Skill: Problem Solving');
+    expect(model.traits[3].label).toBe('Next step');
     expect(model.traits).toHaveLength(4);
   });
 
@@ -57,6 +60,6 @@ describe('public portfolio experience model', () => {
     expect(model.stats).toEqual({ projects: 0, skills: 0, reflections: 0 });
     expect(model.journey).toEqual([]);
     expect(model.latestStory.nextSteps).toContain('Project berikutnya');
-    expect(model.traits[2].detail).toContain('0 skill');
+    expect(model.traits[2].detail).toContain('Skill akan muncul');
   });
 });

@@ -190,6 +190,111 @@
   max-width: 100%;
 }
 
+/* Coder theme layer. It is scoped to the Coder shell so Admin and Coach keep their own themes. */
+html[data-coder-theme='dark'] .coder-app-shell {
+  --coder-bg: #0d1728;
+  --coder-surface: #14243a;
+  --coder-surface-soft: #1a2d46;
+  --coder-border: #2d4563;
+  --coder-text: #f1f6ff;
+  --coder-muted: #a9bad0;
+  background: var(--coder-bg) !important;
+  color: var(--coder-text) !important;
+  color-scheme: dark;
+}
+
+html[data-coder-theme='light'] .coder-app-shell {
+  color-scheme: light;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .bg-white,
+html[data-coder-theme='dark'] .coder-app-shell [class*='bg-white/'] {
+  background-color: var(--coder-surface) !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .bg-slate-50,
+html[data-coder-theme='dark'] .coder-app-shell .bg-slate-100,
+html[data-coder-theme='dark'] .coder-app-shell [class*='bg-[#f6f7f8]'] {
+  background-color: var(--coder-surface-soft) !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .bg-pastel-blue,
+html[data-coder-theme='dark'] .coder-app-shell [class*='bg-pastel-blue/'] {
+  background-color: #173653 !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .bg-pastel-green,
+html[data-coder-theme='dark'] .coder-app-shell [class*='bg-pastel-green/'] {
+  background-color: #1c3b35 !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .bg-pastel-yellow,
+html[data-coder-theme='dark'] .coder-app-shell [class*='bg-pastel-yellow/'] {
+  background-color: #45391c !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .bg-pastel-pink,
+html[data-coder-theme='dark'] .coder-app-shell [class*='bg-pastel-pink/'] {
+  background-color: #43283b !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .text-clevio-navy,
+html[data-coder-theme='dark'] .coder-app-shell .text-slate-800,
+html[data-coder-theme='dark'] .coder-app-shell .text-slate-700,
+html[data-coder-theme='dark'] .coder-app-shell .text-slate-600,
+html[data-coder-theme='dark'] .coder-app-shell [class*='text-[#1e3a5f]'] {
+  color: var(--coder-text) !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .text-slate-500,
+html[data-coder-theme='dark'] .coder-app-shell .text-slate-400,
+html[data-coder-theme='dark'] .coder-app-shell .text-slate-300,
+html[data-coder-theme='dark'] .coder-app-shell [class*='text-[#1e3a5f]/40'],
+html[data-coder-theme='dark'] .coder-app-shell [class*='text-[#1e3a5f]/60'] {
+  color: var(--coder-muted) !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .border-slate-50,
+html[data-coder-theme='dark'] .coder-app-shell .border-slate-100,
+html[data-coder-theme='dark'] .coder-app-shell .border-slate-200,
+html[data-coder-theme='dark'] .coder-app-shell [class*='border-pastel-'] {
+  border-color: var(--coder-border) !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell input,
+html[data-coder-theme='dark'] .coder-app-shell textarea,
+html[data-coder-theme='dark'] .coder-app-shell select {
+  background-color: var(--coder-surface-soft) !important;
+  color: var(--coder-text) !important;
+  border-color: var(--coder-border) !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell input::placeholder,
+html[data-coder-theme='dark'] .coder-app-shell textarea::placeholder {
+  color: #8297b2 !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .coder-theme-settings [role='radio'][aria-checked='true'] {
+  color: #dff3ff !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .coder-theme-settings [role='radio'][aria-checked='false'] {
+  background-color: var(--coder-surface-soft) !important;
+  color: var(--coder-muted) !important;
+  border-color: var(--coder-border) !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .shadow-xl,
+html[data-coder-theme='dark'] .coder-app-shell .shadow-2xl,
+html[data-coder-theme='dark'] .coder-app-shell [class*='shadow-['] {
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28) !important;
+}
+
+html[data-coder-theme='dark'] .coder-app-shell .hover\:bg-slate-50:hover,
+html[data-coder-theme='dark'] .coder-app-shell .hover\:bg-white:hover {
+  background-color: #203754 !important;
+}
+
 [role='dialog'] {
   max-width: calc(100vw - 24px);
   max-height: calc(100dvh - 24px);

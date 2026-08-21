@@ -2,6 +2,9 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { Monitor, Moon, Sun } from 'lucide-react';
+import { useCoderTheme } from '@/components/coder/CoderThemeProvider';
+import type { CoderThemePreference } from '@/lib/coderTheme';
 
 interface CoderProfileData {
     username: string;
@@ -32,6 +35,7 @@ export default function CoderSettingsAccordion({
 }) {
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const { preference, setPreference } = useCoderTheme();
 
     const [formData, setFormData] = useState<CoderProfileData>(profile);
     const [currentPassword, setCurrentPassword] = useState('');
@@ -170,6 +174,40 @@ export default function CoderSettingsAccordion({
                     <p className="text-[#1e3a5f]/60 font-medium mt-1">Kelola akun belajar seru kamu di sini!</p>
                 </div>
             </div>
+
+            <section className="coder-theme-settings bg-white p-6 lg:p-8 rounded-[2.5rem] shadow-xl shadow-[#1e3a5f]/5 border-2 border-[#3db8eb]/10">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h2 className="text-xl font-black text-[#1e3a5f]">Tampilan</h2>
+                        <p className="text-sm font-medium text-[#1e3a5f]/60 mt-1">Pilih tampilan LMS yang paling nyaman untuk belajar.</p>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Tema tampilan">
+                        {([
+                            { value: 'light', label: 'Light', icon: Sun },
+                            { value: 'dark', label: 'Dark', icon: Moon },
+                            { value: 'auto', label: 'Auto', icon: Monitor },
+                        ] as const).map(({ value, label, icon: Icon }) => {
+                            const selected = preference === value;
+                            return (
+                                <button
+                                    key={value}
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={selected}
+                                    onClick={() => setPreference(value as CoderThemePreference)}
+                                    className={`flex min-w-[78px] flex-col items-center gap-1 rounded-2xl border-2 px-4 py-3 text-xs font-black transition-colors ${selected
+                                        ? 'border-[#3db8eb] bg-[#3db8eb]/15 text-[#1e3a5f]'
+                                        : 'border-slate-100 bg-slate-50 text-slate-500 hover:border-[#3db8eb]/40 hover:bg-[#3db8eb]/5'
+                                        }`}
+                                >
+                                    <Icon size={18} aria-hidden="true" />
+                                    {label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            </section>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-7">
 

@@ -3,6 +3,7 @@ import { getServerAuthSession } from '@/lib/auth';
 import { usersDao } from '@/lib/dao';
 import CoderSidebar from './CoderSidebar';
 import CoderHeader from './dashboard/CoderHeader';
+import CoderThemeProvider from '@/components/coder/CoderThemeProvider';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { redirect } from 'next/navigation';
@@ -33,29 +34,36 @@ export default async function CoderLayout({ children }: { children: ReactNode })
   const todayDate = format(new Date(), 'EEEE, d MMMM yyyy', { locale: id });
 
   return (
-    <div className="coder-app-shell bg-background-light text-slate-800 font-display min-h-screen antialiased flex">
-      <CoderSidebar session={session} />
-      <main className="coder-main flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        <CoderHeader
-          userName={userName}
-          fullName={session.user.fullName || 'Coder'}
-          todayDate={todayDate}
-          avatarPath={session.user.avatarPath}
-          role={session.user.role}
-          username={session.user.username}
-          adminPermissions={session.user.adminPermissions}
-        />
-        {children}
-      </main>
+    <CoderThemeProvider>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `(function(){try{var p=localStorage.getItem('clevio-coder-theme')||'auto';var d=p==='dark'||(p==='auto'&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';document.documentElement.dataset.coderTheme=d;}catch(e){}})()`,
+        }}
+      />
+      <div className="coder-app-shell bg-background-light text-slate-800 font-display min-h-screen antialiased flex">
+        <CoderSidebar session={session} />
+        <main className="coder-main flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+          <CoderHeader
+            userName={userName}
+            fullName={session.user.fullName || 'Coder'}
+            todayDate={todayDate}
+            avatarPath={session.user.avatarPath}
+            role={session.user.role}
+            username={session.user.username}
+            adminPermissions={session.user.adminPermissions}
+          />
+          {children}
+        </main>
 
-      {/* Responsive CSS for mobile */}
-      <style>{`
-        @media (max-width: 768px) {
-          .coder-sidebar {
-            display: none !important;
+        {/* Responsive CSS for mobile */}
+        <style>{`
+          @media (max-width: 768px) {
+            .coder-sidebar {
+              display: none !important;
+            }
           }
-        }
-      `}</style>
-    </div>
+        `}</style>
+      </div>
+    </CoderThemeProvider>
   );
 }

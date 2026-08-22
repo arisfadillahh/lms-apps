@@ -108,7 +108,7 @@ export default function IssueReportButton({ role, placement = 'floating' }: Prop
 
       {open ? (
         <div className={styles.backdrop} onMouseDown={(event) => event.target === event.currentTarget && close()}>
-          <section className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="issue-report-title">
+            <section className={styles.modal} data-coder-modal={role === 'CODER' ? 'true' : undefined} role="dialog" aria-modal="true" aria-labelledby="issue-report-title">
             {reference ? (
               <div className={styles.success}>
                 <div className={styles.successIcon}><Check size={30} /></div>

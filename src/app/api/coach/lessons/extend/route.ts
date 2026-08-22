@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { getSessionOrThrow } from '@/lib/auth';
-import { classesDao, sessionsDao } from '@/lib/dao';
+import { attendanceDao, classesDao, sessionsDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
+import { canExtendBeforeNextLessonSession } from '@/lib/services/lessonExtensionBoundary';
 import { extendClassLesson } from '@/lib/services/lessonExtension';
 
 const schema = z.object({
@@ -13,7 +14,7 @@ const schema = z.object({
 });
 
 function errorStatus(message: string): number {
-  if (/sudah pernah|part terakhir|pertemuan setelahnya|hanya tersedia/i.test(message)) return 409;
+  if (/sudah pernah|part terakhir|pertemuan setelahnya|pertemuan pertama lesson berikutnya|hanya tersedia/i.test(message)) return 409;
   if (/tidak ditemukan|belum ada pertemuan/i.test(message)) return 404;
   return 500;
 }
@@ -51,15 +52,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Lesson hanya dapat diperpanjang dari part terakhir.' }, { status: 409 });
     }
 
-    const hasLaterCompletedSession = classSessions.some((item) => (
-      item.status === 'COMPLETED'
-      && new Date(item.date_time).getTime() > new Date(sessionRecord.date_time).getTime()
-    ));
-    if (hasLaterCompletedSession) {
-      return NextResponse.json(
-        { error: 'Lesson lama tidak dapat diperpanjang karena pertemuan setelahnya sudah selesai.' },
-        { status: 409 },
-      );
+    const orderedSessions = classSessions
+      .filter((item) => item.status !== 'CANCELLED')
+      .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
+    const nextLessonSession = orderedSessions
+      .slice(Math.max(0, orderedSessions.findIndex((item) => item.id === sessionRecord.id) + 1))
+      .map((item) => ({ item, slot: schedule.get(item.id) }))
+      .find((candidate) => candidate.slot && candidate.slot.globalIndex > slot.globalIndex);
+
+    if (nextLessonSession) {
+      const nextAttendance = await attendanceDao.listAttendanceBySession(nextLessonSession.item.id);
+      const canExtend = canExtendBeforeNextLessonSession({
+        dateTime: nextLessonSession.item.date_time,
+        status: nextLessonSession.item.status,
+        hasAttendance: nextAttendance.length > 0,
+      });
+      if (!canExtend) {
+        return NextResponse.json(
+          { error: 'Lesson tidak dapat diperpanjang karena pertemuan pertama lesson berikutnya sudah dimulai atau sudah diabsen.' },
+          { status: 409 },
+        );
+      }
     }
 
     const result = await extendClassLesson({

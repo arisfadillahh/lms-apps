@@ -26,11 +26,13 @@ export default function CoderHeader({ userName, fullName, todayDate, avatarPath,
     return (
         <header className="flex-shrink-0 sticky top-0 z-[30] bg-white/90 backdrop-blur-md px-4 md:px-8 py-3 md:py-5 flex items-center gap-3 md:gap-4 border-b-4 border-dashed border-pastel-blue/30">
             {/* Mobile Nav */}
-            <MobileNav
-                role={role as 'ADMIN' | 'COACH' | 'CODER'}
-                username={username}
-                adminPermissions={adminPermissions}
-            />
+            {role !== 'CODER' ? (
+                <MobileNav
+                    role={role as 'ADMIN' | 'COACH' | 'CODER'}
+                    username={username}
+                    adminPermissions={adminPermissions}
+                />
+            ) : null}
 
             {/* Greeting */}
             <div className="flex-1 md:flex-none truncate">
@@ -85,6 +87,7 @@ export default function CoderHeader({ userName, fullName, todayDate, avatarPath,
                                     exit={{ opacity: 0, scale: 0.95, y: 10 }}
                                     transition={{ duration: 0.1 }}
                                     className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-lg border border-slate-100 p-2 z-20"
+                                    data-coder-modal="true"
                                 >
                                     <Link
                                         href="/coder/profile"

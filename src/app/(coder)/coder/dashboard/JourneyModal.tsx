@@ -45,6 +45,7 @@ export default function JourneyModal({ courses }: { courses: JourneyCourse[] }) 
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
                             transition={{ duration: 0.25, type: 'spring', damping: 25, stiffness: 280 }}
                             className="w-full max-w-5xl max-h-[88vh] flex flex-col overflow-hidden rounded-[2.5rem] shadow-[0_35px_80px_-15px_rgba(0,0,0,0.4)] border-[6px] border-white/40 relative"
+                            data-coder-modal="true"
                             style={{ background: 'linear-gradient(to bottom, #7dd3fc 0%, #e0f2fe 100%)' }}
                             onClick={e => e.stopPropagation()}
                         >

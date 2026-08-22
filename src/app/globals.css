@@ -395,6 +395,202 @@ html[data-coder-theme='dark'] .coder-app-shell .hover\:bg-white:hover {
   background-color: #203754 !important;
 }
 
+/* Portal-based Coder popups live under document.body, so they need a theme
+   boundary that is not dependent on the app shell ancestor. */
+html[data-coder-theme='dark'] [data-coder-modal='true'] {
+  --coder-modal-surface: #14243a;
+  --coder-modal-surface-soft: #1a2d46;
+  --coder-modal-border: #2d4563;
+  --coder-modal-text: #f1f6ff;
+  --coder-modal-muted: #a9bad0;
+  background: var(--coder-modal-surface) !important;
+  background-color: var(--coder-modal-surface) !important;
+  border-color: var(--coder-modal-border) !important;
+  color: var(--coder-modal-text) !important;
+  color-scheme: dark;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .bg-white,
+html[data-coder-theme='dark'] [data-coder-modal='true'] [class*='bg-white/'] {
+  background-color: var(--coder-modal-surface) !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .bg-slate-50,
+html[data-coder-theme='dark'] [data-coder-modal='true'] .bg-slate-100,
+html[data-coder-theme='dark'] [data-coder-modal='true'] [class*='bg-slate-50/'],
+html[data-coder-theme='dark'] [data-coder-modal='true'] [class*='bg-slate-100/'] {
+  background-color: var(--coder-modal-surface-soft) !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .bg-pastel-blue,
+html[data-coder-theme='dark'] [data-coder-modal='true'] [class*='bg-pastel-blue/'],
+html[data-coder-theme='dark'] [data-coder-modal='true'] .bg-blue-50 {
+  background-color: #173653 !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .bg-green-50,
+html[data-coder-theme='dark'] [data-coder-modal='true'] .bg-green-100,
+html[data-coder-theme='dark'] [data-coder-modal='true'] [class*='bg-green-50/'] {
+  background-color: #193b35 !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .text-clevio-navy,
+html[data-coder-theme='dark'] [data-coder-modal='true'] .text-slate-800,
+html[data-coder-theme='dark'] [data-coder-modal='true'] .text-slate-700,
+html[data-coder-theme='dark'] [data-coder-modal='true'] .text-slate-600,
+html[data-coder-theme='dark'] [data-coder-modal='true'] .text-slate-500,
+html[data-coder-theme='dark'] [data-coder-modal='true'] .text-slate-400 {
+  color: var(--coder-modal-text) !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .text-slate-500,
+html[data-coder-theme='dark'] [data-coder-modal='true'] .text-slate-400 {
+  color: var(--coder-modal-muted) !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .border-slate-50,
+html[data-coder-theme='dark'] [data-coder-modal='true'] .border-slate-100,
+html[data-coder-theme='dark'] [data-coder-modal='true'] .border-slate-200,
+html[data-coder-theme='dark'] [data-coder-modal='true'] [class*='border-pastel-'] {
+  border-color: var(--coder-modal-border) !important;
+}
+
+/* A few legacy Coder modals still use inline colors. These scoped overrides
+   keep their information hierarchy while replacing unreadable light surfaces. */
+html[data-coder-theme='dark'] [data-coder-modal='true'] [style*='background'] {
+  background: var(--coder-modal-surface-soft) !important;
+  background-color: var(--coder-modal-surface-soft) !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] [style*='#fffbeb'],
+html[data-coder-theme='dark'] [data-coder-modal='true'] [style*='#fef3c7'] {
+  background: #45391c !important;
+  background-color: #45391c !important;
+  border-color: #806b3a !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] [style*='#ecfdf5'],
+html[data-coder-theme='dark'] [data-coder-modal='true'] [style*='#f0fdf4'] {
+  background: #193b35 !important;
+  background-color: #193b35 !important;
+  border-color: #2d7964 !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] [style*='color'] {
+  color: var(--coder-modal-text) !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] input,
+html[data-coder-theme='dark'] [data-coder-modal='true'] textarea,
+html[data-coder-theme='dark'] [data-coder-modal='true'] select {
+  background-color: var(--coder-modal-surface-soft) !important;
+  color: var(--coder-modal-text) !important;
+  border-color: var(--coder-modal-border) !important;
+}
+
+/* Compact, app-like Coder navigation for phones. */
+.coder-mobile-nav {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 80;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 2px;
+  padding: 8px 8px max(8px, env(safe-area-inset-bottom));
+  border-top: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.1);
+  backdrop-filter: blur(18px);
+}
+
+.coder-mobile-nav-item,
+.coder-mobile-report .sidebarTrigger {
+  min-width: 0;
+  min-height: 52px;
+  border-radius: 16px;
+  color: #64748b;
+  text-decoration: none;
+}
+
+.coder-mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 5px 2px;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1.05;
+  text-align: center;
+}
+
+.coder-mobile-nav-item.is-active {
+  background: #e0eef8;
+  color: #008bb0;
+}
+
+.coder-mobile-report {
+  display: flex;
+  min-width: 0;
+}
+
+.coder-mobile-report .sidebarTrigger {
+  width: 100%;
+  justify-content: center;
+  gap: 0;
+  padding: 5px 2px;
+  border-color: transparent;
+  background: transparent;
+  color: #64748b;
+  font-size: 9px;
+  line-height: 1.05;
+  text-align: center;
+}
+
+.coder-mobile-report .sidebarTrigger svg {
+  width: 20px;
+  height: 20px;
+  margin-bottom: 4px;
+}
+
+.coder-mobile-report .triggerLabel {
+  display: block;
+  overflow: hidden;
+  max-width: 100%;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+html[data-coder-theme='dark'] .coder-mobile-nav {
+  border-color: #2d4563;
+  background: rgba(13, 23, 40, 0.96);
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.28);
+}
+
+html[data-coder-theme='dark'] .coder-mobile-nav-item,
+html[data-coder-theme='dark'] .coder-mobile-report .sidebarTrigger {
+  color: #a9bad0;
+}
+
+html[data-coder-theme='dark'] .coder-mobile-nav-item.is-active {
+  background: #173653;
+  color: #79d9ff;
+}
+
+html[data-coder-theme='dark'] .coder-mobile-report .sidebarTrigger {
+  border-color: transparent;
+  background: transparent;
+}
+
+@media (max-width: 767px) {
+  .coder-main {
+    padding-bottom: 76px;
+  }
+}
+
 [role='dialog'] {
   max-width: calc(100vw - 24px);
   max-height: calc(100dvh - 24px);

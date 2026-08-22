@@ -45,6 +45,7 @@ export default function UpcomingLessonsModal({ lessons }: UpcomingLessonsModalPr
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
                             className="relative w-full max-w-2xl max-h-[85vh] bg-white rounded-[3rem] shadow-2xl overflow-hidden flex flex-col border-4 border-white ring-4 ring-sky/10"
+                            data-coder-modal="true"
                         >
                             {/* Header */}
                             <div className="flex-none p-8 pb-6 border-b-2 border-dashed border-slate-100 flex items-center justify-between bg-pastel-blue/30">

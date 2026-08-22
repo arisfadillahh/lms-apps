@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getSessionOrThrow } from '@/lib/auth';
 import { attendanceDao, classesDao, sessionsDao, usersDao } from '@/lib/dao';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
+import { canExtendBeforeNextLessonSession } from '@/lib/services/lessonExtensionBoundary';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
 import AttendanceWrapper from './AttendanceWrapper';
@@ -95,15 +96,30 @@ export default async function SessionAttendancePage({ params }: PageProps) {
   const slideTitle = currentLessonSlot ? formatLessonTitle(currentLessonSlot) : null;
   const lessonSummary = currentLessonSlot?.lessonTemplate.summary ?? 'Tidak ada ringkasan materi.';
   const isEkskulClass = classRecord.type === 'EKSKUL';
-  const hasLaterCompletedSession = classSessions.some((item) => (
-    item.status === 'COMPLETED'
-    && new Date(item.date_time).getTime() > new Date(sessionRecord.date_time).getTime()
-  ));
+  const orderedSessions = classSessions
+    .filter((item) => item.status !== 'CANCELLED')
+    .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
+  const nextLessonSession = currentLessonSlot
+    ? orderedSessions
+      .slice(Math.max(0, orderedSessions.findIndex((item) => item.id === sessionRecord.id) + 1))
+      .map((item) => ({ item, slot: lessonScheduleMap.get(item.id) }))
+      .find((candidate) => candidate.slot && candidate.slot.globalIndex > currentLessonSlot.globalIndex)
+    : undefined;
+  const nextLessonAttendanceCount = nextLessonSession
+    ? (attendanceBySession.get(nextLessonSession.item.id)?.size ?? 0)
+    : 0;
+  const canExtendBeforeNextLesson = nextLessonSession
+    ? canExtendBeforeNextLessonSession({
+      dateTime: nextLessonSession.item.date_time,
+      status: nextLessonSession.item.status,
+      hasAttendance: nextLessonAttendanceCount > 0,
+    })
+    : true;
   const canExtendLesson = Boolean(
     !isEkskulClass
     && currentLessonSlot?.classLessonId
     && currentLessonSlot.partNumber === currentLessonSlot.totalParts
-    && !hasLaterCompletedSession
+    && canExtendBeforeNextLesson
   );
 
   // Compute attendance stats

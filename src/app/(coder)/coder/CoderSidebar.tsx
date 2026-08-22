@@ -81,9 +81,6 @@ export default function CoderSidebar({ session }: CoderSidebarProps) {
                         </Link>
                     );
                 })}
-                <div className="coder-mobile-report">
-                    <IssueReportButton role="CODER" placement="sidebar" />
-                </div>
             </nav>
         </>
     );

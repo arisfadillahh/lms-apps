@@ -14,10 +14,15 @@ describe('issue report helpers', () => {
   it('keeps the Coder issue report action in the sidebar', () => {
     const sidebar = readFileSync(resolve(process.cwd(), 'src/app/(coder)/coder/CoderSidebar.tsx'), 'utf8');
     const layout = readFileSync(resolve(process.cwd(), 'src/app/(coder)/coder/layout.tsx'), 'utf8');
+    const dashboard = readFileSync(resolve(process.cwd(), 'src/app/(coder)/coder/dashboard/page.tsx'), 'utf8');
     const styles = readFileSync(resolve(process.cwd(), 'src/components/issue-reports/IssueReportButton.module.css'), 'utf8');
 
     expect(sidebar).toContain('placement="sidebar"');
+    expect(sidebar).not.toContain('coder-mobile-report');
+    expect(dashboard).toContain('placement="card"');
+    expect(dashboard).toContain('md:hidden');
     expect(layout).not.toContain('<IssueReportButton role="CODER" />');
+    expect(styles).toContain('.cardTrigger');
     expect(styles).toContain('.sidebarTrigger');
   });
 

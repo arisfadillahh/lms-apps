@@ -4,7 +4,7 @@ import path from 'path';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { BookOpen, Flame, Pencil, ChevronRight, ListChecks, Zap, Play, Dumbbell, Lock, Rocket, Palette, Star, Download, Map, Hand, Monitor, Brush, Gamepad2, Cat, Package, Palmtree } from 'lucide-react';
+import { BookOpen, Bug, Flame, Pencil, ChevronRight, ListChecks, Zap, Play, Dumbbell, Lock, Rocket, Palette, Star, Download, Map, Hand, Monitor, Brush, Gamepad2, Cat, Package, Palmtree } from 'lucide-react';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { getCoderProgress } from '@/lib/services/coder';
@@ -18,6 +18,7 @@ import { StaggerContainer, StaggerItem } from '../StaggerWrapper';
 import CoderHeader from './CoderHeader';
 import BlockEvaluationCard from './BlockEvaluationCard';
 import CoderFooter from '../CoderFooter';
+import IssueReportButton from '@/components/issue-reports/IssueReportButton';
 
 type Banner = {
   id: string;
@@ -495,6 +496,19 @@ export default async function CoderDashboardPage() {
           </div>
 
         </div >
+
+        <StaggerItem className="coder-report-card mt-8 md:hidden">
+          <section className="rounded-3xl border-2 border-dashed border-pastel-pink/70 bg-white p-5 shadow-sm">
+            <div className="mb-4 flex items-start gap-3">
+              <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-pastel-pink text-coral"><Bug size={20} strokeWidth={2.5} /></span>
+              <div>
+                <h3 className="text-lg font-black text-clevio-navy">Ada kendala di LMS?</h3>
+                <p className="mt-1 text-sm font-semibold leading-relaxed text-slate-500">Kirim detailnya supaya tim Clevio bisa membantu lebih cepat.</p>
+              </div>
+            </div>
+            <IssueReportButton role="CODER" placement="card" />
+          </section>
+        </StaggerItem>
 
         <StaggerItem className="mt-auto pt-8">
           <CoderFooter />

@@ -159,7 +159,7 @@ export default function PortfolioForm({
           <label className={labelClass}>Tools / teknologi<input name="tools" defaultValue={initial?.tools.join(', ')} required className={fieldClass} placeholder="Scratch, Roblox Studio, JavaScript (pisahkan dengan koma)" /></label>
           <label className={labelClass}>Cara bermain / menggunakan<textarea name="howToPlay" defaultValue={initial?.how_to_play} minLength={10} required rows={3} className={fieldClass} placeholder="Berikan instruksi singkat dan jelas." /></label>
           <div className="grid gap-5 sm:grid-cols-2">
-            <label className={labelClass}>Link playable / demo<input name="playableUrl" defaultValue={initial?.playable_url} type="url" required className={fieldClass} placeholder="https://..." /></label>
+            <label className={labelClass}>Link playable / demo <span className="font-semibold text-slate-400">(opsional)</span><input name="playableUrl" defaultValue={initial?.playable_url} type="url" className={fieldClass} placeholder="https://..." /></label>
             <label className={labelClass}>Link source code <span className="font-semibold text-slate-400">(opsional)</span><input name="repositoryUrl" defaultValue={initial?.repository_url || ''} type="url" className={fieldClass} placeholder="https://github.com/..." /></label>
             <label className={`${labelClass} sm:col-span-2`}>Link video demo <span className="font-semibold text-slate-400">(opsional)</span><input name="videoUrl" defaultValue={initial?.video_url || ''} type="url" className={fieldClass} placeholder="https://youtube.com/..." /></label>
           </div>

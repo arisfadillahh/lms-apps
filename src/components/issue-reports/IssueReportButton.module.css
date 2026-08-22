@@ -42,6 +42,26 @@
 .sidebarTrigger:hover { border-color: #b9c9e3; background: #eef4ff; }
 .sidebarTrigger:focus-visible { outline: 3px solid rgba(0, 176, 215, 0.35); outline-offset: 3px; }
 
+.cardTrigger {
+  display: inline-flex;
+  min-height: 46px;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 0 17px;
+  border: 1px solid #f0b8d2;
+  border-radius: 14px;
+  background: #fff7fb;
+  color: #a41361;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.cardTrigger:hover { border-color: #d979a7; background: #ffedf5; }
+.cardTrigger:focus-visible { outline: 3px solid rgba(201, 20, 123, 0.25); outline-offset: 3px; }
+
 .backdrop {
   position: fixed;
   inset: 0;

@@ -76,7 +76,7 @@ export const portfolioInputSchema = z.object({
   roleContribution: z.string().trim().min(10).max(1500),
   tools: z.array(z.string().trim().min(1).max(60)).max(20),
   howToPlay: z.string().trim().min(10).max(1500),
-  playableUrl: urlSchema,
+  playableUrl: z.union([z.literal(''), urlSchema]),
   repositoryUrl: optionalUrlSchema,
   videoUrl: optionalUrlSchema,
   learningReflection: z.string().trim().min(10).max(2000),

@@ -64,6 +64,13 @@ describe('coder portfolio lifecycle', () => {
     expect(() => assertPortfolioCanSubmit(portfolio({ status: 'SUBMITTED' }), 1)).toThrow(/menunggu review/i);
   });
 
+  it('allows a complete project to be submitted without a playable link', () => {
+    const withoutPlayableLink = portfolio({ status: 'APPROVED', playable_url: '' });
+
+    expect(() => assertPortfolioCanSubmit(withoutPlayableLink, 1)).not.toThrow();
+    expect(buildPublishedSnapshot(withoutPlayableLink, []).playableUrl).toBe('');
+  });
+
   it('rejects an incomplete saved draft at submit time without changing its data', () => {
     const draft = portfolio({ project_type: '', summary: '', description: '', playable_url: '' });
     expect(() => assertPortfolioCanSubmit(draft, 1)).toThrow(/lengkapi semua bagian wajib/i);
@@ -144,6 +151,11 @@ describe('portfolio input safety', () => {
     expect(result.videoUrl).toBeNull();
   });
 
+  it('accepts an empty playable URL while keeping unsafe protocols invalid', () => {
+    expect(portfolioInputSchema.parse({ ...validInput, playableUrl: '' }).playableUrl).toBe('');
+    expect(() => portfolioInputSchema.parse({ ...validInput, playableUrl: 'javascript:alert(1)' })).toThrow(/http/i);
+  });
+
   it('allows a title-only draft that can be continued later', () => {
     const result = portfolioDraftInputSchema.parse({
       ...validInput,
@@ -152,10 +164,6 @@ describe('portfolio input safety', () => {
     });
     expect(result.title).toBe('Space Runner');
     expect(result.playableUrl).toBe('');
-  });
-
-  it('rejects unsafe playable URL protocols', () => {
-    expect(() => portfolioInputSchema.parse({ ...validInput, playableUrl: 'javascript:alert(1)' })).toThrow(/http/i);
   });
 
   it('checks image signatures instead of trusting a spoofed MIME type', () => {

@@ -496,7 +496,7 @@ html[data-coder-theme='dark'] [data-coder-modal='true'] select {
   left: 0;
   z-index: 80;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 2px;
   padding: 8px 8px max(8px, env(safe-area-inset-bottom));
   border-top: 1px solid #e2e8f0;
@@ -505,8 +505,7 @@ html[data-coder-theme='dark'] [data-coder-modal='true'] select {
   backdrop-filter: blur(18px);
 }
 
-.coder-mobile-nav-item,
-.coder-mobile-report .sidebarTrigger {
+.coder-mobile-nav-item {
   min-width: 0;
   min-height: 52px;
   border-radius: 16px;
@@ -532,46 +531,13 @@ html[data-coder-theme='dark'] [data-coder-modal='true'] select {
   color: #008bb0;
 }
 
-.coder-mobile-report {
-  display: flex;
-  min-width: 0;
-}
-
-.coder-mobile-report .sidebarTrigger {
-  width: 100%;
-  justify-content: center;
-  gap: 0;
-  padding: 5px 2px;
-  border-color: transparent;
-  background: transparent;
-  color: #64748b;
-  font-size: 9px;
-  line-height: 1.05;
-  text-align: center;
-}
-
-.coder-mobile-report .sidebarTrigger svg {
-  width: 20px;
-  height: 20px;
-  margin-bottom: 4px;
-}
-
-.coder-mobile-report .triggerLabel {
-  display: block;
-  overflow: hidden;
-  max-width: 100%;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
 html[data-coder-theme='dark'] .coder-mobile-nav {
   border-color: #2d4563;
   background: rgba(13, 23, 40, 0.96);
   box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.28);
 }
 
-html[data-coder-theme='dark'] .coder-mobile-nav-item,
-html[data-coder-theme='dark'] .coder-mobile-report .sidebarTrigger {
+html[data-coder-theme='dark'] .coder-mobile-nav-item {
   color: #a9bad0;
 }
 
@@ -580,9 +546,23 @@ html[data-coder-theme='dark'] .coder-mobile-nav-item.is-active {
   color: #79d9ff;
 }
 
-html[data-coder-theme='dark'] .coder-mobile-report .sidebarTrigger {
-  border-color: transparent;
-  background: transparent;
+html[data-coder-theme='dark'] .coder-report-card > section {
+  border-color: #80506a;
+  background: #13233b;
+}
+
+html[data-coder-theme='dark'] .coder-report-card h3 {
+  color: #f4f8ff;
+}
+
+html[data-coder-theme='dark'] .coder-report-card p {
+  color: #a9bad0;
+}
+
+html[data-coder-theme='dark'] .coder-report-card button {
+  border-color: #8c4d74;
+  background: #281a38;
+  color: #ffb8d7;
 }
 
 @media (max-width: 767px) {

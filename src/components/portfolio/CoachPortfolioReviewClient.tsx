@@ -87,7 +87,7 @@ export default function CoachPortfolioReviewClient({ initialPortfolios }: { init
             <ReviewText label="Pengembangan berikutnya" value={selected.next_steps} />
             <ReviewText label="Tools & skills" value={[...selected.tools, ...selected.skills].join(' · ')} />
           </div>
-          <a href={selected.playable_url} target="_blank" rel="noreferrer" className="mt-6 inline-flex items-center gap-2 rounded-xl border border-blue-400/40 px-4 py-3 font-black text-blue-300 hover:bg-blue-500/10"><ExternalLink size={18} /> Coba Project</a>
+          {selected.playable_url ? <a href={selected.playable_url} target="_blank" rel="noreferrer" className="mt-6 inline-flex items-center gap-2 rounded-xl border border-blue-400/40 px-4 py-3 font-black text-blue-300 hover:bg-blue-500/10"><ExternalLink size={18} /> Coba Project</a> : <p className="mt-6 text-sm font-semibold text-slate-500">Link playable belum ditambahkan.</p>}
           {revision && <label className="mt-6 block text-sm font-black text-slate-200">Arahan revisi untuk Coder<textarea value={note} onChange={(event) => setNote(event.target.value)} rows={4} className="mt-2 w-full rounded-xl border border-slate-600 bg-slate-900 p-4 font-semibold outline-none focus:border-amber-400" placeholder="Jelaskan bagian yang perlu diperbaiki secara spesifik…" /></label>}
           {error && <p className="mt-3 font-bold text-red-400">{error}</p>}
           <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

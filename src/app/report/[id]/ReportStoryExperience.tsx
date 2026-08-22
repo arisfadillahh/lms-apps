@@ -16,7 +16,7 @@ import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { REPORT_STORY_OVERRIDES } from './ReportStoryExperience.overrides';
-import { REPORT_STORY_CSS } from './ReportStoryExperience.styles';
+import { REPORT_STORY_CSS, REPORT_STORY_MOBILE_FIX } from './ReportStoryExperience.styles';
 import { REPORT_STORY_LAYOUT_FIX } from '../ReportStoryExperience.layoutFix';
 
 type StoryCompetency = {
@@ -225,7 +225,7 @@ export default function ReportStoryExperience(props: ReportStoryExperienceProps)
 
   return (
     <>
-              <style>{REPORT_STORY_CSS + REPORT_STORY_OVERRIDES + REPORT_STORY_LAYOUT_FIX}</style>
+              <style>{REPORT_STORY_CSS + REPORT_STORY_OVERRIDES + REPORT_STORY_LAYOUT_FIX + REPORT_STORY_MOBILE_FIX}</style>
       <button
         type="button"
         onClick={openStory}

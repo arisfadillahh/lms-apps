@@ -495,7 +495,7 @@ html[data-coder-theme='dark'] [data-coder-modal='true'] select {
   bottom: 0;
   left: 0;
   z-index: 80;
-  display: grid;
+  display: none;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 2px;
   padding: 8px 8px max(8px, env(safe-area-inset-bottom));
@@ -503,6 +503,12 @@ html[data-coder-theme='dark'] [data-coder-modal='true'] select {
   background: rgba(255, 255, 255, 0.94);
   box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.1);
   backdrop-filter: blur(18px);
+}
+
+@media (max-width: 767px) {
+  .coder-mobile-nav {
+    display: grid;
+  }
 }
 
 .coder-mobile-nav-item {

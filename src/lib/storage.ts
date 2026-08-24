@@ -8,6 +8,32 @@ function getReportsBucket(): string {
   return bucket;
 }
 
+function getIssueReportsBucket(): string {
+  return process.env.STORAGE_BUCKET_ISSUE_REPORTS_PRIVATE?.trim() || 'issue-reports-private';
+}
+
+async function ensurePrivateIssueReportsBucket(): Promise<string> {
+  const supabase = getSupabaseAdmin();
+  const bucket = getIssueReportsBucket();
+  const { data, error } = await supabase.storage.getBucket(bucket);
+  if (data && !data.public) return bucket;
+  if (data?.public) {
+    throw new Error(`Issue screenshot bucket ${bucket} must be private`);
+  }
+  if (error && !/not found/i.test(error.message)) {
+    throw new Error(`Failed to inspect issue screenshot bucket: ${error.message}`);
+  }
+  const { error: createError } = await supabase.storage.createBucket(bucket, {
+    public: false,
+    fileSizeLimit: 5 * 1024 * 1024,
+    allowedMimeTypes: ['image/png', 'image/jpeg', 'image/webp'],
+  });
+  if (createError && !/already exists/i.test(createError.message)) {
+    throw new Error(`Failed to create private issue screenshot bucket: ${createError.message}`);
+  }
+  return bucket;
+}
+
 export async function uploadReportPdf(storagePath: string, fileBuffer: Buffer): Promise<string> {
   const supabase = getSupabaseAdmin();
   const bucket = getReportsBucket();
@@ -34,9 +60,9 @@ export async function uploadIssueScreenshot(
   storagePath: string,
   fileBuffer: Buffer,
   contentType: string,
-): Promise<string> {
+): Promise<void> {
   const supabase = getSupabaseAdmin();
-  const bucket = getReportsBucket();
+  const bucket = await ensurePrivateIssueReportsBucket();
 
   const { error } = await supabase.storage.from(bucket).upload(storagePath, fileBuffer, {
     cacheControl: '3600',
@@ -48,18 +74,12 @@ export async function uploadIssueScreenshot(
     throw new Error(`Failed to upload issue screenshot: ${error.message}`);
   }
 
-  const { data } = supabase.storage.from(bucket).getPublicUrl(storagePath);
-  if (!data?.publicUrl) {
-    throw new Error('Failed to resolve issue screenshot URL');
-  }
-
-  return data.publicUrl;
 }
 
 export async function createIssueScreenshotViewUrl(storagePath: string): Promise<string | null> {
   if (!storagePath) return null;
   const supabase = getSupabaseAdmin();
-  const bucket = getReportsBucket();
+  const bucket = await ensurePrivateIssueReportsBucket();
   const { data, error } = await supabase.storage.from(bucket).createSignedUrl(storagePath, 60 * 60);
   if (error) {
     console.warn('[IssueReport] Failed to create screenshot signed URL', error.message);

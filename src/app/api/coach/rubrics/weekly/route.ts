@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { classesDao, rubricsDao, usersDao } from '@/lib/dao';
+import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { assertRole } from '@/lib/roles';
 import { generateNarrative } from '@/lib/rubrics/narrative';
 
@@ -53,6 +54,15 @@ export async function POST(request: Request) {
 
   if (classRecord.type !== 'WEEKLY') {
     return NextResponse.json({ error: 'Rubric Weekly only for WEEKLY classes' }, { status: 400 });
+  }
+
+  const supabase = getSupabaseAdmin();
+  const [{ data: enrollment }, { data: classBlock }] = await Promise.all([
+    supabase.from('enrollments').select('id').eq('class_id', classId).eq('coder_id', coderId).eq('status', 'ACTIVE').maybeSingle(),
+    supabase.from('class_blocks').select('id').eq('class_id', classId).eq('block_id', blockId).maybeSingle(),
+  ]);
+  if (!enrollment || !classBlock) {
+    return NextResponse.json({ error: 'Coder or block does not belong to this class' }, { status: 400 });
   }
 
   const template = await rubricsDao.findRubricTemplate('WEEKLY', classRecord.level_id);

@@ -13,6 +13,8 @@ import {
 import { sendWhatsAppImage, sendWhatsAppMessage } from '@/lib/services/whatsappClient';
 import { uploadIssueScreenshot } from '@/lib/storage';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { consumeRateLimit } from '@/lib/rateLimit';
+import { detectAvatarImageType } from '@/lib/services/avatarUploadSecurity';
 
 export const runtime = 'nodejs';
 
@@ -21,6 +23,9 @@ export async function POST(request: Request) {
     const session = await getSessionOrThrow();
     if (session.user.role !== 'ADMIN' && session.user.role !== 'COACH' && session.user.role !== 'CODER') {
       return NextResponse.json({ error: 'Role ini tidak dapat mengirim report' }, { status: 403 });
+    }
+    if (!await consumeRateLimit({ request, scope: 'issue-report', actorId: session.user.id, maxRequests: 10, windowSeconds: 60 * 60 })) {
+      return NextResponse.json({ error: 'Terlalu banyak report. Silakan coba lagi nanti.' }, { status: 429 });
     }
 
     const formData = await request.formData();
@@ -50,7 +55,12 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Ukuran screenshot maksimal 5 MB' }, { status: 400 });
       }
       screenshotBuffer = Buffer.from(await screenshot.arrayBuffer());
-      screenshotContentType = screenshot.type;
+      const detectedType = detectAvatarImageType(screenshot.type, screenshotBuffer);
+      if (!detectedType || detectedType.contentType === 'image/gif') {
+        return NextResponse.json({ error: 'Isi screenshot tidak cocok dengan format PNG, JPG, atau WebP' }, { status: 400 });
+      }
+      screenshotContentType = detectedType.contentType;
+      screenshotExtension = detectedType.extension.replace('.', '');
     }
 
     const supabase = getSupabaseAdmin();
@@ -86,9 +96,9 @@ export async function POST(request: Request) {
     if (screenshotBuffer && screenshotContentType && screenshotExtension) {
       try {
         screenshotStoragePath = `issue-reports/${createdAt.slice(0, 7)}/${report.id}.${screenshotExtension}`;
-        screenshotUrl = await uploadIssueScreenshot(screenshotStoragePath, screenshotBuffer, screenshotContentType);
+        await uploadIssueScreenshot(screenshotStoragePath, screenshotBuffer, screenshotContentType);
         await supabase.from('issue_reports').update({
-          screenshot_url: screenshotUrl,
+          screenshot_url: null,
           screenshot_storage_path: screenshotStoragePath,
         }).eq('id', report.id);
       } catch (error) {

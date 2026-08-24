@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 
 import type { Database } from '@/types/supabase';
 import { formatIssueReportReference } from '@/lib/issueReports';
+import { normalizeHttpUrl, normalizeSafePageReference } from '@/lib/safeUrl';
 
 import styles from './IssueReportsClient.module.css';
 
@@ -88,6 +89,8 @@ function ReportDetail({ report, onUpdated }: { report: IssueReport; onUpdated: (
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const viewport = report.viewport && typeof report.viewport === 'object' && !Array.isArray(report.viewport) ? report.viewport : {};
+  const screenshotUrl = report.screenshot_url ? normalizeHttpUrl(report.screenshot_url) : null;
+  const pageUrl = report.page_url ? normalizeSafePageReference(report.page_url) : null;
 
   const save = async () => {
     setSaving(true); setError(null);
@@ -110,9 +113,9 @@ function ReportDetail({ report, onUpdated }: { report: IssueReport; onUpdated: (
       <div className={styles.content}>
         <h3 className={styles.sectionTitle}>Deskripsi dari pelapor</h3>
         <p className={styles.description}>{report.description}</p>
-        {report.screenshot_url ? <a href={report.screenshot_url} target="_blank" rel="noreferrer"><img className={styles.screenshot} src={report.screenshot_url} alt={`Screenshot ${report.title}`} /></a> : null}
+        {screenshotUrl ? <a href={screenshotUrl} target="_blank" rel="noreferrer"><img className={styles.screenshot} src={screenshotUrl} alt={`Screenshot ${report.title}`} /></a> : null}
         <div className={styles.technical}>
-          <div className={styles.technicalRow}><strong>Halaman</strong><span>{report.page_url ? <a href={report.page_url} target="_blank" rel="noreferrer">{report.page_url} <ExternalLink size={10} style={{ display: 'inline' }} /></a> : '-'}</span></div>
+          <div className={styles.technicalRow}><strong>Halaman</strong><span>{pageUrl ? <a href={pageUrl} target="_blank" rel="noreferrer">{pageUrl} <ExternalLink size={10} style={{ display: 'inline' }} /></a> : report.page_url || '-'}</span></div>
           <div className={styles.technicalRow}><strong>Viewport</strong><code>{String(viewport.width || '-')} x {String(viewport.height || '-')}</code></div>
           <div className={styles.technicalRow}><strong>Perangkat</strong><code>{report.user_agent || '-'}</code></div>
           <div className={styles.technicalRow}><strong>WhatsApp</strong><code>{report.whatsapp_status}{report.whatsapp_error ? ` - ${report.whatsapp_error}` : ''}</code></div>

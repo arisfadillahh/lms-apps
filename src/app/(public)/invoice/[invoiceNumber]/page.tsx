@@ -11,6 +11,7 @@ import { verifyInvoicePublicToken } from '@/lib/services/invoicePublicAccess';
 import { getPublicInvoicePaymentOptions } from '@/lib/invoicePaymentMethods';
 import { getStoredInvoicePaymentByInvoiceId, toPublicStoredInvoicePayment } from '@/lib/invoicePaymentStore';
 import InvoiceView from './InvoiceView';
+import { toPublicInvoice } from '@/lib/publicInvoice';
 
 interface Props {
     params: Promise<{ invoiceNumber: string }>;
@@ -36,7 +37,7 @@ export default async function PublicInvoicePage({ params, searchParams }: Props)
 
     return (
         <InvoiceView
-            invoice={invoice}
+            invoice={toPublicInvoice(invoice)}
             publicToken={token}
             paymentOptions={getPublicInvoicePaymentOptions(invoice.total_amount)}
             initialPayment={storedPayment && token ? toPublicStoredInvoicePayment(storedPayment, token) : null}
@@ -66,4 +67,3 @@ export const viewport = {
     maximumScale: 5,
     userScalable: true,
 };
-

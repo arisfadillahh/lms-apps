@@ -36,7 +36,7 @@ export default async function CoderLayout({ children }: { children: ReactNode })
 
   return (
     <CoderThemeProvider>
-      <PushSubscriptionAccountSync />
+      <PushSubscriptionAccountSync userId={user.id} />
       <script
         dangerouslySetInnerHTML={{
           __html: `(function(){try{var p=localStorage.getItem('clevio-coder-theme')||'auto';var d=p==='dark'||(p==='auto'&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';document.documentElement.dataset.coderTheme=d;}catch(e){}})()`,

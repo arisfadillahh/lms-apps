@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getInvoiceByNumber, getInvoiceSettings } from '@/lib/dao/invoicesDao';
 import { verifyInvoicePublicToken } from '@/lib/services/invoicePublicAccess';
+import { toPublicInvoice } from '@/lib/publicInvoice';
 
 type RouteParams = { params: Promise<{ invoiceNumber: string }> };
 
@@ -39,7 +40,7 @@ export async function GET(
         const settings = await getInvoiceSettings();
 
         return NextResponse.json({
-            invoice,
+            invoice: toPublicInvoice(invoice),
             bankInfo: settings ? {
                 bank_name: settings.bank_name,
                 bank_account_number: settings.bank_account_number,

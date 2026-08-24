@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { createCertificate } from '@/lib/services/certificates';
+import { validateBearerToken } from '@/lib/apiTokenAuth';
 
 const certificateSchema = z.object({
     external_reference: z.string().min(3).max(120),
@@ -54,14 +55,7 @@ export async function POST(request: NextRequest) {
 }
 
 function assertCoreApiToken(request: NextRequest) {
-    const expectedToken = process.env.LMS_CORE_API_TOKEN?.trim();
-    if (!expectedToken) return null;
-
-    const authorization = request.headers.get('authorization') || '';
-    const actualToken = authorization.replace(/^Bearer\s+/i, '').trim();
-    if (actualToken !== expectedToken) {
-        return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
-    }
-
-    return null;
+    const result = validateBearerToken(request, [process.env.LMS_CORE_API_TOKEN]);
+    if (result === 'UNCONFIGURED') return NextResponse.json({ ok: false, error: 'Integration token is not configured' }, { status: 503 });
+    return result === 'INVALID' ? NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 }) : null;
 }

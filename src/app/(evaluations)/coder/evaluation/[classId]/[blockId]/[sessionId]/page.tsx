@@ -19,6 +19,30 @@ export default async function BlockEvaluationPage({
 
   const supabase = getSupabaseAdmin();
 
+  if (session.user.role !== 'CODER') {
+    return <main className="p-8">Unauthorized.</main>;
+  }
+
+  const { data: enrollment } = await supabase.from('enrollments')
+    .select('id')
+    .eq('class_id', classId)
+    .eq('coder_id', session.user.id)
+    .eq('status', 'ACTIVE')
+    .maybeSingle();
+  if (!enrollment) {
+    return <main className="p-8">Kamu tidak memiliki akses ke kelas ini.</main>;
+  }
+
+  const { data: lessonAccess } = await supabase.from('class_lessons')
+    .select('id,class_blocks!inner(class_id,block_id)')
+    .eq('session_id', sessionId)
+    .eq('class_blocks.class_id', classId)
+    .eq('class_blocks.block_id', blockId)
+    .maybeSingle();
+  if (!lessonAccess) {
+    return <main className="p-8">Sesi evaluasi tidak ditemukan.</main>;
+  }
+
   const { data: existingEvaluation } = await supabase
     .from('block_evaluations')
     .select('id')

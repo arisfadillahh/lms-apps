@@ -44,7 +44,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   return (
     <AdminChrome user={userForHeader}>
-      <PushSubscriptionAccountSync />
+      <PushSubscriptionAccountSync userId={user.id} />
       <AdminClientWrapper>
         <PageTransition>{children}</PageTransition>
       </AdminClientWrapper>

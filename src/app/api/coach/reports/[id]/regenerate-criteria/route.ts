@@ -30,7 +30,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         id,
         status,
         coder:users!block_reports_coder_id_fkey(full_name),
-        class:classes(id, name),
+        class:classes(id, name, coach_id),
         block:blocks(id, name)
       `)
       .eq('id', id)
@@ -44,6 +44,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const klass = Array.isArray(report.class) ? report.class[0] : report.class;
     const className = klass?.name;
     const classId = klass?.id || '';
+    if (!klass || klass.coach_id !== sessionUser.user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     const blockId = Array.isArray(report.block) ? report.block[0]?.id : report.block?.id;
     const blockName = Array.isArray(report.block) ? report.block[0]?.name : report.block?.name;
 

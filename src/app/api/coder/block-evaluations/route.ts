@@ -102,13 +102,63 @@ export async function GET(req: Request) {
     const classId = searchParams.get('classId');
     const blockId = searchParams.get('blockId');
     const sessionId = searchParams.get('sessionId');
+    const evalSessionId = searchParams.get('evalSessionId');
+    const mode = searchParams.get('mode');
     const serverTime = new Date().toISOString();
+
+    const supabase = getSupabaseAdmin();
+
+    if (evalSessionId) {
+      const { data: evalSession, error: evalSessionError } = await (supabase as any)
+        .from('block_evaluation_sessions')
+        .select('id,class_id,current_question_index,status')
+        .eq('id', evalSessionId)
+        .maybeSingle();
+      if (evalSessionError) throw evalSessionError;
+      if (!evalSession) return NextResponse.json({ error: 'Evaluation session not found' }, { status: 404 });
+
+      const { data: enrollment } = await supabase.from('enrollments')
+        .select('id')
+        .eq('class_id', evalSession.class_id)
+        .eq('coder_id', session.user.id)
+        .eq('status', 'ACTIVE')
+        .maybeSingle();
+      if (!enrollment) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+      const { data: pastAnswers, error: answersError } = await (supabase as any)
+        .from('block_evaluation_answers')
+        .select('question_index,answer')
+        .eq('eval_session_id', evalSessionId)
+        .eq('coder_id', session.user.id);
+      if (answersError) throw answersError;
+
+      return NextResponse.json({ evalSession, pastAnswers: pastAnswers ?? [], serverTime });
+    }
+
+    if (mode === 'active' && classId) {
+      const { data: enrollment } = await supabase.from('enrollments')
+        .select('id')
+        .eq('class_id', classId)
+        .eq('coder_id', session.user.id)
+        .eq('status', 'ACTIVE')
+        .maybeSingle();
+      if (!enrollment) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+      const { data: activeSession, error: activeError } = await (supabase as any)
+        .from('block_evaluation_sessions')
+        .select('id,block_id,session_id,status,created_at')
+        .eq('class_id', classId)
+        .in('status', ['in_progress', 'completed'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (activeError) throw activeError;
+      return NextResponse.json({ activeSession: activeSession ?? null, serverTime });
+    }
 
     if (!blockId) {
       return NextResponse.json({ submitted: false, serverTime });
     }
-
-    const supabase = getSupabaseAdmin();
 
     let query = supabase
       .from('block_evaluations')

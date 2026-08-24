@@ -24,18 +24,12 @@ export function getVapidPublicKey(): string | null {
 
 export async function savePushSubscription(userId: string, subscription: PushSubscriptionRecord, userAgent?: string | null) {
   const supabase = getSupabaseAdmin();
-  const { error: ownershipError } = await supabase.from('push_subscriptions' as any)
-    .delete()
-    .eq('endpoint', subscription.endpoint)
-    .neq('user_id', userId);
-  if (ownershipError) throw new Error(`Failed to transfer push subscription ownership: ${ownershipError.message}`);
-
   const { error } = await supabase.from('push_subscriptions' as any).upsert({
     user_id: userId,
     endpoint: subscription.endpoint,
     subscription,
     user_agent: userAgent?.slice(0, 500) || null,
-  }, { onConflict: 'user_id,endpoint' } as any);
+  }, { onConflict: 'endpoint' } as any);
   if (error) throw new Error(`Failed to save push subscription: ${error.message}`);
 }
 
@@ -55,9 +49,12 @@ export async function sendPushToUsers(userIds: string[], payload: { title: strin
 
   let sent = 0;
   let removed = 0;
-  for (const row of (data ?? []) as unknown as Array<{ id: string; subscription: PushSubscriptionRecord }>) {
+  for (const row of (data ?? []) as unknown as Array<{ id: string; user_id: string; subscription: PushSubscriptionRecord }>) {
     try {
-      await webpush.sendNotification(row.subscription as webpush.PushSubscription, JSON.stringify(payload));
+      await webpush.sendNotification(row.subscription as webpush.PushSubscription, JSON.stringify({
+        ...payload,
+        recipientUserId: row.user_id,
+      }));
       sent += 1;
     } catch (caught) {
       const statusCode = (caught as { statusCode?: number }).statusCode;

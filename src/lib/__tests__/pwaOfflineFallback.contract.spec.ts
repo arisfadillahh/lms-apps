@@ -19,7 +19,7 @@ describe('PWA offline fallback contract', () => {
     const offlinePage = fs.readFileSync(path.join(root, 'public/offline.html'), 'utf8');
 
     expect(serviceWorker).toContain("const OFFLINE_URL = '/offline.html'");
-    expect(serviceWorker).toContain("const CACHE_NAME = 'clevio-lms-shell-v4'");
+    expect(serviceWorker).toContain("const CACHE_NAME = 'clevio-lms-shell-v5'");
     expect(serviceWorker).toContain("cache.addAll([");
     expect(serviceWorker).toContain("fetch(event.request).catch(() => caches.match(OFFLINE_URL))");
     expect(offlinePage).toContain('KONEKSI TERPUTUS');

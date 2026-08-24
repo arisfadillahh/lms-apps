@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getSupabaseBrowser } from '@/lib/supabaseBrowser';
 import { GraduationCap, Sparkles, ChevronRight, PanelsTopLeft } from 'lucide-react';
 import {
   resolveCoderEvaluationDashboardMode,
@@ -22,25 +21,9 @@ type ActiveEvaluationSession = {
   created_at: string;
 };
 
-type ActiveEvaluationSessionFilter = {
-  eq(column: string, value: string): ActiveEvaluationSessionFilter;
-  in(column: string, values: string[]): ActiveEvaluationSessionFilter;
-  order(column: string, options: { ascending: boolean }): ActiveEvaluationSessionFilter;
-  limit(count: number): {
-    maybeSingle(): Promise<{ data: ActiveEvaluationSession | null }>;
-  };
-};
-
-type ActiveEvaluationSessionClient = {
-  from(table: 'block_evaluation_sessions'): {
-    select(columns: string): ActiveEvaluationSessionFilter;
-  };
-};
-
 export default function BlockEvaluationCard({ classId, userId }: BlockEvaluationCardProps) {
   const [activeSession, setActiveSession] = useState<ActiveEvaluationSession | null>(null);
   const [mode, setMode] = useState<CoderEvaluationDashboardMode>('HIDDEN');
-  const supabase = getSupabaseBrowser();
 
   useEffect(() => {
     if (!classId) return;
@@ -49,15 +32,10 @@ export default function BlockEvaluationCard({ classId, userId }: BlockEvaluation
     const fetchActiveEval = async () => {
       if (!userId) return;
 
-      const evaluationSessionClient = supabase as unknown as ActiveEvaluationSessionClient;
-      const { data } = await evaluationSessionClient
-        .from('block_evaluation_sessions')
-        .select('id, block_id, session_id, status, created_at')
-        .eq('class_id', classId)
-        .in('status', ['in_progress', 'completed'])
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const activeResponse = await fetch(`/api/coder/block-evaluations?mode=active&classId=${encodeURIComponent(classId)}`, { cache: 'no-store' });
+      if (!activeResponse.ok) return;
+      const activePayload = await activeResponse.json();
+      const data = activePayload.activeSession as ActiveEvaluationSession | null;
 
       if (data?.session_id) {
         // Use the API endpoint since direct Supabase queries might be blocked by RLS
@@ -128,34 +106,12 @@ export default function BlockEvaluationCard({ classId, userId }: BlockEvaluation
     };
 
     fetchActiveEval();
-
-    // Subscribe to changes
-    const channel = supabase
-      .channel(`eval_sessions_${classId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'block_evaluation_sessions',
-          filter: `class_id=eq.${classId}`
-        },
-        (payload) => {
-          const nextSession = payload.new as Partial<ActiveEvaluationSession> | null;
-          if (nextSession && (nextSession.status === 'in_progress' || nextSession.status === 'completed')) {
-            // Re-fetch to ensure we check 'alreadySubmitted' before showing it
-            fetchActiveEval();
-          } else {
-            setActiveSession(null);
-          }
-        }
-      )
-      .subscribe();
+    const timer = window.setInterval(fetchActiveEval, 5000);
 
     return () => {
-      supabase.removeChannel(channel);
+      window.clearInterval(timer);
     };
-  }, [classId, userId, supabase]);
+  }, [classId, userId]);
 
   if (!activeSession || mode === 'HIDDEN') return null;
 

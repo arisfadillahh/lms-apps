@@ -27,6 +27,14 @@ export default async function CoachPresenterPage({ params }: PageProps) {
     return <div>Evaluation session not found.</div>;
   }
 
+  const { data: classRecord } = await supabase.from('classes')
+    .select('coach_id')
+    .eq('id', evalSession.class_id)
+    .maybeSingle();
+  if (evalSession.created_by !== session.user.id && classRecord?.coach_id !== session.user.id) {
+    return <div>Forbidden. Evaluation session is not assigned to this Coach.</div>;
+  }
+
   // Fetch questions (either from template or fallback)
   let questions: any[] = [];
   if (evalSession.template_id) {

@@ -1,6 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getServerAuthSession } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { z } from 'zod';
+
+const startSchema = z.object({
+  sessionId: z.string().uuid(),
+  classId: z.string().uuid(),
+  blockId: z.string().uuid(),
+  templateId: z.string().uuid().nullable().optional(),
+});
 
 export async function POST(req: Request) {
   const session = await getServerAuthSession();
@@ -8,12 +16,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { sessionId, classId, blockId, templateId } = await req.json();
-  if (!sessionId || !classId || !blockId) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-  }
+  const parsed = startSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: 'Invalid evaluation input' }, { status: 400 });
+  const { sessionId, classId, blockId, templateId } = parsed.data;
 
   const supabase = getSupabaseAdmin();
+
+  const [{ data: classRecord }, { data: classSession }, { data: classBlock }] = await Promise.all([
+    supabase.from('classes').select('id,coach_id').eq('id', classId).maybeSingle(),
+    supabase.from('sessions').select('id').eq('id', sessionId).eq('class_id', classId).maybeSingle(),
+    supabase.from('class_blocks').select('id').eq('class_id', classId).eq('block_id', blockId).maybeSingle(),
+  ]);
+  if (!classRecord || classRecord.coach_id !== session.user.id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  if (!classSession || !classBlock) {
+    return NextResponse.json({ error: 'Session or block does not belong to this class' }, { status: 400 });
+  }
 
   const { data: existing } = await (supabase as any)
     .from('block_evaluation_sessions')

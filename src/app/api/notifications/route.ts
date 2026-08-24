@@ -33,12 +33,8 @@ export async function PATCH(request: Request) {
         }
 
         if (body.notificationId) {
-            // TODO: Verify ownership? Simple DAO assumes trusted context or adds check.
-            // For now, let's trust the ID or add simple ownership check in DAO if needed.
-            // usersDao/notificationsDao methods usually imply admin privilege or strict filters.
-            // Ideally we should check if notification belongs to user.
-            // But let's assume valid ID for now.
-            await notificationsDao.markAsRead(body.notificationId);
+            const updated = await notificationsDao.markAsRead(body.notificationId, userId);
+            if (!updated) return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
             return NextResponse.json({ success: true });
         }
 

@@ -34,7 +34,7 @@ export default async function CoachLayout({ children }: { children: ReactNode })
 
   return (
       <div className="coach-app-shell min-h-screen flex antialiased bg-[#f1f5f9] text-[#0f172a] font-sans">
-        <PushSubscriptionAccountSync />
+        <PushSubscriptionAccountSync userId={user.id} />
         {/* Google Fonts: Material Symbols + Plus Jakarta Sans */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />

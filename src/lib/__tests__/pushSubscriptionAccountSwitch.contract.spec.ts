@@ -8,10 +8,13 @@ const read = (file: string) => fs.readFileSync(path.join(root, file), 'utf8');
 describe('push subscription account switch contract', () => {
   it('transfers one device endpoint away from the previous account', () => {
     const push = read('src/lib/pushNotifications.ts');
+    const migration = read('supabase/migrations/20260824133000_security_hardening.sql');
+    const serviceWorker = read('public/sw.js');
 
-    expect(push).toContain(".eq('endpoint', subscription.endpoint)");
-    expect(push).toContain(".neq('user_id', userId)");
-    expect(push.indexOf(".neq('user_id', userId)")).toBeLessThan(push.indexOf("onConflict: 'user_id,endpoint'"));
+    expect(push).toContain("onConflict: 'endpoint'");
+    expect(push).toContain('recipientUserId: row.user_id');
+    expect(migration).toContain('push_subscriptions_endpoint_unique_idx');
+    expect(serviceWorker).toContain('activeUserId !== String(payload.recipientUserId)');
   });
 
   it('detaches the endpoint before sign out and reclaims it after login', () => {
@@ -22,9 +25,9 @@ describe('push subscription account switch contract', () => {
     const coderLayout = read('src/app/(coder)/coder/layout.tsx');
 
     expect(signOut).toContain('await detachPushSubscriptionFromCurrentAccount()');
-    expect(sync).toContain('syncExistingPushSubscriptionToCurrentAccount()');
+    expect(sync).toContain('syncExistingPushSubscriptionToCurrentAccount(userId)');
     for (const layout of [adminLayout, coachLayout, coderLayout]) {
-      expect(layout).toContain('<PushSubscriptionAccountSync />');
+      expect(layout).toContain('<PushSubscriptionAccountSync userId={user.id} />');
     }
   });
 });

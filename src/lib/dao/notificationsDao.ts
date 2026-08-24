@@ -111,16 +111,20 @@ export async function getUnreadCount(userId: string): Promise<number> {
     return count || 0;
 }
 
-export async function markAsRead(notificationId: string): Promise<void> {
+export async function markAsRead(notificationId: string, userId: string): Promise<boolean> {
     const supabase = getSupabaseAdmin();
-    const { error } = await supabase
+    const { data, error } = await supabase
         .from('notifications' as any)
         .update({ is_read: true })
-        .eq('id', notificationId);
+        .eq('id', notificationId)
+        .eq('user_id', userId)
+        .select('id')
+        .maybeSingle();
 
     if (error) {
         throw new Error(`Failed to mark notification as read: ${error.message}`);
     }
+    return Boolean(data);
 }
 
 export async function markAllAsRead(userId: string): Promise<void> {

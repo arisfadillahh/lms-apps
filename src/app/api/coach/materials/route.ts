@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { getSessionOrThrow } from '@/lib/auth';
 import { classesDao, materialsDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
+import { optionalHttpUrlSchema } from '@/lib/safeUrl';
 
 const createMaterialSchema = z.object({
   classId: z.string().uuid(),
@@ -11,7 +12,7 @@ const createMaterialSchema = z.object({
   blockId: z.string().uuid().nullable().optional(),
   title: z.string().min(3),
   description: z.string().max(400).optional(),
-  fileUrl: z.string().url().optional(),
+  fileUrl: optionalHttpUrlSchema,
   coachNote: z.string().max(400).optional(),
   visibleFromSessionId: z.string().uuid().nullable().optional(),
 });

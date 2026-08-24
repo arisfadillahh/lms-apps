@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getSupabaseBrowser } from '@/lib/supabaseBrowser';
 import { CheckCircle2, UserCircle2, ArrowRight } from 'lucide-react';
 
 interface Coder {
@@ -35,64 +34,37 @@ export default function CoachPresenterClient({
   coachName
 }: CoachPresenterClientProps) {
   const router = useRouter();
-  const supabase = getSupabaseBrowser();
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [status, setStatus] = useState(initialStatus);
   const [answeredMap, setAnsweredMap] = useState<Record<string, boolean>>({});
   const [isAdvancing, setIsAdvancing] = useState(false);
 
-  // Initialize answered state empty for current question
   useEffect(() => {
-    // Every time we move to a new question, fetch who has answered it *so far*
-    const fetchAnswers = async () => {
+    let cancelled = false;
+    const fetchStatus = async () => {
       if (status === 'completed') return;
       const currentQId = currentIndex === -1 ? 'ready' : questions[currentIndex]?.id;
       if (!currentQId) return;
-
-      const { data } = await (supabase as any)
-        .from('block_evaluation_answers')
-        .select('coder_id')
-        .eq('eval_session_id', evalSessionId)
-        .eq('question_id', currentQId);
-
+      const params = new URLSearchParams({ evalSessionId, questionId: currentQId });
+      const response = await fetch(`/api/coach/block-evaluations/status?${params.toString()}`, { cache: 'no-store' });
+      if (!response.ok) return;
+      const data = await response.json();
+      if (cancelled) return;
       const map: Record<string, boolean> = {};
-      data?.forEach((row: any) => {
-        map[row.coder_id] = true;
+      data.answeredCoderIds?.forEach((coderId: string) => {
+        map[coderId] = true;
       });
       setAnsweredMap(map);
+      setCurrentIndex(data.currentQuestionIndex);
+      setStatus(data.status);
     };
-    
-    fetchAnswers();
-  }, [currentIndex, evalSessionId, questions, status, supabase]);
-
-  // Subscribe to new answers for the CURRENT question
-  useEffect(() => {
-    if (status === 'completed') return;
-
-    const channel = supabase
-      .channel(`answers:${evalSessionId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'block_evaluation_answers',
-          filter: `eval_session_id=eq.${evalSessionId}`
-        },
-        (payload: any) => {
-          const newAnswer = payload.new as any;
-          // Only mark as answered if it's for the current question
-          if (newAnswer.question_index === currentIndex) {
-            setAnsweredMap(prev => ({ ...prev, [newAnswer.coder_id]: true }));
-          }
-        }
-      )
-      .subscribe();
-
+    fetchStatus();
+    const timer = window.setInterval(fetchStatus, 2000);
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      window.clearInterval(timer);
     };
-  }, [evalSessionId, currentIndex, status, supabase]);
+  }, [currentIndex, evalSessionId, questions, status]);
 
   const handleNext = async () => {
     setIsAdvancing(true);

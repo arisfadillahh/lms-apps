@@ -439,10 +439,9 @@ function NotificationModal({ notif, onClose }: { notif: Notification | null, onC
                             color: '#334155',
                             background: '#ffffff'
                         }}>
-                            <div
-                                dangerouslySetInnerHTML={{ __html: notif.message }}
-                                className="notif-content"
-                            />
+                            <div className="notif-content" style={{ whiteSpace: 'pre-wrap' }}>
+                                {notif.message}
+                            </div>
                             {notif.action_url?.startsWith('/') && !notif.action_url.startsWith('//') ? (
                                 <a
                                     href={notif.action_url}

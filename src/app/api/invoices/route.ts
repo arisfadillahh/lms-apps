@@ -12,6 +12,7 @@ import { buildInvoicePublicUrl } from '@/lib/services/invoicePublicAccess';
 import { getShortInvoiceUrlOrOriginal } from '@/lib/services/shortLinks';
 import type { InvoiceFilters, InvoiceStatus } from '@/lib/types/invoice';
 import { z } from 'zod';
+import { validateBearerToken } from '@/lib/apiTokenAuth';
 
 const createExternalInvoiceSchema = z.object({
     external_reference: z.string().min(1),
@@ -169,16 +170,9 @@ function cleanDisplayText(value: string, fallback: string) {
 }
 
 function assertCoreApiToken(request: NextRequest) {
-    const expectedToken = process.env.LMS_CORE_API_TOKEN?.trim();
-    if (!expectedToken) return null;
-
-    const authorization = request.headers.get('authorization') || '';
-    const actualToken = authorization.replace(/^Bearer\s+/i, '').trim();
-    if (actualToken !== expectedToken) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    return null;
+    const result = validateBearerToken(request, [process.env.LMS_CORE_API_TOKEN]);
+    if (result === 'UNCONFIGURED') return NextResponse.json({ error: 'Integration token is not configured' }, { status: 503 });
+    return result === 'INVALID' ? NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) : null;
 }
 
 async function toExternalInvoiceResponse(invoice: { id: string; invoice_number: string; status: string; due_date: string | null; parent_phone: string; total_amount: number }) {

@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useRef, type CSSProperties } from 'react';
-import { CheckCircle2, Lock, Rocket, Trophy, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useMemo, useRef } from 'react';
+import { CalendarDays, CheckCircle2, Flag, Lock, Rocket, Trophy, ChevronLeft, ChevronRight } from 'lucide-react';
 
 type JourneyBlock = {
   blockId: string;
@@ -46,6 +46,9 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
   const journeyPct = Math.min(100, Math.round((course.completedBlocks / total) * 100));
   const blockPct = course.currentBlockProgress || 0;
   const totalWidth = PAD_X * 2 + blocks.length * COL_W;
+  const firstOpenIndex = blocks.findIndex((block) => block.status !== 'COMPLETED');
+  const mobileBlocks = firstOpenIndex === -1 ? blocks.slice(-1) : blocks.slice(firstOpenIndex);
+  const completedBefore = firstOpenIndex === -1 ? Math.max(0, blocks.length - 1) : firstOpenIndex;
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -92,73 +95,79 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
 
   return (
     <div className="w-full relative group">
-      {/* Phone layout: the first step starts at the bottom and the journey grows upward. */}
-      <div className="journey-mobile px-5 pb-7 pt-2 md:hidden">
-        <div className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-sky-200 bg-white/70 px-4 py-3">
-          <div className="min-w-0">
-            <p className="journey-block-name truncate text-xs font-black text-sky-950">{course.name}</p>
-            <p className="mt-0.5 text-[10px] font-bold text-slate-500">Mulai dari bawah, lanjutkan perjalanan ke atas.</p>
-          </div>
-          <span className="shrink-0 rounded-full bg-sky-100 px-3 py-1 text-xs font-black text-sky-700">{journeyPct}%</span>
+      {/* Phone layout: show the active step first, followed by the next milestones. */}
+      <div className="journey-mobile px-4 pb-8 pt-1 md:hidden">
+        <div className="journey-mobile-intro mb-5 rounded-2xl px-4 py-3 text-center">
+          <p className="journey-block-name text-sm font-black text-sky-950">{course.name}</p>
+          <p className="mt-1 text-[11px] font-bold leading-relaxed text-sky-800">
+            Setiap langkah kecil hari ini membawamu ke petualangan hebat.
+          </p>
         </div>
 
-        <div className="journey-mobile-list relative flex flex-col-reverse gap-5 py-2">
-          <span
-            className="journey-mobile-line absolute bottom-7 left-[23px] top-7 w-1 rounded-full"
-            style={{ '--journey-progress': `${journeyPct}%` } as CSSProperties}
-            aria-hidden="true"
-          />
-          {blocks.map((block, i) => {
+        <div className="journey-mobile-list relative mx-auto flex max-w-sm flex-col gap-4 pb-3 pl-12">
+          <span className="journey-mobile-route absolute bottom-10 left-[21px] top-8 w-[3px] rounded-full" aria-hidden="true" />
+          <div className="journey-mobile-start relative mb-1 flex min-h-10 items-center rounded-2xl border border-sky-200 bg-white/70 px-4 py-2.5 shadow-sm">
+            <span className="absolute -left-[46px] grid size-10 place-items-center rounded-full border-4 border-white bg-emerald-500 text-white shadow-md">
+              <Flag size={17} strokeWidth={2.5} />
+            </span>
+            <div className="flex w-full items-center justify-between gap-3">
+              <span className="text-[10px] font-black uppercase tracking-wider text-sky-800">
+                {completedBefore > 0 ? `${completedBefore} ${itemName.toLowerCase()} selesai` : 'Perjalanan dimulai'}
+              </span>
+              <span className="rounded-full bg-sky-100 px-2.5 py-1 text-[10px] font-black text-sky-700">{journeyPct}%</span>
+            </div>
+          </div>
+
+          {mobileBlocks.map((block) => {
+            const originalIndex = blocks.findIndex((item) => item.blockId === block.blockId);
             const isCompleted = block.status === 'COMPLETED';
             const isCurrent = block.status === 'CURRENT';
             const isUpcoming = block.status === 'UPCOMING';
-            const isLast = i === blocks.length - 1;
+            const isLast = originalIndex === blocks.length - 1;
             const isTrophy = isLast && isUpcoming;
 
             return (
-              <article key={block.blockId} className="relative z-10 pl-14">
+              <article key={block.blockId} className="journey-mobile-step relative z-10">
                 <div
-                  className={`absolute left-0 top-5 grid size-12 place-items-center rounded-full border-4 border-white shadow-md ${
-                    isCurrent ? 'bg-[#0ea5e9]' : isCompleted ? 'bg-[#5A9832]' : 'bg-slate-200'
+                  className={`journey-mobile-node absolute -left-[48px] top-6 grid size-11 place-items-center rounded-full border-4 border-white shadow-md ${
+                    isCurrent ? 'bg-[#0ea5e9]' : isCompleted ? 'bg-[#5A9832]' : isTrophy ? 'bg-violet-100' : 'bg-slate-100'
                   }`}
                   aria-hidden="true"
                 >
-                  {isCompleted && <CheckCircle2 className="text-white" size={23} strokeWidth={2.5} />}
-                  {isCurrent && <Rocket className="text-white" size={23} strokeWidth={2.2} />}
+                  {isCompleted && <CheckCircle2 className="text-white" size={21} strokeWidth={2.5} />}
+                  {isCurrent && <Rocket className="text-white" size={21} strokeWidth={2.2} />}
                   {isUpcoming && (isTrophy
-                    ? <Trophy className="text-amber-500" size={21} strokeWidth={2.2} />
-                    : <Lock className="text-slate-500" size={19} strokeWidth={2.5} />
+                    ? <Trophy className="text-violet-600" size={19} strokeWidth={2.2} />
+                    : <Lock className="text-slate-400" size={17} strokeWidth={2.5} />
                   )}
                 </div>
 
-                <div className={`journey-card rounded-2xl border p-4 shadow-sm ${
+                <div className={`journey-card rounded-[1.4rem] border p-4 shadow-sm ${
                   isCurrent
-                    ? 'journey-card-current border-sky-300 bg-white'
+                    ? 'journey-card-current border-2 border-sky-400 bg-white shadow-[0_12px_30px_rgba(14,165,233,0.18)]'
                     : isCompleted
                       ? 'journey-card-completed border-emerald-200 bg-white/85'
-                      : 'journey-card-upcoming border-slate-200 bg-white/55'
+                      : isTrophy
+                        ? 'journey-card-upcoming journey-card-final border-violet-200 bg-violet-50/80'
+                        : 'journey-card-upcoming border-slate-200 bg-white/70'
                 }`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <span className={`text-[9px] font-black uppercase tracking-widest ${
-                        isCurrent ? 'text-sky-600' : isCompleted ? 'text-[#5A9832]' : 'text-slate-500'
-                      }`}>
-                        {isLast && isUpcoming ? 'Final Quest' : `${itemName} ${(block.orderIndex != null ? block.orderIndex : i) + 1}`}
-                      </span>
-                      <h4 className="journey-block-name mt-1 text-sm font-black leading-snug text-slate-800">{block.name}</h4>
-                    </div>
-                    <span className={`shrink-0 rounded-full px-2.5 py-1 text-[8px] font-black uppercase tracking-wide ${
+                  <div className="text-center">
+                    <span className={`inline-flex rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-widest ${
                       isCurrent
                         ? 'bg-sky-100 text-sky-700'
                         : isCompleted
                           ? 'bg-emerald-100 text-emerald-700'
-                          : 'bg-slate-200 text-slate-600'
+                          : isTrophy
+                            ? 'bg-violet-100 text-violet-700'
+                            : 'bg-slate-100 text-slate-600'
                     }`}>
-                      {isCurrent ? 'Berjalan' : isCompleted ? 'Selesai' : 'Terkunci'}
+                      {isTrophy ? 'Final Quest' : `${itemName} ${(block.orderIndex != null ? block.orderIndex : originalIndex) + 1}`}
                     </span>
+                    <h4 className="journey-block-name mt-2 text-base font-black leading-snug text-slate-800">{block.name}</h4>
                   </div>
 
-                  <p className="mt-2 text-[10px] font-bold text-slate-500">
+                  <p className="mt-2 flex items-center justify-center gap-1.5 text-[10px] font-bold text-slate-500">
+                    <CalendarDays size={13} />
                     {new Date(block.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
                     {' – '}
                     {new Date(block.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
@@ -173,6 +182,15 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
                       <div className="h-2 overflow-hidden rounded-full bg-slate-200">
                         <div className="h-full rounded-full bg-gradient-to-r from-[#0ea5e9] to-[#5A9832]" style={{ width: `${blockPct}%` }} />
                       </div>
+                    </div>
+                  )}
+
+                  {isUpcoming && (
+                    <div className={`mt-3 flex items-center justify-center gap-1.5 rounded-full py-1.5 text-[9px] font-black ${
+                      isTrophy ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      {isTrophy ? <Trophy size={13} /> : <Lock size={12} />}
+                      {isTrophy ? 'Petualangan menantimu' : 'Terkunci'}
                     </div>
                   )}
                 </div>
@@ -218,27 +236,30 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
             width={totalWidth}
             height={MAP_H}
           >
-            {/* Dashed white background path */}
+            {/* Continuous route background */}
             {fullPath && (
               <path
+                className="journey-path-base"
                 d={fullPath}
                 fill="none"
-                stroke="white"
-                strokeOpacity="0.65"
-                strokeWidth="10"
-                strokeDasharray="16 12"
+                stroke="#d7e7f2"
+                strokeOpacity="0.9"
+                strokeWidth="9"
                 strokeLinecap="round"
+                strokeLinejoin="round"
               />
             )}
             {/* Solid green completed path */}
             {donePath && (
               <path
+                className="journey-path-completed"
                 d={donePath}
                 fill="none"
                 stroke="#5A9832"
-                strokeOpacity="0.85"
+                strokeOpacity="0.95"
                 strokeWidth="10"
                 strokeLinecap="round"
+                strokeLinejoin="round"
               />
             )}
           </svg>

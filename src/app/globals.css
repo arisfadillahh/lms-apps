@@ -499,14 +499,55 @@ html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-modal-subtitle 
   color: #67dcf6 !important;
 }
 
-.journey-mobile-line {
-  background: linear-gradient(
-    to top,
-    #5a9832 0,
-    #0ea5e9 var(--journey-progress),
-    rgba(148, 163, 184, 0.72) var(--journey-progress),
-    rgba(148, 163, 184, 0.72) 100%
-  );
+.journey-mobile-intro {
+  border: 1px solid rgba(125, 211, 252, 0.58);
+  background: rgba(255, 255, 255, 0.58);
+  box-shadow: 0 10px 28px rgba(3, 105, 161, 0.08);
+}
+
+.journey-mobile-route {
+  background: linear-gradient(to bottom, #22c55e 0%, #38bdf8 42%, #b9c9d8 100%);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.32);
+}
+
+.journey-path-base,
+.journey-path-completed {
+  stroke-dasharray: none;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-path-base {
+  stroke: #49627d;
+  stroke-opacity: 0.78;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-path-completed {
+  stroke: #8ecb4f;
+  stroke-opacity: 1;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-mobile-intro,
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-mobile-start {
+  border-color: #476582 !important;
+  background: rgba(32, 55, 84, 0.94) !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-mobile-intro p,
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-mobile-start span {
+  color: #d8f5ff !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-mobile-route {
+  background: linear-gradient(to bottom, #8ecb4f 0%, #23c5e8 44%, #4b6078 100%);
+  box-shadow: 0 0 0 1px rgba(156, 236, 255, 0.12);
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-mobile-node {
+  border-color: #203754 !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-card-final {
+  border-color: #8268c7 !important;
+  background: #292c52 !important;
 }
 
 html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-close {
@@ -550,6 +591,71 @@ html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-mobile > div:fi
 html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-scroll-hint span,
 html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-scroll-hint svg {
   color: #9cecff !important;
+}
+
+/* Five primary Coach destinations stay reachable with one thumb on phones. */
+.coach-mobile-nav {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 80;
+  display: none;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0;
+  padding: 7px 4px max(7px, env(safe-area-inset-bottom));
+  border-top: 1px solid #dce4ef;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.1);
+  backdrop-filter: blur(18px);
+}
+
+.coach-mobile-nav-item {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 56px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 5px 1px;
+  color: #7b8aa0;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+  text-decoration: none;
+}
+
+.coach-mobile-nav-item::before {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 24px;
+  height: 3px;
+  border-radius: 999px;
+  background: transparent;
+  content: '';
+  transform: translateX(-50%);
+}
+
+.coach-mobile-nav-item.is-active {
+  color: #163f78;
+}
+
+.coach-mobile-nav-item.is-active::before {
+  background: #6bb3ff;
+}
+
+@media (max-width: 767px) {
+  .coach-mobile-nav {
+    display: grid;
+  }
+
+  .coach-app-shell button[aria-label='Laporkan masalah LMS'] {
+    bottom: calc(82px + env(safe-area-inset-bottom));
+  }
 }
 
 /* Compact, app-like Coder navigation for phones. */
@@ -2335,7 +2441,22 @@ html[data-coder-theme='dark'] .coder-report-card button {
     padding: 18px 16px 32px;
   }
 
-  .coach-main,
+  .coach-main {
+    width: 100vw;
+    max-width: 100vw;
+    margin-left: 0 !important;
+    padding-right: 0 !important;
+    padding-bottom: 88px !important;
+    padding-left: 0 !important;
+  }
+
+  .coach-dashboard-header {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+  }
+
   .coder-main {
     width: 100%;
     margin-left: 0 !important;

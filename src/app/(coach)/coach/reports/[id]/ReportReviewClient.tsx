@@ -243,11 +243,11 @@ export default function ReportReviewClient({
   };
 
   return (
-    <div className="flex h-screen overflow-hidden font-sans antialiased text-slate-900">
+    <div className="coach-report-review-shell -mx-4 flex min-h-screen flex-col overflow-x-hidden font-sans antialiased text-slate-900 md:-mx-8 lg:h-screen lg:flex-row lg:overflow-hidden">
 
       {/* ── LEFT PANEL ── */}
-      <aside className="w-full lg:w-[38%] bg-white border-r border-slate-200 flex flex-col sticky top-0 h-auto lg:h-full overflow-y-auto">
-        <div className="flex flex-col items-center justify-between h-full p-8 space-y-7">
+      <aside className="relative flex h-auto w-full flex-col overflow-y-visible border-b border-slate-200 bg-white lg:sticky lg:top-0 lg:h-full lg:w-[38%] lg:overflow-y-auto lg:border-b-0 lg:border-r">
+        <div className="flex h-full flex-col items-center justify-between space-y-7 p-4 sm:p-6 lg:p-8">
 
           {/* Identity */}
           <div className="text-center w-full">
@@ -336,7 +336,7 @@ export default function ReportReviewClient({
       </aside>
 
       {/* ── RIGHT PANEL ── */}
-      <section className="w-full lg:w-[62%] bg-slate-50 flex flex-col overflow-hidden min-h-0">
+      <section className="flex min-h-0 w-full flex-col overflow-visible bg-slate-50 lg:w-[62%] lg:overflow-hidden">
 
         {/* Sticky header with Publish button */}
         <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shrink-0">

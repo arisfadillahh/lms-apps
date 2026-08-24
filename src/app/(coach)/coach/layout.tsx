@@ -4,6 +4,7 @@ import { usersDao } from '@/lib/dao';
 import CoachSidebar from './CoachSidebar';
 import PageTransition from '@/components/PageTransition';
 import CoachDashboardHeader from '@/components/coach/CoachDashboardHeader';
+import CoachMobileNav from './CoachMobileNav';
 import { redirect } from 'next/navigation';
 import IssueReportButton from '@/components/issue-reports/IssueReportButton';
 
@@ -72,10 +73,11 @@ export default async function CoachLayout({ children }: { children: ReactNode })
             role: user.role,
             avatarPath: user.avatar_path
         }} />
-        <div className="flex-1 px-4 pb-8 md:px-8">
+        <div className="flex-1 px-4 pb-24 md:px-8 md:pb-8">
           <PageTransition>{children}</PageTransition>
         </div>
       </main>
+      <CoachMobileNav />
       <IssueReportButton role="COACH" />
     </div>
   );

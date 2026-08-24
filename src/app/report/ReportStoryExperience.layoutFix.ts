@@ -57,6 +57,120 @@ export const REPORT_STORY_LAYOUT_FIX = `
 .clevio-story .final-actions {
   padding-bottom: 18px;
 }
+@media (max-height: 860px) and (min-width: 641px) {
+  .clevio-story .app {
+    min-height: 0;
+    height: 100dvh;
+    padding-top: clamp(10px, 2vh, 16px);
+    padding-bottom: clamp(10px, 1.8vh, 14px);
+  }
+  .clevio-story .topbar {
+    min-height: 38px;
+    gap: clamp(12px, 2vw, 20px);
+  }
+  .clevio-story .brand,
+  .clevio-story .brand-logo {
+    width: clamp(104px, 10vw, 132px);
+    min-width: 0;
+  }
+  .clevio-story .story-skip {
+    min-height: 40px;
+    padding: 0 16px;
+  }
+  .clevio-story .stage {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .clevio-story .slide-inner,
+  .clevio-story .slide-inner:has(.primary-btn),
+  .clevio-story .slide-inner:has(.coach-card),
+  .clevio-story .slide-inner.final-layout {
+    max-height: calc(100dvh - 122px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-top: clamp(6px, 1.4vh, 12px);
+    padding-bottom: clamp(12px, 2vh, 20px);
+  }
+  .clevio-story .display {
+    font-size: clamp(38px, min(5vw, 9vh), 68px);
+    line-height: .94;
+  }
+  .clevio-story .display.medium,
+  .clevio-story.trial-story .coach-copy .display.medium {
+    font-size: clamp(32px, min(4vw, 7.2vh), 54px);
+    line-height: .98;
+  }
+  .clevio-story .eyebrow {
+    margin-bottom: 9px;
+    font-size: clamp(10px, min(1vw, 1.8vh), 12px);
+  }
+  .clevio-story .lead {
+    margin-top: 14px;
+    font-size: clamp(13px, min(1.35vw, 2.25vh), 18px);
+    line-height: 1.45;
+  }
+  .clevio-story .intro-layout,
+  .clevio-story .recap-layout,
+  .clevio-story .stats-layout,
+  .clevio-story .skills-layout,
+  .clevio-story .skills-board-layout,
+  .clevio-story .coach-layout,
+  .clevio-story .reflection-layout {
+    gap: clamp(18px, 3.2vw, 44px);
+  }
+  .clevio-story .intro-actions,
+  .clevio-story .unlocked {
+    margin-top: 16px;
+  }
+  .clevio-story .bottom-nav {
+    min-height: 46px;
+  }
+  .clevio-story .nav-btn {
+    width: 42px;
+    height: 42px;
+  }
+  .clevio-story.trial-story .skill-path {
+    gap: 10px;
+  }
+  .clevio-story.trial-story .skill-node,
+  .clevio-story.trial-story .activity-card {
+    min-height: clamp(104px, 15vh, 126px) !important;
+    padding: 14px;
+  }
+  .clevio-story.trial-story .skill-badge {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+  }
+  .clevio-story.trial-story .skill-node strong {
+    margin-top: 7px;
+    font-size: 12px;
+  }
+  .clevio-story.trial-story .activity-card span {
+    margin-top: 5px;
+    font-size: 10px;
+    line-height: 1.28;
+  }
+}
+@media (max-height: 700px) and (min-width: 641px) {
+  .clevio-story .slide-inner,
+  .clevio-story .slide-inner:has(.primary-btn),
+  .clevio-story .slide-inner:has(.coach-card),
+  .clevio-story .slide-inner.final-layout {
+    max-height: calc(100dvh - 108px);
+  }
+  .clevio-story .display {
+    font-size: clamp(34px, min(4.4vw, 8vh), 58px);
+  }
+  .clevio-story .display.medium,
+  .clevio-story.trial-story .coach-copy .display.medium {
+    font-size: clamp(29px, min(3.6vw, 6.5vh), 46px);
+  }
+  .clevio-story .lead {
+    margin-top: 10px;
+    font-size: clamp(12px, min(1.2vw, 2vh), 16px);
+  }
+}
 @media (prefers-color-scheme: light) {
   .clevio-story {
     color-scheme: light;

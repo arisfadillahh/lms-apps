@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import SignOutButton from '@/components/SignOutButton';
 import NotificationDropdown from '@/components/layout/NotificationDropdown';
-import MobileNav from '@/components/layout/MobileNav';
 import CoachSearch from './CoachSearch';
 
 type CoachDashboardHeaderProps = {
@@ -24,9 +23,8 @@ export default function CoachDashboardHeader({ user }: CoachDashboardHeaderProps
     const initial = firstName.charAt(0).toUpperCase();
 
     return (
-        <nav className="sticky top-0 z-40 flex w-full min-w-0 max-w-full items-center justify-between gap-2 border-b border-[#e2e8f0] bg-white px-4 py-3 shadow-sm md:gap-6 md:px-8 md:py-4">
+        <nav className="coach-dashboard-header sticky top-0 z-40 flex w-full min-w-0 max-w-full items-center justify-between gap-2 border-b border-[#e2e8f0] bg-white px-4 py-3 shadow-sm md:gap-6 md:px-8 md:py-4">
             <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-3">
-                <MobileNav role="COACH" username={user.fullName} />
                 <h1 className="text-xl font-bold text-slate-800 hidden lg:block">
                     Selamat datang kembali, Coach {firstName}! 👋
                 </h1>

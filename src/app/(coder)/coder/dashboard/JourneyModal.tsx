@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import JourneyMap, { JourneyCourse } from './JourneyMap';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,22 +22,10 @@ function Cloud({ className = '' }: { className?: string }) {
 export default function JourneyModal({ courses }: { courses: JourneyCourse[] }) {
     const [isOpen, setIsOpen] = useState(false);
     const [mounted, setMounted] = useState(false);
-    const bodyRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         setMounted(true);
     }, []);
-
-    useEffect(() => {
-        if (!isOpen || !window.matchMedia('(max-width: 767px)').matches) return;
-
-        const frame = window.requestAnimationFrame(() => {
-            const body = bodyRef.current;
-            if (body) body.scrollTop = body.scrollHeight;
-        });
-
-        return () => window.cancelAnimationFrame(frame);
-    }, [isOpen]);
 
     if (courses.length === 0) return null;
 
@@ -48,7 +36,7 @@ export default function JourneyModal({ courses }: { courses: JourneyCourse[] }) 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 md:p-8"
+                    className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-0 backdrop-blur-sm md:p-8"
                         onClick={() => setIsOpen(false)}
                     >
                         <motion.div
@@ -56,13 +44,13 @@ export default function JourneyModal({ courses }: { courses: JourneyCourse[] }) 
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
                             transition={{ duration: 0.25, type: 'spring', damping: 25, stiffness: 280 }}
-                            className="w-full max-w-5xl max-h-[88vh] flex flex-col overflow-hidden rounded-[2.5rem] shadow-[0_35px_80px_-15px_rgba(0,0,0,0.4)] border-[6px] border-white/40 relative"
+                            className="journey-modal-panel relative flex h-[100dvh] w-full max-w-5xl flex-col overflow-hidden border-0 border-white/40 shadow-[0_35px_80px_-15px_rgba(0,0,0,0.4)] md:h-auto md:max-h-[88vh] md:rounded-[2.5rem] md:border-[6px]"
                             data-coder-modal="true"
                             style={{ background: 'linear-gradient(to bottom, #7dd3fc 0%, #e0f2fe 100%)' }}
                             onClick={e => e.stopPropagation()}
                         >
                             {/* ── Cloud decorations (fixed, scattered) ─────── */}
-                            <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-[2.5rem]">
+                            <div className="pointer-events-none absolute inset-0 overflow-hidden md:rounded-[2.5rem]">
                                 <Cloud className="absolute top-8 left-10 opacity-50" />
                                 <Cloud className="absolute top-28 right-16 opacity-35 scale-125" />
                                 <Cloud className="absolute bottom-12 left-1/4 opacity-40 scale-90" />
@@ -70,23 +58,23 @@ export default function JourneyModal({ courses }: { courses: JourneyCourse[] }) 
                             </div>
 
                             {/* ── Header ──────────────────────────────────────── */}
-                            <div className="relative z-20 flex items-center justify-between px-8 py-5 md:px-10 md:py-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="size-10 md:size-12 bg-white rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg -rotate-6 border-2 border-sky/20">
+                            <div className="relative z-20 flex items-center justify-between px-4 py-4 md:px-10 md:py-6">
+                                <div className="flex min-w-0 items-center gap-3">
+                                    <div className="flex size-10 shrink-0 -rotate-6 items-center justify-center rounded-xl border-2 border-sky/20 bg-white shadow-lg md:size-12 md:rounded-2xl">
                                         <Sparkles className="text-sky" size={20} />
                                     </div>
-                                    <div>
-                                        <h2 className="journey-modal-title text-xl md:text-2xl font-black text-sky-950 tracking-tight leading-tight">
+                                    <div className="min-w-0">
+                                        <h2 className="journey-modal-title truncate text-lg font-black leading-tight tracking-tight text-sky-950 md:text-2xl">
                                             Peta Petualangan Belajar
                                         </h2>
-                                        <p className="journey-modal-subtitle text-[10px] md:text-xs font-black text-sky-700 uppercase tracking-widest">
+                                        <p className="journey-modal-subtitle truncate text-[9px] font-black uppercase tracking-wider text-sky-700 md:text-xs md:tracking-widest">
                                             Clevio Innovator Camp · {courses[0]?.levelName || 'Level Coder'}
                                         </p>
                                     </div>
                                 </div>
                                 <button
                                     onClick={() => setIsOpen(false)}
-                                    className="journey-close size-10 md:size-11 rounded-full bg-white/70 hover:bg-white text-sky-900 transition-all shadow-md flex items-center justify-center hover:rotate-90 duration-300 border border-white/50"
+                                    className="journey-close flex size-10 shrink-0 items-center justify-center rounded-full border border-white/50 bg-white/70 text-sky-900 shadow-md transition-all duration-300 hover:rotate-90 hover:bg-white md:size-11"
                                     aria-label="Tutup peta perjalanan"
                                 >
                                     <X size={18} />
@@ -94,7 +82,7 @@ export default function JourneyModal({ courses }: { courses: JourneyCourse[] }) 
                             </div>
 
                             {/* ── Body ─────────────────────────────────────────── */}
-                            <div ref={bodyRef} className="relative z-10 flex-1 overflow-y-auto">
+                            <div className="relative z-10 flex-1 overflow-y-auto overscroll-contain">
                                 <JourneyMap courses={courses} />
                             </div>
                         </motion.div>

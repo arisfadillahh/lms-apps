@@ -488,6 +488,70 @@ html[data-coder-theme='dark'] [data-coder-modal='true'] select {
   border-color: var(--coder-modal-border) !important;
 }
 
+/* Learning Journey uses sky colors in light mode. Keep every label legible on
+   the dark portal surface and preserve clear status hierarchy. */
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-modal-title,
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-block-name {
+  color: #f7fbff !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-modal-subtitle {
+  color: #67dcf6 !important;
+}
+
+.journey-mobile-line {
+  background: linear-gradient(
+    to top,
+    #5a9832 0,
+    #0ea5e9 var(--journey-progress),
+    rgba(148, 163, 184, 0.72) var(--journey-progress),
+    rgba(148, 163, 184, 0.72) 100%
+  );
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-close {
+  background-color: #203754 !important;
+  border-color: #476582 !important;
+  color: #d8f5ff !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-card {
+  background: #1a2d46 !important;
+  border-color: #3b5876 !important;
+  color: #f1f6ff !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-card-current {
+  border-color: #20bce1 !important;
+  box-shadow: 0 14px 34px rgba(0, 176, 215, 0.2) !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-card-current .text-sky-600,
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-card-current .text-sky-700 {
+  color: #67dcf6 !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-card-completed {
+  border-color: #5a8e4c !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-card-upcoming {
+  background: #17283e !important;
+  border-color: #52667e !important;
+  opacity: 0.82 !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-scroll-hint,
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-mobile > div:first-child {
+  background-color: #203754 !important;
+  border-color: #476582 !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-scroll-hint span,
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-scroll-hint svg {
+  color: #9cecff !important;
+}
+
 /* Compact, app-like Coder navigation for phones. */
 .coder-mobile-nav {
   position: fixed;

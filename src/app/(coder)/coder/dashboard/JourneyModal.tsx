@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import JourneyMap, { JourneyCourse } from './JourneyMap';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,10 +22,22 @@ function Cloud({ className = '' }: { className?: string }) {
 export default function JourneyModal({ courses }: { courses: JourneyCourse[] }) {
     const [isOpen, setIsOpen] = useState(false);
     const [mounted, setMounted] = useState(false);
+    const bodyRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         setMounted(true);
     }, []);
+
+    useEffect(() => {
+        if (!isOpen || !window.matchMedia('(max-width: 767px)').matches) return;
+
+        const frame = window.requestAnimationFrame(() => {
+            const body = bodyRef.current;
+            if (body) body.scrollTop = body.scrollHeight;
+        });
+
+        return () => window.cancelAnimationFrame(frame);
+    }, [isOpen]);
 
     if (courses.length === 0) return null;
 
@@ -64,24 +76,25 @@ export default function JourneyModal({ courses }: { courses: JourneyCourse[] }) 
                                         <Sparkles className="text-sky" size={20} />
                                     </div>
                                     <div>
-                                        <h2 className="text-xl md:text-2xl font-black text-sky-950 tracking-tight leading-tight">
+                                        <h2 className="journey-modal-title text-xl md:text-2xl font-black text-sky-950 tracking-tight leading-tight">
                                             Peta Petualangan Belajar
                                         </h2>
-                                        <p className="text-[10px] md:text-xs font-black text-sky-700 uppercase tracking-widest">
+                                        <p className="journey-modal-subtitle text-[10px] md:text-xs font-black text-sky-700 uppercase tracking-widest">
                                             Clevio Innovator Camp · {courses[0]?.levelName || 'Level Coder'}
                                         </p>
                                     </div>
                                 </div>
                                 <button
                                     onClick={() => setIsOpen(false)}
-                                    className="size-10 md:size-11 rounded-full bg-white/70 hover:bg-white text-sky-900 transition-all shadow-md flex items-center justify-center hover:rotate-90 duration-300 border border-white/50"
+                                    className="journey-close size-10 md:size-11 rounded-full bg-white/70 hover:bg-white text-sky-900 transition-all shadow-md flex items-center justify-center hover:rotate-90 duration-300 border border-white/50"
+                                    aria-label="Tutup peta perjalanan"
                                 >
                                     <X size={18} />
                                 </button>
                             </div>
 
                             {/* ── Body ─────────────────────────────────────────── */}
-                            <div className="relative z-10 flex-1 overflow-y-auto">
+                            <div ref={bodyRef} className="relative z-10 flex-1 overflow-y-auto">
                                 <JourneyMap courses={courses} />
                             </div>
                         </motion.div>

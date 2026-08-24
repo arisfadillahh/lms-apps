@@ -39,23 +39,45 @@
         display: inline-flex;
         width: fit-content;
         align-items: center;
-        gap: 14px;
+        gap: 11px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: #fff;
         color: var(--navy);
+        padding: 9px 13px 9px 10px;
         text-decoration: none;
+        box-shadow: 0 8px 24px rgba(34, 54, 123, .08);
       }
 
-      .brand img { display: block; width: 148px; height: auto; }
+      .brand img {
+        display: block;
+        width: 42px;
+        height: 42px;
+        flex: 0 0 auto;
+        object-fit: contain;
+      }
 
       .brand-copy {
         display: flex;
         flex-direction: column;
-        gap: 3px;
-        border-left: 1px solid var(--line);
-        padding-left: 14px;
+        align-items: flex-start;
+        gap: 1px;
       }
 
-      .brand-copy strong { font-size: 14px; letter-spacing: .01em; }
-      .brand-copy span { color: var(--muted); font-size: 11px; }
+      .brand-copy strong {
+        color: var(--navy);
+        font-size: 22px;
+        font-weight: 800;
+        line-height: 1;
+      }
+
+      .brand-copy span {
+        color: #78a900;
+        font-size: 8px;
+        font-weight: 800;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+      }
 
       .offline-main {
         display: grid;
@@ -172,8 +194,9 @@
 
       @media (max-width: 520px) {
         .offline-shell { padding: 20px 16px 18px; }
-        .brand-copy { display: none; }
-        .brand img { width: 138px; }
+        .brand { padding: 8px 12px 8px 9px; }
+        .brand img { width: 38px; height: 38px; }
+        .brand-copy strong { font-size: 20px; }
         .offline-main { padding: 36px 0; }
         .offline-panel { padding: 30px 22px; }
         .actions { flex-direction: column; }
@@ -189,10 +212,10 @@
     <div class="offline-shell">
       <header>
         <a class="brand" href="/" aria-label="Clevio LMS">
-          <img src="/logo/innovator-camp-logo-dark.png" alt="Clevio Innovator Camp">
+          <img src="/pwa-icon-192.png" alt="">
           <span class="brand-copy">
-            <strong>Clevio LMS</strong>
-            <span>Learning workspace</span>
+            <strong>clevio</strong>
+            <span>Innovator Camp</span>
           </span>
         </a>
       </header>

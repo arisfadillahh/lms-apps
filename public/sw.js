@@ -1,4 +1,4 @@
-const CACHE_NAME = 'clevio-lms-shell-v3';
+const CACHE_NAME = 'clevio-lms-shell-v4';
 const OFFLINE_URL = '/offline.html';
 
 self.addEventListener('install', (event) => {
@@ -7,6 +7,7 @@ self.addEventListener('install', (event) => {
       .then((cache) => cache.addAll([
         OFFLINE_URL,
         '/logo/innovator-camp-logo-dark.png',
+        '/pwa-icon-192.png',
         '/pwa-icon-full-192.png',
       ]))
       .catch(() => undefined)

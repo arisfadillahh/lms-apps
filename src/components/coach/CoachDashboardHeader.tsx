@@ -24,7 +24,7 @@ export default function CoachDashboardHeader({ user }: CoachDashboardHeaderProps
     const initial = firstName.charAt(0).toUpperCase();
 
     return (
-        <nav className="sticky top-0 z-40 w-full min-w-0 max-w-full bg-white border-b border-[#e2e8f0] px-8 py-4 mb-0 -mx-8 flex items-center justify-between shadow-sm max-md:-mx-4 max-md:px-4 max-md:py-3 max-md:gap-2">
+        <nav className="sticky top-0 z-40 flex w-full min-w-0 max-w-full items-center justify-between gap-2 border-b border-[#e2e8f0] bg-white px-4 py-3 shadow-sm md:gap-6 md:px-8 md:py-4">
             <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-3">
                 <MobileNav role="COACH" username={user.fullName} />
                 <h1 className="text-xl font-bold text-slate-800 hidden lg:block">

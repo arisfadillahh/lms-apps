@@ -80,7 +80,7 @@ rm -rf "$RELEASE_DIR/public/uploads"
 
 (
   cd "$RELEASE_DIR"
-  npm ci
+  npm ci --include=dev
   npm run build
 ) >"$BUILD_LOG" 2>&1
 

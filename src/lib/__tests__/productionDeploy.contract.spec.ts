@@ -20,6 +20,7 @@ describe('production deployment contract', () => {
     expect(buildIndex).toBeGreaterThan(-1);
     expect(candidateIndex).toBeGreaterThan(buildIndex);
     expect(switchIndex).toBeGreaterThan(candidateIndex);
+    expect(script).toContain('npm ci --include=dev');
   });
 
   it('keeps runtime data shared and rolls back failed post-switch checks', () => {

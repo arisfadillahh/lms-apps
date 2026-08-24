@@ -65,7 +65,7 @@ export default async function CoachLayout({ children }: { children: ReactNode })
       </div>
 
       {/* Main content */}
-      <main className="coach-main flex-1 flex flex-col min-h-screen md:ml-[260px] flex-grow px-8 pb-8">
+      <main className="coach-main min-w-0 flex-1 flex flex-col min-h-screen md:ml-[260px] flex-grow px-4 md:px-8 pb-8">
         <CoachDashboardHeader user={{
             id: user.id,
             fullName: user.full_name,

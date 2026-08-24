@@ -593,6 +593,132 @@ html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-scroll-hint svg
   color: #9cecff !important;
 }
 
+/* Journey owns its own contrast tokens because the map is rendered in a
+   portal, outside the Coder shell's normal theme cascade. */
+[data-coder-modal='true'] {
+  --journey-panel-top: #7dd3fc;
+  --journey-panel-bottom: #e0f2fe;
+  --journey-title: #0b2e5a;
+  --journey-subtitle: #075985;
+  --journey-body: #173b63;
+  --journey-muted: #58708b;
+  --journey-card: rgba(255, 255, 255, 0.84);
+  --journey-card-border: #c9deec;
+  --journey-card-locked: rgba(255, 255, 255, 0.72);
+  --journey-route: #7ba9c8;
+}
+
+[data-coder-modal='true'].journey-modal-panel {
+  background: linear-gradient(to bottom, var(--journey-panel-top), var(--journey-panel-bottom)) !important;
+}
+
+[data-coder-modal='true'] .journey-modal-title,
+[data-coder-modal='true'] .journey-mobile-course-title,
+[data-coder-modal='true'] .journey-mobile-card-title {
+  color: var(--journey-title) !important;
+}
+
+[data-coder-modal='true'] .journey-modal-subtitle,
+[data-coder-modal='true'] .journey-mobile-course-description,
+[data-coder-modal='true'] .journey-mobile-start-status,
+[data-coder-modal='true'] .journey-mobile-card-date,
+[data-coder-modal='true'] .journey-mobile-card-progress-label {
+  color: var(--journey-body) !important;
+}
+
+[data-coder-modal='true'] .journey-mobile-start-progress {
+  color: #075985 !important;
+  background: #d8f3ff !important;
+}
+
+[data-coder-modal='true'] .journey-mobile-card {
+  color: var(--journey-body) !important;
+}
+
+[data-coder-modal='true'] .journey-mobile-card-date svg,
+[data-coder-modal='true'] .journey-mobile-card-lock-icon {
+  color: var(--journey-muted) !important;
+}
+
+.journey-mobile-scroll-hint {
+  border: 1px solid rgba(14, 165, 233, 0.25);
+  background: rgba(255, 255, 255, 0.78);
+  color: #075985;
+  box-shadow: 0 6px 18px rgba(3, 105, 161, 0.1);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.journey-mobile-scroll-hint svg {
+  color: #0284c7;
+}
+
+@media (max-width: 767px) {
+  .journey-mobile-route {
+    width: 0 !important;
+    border-left: 3px dashed var(--journey-route);
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] {
+  --journey-panel-top: #142b46;
+  --journey-panel-bottom: #101d31;
+  --journey-title: #f7fbff;
+  --journey-subtitle: #8de8ff;
+  --journey-body: #e1edf9;
+  --journey-muted: #b8cbe0;
+  --journey-card: #1a2d46;
+  --journey-card-border: #496681;
+  --journey-card-locked: #17283e;
+  --journey-route: #6c8ba7;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-mobile-start-progress {
+  color: #08334c !important;
+  background: #bdefff !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-mobile-card,
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-mobile-card-title,
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-mobile-card-date,
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-mobile-card-progress-label,
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-mobile-course-title,
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-mobile-course-description,
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-modal-title,
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-modal-subtitle {
+  color: var(--journey-body) !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-mobile-card-title,
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-mobile-course-title,
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-modal-title {
+  color: var(--journey-title) !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-mobile-card-date,
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-mobile-card-progress-label {
+  color: var(--journey-muted) !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-mobile-scroll-hint {
+  border-color: #476582;
+  background: rgba(32, 55, 84, 0.94);
+  color: #d8f5ff;
+  box-shadow: 0 8px 22px rgba(3, 12, 28, 0.3);
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-mobile-scroll-hint svg {
+  color: #9cecff;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-card-upcoming {
+  opacity: 1 !important;
+}
+
 /* Five primary Coach destinations stay reachable with one thumb on phones. */
 .coach-mobile-nav {
   position: fixed;

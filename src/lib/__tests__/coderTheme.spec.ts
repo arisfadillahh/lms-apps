@@ -37,6 +37,11 @@ describe('coder theme preference', () => {
     expect(map).toContain("blocks.findIndex((block) => block.status !== 'COMPLETED')");
     expect(map).toContain('Setiap langkah kecil hari ini membawamu ke petualangan hebat.');
     expect(map).toContain('journey-mobile-route');
+    expect(map).toContain('journey-mobile-scroll-hint');
+    expect(map).toContain('journey-mobile-card-title');
+    expect(map).toContain('blocks.slice(firstOpenIndex)');
+    expect(map).toContain('...blocks.slice(0, firstOpenIndex)');
+    expect(map).not.toContain('.reverse()');
     expect(map).toContain('journey-path-base');
     expect(map).toContain('journey-path-completed');
     expect(map).not.toContain('strokeDasharray');
@@ -46,6 +51,9 @@ describe('coder theme preference', () => {
     expect(modal).not.toContain('body.scrollTop = body.scrollHeight');
     expect(styles).toContain("[data-coder-modal='true'] .journey-modal-title");
     expect(styles).toContain("[data-coder-modal='true'] .journey-card-current");
+    expect(styles).toContain('[data-coder-modal=\'true\'] .journey-mobile-card-title');
+    expect(styles).toContain('var(--journey-title)');
+    expect(styles).toContain('border-left: 3px dashed var(--journey-route);');
     expect(styles).toContain('.journey-path-base,');
     expect(styles).toContain('stroke-dasharray: none;');
     expect(styles).toContain('color: #f7fbff !important;');

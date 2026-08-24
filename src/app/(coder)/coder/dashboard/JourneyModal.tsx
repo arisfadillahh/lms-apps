@@ -46,7 +46,6 @@ export default function JourneyModal({ courses }: { courses: JourneyCourse[] }) 
                             transition={{ duration: 0.25, type: 'spring', damping: 25, stiffness: 280 }}
                             className="journey-modal-panel relative flex h-[100dvh] w-full max-w-5xl flex-col overflow-hidden border-0 border-white/40 shadow-[0_35px_80px_-15px_rgba(0,0,0,0.4)] md:h-auto md:max-h-[88vh] md:rounded-[2.5rem] md:border-[6px]"
                             data-coder-modal="true"
-                            style={{ background: 'linear-gradient(to bottom, #7dd3fc 0%, #e0f2fe 100%)' }}
                             onClick={e => e.stopPropagation()}
                         >
                             {/* ── Cloud decorations (fixed, scattered) ─────── */}

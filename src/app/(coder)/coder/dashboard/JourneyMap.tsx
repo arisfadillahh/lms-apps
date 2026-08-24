@@ -47,8 +47,12 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
   const blockPct = course.currentBlockProgress || 0;
   const totalWidth = PAD_X * 2 + blocks.length * COL_W;
   const firstOpenIndex = blocks.findIndex((block) => block.status !== 'COMPLETED');
-  const mobileBlocks = firstOpenIndex === -1 ? blocks.slice(-1) : blocks.slice(firstOpenIndex);
-  const completedBefore = firstOpenIndex === -1 ? Math.max(0, blocks.length - 1) : firstOpenIndex;
+  // Keep every block available on mobile, but lead with the latest active
+  // milestone so the current journey state is visible without hunting.
+  const mobileBlocks = firstOpenIndex === -1
+    ? blocks
+    : [...blocks.slice(firstOpenIndex), ...blocks.slice(0, firstOpenIndex)];
+  const completedBefore = firstOpenIndex === -1 ? blocks.length : firstOpenIndex;
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -98,8 +102,8 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
       {/* Phone layout: show the active step first, followed by the next milestones. */}
       <div className="journey-mobile px-4 pb-8 pt-1 md:hidden">
         <div className="journey-mobile-intro mb-5 rounded-2xl px-4 py-3 text-center">
-          <p className="journey-block-name text-sm font-black text-sky-950">{course.name}</p>
-          <p className="mt-1 text-[11px] font-bold leading-relaxed text-sky-800">
+          <p className="journey-mobile-course-title journey-block-name text-sm font-black text-sky-950">{course.name}</p>
+          <p className="journey-mobile-course-description mt-1 text-[11px] font-bold leading-relaxed text-sky-800">
             Setiap langkah kecil hari ini membawamu ke petualangan hebat.
           </p>
         </div>
@@ -111,10 +115,10 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
               <Flag size={17} strokeWidth={2.5} />
             </span>
             <div className="flex w-full items-center justify-between gap-3">
-              <span className="text-[10px] font-black uppercase tracking-wider text-sky-800">
+              <span className="journey-mobile-start-status text-[10px] font-black uppercase tracking-wider text-sky-800">
                 {completedBefore > 0 ? `${completedBefore} ${itemName.toLowerCase()} selesai` : 'Perjalanan dimulai'}
               </span>
-              <span className="rounded-full bg-sky-100 px-2.5 py-1 text-[10px] font-black text-sky-700">{journeyPct}%</span>
+              <span className="journey-mobile-start-progress rounded-full bg-sky-100 px-2.5 py-1 text-[10px] font-black text-sky-700">{journeyPct}%</span>
             </div>
           </div>
 
@@ -142,7 +146,7 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
                   )}
                 </div>
 
-                <div className={`journey-card rounded-[1.4rem] border p-4 shadow-sm ${
+                <div className={`journey-card journey-mobile-card rounded-[1.4rem] border p-4 shadow-sm ${
                   isCurrent
                     ? 'journey-card-current border-2 border-sky-400 bg-white shadow-[0_12px_30px_rgba(14,165,233,0.18)]'
                     : isCompleted
@@ -163,10 +167,10 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
                     }`}>
                       {isTrophy ? 'Final Quest' : `${itemName} ${(block.orderIndex != null ? block.orderIndex : originalIndex) + 1}`}
                     </span>
-                    <h4 className="journey-block-name mt-2 text-base font-black leading-snug text-slate-800">{block.name}</h4>
+                    <h4 className="journey-mobile-card-title journey-block-name mt-2 text-base font-black leading-snug text-slate-800">{block.name}</h4>
                   </div>
 
-                  <p className="mt-2 flex items-center justify-center gap-1.5 text-[10px] font-bold text-slate-500">
+                  <p className="journey-mobile-card-date mt-2 flex items-center justify-center gap-1.5 text-[10px] font-bold text-slate-500">
                     <CalendarDays size={13} />
                     {new Date(block.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
                     {' – '}
@@ -175,7 +179,7 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
 
                   {isCurrent && (
                     <div className="mt-3 border-t border-slate-200 pt-3">
-                      <div className="mb-1.5 flex items-center justify-between text-[9px] font-black uppercase tracking-wider text-slate-500">
+                      <div className="journey-mobile-card-progress-label mb-1.5 flex items-center justify-between text-[9px] font-black uppercase tracking-wider text-slate-500">
                         <span>Progress {itemName}</span>
                         <span className="text-sky-600">{blockPct}%</span>
                       </div>
@@ -189,7 +193,7 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
                     <div className={`mt-3 flex items-center justify-center gap-1.5 rounded-full py-1.5 text-[9px] font-black ${
                       isTrophy ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-500'
                     }`}>
-                      {isTrophy ? <Trophy size={13} /> : <Lock size={12} />}
+                      <span className="journey-mobile-card-lock-icon">{isTrophy ? <Trophy size={13} /> : <Lock size={12} />}</span>
                       {isTrophy ? 'Petualangan menantimu' : 'Terkunci'}
                     </div>
                   )}
@@ -197,6 +201,11 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
               </article>
             );
           })}
+        </div>
+        <div className="journey-mobile-scroll-hint mx-auto mt-3 flex w-fit items-center gap-2 rounded-full px-5 py-2">
+          <ChevronLeft size={13} aria-hidden="true" />
+          <span>Geser untuk menjelajah</span>
+          <ChevronRight size={13} aria-hidden="true" />
         </div>
       </div>
 

@@ -42,6 +42,7 @@ describe('coder theme preference', () => {
     expect(map).toContain("const mobileBlocks = blocks.filter((block) => block.status !== 'COMPLETED')");
     expect(map).toContain('journey-mobile-completed-list');
     expect(map).toContain('aria-expanded={showCompleted}');
+    expect(map).toContain('useState(true)');
     expect(map).toContain('journey-progress-percent');
     expect(map).toContain('journey-path-base');
     expect(map).toContain('journey-path-completed');

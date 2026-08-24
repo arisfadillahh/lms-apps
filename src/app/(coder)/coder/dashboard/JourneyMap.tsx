@@ -51,7 +51,7 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
   // active and upcoming milestones keep the vertical story easy to scan.
   const mobileBlocks = blocks.filter((block) => block.status !== 'COMPLETED');
   const completedBefore = completedBlocks.length;
-  const [showCompleted, setShowCompleted] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(true);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 

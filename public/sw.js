@@ -1,7 +1,36 @@
-const CACHE_NAME = 'clevio-lms-shell-v2';
+const CACHE_NAME = 'clevio-lms-shell-v3';
+const OFFLINE_URL = '/offline.html';
 
-self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll([
+        OFFLINE_URL,
+        '/logo/innovator-camp-logo-dark.png',
+        '/pwa-icon-full-192.png',
+      ]))
+      .catch(() => undefined)
+  );
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => Promise.all(
+      keys
+        .filter((key) => key !== CACHE_NAME)
+        .map((key) => caches.delete(key))
+    )).then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  if (event.request.mode !== 'navigate') return;
+
+  event.respondWith(
+    fetch(event.request).catch(() => caches.match(OFFLINE_URL))
+  );
+});
 
 self.addEventListener('push', (event) => {
   let payload = {};

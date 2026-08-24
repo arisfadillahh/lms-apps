@@ -182,7 +182,15 @@ export async function POST(request: NextRequest) {
         input.coachId,
         'Kelas Baru',
         `Anda telah ditugaskan untuk mengajar kelas: ${created.name}`,
-        'SYSTEM' // Keeping type SYSTEM to ensure it displays everywhere normally
+        'SYSTEM',
+        {
+          actionUrl: `/coach/classes/${created.id}`,
+          category: 'SCHEDULE',
+          priority: 'HIGH',
+          dedupeKey: `class-assignment-${created.id}-${input.coachId}`,
+          push: true,
+          pushTag: `class-assignment-${created.id}`,
+        },
       );
     }
   } catch (error) {

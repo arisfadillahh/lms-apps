@@ -12,14 +12,14 @@ describe('admin notification push contract', () => {
   it('persists the website notification before best-effort PWA delivery', () => {
     const dao = readSource('src/lib/dao/notificationsDao.ts');
     const insertIndex = dao.indexOf("supabase.from('notifications' as any).insert");
-    const pushIndex = dao.indexOf('await sendAdminPushBestEffort(adminIds, input)');
+    const pushIndex = dao.indexOf('await sendPushBestEffort(adminIds, input, ROLE_DASHBOARD.ADMIN)');
 
     expect(insertIndex).toBeGreaterThan(-1);
     expect(pushIndex).toBeGreaterThan(insertIndex);
-    expect(dao).toContain(".eq('role', 'ADMIN')");
     expect(dao).toContain(".eq('is_active', true)");
-    expect(dao).toContain('await sendAdminPushBestEffort([userId], { title, message, type, ...delivery });');
-    expect(dao).toContain("console.error('[Notifications] Admin push delivery failed'");
+    expect(dao).toContain("const shouldPush = delivery.push ?? recipient?.role === 'ADMIN'");
+    expect(dao).toContain('await sendPushBestEffort([userId], { title, message, type, ...delivery }, fallbackUrl);');
+    expect(dao).toContain("console.error('[Notifications] Push delivery failed'");
   });
 
   it('routes every admin operational alert through the shared fan-out', () => {

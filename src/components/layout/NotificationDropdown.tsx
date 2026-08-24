@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Bell } from 'lucide-react';
+import { X, Bell, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type Notification = {
@@ -12,6 +12,9 @@ type Notification = {
     is_read: boolean;
     created_at: string;
     type: string;
+    action_url?: string | null;
+    category?: string;
+    priority?: 'LOW' | 'NORMAL' | 'HIGH' | 'CRITICAL';
 };
 
 export default function NotificationDropdown() {
@@ -284,6 +287,21 @@ export default function NotificationDropdown() {
                 .notif-content p {
                     margin-bottom: 1rem;
                 }
+                .notif-action-link {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    min-height: 42px;
+                    margin-top: 18px;
+                    padding: 0 16px;
+                    border-radius: 8px;
+                    background: #22367b;
+                    color: #ffffff !important;
+                    font-size: 14px;
+                    font-weight: 800;
+                    text-decoration: none !important;
+                }
                 
             `}</style>
         </>
@@ -425,6 +443,15 @@ function NotificationModal({ notif, onClose }: { notif: Notification | null, onC
                                 dangerouslySetInnerHTML={{ __html: notif.message }}
                                 className="notif-content"
                             />
+                            {notif.action_url?.startsWith('/') && !notif.action_url.startsWith('//') ? (
+                                <a
+                                    href={notif.action_url}
+                                    className="notif-action-link"
+                                    onClick={onClose}
+                                >
+                                    Buka detail <ArrowRight size={18} />
+                                </a>
+                            ) : null}
                         </div>
                     </motion.div>
                 </motion.div>

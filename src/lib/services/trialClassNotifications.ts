@@ -24,6 +24,7 @@ type DeliveryResult = {
 };
 
 export type TrialCoachAssignmentNotificationInput = {
+  trialId: string;
   coachId: string;
   coachName: string;
   coachPhone?: string | null;
@@ -172,6 +173,15 @@ export async function createTrialCoachAssignmentWebsiteNotification(
       'Assignment Trial Class Baru',
       buildTrialCoachAssignmentWebsiteMessage(input),
       'SYSTEM',
+      {
+        actionUrl: `/coach/trials/${input.trialId}`,
+        category: 'TRIAL',
+        priority: 'HIGH',
+        dedupeKey: `trial-assignment-${input.trialId}-${input.scheduledAt}`,
+        push: true,
+        pushTag: `trial-assignment-${input.trialId}`,
+        pushBody: `Trial ${input.studentName} dijadwalkan ${formatScheduledAt(input.scheduledAt)}. Buka detail trial untuk persiapan.`,
+      },
     );
     return { success: true };
   } catch (error) {

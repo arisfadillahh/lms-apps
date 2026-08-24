@@ -112,7 +112,7 @@ export default function PwaNotificationButton() {
       {open ? (
         <div className="pwa-menu" role="dialog" aria-label="Pengaturan aplikasi LMS">
           <div className="pwa-menu-title">Aplikasi Clevio LMS</div>
-          <p className="pwa-menu-copy">Pasang LMS di HP dan aktifkan push agar tahu saat WhatsApp logout.</p>
+          <p className="pwa-menu-copy">Pasang LMS di HP dan aktifkan push untuk pembayaran, trial, laporan, serta gangguan operasional penting.</p>
           <button type="button" className="pwa-menu-action" onClick={install}><Download size={15} /> Pasang di HP</button>
           <button type="button" className="pwa-menu-action primary" onClick={enablePush} disabled={busy || pushEnabled}>
             <BellRing size={15} /> {busy ? 'Mengaktifkan...' : pushEnabled ? 'Notifikasi aktif' : 'Aktifkan notifikasi'}

@@ -2,6 +2,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { getInvoiceSettings } from '@/lib/dao/invoicesDao';
 import { sendClassReminder } from '@/lib/services/whatsappClient';
 import { buildClassReminderIdempotencyKey } from '@/lib/services/reminderIdempotency';
+import { sendCoderDayBeforeReminders, sendOneHourSessionReminders } from '@/lib/services/roleSessionReminders';
 
 /**
  * Check and Send Class Reminders for "Today"
@@ -25,12 +26,21 @@ export async function checkAndSendClassReminders(): Promise<{
         return { success: true, sent: 0, message: 'Feature disabled', skippedReason: 'DISABLED' };
     }
 
+    const now = new Date();
+
+    // This job may run more than once per hour. Dedupe keys keep the one-hour
+    // Coach/Coder push actionable without stacking duplicate alerts.
+    try {
+        await sendOneHourSessionReminders(now);
+    } catch (roleReminderError) {
+        console.error('[Scheduler] Failed to send one-hour role reminders:', roleReminderError);
+    }
+
     // 2. Check Time Logic
     // Format: "HH:mm" (e.g., "09:00")
     const targetTime = settings.class_reminder_time || '09:00';
 
     // Use Indonesia time (WIB) for calculations
-    const now = new Date();
     const formatter = new Intl.DateTimeFormat('id-ID', {
         timeZone: 'Asia/Jakarta',
         year: 'numeric',
@@ -118,6 +128,12 @@ export async function checkAndSendClassReminders(): Promise<{
     if (sessionError || !rawSessions || rawSessions.length === 0) {
         console.log('[Scheduler] No sessions found for tomorrow or error occurred');
         return { success: true, sent: 0, message: 'No sessions tomorrow', skippedReason: 'NO_SESSIONS' };
+    }
+
+    try {
+        await sendCoderDayBeforeReminders(rawSessions as any, tomorrowStr);
+    } catch (coderReminderError) {
+        console.error('[Scheduler] Failed to send H-1 Coder reminders:', coderReminderError);
     }
 
     // Fetch enrollments for classes
@@ -264,7 +280,14 @@ export async function checkAndSendClassReminders(): Promise<{
                     const type = 'SYSTEM';
 
                     if (!await hasMatchingNotificationToday(coach.id, title, message, type)) {
-                        await createNotification(coach.id, title, message, type);
+                        await createNotification(coach.id, title, message, type, {
+                            actionUrl: '/coach/dashboard',
+                            category: 'SCHEDULE',
+                            priority: 'NORMAL',
+                            dedupeKey: `coach-classes-${tomorrowStr}-h1`,
+                            push: true,
+                            pushTag: `coach-classes-${tomorrowStr}-h1`,
+                        });
                     }
                 }
             }

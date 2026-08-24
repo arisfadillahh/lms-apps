@@ -49,7 +49,18 @@ export async function POST(request: Request) {
         }
 
         // Create notifications
-        const sentCount = await createBulkNotifications(userIds, title, message, 'BROADCAST');
+        const targetUrl = target === 'COACHES'
+            ? '/coach/dashboard'
+            : target === 'CODERS'
+                ? '/coder/dashboard'
+                : '/';
+        const sentCount = await createBulkNotifications(userIds, title, message, 'BROADCAST', {
+            actionUrl: targetUrl,
+            category: 'BROADCAST',
+            priority: 'NORMAL',
+            push: true,
+            pushTag: `broadcast-${Date.now()}`,
+        });
 
         return NextResponse.json({
             success: true,

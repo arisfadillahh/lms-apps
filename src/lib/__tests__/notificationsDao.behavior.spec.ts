@@ -16,7 +16,7 @@ vi.mock('@/lib/pushNotifications', () => ({
 import { createAdminNotifications, createNotification } from '@/lib/dao/notificationsDao';
 
 function makeSupabase(
-  recipient: { id: string } | null,
+  recipient: { id: string; role?: string } | null,
   activeAdmins: Array<{ id: string }> = recipient ? [recipient] : [],
 ) {
   const order: string[] = [];
@@ -72,7 +72,7 @@ describe('createNotification Admin PWA delivery', () => {
   });
 
   it('pushes a generic Admin bell notification after the durable insert', async () => {
-    const fixture = makeSupabase({ id: 'admin-1' });
+    const fixture = makeSupabase({ id: 'admin-1', role: 'ADMIN' });
     mocks.getSupabaseAdmin.mockReturnValue(fixture.supabase);
     mocks.sendPushToUsers.mockImplementation(async () => {
       fixture.order.push('push');
@@ -87,12 +87,16 @@ describe('createNotification Admin PWA delivery', () => {
       message: 'Ada bug di dashboard.',
       type: 'ISSUE_REPORT',
       is_read: false,
+      action_url: null,
+      category: 'SYSTEM',
+      priority: 'NORMAL',
+      dedupe_key: null,
     });
     expect(mocks.sendPushToUsers).toHaveBeenCalledWith(['admin-1'], {
       title: 'Report bug baru',
       body: 'Ada bug di dashboard.',
       url: '/admin/dashboard',
-      tag: 'admin-ISSUE_REPORT',
+      tag: 'lms-ISSUE_REPORT',
     });
     expect(fixture.order.indexOf('notifications.insert')).toBeLessThan(fixture.order.indexOf('push'));
   });
@@ -114,8 +118,8 @@ describe('createNotification Admin PWA delivery', () => {
     });
 
     expect(fixture.insertedPayload).toEqual([
-      { user_id: 'admin-1', title: 'Report masalah baru', message: 'Buka menu Laporan Masalah untuk melihat detailnya.', type: 'ISSUE_REPORT', is_read: false },
-      { user_id: 'admin-2', title: 'Report masalah baru', message: 'Buka menu Laporan Masalah untuk melihat detailnya.', type: 'ISSUE_REPORT', is_read: false },
+      { user_id: 'admin-1', title: 'Report masalah baru', message: 'Buka menu Laporan Masalah untuk melihat detailnya.', type: 'ISSUE_REPORT', is_read: false, action_url: '/admin/issue-reports', category: 'SYSTEM', priority: 'NORMAL', dedupe_key: null },
+      { user_id: 'admin-2', title: 'Report masalah baru', message: 'Buka menu Laporan Masalah untuk melihat detailnya.', type: 'ISSUE_REPORT', is_read: false, action_url: '/admin/issue-reports', category: 'SYSTEM', priority: 'NORMAL', dedupe_key: null },
     ]);
     expect(mocks.sendPushToUsers).toHaveBeenCalledWith(['admin-1', 'admin-2'], {
       title: 'Report masalah baru',
@@ -127,7 +131,7 @@ describe('createNotification Admin PWA delivery', () => {
   });
 
   it('does not push a notification addressed to a non-Admin user', async () => {
-    const fixture = makeSupabase(null);
+    const fixture = makeSupabase({ id: 'coach-1', role: 'COACH' });
     mocks.getSupabaseAdmin.mockReturnValue(fixture.supabase);
 
     await createNotification('coach-1', 'Pengingat sesi', 'Sesi dimulai 15 menit lagi.', 'SESSION_REMINDER');
@@ -138,12 +142,42 @@ describe('createNotification Admin PWA delivery', () => {
       message: 'Sesi dimulai 15 menit lagi.',
       type: 'SESSION_REMINDER',
       is_read: false,
+      action_url: null,
+      category: 'SYSTEM',
+      priority: 'NORMAL',
+      dedupe_key: null,
     });
     expect(mocks.sendPushToUsers).not.toHaveBeenCalled();
   });
 
+  it('pushes an explicitly actionable notification to a Coder device', async () => {
+    const fixture = makeSupabase({ id: 'coder-1', role: 'CODER' });
+    mocks.getSupabaseAdmin.mockReturnValue(fixture.supabase);
+
+    await createNotification('coder-1', 'Kelas dimulai 1 jam lagi', 'Siapkan perangkatmu.', 'SESSION_REMINDER', {
+      actionUrl: '/coder/dashboard',
+      category: 'SCHEDULE',
+      priority: 'HIGH',
+      push: true,
+      pushTag: 'session-1-coder-1h',
+    });
+
+    expect(fixture.insertedPayload).toEqual(expect.objectContaining({
+      user_id: 'coder-1',
+      action_url: '/coder/dashboard',
+      category: 'SCHEDULE',
+      priority: 'HIGH',
+    }));
+    expect(mocks.sendPushToUsers).toHaveBeenCalledWith(['coder-1'], {
+      title: 'Kelas dimulai 1 jam lagi',
+      body: 'Siapkan perangkatmu.',
+      url: '/coder/dashboard',
+      tag: 'session-1-coder-1h',
+    });
+  });
+
   it('keeps the bell notification successful when PWA delivery fails', async () => {
-    const fixture = makeSupabase({ id: 'admin-1' });
+    const fixture = makeSupabase({ id: 'admin-1', role: 'ADMIN' });
     mocks.getSupabaseAdmin.mockReturnValue(fixture.supabase);
     mocks.sendPushToUsers.mockRejectedValue(new Error('push endpoint unavailable'));
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
@@ -153,7 +187,7 @@ describe('createNotification Admin PWA delivery', () => {
     ).resolves.toBeUndefined();
 
     expect(fixture.insertedPayload).toEqual(expect.objectContaining({ user_id: 'admin-1', is_read: false }));
-    expect(errorSpy).toHaveBeenCalledWith('[Notifications] Admin push delivery failed', expect.any(Error));
+    expect(errorSpy).toHaveBeenCalledWith('[Notifications] Push delivery failed', expect.any(Error));
     errorSpy.mockRestore();
   });
 });

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { getSessionOrThrow } from '@/lib/auth';
-import { classesDao, makeUpTasksDao, sessionsDao } from '@/lib/dao';
+import { classesDao, makeUpTasksDao, notificationsDao, sessionsDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
 
 const reviewSchema = z.object({
@@ -57,6 +57,28 @@ export async function POST(request: Request, props: RouteProps) {
     // DB enum only supports REVIEWED; store APPROVED/REJECTED as REVIEWED
     status: 'REVIEWED',
   });
+
+  try {
+    const isRevision = parsed.data.status === 'REJECTED';
+    await notificationsDao.createNotification(
+      makeUpTask.coder_id,
+      isRevision ? 'Tugas susulan perlu diperbaiki' : 'Tugas susulan sudah direview',
+      isRevision
+        ? `Coach meminta perbaikan tugas susulan ${classRecord.name}. Buka tugas untuk melihat feedback.`
+        : `Tugas susulan ${classRecord.name} sudah direview oleh Coach.`,
+      'MAKEUP_REVIEWED',
+      {
+        actionUrl: '/coder/makeup',
+        category: 'TASK',
+        priority: isRevision ? 'HIGH' : 'NORMAL',
+        dedupeKey: `makeup-review-${makeUpTask.id}-${parsed.data.status}`,
+        push: true,
+        pushTag: `makeup-${makeUpTask.id}`,
+      },
+    );
+  } catch (notificationError) {
+    console.error('[MakeUpReview] Failed to notify Coder', notificationError);
+  }
 
   return NextResponse.json({ success: true, status: parsed.data.status });
 }

@@ -2,9 +2,10 @@
 
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { sendPushToUsers } from '@/lib/pushNotifications';
-import { TablesInsert } from '@/types/supabase';
 
-// Define explicit type for notification row since types/supabase.ts might not be fully updated yet
+export type NotificationPriority = 'LOW' | 'NORMAL' | 'HIGH' | 'CRITICAL';
+
+// Explicit while generated Supabase types catch up with additive notification metadata.
 export type NotificationRow = {
     id: string;
     user_id: string;
@@ -13,9 +14,18 @@ export type NotificationRow = {
     is_read: boolean;
     created_at: string;
     type: string;
+    action_url: string | null;
+    category: string;
+    priority: NotificationPriority;
+    dedupe_key: string | null;
 };
 
 export type NotificationDeliveryOptions = {
+    actionUrl?: string;
+    category?: string;
+    priority?: NotificationPriority;
+    dedupeKey?: string;
+    push?: boolean;
     pushUrl?: string;
     pushTag?: string;
     pushBody?: string;
@@ -27,17 +37,44 @@ type AdminNotificationInput = NotificationDeliveryOptions & {
     type?: string;
 };
 
-async function sendAdminPushBestEffort(userIds: string[], input: AdminNotificationInput): Promise<void> {
+const ROLE_DASHBOARD: Record<string, string> = {
+    ADMIN: '/admin/dashboard',
+    COACH: '/coach/dashboard',
+    CODER: '/coder/dashboard',
+};
+
+function normalizeActionUrl(value?: string): string | null {
+    if (!value) return null;
+    const trimmed = value.trim();
+    if (!trimmed.startsWith('/') || trimmed.startsWith('//')) return null;
+    return trimmed;
+}
+
+function buildStoredDelivery(delivery: NotificationDeliveryOptions) {
+    return {
+        action_url: normalizeActionUrl(delivery.actionUrl || delivery.pushUrl),
+        category: delivery.category || 'SYSTEM',
+        priority: delivery.priority || 'NORMAL',
+        dedupe_key: delivery.dedupeKey || null,
+    };
+}
+
+async function sendPushBestEffort(
+    userIds: string[],
+    input: AdminNotificationInput,
+    fallbackUrl: string,
+): Promise<void> {
     try {
+        const actionUrl = normalizeActionUrl(input.actionUrl || input.pushUrl);
         await sendPushToUsers(userIds, {
             title: input.title,
             body: input.pushBody || input.message,
-            url: input.pushUrl || '/admin/dashboard',
-            tag: input.pushTag || `admin-${input.type || 'system'}`,
+            url: actionUrl || fallbackUrl,
+            tag: input.pushTag || input.dedupeKey || `lms-${input.type || 'system'}`,
         });
     } catch (error) {
         // The website notification is authoritative; a device push may fail independently.
-        console.error('[Notifications] Admin push delivery failed', error);
+        console.error('[Notifications] Push delivery failed', error);
     }
 }
 
@@ -99,6 +136,39 @@ export async function markAllAsRead(userId: string): Promise<void> {
     }
 }
 
+async function persistNotification(
+    userId: string,
+    title: string,
+    message: string,
+    type = 'SYSTEM',
+    delivery: NotificationDeliveryOptions = {},
+): Promise<boolean> {
+    const supabase = getSupabaseAdmin();
+    if (delivery.dedupeKey && await hasNotificationByDedupeKey(userId, delivery.dedupeKey)) {
+        return false;
+    }
+    const payload = {
+        user_id: userId,
+        title,
+        message,
+        type,
+        is_read: false,
+        ...buildStoredDelivery(delivery),
+    };
+
+    // Using explicit table name string to avoid TS errors if types aren't regenerated
+    const { error } = await supabase.from('notifications' as any).insert(payload);
+
+    if (error) {
+        if (delivery.dedupeKey && error.code === '23505') {
+            return false;
+        }
+        throw new Error(`Failed to create notification: ${error.message}`);
+    }
+
+    return true;
+}
+
 export async function createNotification(
     userId: string,
     title: string,
@@ -106,40 +176,25 @@ export async function createNotification(
     type = 'SYSTEM',
     delivery: NotificationDeliveryOptions = {},
 ): Promise<void> {
-    const supabase = getSupabaseAdmin();
-    const payload = {
-        user_id: userId,
-        title,
-        message,
-        type,
-        is_read: false
-    };
-
-    // Using explicit table name string to avoid TS errors if types aren't regenerated
-    const { error } = await supabase.from('notifications' as any).insert(payload);
-
-    if (error) {
-        throw new Error(`Failed to create notification: ${error.message}`);
-    }
+    if (!await persistNotification(userId, title, message, type, delivery)) return;
 
     try {
+        const supabase = getSupabaseAdmin();
         const { data: recipient, error: recipientError } = await supabase
             .from('users')
-            .select('id')
+            .select('id, role')
             .eq('id', userId)
-            .eq('role', 'ADMIN')
             .eq('is_active', true)
             .maybeSingle();
 
         if (recipientError) throw recipientError;
-        if (recipient) {
-            // Every notification visible to an active Admin in the bell is also
-            // eligible for PWA delivery. Event-specific metadata is optional;
-            // the dashboard fallback keeps generic notifications actionable.
-            await sendAdminPushBestEffort([userId], { title, message, type, ...delivery });
+        const shouldPush = delivery.push ?? recipient?.role === 'ADMIN';
+        if (recipient && shouldPush) {
+            const fallbackUrl = ROLE_DASHBOARD[recipient.role] || '/';
+            await sendPushBestEffort([userId], { title, message, type, ...delivery }, fallbackUrl);
         }
     } catch (pushLookupError) {
-        console.error('[Notifications] Failed to resolve admin push recipient', pushLookupError);
+        console.error('[Notifications] Failed to resolve push recipient', pushLookupError);
     }
 }
 
@@ -158,6 +213,24 @@ export async function createAdminNotifications(input: AdminNotificationInput): P
     const adminIds = (admins ?? []).map((admin) => admin.id);
     if (adminIds.length === 0) return 0;
 
+    if (input.dedupeKey) {
+        const inserted = await Promise.all(adminIds.map(async (adminId) => ({
+            adminId,
+            created: await persistNotification(
+                adminId,
+                input.title,
+                input.message,
+                input.type || 'SYSTEM',
+                { ...input, push: false },
+            ),
+        })));
+        const insertedAdminIds = inserted.filter((row) => row.created).map((row) => row.adminId);
+        if (input.push !== false && insertedAdminIds.length > 0) {
+            await sendPushBestEffort(insertedAdminIds, input, ROLE_DASHBOARD.ADMIN);
+        }
+        return insertedAdminIds.length;
+    }
+
     const { error: insertError } = await supabase.from('notifications' as any).insert(
         adminIds.map((adminId) => ({
             user_id: adminId,
@@ -165,6 +238,7 @@ export async function createAdminNotifications(input: AdminNotificationInput): P
             message: input.message,
             type: input.type || 'SYSTEM',
             is_read: false,
+            ...buildStoredDelivery(input),
         })),
     );
 
@@ -172,8 +246,25 @@ export async function createAdminNotifications(input: AdminNotificationInput): P
         throw new Error(`Failed to create admin notifications: ${insertError.message}`);
     }
 
-    await sendAdminPushBestEffort(adminIds, input);
+    if (input.push !== false) {
+        await sendPushBestEffort(adminIds, input, ROLE_DASHBOARD.ADMIN);
+    }
     return adminIds.length;
+}
+
+export async function hasNotificationByDedupeKey(userId: string, dedupeKey: string): Promise<boolean> {
+    const { data, error } = await getSupabaseAdmin()
+        .from('notifications' as any)
+        .select('id')
+        .eq('user_id', userId)
+        .eq('dedupe_key', dedupeKey)
+        .limit(1);
+
+    if (error) {
+        throw new Error(`Failed to check notification dedupe key: ${error.message}`);
+    }
+
+    return Boolean(data?.length);
 }
 
 export async function hasMatchingNotificationToday(

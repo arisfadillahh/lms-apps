@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { getSessionOrThrow } from '@/lib/auth';
 import { buildPublishedSnapshot, getPortfolioApiErrorStatus, type PortfolioRecord, type PortfolioScreenshot } from '@/lib/coderPortfolio';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { createNotification } from '@/lib/dao/notificationsDao';
 
 const reviewSchema = z.discriminatedUnion('decision', [
   z.object({ decision: z.literal('APPROVE') }),
@@ -64,6 +65,27 @@ export async function POST(request: Request, context: Context) {
       .select('id');
     if (error) throw error;
     if (updated?.length !== 1) return NextResponse.json({ error: 'Portofolio sudah berubah. Muat ulang halaman.' }, { status: 409 });
+    try {
+      const needsRevision = parsed.data.decision === 'REVISION';
+      await createNotification(
+        portfolio.coder_id,
+        needsRevision ? 'Portofolio perlu diperbaiki' : 'Portofolio sudah dipublikasikan',
+        needsRevision
+          ? 'Coach memberikan feedback untuk portofoliomu. Buka portofolio untuk melakukan perbaikan.'
+          : 'Portofoliomu sudah disetujui Coach dan siap dibagikan.',
+        'PORTFOLIO_REVIEW',
+        {
+          actionUrl: '/coder/reports/portfolio',
+          category: 'REPORT',
+          priority: needsRevision ? 'HIGH' : 'NORMAL',
+          dedupeKey: `portfolio-review-${id}-${update.status}-${now}`,
+          push: true,
+          pushTag: `portfolio-${id}`,
+        },
+      );
+    } catch (notificationError) {
+      console.error('[CoachPortfolio review] Failed to notify Coder', notificationError);
+    }
     return NextResponse.json({ status: update.status });
   } catch (error) {
     console.error('[CoachPortfolio review]', error);

@@ -5,6 +5,7 @@ import { getSessionOrThrow } from '@/lib/auth';
 import { assertRole } from '@/lib/roles';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { DAY_CODE_MAP } from '@/lib/constants/scheduleConstants';
+import { createNotification } from '@/lib/dao/notificationsDao';
 
 const schema = z.object({
   scheduleDay: z.string().min(2),
@@ -34,7 +35,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const classId = (await params).id;
   const supabase = getSupabaseAdmin();
-  const { data: klass, error: classError } = await supabase.from('classes').select('id, schedule_day, schedule_time, zoom_link').eq('id', classId).maybeSingle();
+  const { data: klass, error: classError } = await supabase.from('classes').select('id, name, coach_id, schedule_day, schedule_time, zoom_link').eq('id', classId).maybeSingle();
   if (classError) return NextResponse.json({ error: classError.message }, { status: 500 });
   if (!klass) return NextResponse.json({ error: 'Kelas tidak ditemukan' }, { status: 404 });
 
@@ -55,6 +56,52 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const { error: updateClassError } = await supabase.from('classes').update({ schedule_day: parsed.data.scheduleDay.trim().toUpperCase(), schedule_time: normalizeTime(parsed.data.scheduleTime) }).eq('id', classId);
   if (updateClassError) return NextResponse.json({ error: updateClassError.message }, { status: 500 });
+
+  try {
+    const { data: enrollments } = await supabase
+      .from('enrollments')
+      .select('coder_id')
+      .eq('class_id', classId)
+      .eq('status', 'ACTIVE');
+    const scheduleLabel = `${parsed.data.scheduleDay.trim().toUpperCase()}, pukul ${parsed.data.scheduleTime.slice(0, 5)} WIB`;
+    const changeKey = `schedule-${classId}-${Date.now()}`;
+    const notificationTasks: Array<Promise<void>> = [];
+    if (klass.coach_id) {
+      notificationTasks.push(createNotification(
+        klass.coach_id,
+        'Jadwal kelas diperbarui',
+        `Jadwal tetap ${klass.name} berubah menjadi ${scheduleLabel}. Semua sesi mendatang sudah disesuaikan.`,
+        'SCHEDULE_CHANGED',
+        {
+          actionUrl: `/coach/classes/${classId}`,
+          category: 'SCHEDULE',
+          priority: 'HIGH',
+          dedupeKey: `${changeKey}-${klass.coach_id}`,
+          push: true,
+          pushTag: `schedule-${classId}`,
+        },
+      ));
+    }
+    for (const enrollment of enrollments ?? []) {
+      notificationTasks.push(createNotification(
+        enrollment.coder_id,
+        'Jadwal kelas diperbarui',
+        `Jadwal tetap ${klass.name} berubah menjadi ${scheduleLabel}. Cek dashboard untuk jadwal berikutnya.`,
+        'SCHEDULE_CHANGED',
+        {
+          actionUrl: '/coder/dashboard',
+          category: 'SCHEDULE',
+          priority: 'HIGH',
+          dedupeKey: `${changeKey}-${enrollment.coder_id}`,
+          push: true,
+          pushTag: `schedule-${classId}`,
+        },
+      ));
+    }
+    await Promise.allSettled(notificationTasks);
+  } catch (notificationError) {
+    console.error('[ClassSchedule] Failed to notify class members', notificationError);
+  }
 
   return NextResponse.json({ success: true, updatedSessions: futureSessions.length });
 }

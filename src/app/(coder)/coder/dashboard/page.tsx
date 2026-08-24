@@ -19,6 +19,7 @@ import CoderHeader from './CoderHeader';
 import BlockEvaluationCard from './BlockEvaluationCard';
 import CoderFooter from '../CoderFooter';
 import IssueReportButton from '@/components/issue-reports/IssueReportButton';
+import MobilePwaOnboardingCard from '@/components/pwa/MobilePwaOnboardingCard';
 
 type Banner = {
   id: string;
@@ -209,6 +210,8 @@ export default async function CoderDashboardPage() {
             <BlockEvaluationCard classId={p.classId} userId={session.user.id} />
           </StaggerItem>
         ))}
+
+        <MobilePwaOnboardingCard role="CODER" />
 
         {/* ===== BANNER SECTION ===== */}
         <StaggerItem className="mb-10">

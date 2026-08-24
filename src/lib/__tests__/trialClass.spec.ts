@@ -37,6 +37,7 @@ const notificationInput: TrialClassNotificationInput = {
 };
 
 const coachAssignmentInput: TrialCoachAssignmentNotificationInput = {
+  trialId: 'trial-id',
   coachId: 'coach-id',
   coachName: 'Dede Coach',
   coachPhone: '081234567890',

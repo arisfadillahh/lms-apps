@@ -10,6 +10,7 @@ import {
   reportsDao,
   sessionsDao,
   usersDao,
+  notificationsDao,
 } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
 import { getAppBaseUrl } from '@/lib/env';
@@ -136,6 +137,24 @@ export async function POST(request: Request) {
 
   if ((status === 'ABSENT' || status === 'EXCUSED') && result.makeUpTask) {
     const coder = await usersDao.getUserById(coderId);
+    try {
+      await notificationsDao.createNotification(
+        coderId,
+        'Tugas susulan baru',
+        `Tugas susulan ${classRecord.name} tersedia dan perlu dikumpulkan paling lambat ${new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeZone: 'Asia/Jakarta' }).format(new Date(result.makeUpTask.due_date))}.`,
+        'MAKEUP_ASSIGNED',
+        {
+          actionUrl: '/coder/makeup',
+          category: 'TASK',
+          priority: 'HIGH',
+          dedupeKey: `makeup-assigned-${result.makeUpTask.id}`,
+          push: true,
+          pushTag: `makeup-${result.makeUpTask.id}`,
+        },
+      );
+    } catch (notificationError) {
+      console.error('[Attendance] Failed to notify Coder about make-up task', notificationError);
+    }
     const parentPhone = coder?.parent_contact_phone;
     if (parentPhone) {
       // Check if absent notification is enabled

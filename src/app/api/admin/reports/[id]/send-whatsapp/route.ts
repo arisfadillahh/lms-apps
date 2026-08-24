@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 import { getSessionOrThrow } from '@/lib/auth';
-import { reportsDao, usersDao } from '@/lib/dao';
+import { notificationsDao, reportsDao, usersDao } from '@/lib/dao';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { assertRole } from '@/lib/roles';
 import { sendReportNotification } from '@/lib/services/whatsappClient';
@@ -113,6 +113,25 @@ export async function POST(_request: NextRequest, context: RouteContext) {
     });
     
     await reportsDao.updateWhatsappLogStatus(logEntry.id, 'SENT', response as any);
+
+    try {
+      await notificationsDao.createNotification(
+        coder.id,
+        'Rapor terbaru sudah tersedia',
+        `Rapor ${block?.name || klass.name} sudah dipublikasikan. Buka menu Rapor & Portofolio untuk melihat hasilnya.`,
+        'REPORT_PUBLISHED',
+        {
+          actionUrl: '/coder/reports',
+          category: 'REPORT',
+          priority: 'NORMAL',
+          dedupeKey: `report-published-${reportId}`,
+          push: true,
+          pushTag: `report-${reportId}`,
+        },
+      );
+    } catch (notificationError) {
+      console.error('[ReportPublish] Failed to notify Coder', notificationError);
+    }
 
     return NextResponse.json({
       status: 'PUBLISHED',

@@ -7,6 +7,7 @@ import CoachDashboardHeader from '@/components/coach/CoachDashboardHeader';
 import CoachMobileNav from './CoachMobileNav';
 import { redirect } from 'next/navigation';
 import IssueReportButton from '@/components/issue-reports/IssueReportButton';
+import PushSubscriptionAccountSync from '@/components/pwa/PushSubscriptionAccountSync';
 
 export default async function CoachLayout({ children }: { children: ReactNode }) {
   const session = await getServerAuthSession();
@@ -33,6 +34,7 @@ export default async function CoachLayout({ children }: { children: ReactNode })
 
   return (
       <div className="coach-app-shell min-h-screen flex antialiased bg-[#f1f5f9] text-[#0f172a] font-sans">
+        <PushSubscriptionAccountSync />
         {/* Google Fonts: Material Symbols + Plus Jakarta Sans */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />

@@ -6,6 +6,7 @@ import AdminChrome from '@/components/admin/AdminChrome';
 import { redirect } from 'next/navigation';
 import { usersDao } from '@/lib/dao';
 import IssueReportButton from '@/components/issue-reports/IssueReportButton';
+import PushSubscriptionAccountSync from '@/components/pwa/PushSubscriptionAccountSync';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,6 +44,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   return (
     <AdminChrome user={userForHeader}>
+      <PushSubscriptionAccountSync />
       <AdminClientWrapper>
         <PageTransition>{children}</PageTransition>
       </AdminClientWrapper>

@@ -7,6 +7,7 @@ import CoderThemeProvider from '@/components/coder/CoderThemeProvider';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { redirect } from 'next/navigation';
+import PushSubscriptionAccountSync from '@/components/pwa/PushSubscriptionAccountSync';
 
 export default async function CoderLayout({ children }: { children: ReactNode }) {
   const session = await getServerAuthSession();
@@ -35,6 +36,7 @@ export default async function CoderLayout({ children }: { children: ReactNode })
 
   return (
     <CoderThemeProvider>
+      <PushSubscriptionAccountSync />
       <script
         dangerouslySetInnerHTML={{
           __html: `(function(){try{var p=localStorage.getItem('clevio-coder-theme')||'auto';var d=p==='dark'||(p==='auto'&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';document.documentElement.dataset.coderTheme=d;}catch(e){}})()`,

@@ -13,6 +13,7 @@ import {
 } from '@/lib/dao';
 import type { ClassLessonRecord } from '@/lib/dao/classLessonsDao';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
+import { normalizeClassMeetingUrl } from '@/lib/classMeetingUrl';
 
 import AssignSubstituteForm from './AssignSubstituteForm';
 import EnrollCoderForm from './EnrollCoderForm';
@@ -25,6 +26,7 @@ import SessionsTable from './SessionsTable';
 import EditCoachForm from './EditCoachForm';
 import AttendanceRecapTable from './AttendanceRecapTable';
 import ChangeClassScheduleModal from './ChangeClassScheduleModal';
+import EditClassLinkModal from './EditClassLinkModal';
 
 type ClassBlockRow = Awaited<ReturnType<typeof classesDao.getClassBlocks>>[number];
 type BlockSummary = {
@@ -176,6 +178,7 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
   const scheduleDayLabel = scheduleDayLabels[klass.schedule_day ?? ''] ?? klass.schedule_day ?? 'Belum diatur';
   const enrolledCoderIds = new Set(enrollments.map((enrollment) => enrollment.coder_id));
   const availableCoders = coders.filter((coder) => !enrolledCoderIds.has(coder.id));
+  const configuredClassLink = normalizeClassMeetingUrl(klass.zoom_link);
 
   const competenciesMap =
     klass.type === 'EKSKUL'
@@ -227,6 +230,20 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
           </p>
         </div>
         <ChangeClassScheduleModal classId={classIdParam} currentDay={klass.schedule_day} currentTime={klass.schedule_time} />
+      </section>
+
+      <section style={scheduleCardStyle} aria-labelledby="class-link-title">
+        <div style={scheduleCardContentStyle}>
+          <p style={scheduleEyebrowStyle}>LINK KELAS</p>
+          <h2 id="class-link-title" style={scheduleTitleStyle}>Ruang kelas online</h2>
+          <p style={{ ...scheduleValueStyle, wordBreak: 'break-word' }}>
+            {configuredClassLink ?? 'Belum diatur'}
+          </p>
+          <p style={scheduleDescriptionStyle}>
+            Link ini muncul di dashboard Coach dan Coder saat waktu kelas tiba. Perubahan hanya disinkronkan ke sesi aktif atau mendatang yang masih terjadwal.
+          </p>
+        </div>
+        <EditClassLinkModal classId={classIdParam} currentLink={klass.zoom_link} />
       </section>
 
       {klass.type === 'WEEKLY' ? (

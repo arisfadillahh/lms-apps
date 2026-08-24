@@ -7,6 +7,7 @@ import { id } from 'date-fns/locale';
 import { BookOpen, Bug, Flame, Pencil, ChevronRight, ListChecks, Zap, Play, Dumbbell, Lock, Rocket, Palette, Star, Download, Map, Hand, Monitor, Brush, Gamepad2, Cat, Package, Palmtree } from 'lucide-react';
 
 import { getSessionOrThrow } from '@/lib/auth';
+import { normalizeClassMeetingUrl } from '@/lib/classMeetingUrl';
 import { getCoderProgress } from '@/lib/services/coder';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
@@ -113,7 +114,7 @@ export default async function CoderDashboardPage() {
   // Check if class link is active: query today's sessions DIRECTLY from DB
   // (lesson.scheduledAt is unreliable — depends on lessonMap template matching)
   let isLinkActive = false;
-  let zoomLink = activeBlock?.schedule?.zoomLink || null;
+  let zoomLink = normalizeClassMeetingUrl(activeBlock?.schedule?.zoomLink);
 
   if (activeBlock) {
     const supabase = getSupabaseAdmin();
@@ -125,7 +126,7 @@ export default async function CoderDashboardPage() {
 
     const { data: todaySessions } = await supabase
       .from('sessions')
-      .select('date_time, status')
+      .select('date_time, status, zoom_link_snapshot')
       .eq('class_id', activeBlock.classId)
       .neq('status', 'CANCELLED')
       .gte('date_time', todayStart.toISOString())
@@ -139,6 +140,7 @@ export default async function CoderDashboardPage() {
         const windowEnd = sessionTime + 120 * msPerMinute;  // 2 hours after
         if (nowMs >= windowStart && nowMs <= windowEnd) {
           isLinkActive = true;
+          zoomLink = normalizeClassMeetingUrl(sess.zoom_link_snapshot) ?? zoomLink;
           break;
         }
       }
@@ -362,10 +364,10 @@ export default async function CoderDashboardPage() {
                                 disabled
                                 className="w-full bg-slate-200 text-slate-400 px-8 py-3 rounded-xl font-black text-base transition-all pointer-events-none"
                               >
-                                Masuk Kelas
+                                {isLinkActive && !zoomLink ? 'Link belum diatur' : 'Masuk Kelas'}
                               </button>
                               <div className="absolute top-[-40px] left-1/2 -translate-x-1/2 opacity-0 group-hover/btn:opacity-100 transition-opacity bg-slate-800 text-white text-xs font-bold py-1 px-3 rounded-lg whitespace-nowrap z-50 pointer-events-none">
-                                Tombol aktif 30 menit sebelum kelas
+                                {isLinkActive && !zoomLink ? 'Admin perlu mengatur link kelas' : 'Tombol aktif 30 menit sebelum kelas'}
                                 <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
                               </div>
                             </div>

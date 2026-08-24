@@ -24,6 +24,12 @@ export function getVapidPublicKey(): string | null {
 
 export async function savePushSubscription(userId: string, subscription: PushSubscriptionRecord, userAgent?: string | null) {
   const supabase = getSupabaseAdmin();
+  const { error: ownershipError } = await supabase.from('push_subscriptions' as any)
+    .delete()
+    .eq('endpoint', subscription.endpoint)
+    .neq('user_id', userId);
+  if (ownershipError) throw new Error(`Failed to transfer push subscription ownership: ${ownershipError.message}`);
+
   const { error } = await supabase.from('push_subscriptions' as any).upsert({
     user_id: userId,
     endpoint: subscription.endpoint,

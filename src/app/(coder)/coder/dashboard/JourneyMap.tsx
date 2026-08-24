@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
-import { CalendarDays, CheckCircle2, Flag, Lock, Rocket, Trophy, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useMemo, useRef } from 'react';
+import { CalendarDays, CheckCircle2, Flag, Lock, Rocket, Trophy, ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react';
 
 type JourneyBlock = {
   blockId: string;
@@ -33,7 +33,7 @@ const MAP_H = 410;  // total map height
 export default function JourneyMap({ courses }: { courses: JourneyCourse[] }) {
   if (courses.length === 0) return null;
   return (
-    <div className="flex flex-col gap-10 py-4 w-full">
+    <div className={`flex min-h-0 w-full flex-col gap-10 py-4 ${courses.length === 1 ? 'h-full' : ''}`}>
       {courses.map((c) => <CourseJourney key={c.classId} course={c} />)}
     </div>
   );
@@ -47,11 +47,10 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
   const blockPct = course.currentBlockProgress || 0;
   const totalWidth = PAD_X * 2 + blocks.length * COL_W;
   const completedBlocks = blocks.filter((block) => block.status === 'COMPLETED');
-  // Completed milestones stay represented by a compact summary, while the
-  // active and upcoming milestones keep the vertical story easy to scan.
-  const mobileBlocks = blocks.filter((block) => block.status !== 'COMPLETED');
+  // Keep the source order intact so every block can be explored in one
+  // vertical mobile timeline. Completed blocks use a compact card treatment.
+  const mobileBlocks = blocks;
   const completedBefore = completedBlocks.length;
-  const [showCompleted, setShowCompleted] = useState(true);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -97,9 +96,9 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
   }, [nodes, blocks]);
 
   return (
-    <div className="w-full relative group">
+    <div className="relative min-h-0 w-full group">
       {/* Phone layout: show the active step first, followed by the next milestones. */}
-      <div className="journey-mobile px-4 pb-8 pt-1 md:hidden">
+      <div className="journey-mobile flex min-h-0 flex-col px-4 pb-6 pt-1 md:hidden">
         <div className="journey-mobile-intro mb-5 rounded-2xl px-4 py-3 text-center">
           <p className="journey-mobile-course-title journey-block-name text-sm font-black text-sky-950">{course.name}</p>
           <p className="journey-mobile-course-description mt-1 text-[11px] font-bold leading-relaxed text-sky-800">
@@ -107,14 +106,12 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
           </p>
         </div>
 
-        <div className="journey-mobile-list relative mx-auto flex max-w-sm flex-col gap-4 pb-3 pl-12">
-          <span className="journey-mobile-route absolute bottom-10 left-[21px] top-8 w-[3px] rounded-full" aria-hidden="true" />
-          <button
-            type="button"
-            className="journey-mobile-start relative mb-1 flex min-h-10 w-full items-center rounded-2xl border border-sky-200 bg-white/70 px-4 py-2.5 text-left shadow-sm"
-            aria-expanded={showCompleted}
-            onClick={() => completedBlocks.length > 0 && setShowCompleted((value) => !value)}
-          >
+        <div className="journey-mobile-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
+          <div className="journey-mobile-list relative mx-auto flex max-w-sm flex-col gap-3 pb-6 pl-12">
+            <span className="journey-mobile-route absolute bottom-8 left-[21px] top-8 w-[3px] rounded-full" aria-hidden="true" />
+            <div
+              className="journey-mobile-start relative mb-1 flex min-h-10 w-full items-center rounded-2xl border border-sky-200 bg-white/70 px-4 py-2.5 text-left shadow-sm"
+            >
             <span className="absolute -left-[46px] grid size-10 place-items-center rounded-full border-4 border-white bg-emerald-500 text-white shadow-md">
               <Flag size={17} strokeWidth={2.5} />
             </span>
@@ -124,17 +121,7 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
               </span>
               <span className="journey-mobile-start-progress journey-progress-percent rounded-full bg-sky-100 px-2.5 py-1 text-[10px] font-black">{journeyPct}%</span>
             </div>
-          </button>
-
-          {showCompleted && completedBlocks.length > 0 && (
-            <div className="journey-mobile-completed-list relative z-10 -mt-1 flex flex-wrap gap-2 rounded-2xl border px-3 py-3">
-              {completedBlocks.map((block) => (
-                <span key={block.blockId} className="journey-mobile-completed-item rounded-full px-3 py-1.5 text-[10px] font-bold">
-                  {block.name}
-                </span>
-              ))}
             </div>
-          )}
 
           {mobileBlocks.map((block) => {
             const originalIndex = blocks.findIndex((item) => item.blockId === block.blockId);
@@ -168,7 +155,7 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
                       : isTrophy
                         ? 'journey-card-upcoming journey-card-final border-violet-200 bg-violet-50/80'
                         : 'journey-card-upcoming border-slate-200 bg-white/70'
-                }`}>
+                  } ${isCompleted ? 'journey-mobile-card-compact' : ''}`}>
                   <div className="text-center">
                     <span className={`inline-flex rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-widest ${
                       isCurrent
@@ -214,12 +201,13 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
                 </div>
               </article>
             );
-          })}
+            })}
+          </div>
         </div>
         <div className="journey-mobile-scroll-hint mx-auto mt-3 flex w-fit items-center gap-2 rounded-full px-5 py-2">
-          <ChevronLeft size={13} aria-hidden="true" />
-          <span>Geser untuk menjelajah</span>
-          <ChevronRight size={13} aria-hidden="true" />
+          <ChevronUp size={13} aria-hidden="true" />
+          <span>Geser ke atas / bawah</span>
+          <ChevronDown size={13} aria-hidden="true" />
         </div>
       </div>
 

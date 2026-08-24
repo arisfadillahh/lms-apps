@@ -631,6 +631,20 @@ html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-scroll-hint svg
   background: #d8f3ff !important;
 }
 
+[data-coder-modal='true'] .journey-progress-percent {
+  color: #075985 !important;
+}
+
+.journey-mobile-completed-list {
+  border-color: rgba(14, 165, 233, 0.24);
+  background: rgba(255, 255, 255, 0.56);
+}
+
+.journey-mobile-completed-item {
+  color: #315778;
+  background: rgba(226, 242, 251, 0.9);
+}
+
 [data-coder-modal='true'] .journey-mobile-card {
   color: var(--journey-body) !important;
 }
@@ -680,6 +694,24 @@ html[data-coder-theme='dark'] [data-coder-modal='true'] {
 html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-mobile-start-progress {
   color: #08334c !important;
   background: #bdefff !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-mobile-start .journey-progress-percent {
+  color: #062b42 !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-card-current .journey-progress-percent {
+  color: #8de8ff !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-mobile-completed-list {
+  border-color: #476582 !important;
+  background: #17283e !important;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-mobile-completed-item {
+  color: #e1edf9 !important;
+  background: #29425e !important;
 }
 
 html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-mobile-card,

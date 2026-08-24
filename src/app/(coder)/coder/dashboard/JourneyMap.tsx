@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { CalendarDays, CheckCircle2, Flag, Lock, Rocket, Trophy, ChevronLeft, ChevronRight } from 'lucide-react';
 
 type JourneyBlock = {
@@ -46,13 +46,12 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
   const journeyPct = Math.min(100, Math.round((course.completedBlocks / total) * 100));
   const blockPct = course.currentBlockProgress || 0;
   const totalWidth = PAD_X * 2 + blocks.length * COL_W;
-  const firstOpenIndex = blocks.findIndex((block) => block.status !== 'COMPLETED');
-  // Keep every block available on mobile, but lead with the latest active
-  // milestone so the current journey state is visible without hunting.
-  const mobileBlocks = firstOpenIndex === -1
-    ? blocks
-    : [...blocks.slice(firstOpenIndex), ...blocks.slice(0, firstOpenIndex)];
-  const completedBefore = firstOpenIndex === -1 ? blocks.length : firstOpenIndex;
+  const completedBlocks = blocks.filter((block) => block.status === 'COMPLETED');
+  // Completed milestones stay represented by a compact summary, while the
+  // active and upcoming milestones keep the vertical story easy to scan.
+  const mobileBlocks = blocks.filter((block) => block.status !== 'COMPLETED');
+  const completedBefore = completedBlocks.length;
+  const [showCompleted, setShowCompleted] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -110,7 +109,12 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
 
         <div className="journey-mobile-list relative mx-auto flex max-w-sm flex-col gap-4 pb-3 pl-12">
           <span className="journey-mobile-route absolute bottom-10 left-[21px] top-8 w-[3px] rounded-full" aria-hidden="true" />
-          <div className="journey-mobile-start relative mb-1 flex min-h-10 items-center rounded-2xl border border-sky-200 bg-white/70 px-4 py-2.5 shadow-sm">
+          <button
+            type="button"
+            className="journey-mobile-start relative mb-1 flex min-h-10 w-full items-center rounded-2xl border border-sky-200 bg-white/70 px-4 py-2.5 text-left shadow-sm"
+            aria-expanded={showCompleted}
+            onClick={() => completedBlocks.length > 0 && setShowCompleted((value) => !value)}
+          >
             <span className="absolute -left-[46px] grid size-10 place-items-center rounded-full border-4 border-white bg-emerald-500 text-white shadow-md">
               <Flag size={17} strokeWidth={2.5} />
             </span>
@@ -118,9 +122,19 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
               <span className="journey-mobile-start-status text-[10px] font-black uppercase tracking-wider text-sky-800">
                 {completedBefore > 0 ? `${completedBefore} ${itemName.toLowerCase()} selesai` : 'Perjalanan dimulai'}
               </span>
-              <span className="journey-mobile-start-progress rounded-full bg-sky-100 px-2.5 py-1 text-[10px] font-black text-sky-700">{journeyPct}%</span>
+              <span className="journey-mobile-start-progress journey-progress-percent rounded-full bg-sky-100 px-2.5 py-1 text-[10px] font-black">{journeyPct}%</span>
             </div>
-          </div>
+          </button>
+
+          {showCompleted && completedBlocks.length > 0 && (
+            <div className="journey-mobile-completed-list relative z-10 -mt-1 flex flex-wrap gap-2 rounded-2xl border px-3 py-3">
+              {completedBlocks.map((block) => (
+                <span key={block.blockId} className="journey-mobile-completed-item rounded-full px-3 py-1.5 text-[10px] font-bold">
+                  {block.name}
+                </span>
+              ))}
+            </div>
+          )}
 
           {mobileBlocks.map((block) => {
             const originalIndex = blocks.findIndex((item) => item.blockId === block.blockId);
@@ -181,7 +195,7 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
                     <div className="mt-3 border-t border-slate-200 pt-3">
                       <div className="journey-mobile-card-progress-label mb-1.5 flex items-center justify-between text-[9px] font-black uppercase tracking-wider text-slate-500">
                         <span>Progress {itemName}</span>
-                        <span className="text-sky-600">{blockPct}%</span>
+                        <span className="journey-progress-percent text-sky-600">{blockPct}%</span>
                       </div>
                       <div className="h-2 overflow-hidden rounded-full bg-slate-200">
                         <div className="h-full rounded-full bg-gradient-to-r from-[#0ea5e9] to-[#5A9832]" style={{ width: `${blockPct}%` }} />

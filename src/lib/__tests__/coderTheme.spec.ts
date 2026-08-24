@@ -34,14 +34,15 @@ describe('coder theme preference', () => {
 
     expect(map).toContain('journey-mobile px-4 pb-8 pt-1 md:hidden');
     expect(map).toContain('journey-mobile-list relative mx-auto flex max-w-sm flex-col');
-    expect(map).toContain("blocks.findIndex((block) => block.status !== 'COMPLETED')");
     expect(map).toContain('Setiap langkah kecil hari ini membawamu ke petualangan hebat.');
     expect(map).toContain('journey-mobile-route');
     expect(map).toContain('journey-mobile-scroll-hint');
     expect(map).toContain('journey-mobile-card-title');
-    expect(map).toContain('blocks.slice(firstOpenIndex)');
-    expect(map).toContain('...blocks.slice(0, firstOpenIndex)');
-    expect(map).not.toContain('.reverse()');
+    expect(map).toContain("const completedBlocks = blocks.filter((block) => block.status === 'COMPLETED')");
+    expect(map).toContain("const mobileBlocks = blocks.filter((block) => block.status !== 'COMPLETED')");
+    expect(map).toContain('journey-mobile-completed-list');
+    expect(map).toContain('aria-expanded={showCompleted}');
+    expect(map).toContain('journey-progress-percent');
     expect(map).toContain('journey-path-base');
     expect(map).toContain('journey-path-completed');
     expect(map).not.toContain('strokeDasharray');

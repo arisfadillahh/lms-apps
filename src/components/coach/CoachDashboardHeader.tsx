@@ -24,35 +24,35 @@ export default function CoachDashboardHeader({ user }: CoachDashboardHeaderProps
     const initial = firstName.charAt(0).toUpperCase();
 
     return (
-        <nav className="sticky top-0 z-40 bg-white border-b border-[#e2e8f0] px-8 py-4 mb-0 -mx-8 flex items-center justify-between shadow-sm">
-            <div className="flex items-center gap-3">
+        <nav className="sticky top-0 z-40 bg-white border-b border-[#e2e8f0] px-8 py-4 mb-0 -mx-8 flex items-center justify-between shadow-sm max-md:-mx-4 max-md:px-4 max-md:py-3 max-md:gap-2">
+            <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-3">
                 <MobileNav role="COACH" username={user.fullName} />
                 <h1 className="text-xl font-bold text-slate-800 hidden lg:block">
                     Selamat datang kembali, Coach {firstName}! 👋
                 </h1>
-                <h1 className="text-lg font-bold text-slate-800 lg:hidden">
+                <h1 className="min-w-0 flex-1 truncate whitespace-nowrap text-base font-bold text-slate-800 sm:text-lg lg:hidden">
                     Halo, {firstName}! 👋
                 </h1>
             </div>
 
-            <div className="flex-1 flex items-center justify-end gap-4 md:gap-6">
+            <div className="flex shrink-0 items-center justify-end gap-1.5 md:flex-1 md:gap-6">
                 {/* Search Bar */}
                 <div className="hidden md:block flex-1 max-w-[600px]">
                     <CoachSearch />
                 </div>
 
                 {/* Notifications */}
-                <div className="flex items-center">
+                <div className="flex shrink-0 items-center">
                     <NotificationDropdown />
                 </div>
 
                 <div className="h-8 w-px bg-slate-200 hidden sm:block"></div>
 
                 {/* Profile Dropdown */}
-                <div className="relative">
+                <div className="relative shrink-0">
                     <button
                         onClick={() => setIsProfileOpen(!isProfileOpen)}
-                        className="flex items-center gap-2 md:gap-3 hover:bg-slate-50 p-1.5 pr-2 md:pr-3 rounded-xl transition-all border border-transparent hover:border-slate-200"
+                        className="flex shrink-0 items-center gap-2 rounded-xl border border-transparent p-1 transition-all hover:border-slate-200 hover:bg-slate-50 sm:p-1.5 sm:pr-2 md:gap-3 md:pr-3"
                     >
                         <div className="w-8 h-8 rounded-lg bg-[#6bb3ff] flex items-center justify-center text-[#0a1428] font-bold text-sm overflow-hidden shadow-sm">
                             {user.avatarPath ? (
@@ -65,7 +65,7 @@ export default function CoachDashboardHeader({ user }: CoachDashboardHeaderProps
                             <span className="text-xs md:text-sm font-bold text-slate-700 truncate w-full block">{user.fullName}</span>
                             <span className="text-[10px] text-slate-400 font-medium lowercase">coach</span>
                         </div>
-                        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} />
+                        <ChevronDown className={`hidden h-4 w-4 text-slate-400 transition-transform duration-200 sm:block ${isProfileOpen ? 'rotate-180' : ''}`} />
                     </button>
 
                     <AnimatePresence>

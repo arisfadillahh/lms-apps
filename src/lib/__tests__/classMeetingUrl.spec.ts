@@ -12,9 +12,10 @@ describe('normalizeClassMeetingUrl', () => {
     expect(normalizeClassMeetingUrl('https:meet.google.com/abc-defg-hij')).toBe('https://meet.google.com/abc-defg-hij');
   });
 
-  it('rejects Clevio classroom placeholders and unsafe protocols', () => {
-    expect(normalizeClassMeetingUrl('https:clev.io/Classroom')).toBeNull();
-    expect(normalizeClassMeetingUrl('http://Clev.io/Classroom')).toBeNull();
+  it('preserves the case-sensitive Clevio classroom redirect and rejects its lowercase placeholder', () => {
+    expect(normalizeClassMeetingUrl('https:clev.io/Classroom')).toBe('https://clev.io/Classroom');
+    expect(normalizeClassMeetingUrl('http://Clev.io/Classroom')).toBe('http://clev.io/Classroom');
+    expect(normalizeClassMeetingUrl('https://clev.io/classroom')).toBeNull();
     expect(normalizeClassMeetingUrl('javascript:alert(1)')).toBeNull();
   });
 });

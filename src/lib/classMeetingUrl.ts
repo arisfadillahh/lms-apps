@@ -1,4 +1,5 @@
 const PLACEHOLDER_HOSTS = new Set(['clev.io', 'www.clev.io']);
+const CLEVIO_CLASSROOM_REDIRECT_PATH = '/Classroom';
 
 export function normalizeClassMeetingUrl(value: string | null | undefined): string | null {
   const rawValue = value?.trim();
@@ -16,8 +17,14 @@ export function normalizeClassMeetingUrl(value: string | null | undefined): stri
     if (!['http:', 'https:'].includes(url.protocol) || !url.hostname) return null;
 
     const hostname = url.hostname.toLowerCase();
-    const pathname = url.pathname.replace(/\/+$/, '').toLowerCase();
-    if (PLACEHOLDER_HOSTS.has(hostname) && pathname === '/classroom') return null;
+    const pathname = url.pathname.replace(/\/+$/, '');
+    // Clevio's classroom shortlink is case-sensitive and intentionally redirects
+    // to the configured meeting room. Keep the canonical `/Classroom` path
+    // usable while still rejecting the historical lowercase placeholder that
+    // resolves to an LMS 404 page.
+    if (PLACEHOLDER_HOSTS.has(hostname) && pathname.toLowerCase() === '/classroom' && pathname !== CLEVIO_CLASSROOM_REDIRECT_PATH) {
+      return null;
+    }
 
     return url.toString();
   } catch {

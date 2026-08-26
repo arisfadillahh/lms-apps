@@ -38,15 +38,14 @@ export async function POST(request: NextRequest) {
   }
 
   const passwordHash = await hashPassword(input.password);
-  const parentContactPhone = input.role === 'CODER' && input.coderProgram === 'EKSKUL'
-    ? null
-    : input.parentContactPhone;
+  const parentContactPhone = input.role === 'CODER' ? input.parentContactPhone : null;
   const user = await usersDao.createUser({
     username: input.username,
     passwordHash,
     role: input.role,
     fullName: input.fullName,
     parentContactPhone,
+    coderProgram: input.role === 'CODER' ? input.coderProgram : null,
     isActive: input.isActive,
     adminPermissions: input.role === 'ADMIN' ? (adminPermissions ?? null) : null,
   });
@@ -58,6 +57,7 @@ export async function POST(request: NextRequest) {
         username: user.username,
         fullName: user.full_name,
         role: user.role,
+        coderProgram: user.coder_program,
         isActive: user.is_active,
         parentContactPhone: user.parent_contact_phone,
         createdAt: user.created_at,

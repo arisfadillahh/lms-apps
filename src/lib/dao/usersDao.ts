@@ -2,9 +2,10 @@
 
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import type { Role, TablesInsert, TablesRow } from '@/types/supabase';
+import { resolveCoderProgram, type CoderProgram } from '@/lib/coderProgram';
 
 export type UserRecord = TablesRow<'users'>;
-export type UserSummary = Pick<UserRecord, 'id' | 'username' | 'full_name' | 'role' | 'is_active' | 'created_at' | 'updated_at' | 'parent_contact_phone'>;
+export type UserSummary = Pick<UserRecord, 'id' | 'username' | 'full_name' | 'role' | 'is_active' | 'created_at' | 'updated_at' | 'parent_contact_phone' | 'coder_program'>;
 
 export type CreateUserInput = {
   username: string;
@@ -12,6 +13,7 @@ export type CreateUserInput = {
   role: Role;
   fullName: string;
   parentContactPhone?: string | null;
+  coderProgram?: CoderProgram | null;
   isActive?: boolean;
   adminPermissions?: { menus: string[]; is_superadmin: boolean } | null;
 };
@@ -77,6 +79,7 @@ export async function createUser(input: CreateUserInput): Promise<UserRecord> {
     role: input.role,
     full_name: input.fullName,
     parent_contact_phone: input.parentContactPhone ?? null,
+    coder_program: input.coderProgram ?? null,
     is_active: input.isActive ?? true,
     admin_permissions: input.adminPermissions ?? null,
   };
@@ -137,14 +140,35 @@ export async function listUsers(): Promise<UserSummary[]> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from('users')
-    .select('id, username, full_name, role, is_active, created_at, updated_at, parent_contact_phone, admin_permissions')
+    .select('id, username, full_name, role, is_active, created_at, updated_at, parent_contact_phone, coder_program, admin_permissions')
     .order('full_name', { ascending: true });
 
   if (error) {
     throw new Error(`Failed to list users: ${error.message}`);
   }
 
-  return (data ?? []) as UserSummary[];
+  const users = (data ?? []) as UserSummary[];
+  const coderIds = users.filter((user) => user.role === 'CODER' && !user.coder_program).map((user) => user.id);
+  if (coderIds.length === 0) return users;
+
+  // Existing rows may not have coder_program yet. An active class is a safe
+  // read-only fallback and is independent from the optional phone number.
+  const { data: enrollmentRows } = await supabase
+    .from('enrollments')
+    .select('coder_id, classes(type)')
+    .in('coder_id', coderIds)
+    .eq('status', 'ACTIVE');
+  const activeProgramByCoder = new Map<string, CoderProgram>();
+  for (const row of (enrollmentRows ?? []) as any[]) {
+    const klass = Array.isArray(row.classes) ? row.classes[0] : row.classes;
+    const program = resolveCoderProgram(null, klass?.type);
+    if (program && !activeProgramByCoder.has(row.coder_id)) activeProgramByCoder.set(row.coder_id, program);
+  }
+
+  return users.map((user) => ({
+    ...user,
+    coder_program: user.coder_program ?? activeProgramByCoder.get(user.id) ?? null,
+  }));
 }
 
 export async function listUsersByRole(role: Role): Promise<UserRecord[]> {

@@ -18,6 +18,7 @@ export interface Database {
           password_hash: string;
           full_name: string;
           role: Role;
+          coder_program: 'WEEKLY' | 'EKSKUL' | null;
           parent_contact_phone: string | null;
           is_active: boolean;
           created_at: string;
@@ -42,6 +43,7 @@ export interface Database {
           password_hash: string;
           full_name: string;
           role: Role;
+          coder_program?: 'WEEKLY' | 'EKSKUL' | null;
           parent_contact_phone?: string | null;
           is_active?: boolean;
           created_at?: string;

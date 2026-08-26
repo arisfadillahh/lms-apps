@@ -14,6 +14,7 @@ type Props = {
         id: string;
         full_name: string;
         parent_contact_phone: string | null;
+        coder_program: 'WEEKLY' | 'EKSKUL' | null;
         role: 'ADMIN' | 'COACH' | 'CODER';
         admin_permissions?: { menus: string[]; is_superadmin: boolean } | null;
     };
@@ -27,7 +28,7 @@ export default function EditUserButton({ user }: Props) {
 
     const [fullName, setFullName] = useState(user.full_name);
     const [parentContact, setParentContact] = useState(user.parent_contact_phone || '');
-    const [coderProgram, setCoderProgram] = useState<'WEEKLY' | 'EKSKUL'>(user.parent_contact_phone && user.parent_contact_phone !== '000000' ? 'WEEKLY' : 'EKSKUL');
+    const [coderProgram, setCoderProgram] = useState<'WEEKLY' | 'EKSKUL' | ''>(user.coder_program ?? '');
     const [permissions, setPermissions] = useState<string[]>(user.admin_permissions?.menus || []);
     const [error, setError] = useState<string | null>(null);
 
@@ -37,7 +38,7 @@ export default function EditUserButton({ user }: Props) {
     const handleOpen = () => {
         setFullName(user.full_name);
         setParentContact(user.parent_contact_phone || '');
-        setCoderProgram(user.parent_contact_phone && user.parent_contact_phone !== '000000' ? 'WEEKLY' : 'EKSKUL');
+        setCoderProgram(user.coder_program ?? '');
         setPermissions(user.admin_permissions?.menus || []);
         setError(null);
         setOpen(true);
@@ -65,6 +66,10 @@ export default function EditUserButton({ user }: Props) {
             setError('Nomor WhatsApp wajib diisi untuk coder Weekly');
             return;
         }
+        if (user.role === 'CODER' && !coderProgram) {
+            setError('Program coder wajib dipilih');
+            return;
+        }
         setError(null);
 
         startTransition(async () => {
@@ -72,7 +77,8 @@ export default function EditUserButton({ user }: Props) {
                 const payload: any = {
                     id: user.id,
                     fullName: fullName.trim(),
-                    parentContactPhone: user.role === 'CODER' && coderProgram === 'WEEKLY' ? parentContact.trim() || null : null,
+                    parentContactPhone: user.role === 'CODER' ? parentContact.trim() || null : undefined,
+                    coderProgram: user.role === 'CODER' ? coderProgram : undefined,
                 };
 
                 if (isSuperAdmin && isTargetAdmin) {
@@ -151,6 +157,7 @@ export default function EditUserButton({ user }: Props) {
                                         onChange={(e) => setCoderProgram(e.target.value as 'WEEKLY' | 'EKSKUL')}
                                         style={inputStyle}
                                     >
+                                        <option value="">Pilih program</option>
                                         <option value="WEEKLY">Coder Weekly</option>
                                         <option value="EKSKUL">Coder Ekskul</option>
                                     </select>

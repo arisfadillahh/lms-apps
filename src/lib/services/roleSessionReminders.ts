@@ -3,12 +3,13 @@ import {
   createNotification,
   hasNotificationByDedupeKey,
 } from '@/lib/dao/notificationsDao';
+import { filterWeeklyReminderSessions } from '@/lib/classReminderEligibility';
 
 type ScheduledSession = {
   id: string;
   class_id: string;
   date_time: string;
-  classes: { id: string; name: string; coach_id: string | null } | Array<{ id: string; name: string; coach_id: string | null }> | null;
+  classes: { id: string; name: string; coach_id: string | null; type: 'WEEKLY' | 'EKSKUL' } | Array<{ id: string; name: string; coach_id: string | null; type: 'WEEKLY' | 'EKSKUL' }> | null;
 };
 
 function getClass(session: ScheduledSession) {
@@ -50,13 +51,13 @@ export async function sendOneHourSessionReminders(now = new Date()) {
   const windowEnd = new Date(now.getTime() + 70 * 60_000).toISOString();
   const { data, error } = await supabase
     .from('sessions')
-    .select('id, class_id, date_time, classes(id, name, coach_id)')
+    .select('id, class_id, date_time, classes(id, name, coach_id, type)')
     .eq('status', 'SCHEDULED')
     .gte('date_time', windowStart)
     .lte('date_time', windowEnd);
 
   if (error) throw new Error(`Failed to load one-hour sessions: ${error.message}`);
-  const sessions = (data ?? []) as unknown as ScheduledSession[];
+  const sessions = filterWeeklyReminderSessions((data ?? []) as unknown as ScheduledSession[]);
   if (sessions.length === 0) return { sent: 0, sessions: 0 };
 
   const classIds = [...new Set(sessions.map((session) => session.class_id))];
@@ -121,7 +122,9 @@ export async function sendCoderDayBeforeReminders(
 ) {
   if (sessions.length === 0) return { sent: 0 };
   const supabase = getSupabaseAdmin();
-  const classIds = [...new Set(sessions.map((session) => session.class_id))];
+  const weeklySessions = filterWeeklyReminderSessions(sessions);
+  if (weeklySessions.length === 0) return { sent: 0 };
+  const classIds = [...new Set(weeklySessions.map((session) => session.class_id))];
   const { data: enrollmentRows, error } = await supabase
     .from('enrollments')
     .select('class_id, coder_id, users!enrollments_coder_id_fkey(id, is_active)')
@@ -130,7 +133,7 @@ export async function sendCoderDayBeforeReminders(
   if (error) throw new Error(`Failed to load H-1 coder enrollments: ${error.message}`);
 
   const schedulesByCoder = new Map<string, string[]>();
-  for (const scheduled of sessions) {
+  for (const scheduled of weeklySessions) {
     const klass = getClass(scheduled);
     if (!klass) continue;
     for (const enrollment of (enrollmentRows ?? [])) {

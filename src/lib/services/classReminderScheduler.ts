@@ -3,6 +3,7 @@ import { getInvoiceSettings } from '@/lib/dao/invoicesDao';
 import { sendClassReminder } from '@/lib/services/whatsappClient';
 import { buildClassReminderIdempotencyKey } from '@/lib/services/reminderIdempotency';
 import { sendCoderDayBeforeReminders, sendOneHourSessionReminders } from '@/lib/services/roleSessionReminders';
+import { filterWeeklyReminderSessions } from '@/lib/classReminderEligibility';
 
 /**
  * Check and Send Class Reminders for "Today"
@@ -115,7 +116,7 @@ export async function checkAndSendClassReminders(): Promise<{
     // Query sessions with classes first
     const { data: rawSessions, error: sessionError } = await supabase
         .from('sessions')
-        .select('id, date_time, class_id, classes(id, name, zoom_link)')
+        .select('id, date_time, class_id, classes(id, name, zoom_link, type)')
         .eq('status', 'SCHEDULED' as any)
         .gte('date_time', startFilter)
         .lte('date_time', endFilter);
@@ -130,14 +131,35 @@ export async function checkAndSendClassReminders(): Promise<{
         return { success: true, sent: 0, message: 'No sessions tomorrow', skippedReason: 'NO_SESSIONS' };
     }
 
+    type RawReminderSession = {
+        id: string;
+        date_time: string;
+        class_id: string;
+        classes: {
+            id: string;
+            name: string;
+            zoom_link: string | null;
+            type: 'WEEKLY' | 'EKSKUL';
+        } | Array<{
+            id: string;
+            name: string;
+            zoom_link: string | null;
+            type: 'WEEKLY' | 'EKSKUL';
+        }> | null;
+    };
+    const weeklySessions = filterWeeklyReminderSessions((rawSessions ?? []) as RawReminderSession[]);
+    if (weeklySessions.length === 0) {
+        return { success: true, sent: 0, message: 'No Weekly sessions tomorrow', skippedReason: 'NO_WEEKLY_SESSIONS' };
+    }
+
     try {
-        await sendCoderDayBeforeReminders(rawSessions as any, tomorrowStr);
+        await sendCoderDayBeforeReminders(weeklySessions as any, tomorrowStr);
     } catch (coderReminderError) {
         console.error('[Scheduler] Failed to send H-1 Coder reminders:', coderReminderError);
     }
 
     // Fetch enrollments for classes
-    const classIds = [...new Set(rawSessions.map(s => s.class_id).filter(Boolean))];
+    const classIds = [...new Set(weeklySessions.map(s => s.class_id).filter(Boolean))];
 
     const { data: enrollments } = await supabase
         .from('enrollments')
@@ -150,7 +172,7 @@ export async function checkAndSendClassReminders(): Promise<{
     });
 
     // Map sessions to their enrolled students
-    const sessions = rawSessions.flatMap(s => {
+    const sessions = weeklySessions.flatMap(s => {
         const classEnrollments = enrollments?.filter(e => e.class_id === s.class_id) || [];
         const classData = Array.isArray(s.classes) ? s.classes[0] : s.classes;
 
@@ -251,7 +273,7 @@ export async function checkAndSendClassReminders(): Promise<{
             // Group sessions by coach to send one summarized notification
             const coachSchedules = new Map<string, string[]>(); // coach_id -> array of descriptions
             
-            for (const session of rawSessions) {
+            for (const session of weeklySessions) {
                 const cls = coachesClasses.find(c => c.id === session.class_id);
                 if (cls && cls.coach_id) {
                     const time = new Date(session.date_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });

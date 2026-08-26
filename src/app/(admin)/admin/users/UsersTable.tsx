@@ -156,7 +156,7 @@ export default function UsersTable({ users }: UsersTableProps) {
                   <td>
                     {user.role === 'CODER' ? (
                       <span className="badge badge-neutral">
-                        {user.parent_contact_phone && user.parent_contact_phone !== '000000' ? 'Weekly' : 'Ekskul'}
+                        {user.coder_program === 'WEEKLY' ? 'Weekly' : user.coder_program === 'EKSKUL' ? 'Ekskul' : 'Belum ditentukan'}
                       </span>
                     ) : (
                       <span className="muted">—</span>

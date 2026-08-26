@@ -10,6 +10,7 @@ const updateUserSchema = z.object({
     id: z.string().uuid(),
     fullName: z.string().min(1).max(100),
     parentContactPhone: z.string().nullable().optional(),
+    coderProgram: z.enum(['WEEKLY', 'EKSKUL']).optional(),
     adminPermissions: z.object({
         menus: z.array(z.string()),
         is_superadmin: z.boolean(),
@@ -41,7 +42,7 @@ export async function PUT(request: Request) {
 
     const { data: targetUser, error: targetError } = await supabase
         .from('users')
-        .select('id, role')
+        .select('id, role, parent_contact_phone, coder_program')
         .eq('id', parsed.data.id)
         .maybeSingle();
 
@@ -58,12 +59,26 @@ export async function PUT(request: Request) {
         return NextResponse.json({ error: 'Permissions can only be set for admin users' }, { status: 400 });
     }
 
+    if (parsed.data.coderProgram !== undefined && targetUser.role !== 'CODER') {
+        return NextResponse.json({ error: 'Program hanya bisa diset untuk coder' }, { status: 400 });
+    }
+
+    const effectiveProgram = parsed.data.coderProgram ?? targetUser.coder_program;
+    const effectivePhone = parsed.data.parentContactPhone ?? targetUser.parent_contact_phone;
+    if (targetUser.role === 'CODER' && effectiveProgram === 'WEEKLY' && !effectivePhone?.trim()) {
+        return NextResponse.json({ error: 'Nomor WhatsApp wajib diisi untuk coder Weekly' }, { status: 400 });
+    }
+
     const updateData: Record<string, unknown> = {
         full_name: parsed.data.fullName,
     };
 
     if (parsed.data.parentContactPhone !== undefined) {
         updateData.parent_contact_phone = parsed.data.parentContactPhone;
+    }
+
+    if (parsed.data.coderProgram !== undefined) {
+        updateData.coder_program = parsed.data.coderProgram;
     }
 
     if (parsed.data.adminPermissions !== undefined) {

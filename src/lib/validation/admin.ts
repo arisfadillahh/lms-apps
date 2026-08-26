@@ -54,7 +54,12 @@ export const createClassSchema = z.object({
   coachId: z.string().uuid(),
   scheduleDay: z.string().min(2),
   scheduleTime: z.string().regex(/^\d{2}:\d{2}$/),
-  zoomLink: z.string().url(),
+  deliveryMode: z.enum(['ONLINE', 'OFFLINE']).default('ONLINE'),
+  zoomLink: z.string().trim().max(2048).optional().or(z.literal('')),
+  locationName: z.string().trim().max(160).optional().or(z.literal('')),
+  locationAddress: z.string().trim().max(500).optional().or(z.literal('')),
+  locationMapsUrl: z.string().trim().url('Link Google Maps tidak valid').max(2048).optional().or(z.literal('')),
+  parentWhatsappEnabled: z.boolean().default(false),
   initialBlockId: z
     .union([z.string().uuid(), z.literal('')])
     .transform((value) => (value === '' ? undefined : value))
@@ -82,6 +87,22 @@ export const createClassSchema = z.object({
         .transform(() => undefined),
     ])
     .optional(),
+}).superRefine((value, ctx) => {
+  if (value.deliveryMode === 'ONLINE' && !value.zoomLink) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['zoomLink'], message: 'Link kelas wajib diisi untuk kelas Online' });
+  }
+
+  if (value.deliveryMode === 'OFFLINE') {
+    if (!value.locationName) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['locationName'], message: 'Nama tempat wajib diisi untuk kelas Offline' });
+    }
+    if (!value.locationAddress) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['locationAddress'], message: 'Alamat wajib diisi untuk kelas Offline' });
+    }
+    if (!value.locationMapsUrl) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['locationMapsUrl'], message: 'Link Google Maps wajib diisi untuk kelas Offline' });
+    }
+  }
 });
 
 export type CreateClassInput = z.infer<typeof createClassSchema>;

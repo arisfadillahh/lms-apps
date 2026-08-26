@@ -49,6 +49,10 @@ export type CoderClassProgress = {
     days: string[];
     timeInfo: string | null;
     zoomLink?: string | null;
+    deliveryMode: 'ONLINE' | 'OFFLINE';
+    locationName?: string | null;
+    locationAddress?: string | null;
+    locationMapsUrl?: string | null;
   } | null;
   completedBlocks: number;
   totalBlocks: number | null;
@@ -544,7 +548,11 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
           schedule: {
             days: scheduleDays,
             timeInfo: timeInfo,
-            zoomLink: klass.zoom_link || null
+            zoomLink: klass.zoom_link || null,
+            deliveryMode: klass.delivery_mode === 'OFFLINE' ? 'OFFLINE' : 'ONLINE',
+            locationName: klass.location_name,
+            locationAddress: klass.location_address,
+            locationMapsUrl: klass.location_maps_url,
           },
           completedBlocks,
           totalBlocks,
@@ -847,7 +855,11 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
         schedule: {
           days: scheduleDays,
           timeInfo: timeInfo,
-          zoomLink: klass.zoom_link || null
+          zoomLink: klass.zoom_link || null,
+          deliveryMode: klass.delivery_mode === 'OFFLINE' ? 'OFFLINE' : 'ONLINE',
+          locationName: klass.location_name,
+          locationAddress: klass.location_address,
+          locationMapsUrl: klass.location_maps_url,
         },
         completedBlocks,
         totalBlocks,

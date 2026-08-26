@@ -329,6 +329,11 @@ export interface Database {
           schedule_day: string;
           schedule_time: string;
           zoom_link: string;
+          delivery_mode: 'ONLINE' | 'OFFLINE';
+          location_name: string | null;
+          location_address: string | null;
+          location_maps_url: string | null;
+          parent_whatsapp_enabled: boolean;
           start_date: string;
           end_date: string;
           created_at: string;
@@ -344,6 +349,11 @@ export interface Database {
           schedule_day: string;
           schedule_time: string;
           zoom_link: string;
+          delivery_mode?: 'ONLINE' | 'OFFLINE';
+          location_name?: string | null;
+          location_address?: string | null;
+          location_maps_url?: string | null;
+          parent_whatsapp_enabled?: boolean;
           start_date: string;
           end_date: string;
           created_at?: string;

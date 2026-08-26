@@ -2,20 +2,40 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Link2, X } from 'lucide-react';
+import { MapPin, MessageCircle, Settings2, Wifi, X } from 'lucide-react';
 
 import { normalizeClassMeetingUrl } from '@/lib/classMeetingUrl';
 
 type Props = {
   classId: string;
+  classType: 'WEEKLY' | 'EKSKUL';
   currentLink: string | null;
+  currentDeliveryMode: 'ONLINE' | 'OFFLINE';
+  currentLocationName: string | null;
+  currentLocationAddress: string | null;
+  currentLocationMapsUrl: string | null;
+  currentParentWhatsappEnabled: boolean;
 };
 
-export default function EditClassLinkModal({ classId, currentLink }: Props) {
+export default function EditClassLinkModal({
+  classId,
+  classType,
+  currentLink,
+  currentDeliveryMode,
+  currentLocationName,
+  currentLocationAddress,
+  currentLocationMapsUrl,
+  currentParentWhatsappEnabled,
+}: Props) {
   const router = useRouter();
   const configuredLink = normalizeClassMeetingUrl(currentLink) ?? '';
   const [open, setOpen] = useState(false);
+  const [deliveryMode, setDeliveryMode] = useState(currentDeliveryMode);
   const [link, setLink] = useState(configuredLink);
+  const [locationName, setLocationName] = useState(currentLocationName ?? '');
+  const [locationAddress, setLocationAddress] = useState(currentLocationAddress ?? '');
+  const [locationMapsUrl, setLocationMapsUrl] = useState(currentLocationMapsUrl ?? '');
+  const [parentWhatsappEnabled, setParentWhatsappEnabled] = useState(currentParentWhatsappEnabled);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -27,12 +47,20 @@ export default function EditClassLinkModal({ classId, currentLink }: Props) {
         const response = await fetch(`/api/admin/classes/${classId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ zoomLink: link }),
+          body: JSON.stringify({
+            deliveryMode,
+            zoomLink: link,
+            locationName,
+            locationAddress,
+            locationMapsUrl,
+            parentWhatsappEnabled,
+          }),
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || 'Gagal mengubah link kelas');
 
-        setLink(payload.zoomLink || link);
+        setLink(payload.zoomLink ?? link);
+        setParentWhatsappEnabled(payload.parentWhatsappEnabled ?? parentWhatsappEnabled);
         setOpen(false);
         router.refresh();
       } catch (caught) {
@@ -44,7 +72,7 @@ export default function EditClassLinkModal({ classId, currentLink }: Props) {
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} style={buttonStyle} aria-haspopup="dialog">
-        <Link2 size={16} aria-hidden="true" /> Edit link kelas
+        <Settings2 size={16} aria-hidden="true" /> Atur kelas
       </button>
       {open && (
         <div style={backdropStyle} onClick={() => !isPending && setOpen(false)}>
@@ -59,36 +87,76 @@ export default function EditClassLinkModal({ classId, currentLink }: Props) {
           >
             <div style={modalHeaderStyle}>
               <div>
-                <p style={eyebrowStyle}>LINK KELAS</p>
-                <h2 id="edit-class-link-title" style={headingStyle}>Edit link kelas</h2>
+                <p style={eyebrowStyle}>METODE & AKSES KELAS</p>
+                <h2 id="edit-class-link-title" style={headingStyle}>Atur Online atau Offline</h2>
               </div>
               <button type="button" onClick={() => setOpen(false)} disabled={isPending} style={closeButtonStyle} aria-label="Tutup dialog">
                 <X size={18} aria-hidden="true" />
               </button>
             </div>
             <p id="edit-class-link-description" style={descriptionStyle}>
-              Masukkan link Google Meet, Zoom, atau ruang kelas online lainnya. Link baru berlaku untuk sesi terjadwal berikutnya di kelas ini.
+              Pengaturan ini menjadi sumber tombol kelas di dashboard Coder dan detail pengingat otomatis.
             </p>
-            {!configuredLink && currentLink && (
+            {deliveryMode === 'ONLINE' && !configuredLink && currentLink && (
               <p style={warningStyle}>Link lama masih berupa placeholder dan tidak dapat dipakai. Ganti dengan link kelas yang sebenarnya.</p>
             )}
             <label style={labelStyle}>
-              Link kelas
-              <input
-                type="text"
-                inputMode="url"
-                autoComplete="url"
-                value={link}
-                onChange={(event) => setLink(event.target.value)}
-                style={inputStyle}
-                placeholder="https://meet.google.com/abc-defg-hij"
-                required
-              />
+              Metode kelas
+              <select value={deliveryMode} onChange={(event) => setDeliveryMode(event.target.value as 'ONLINE' | 'OFFLINE')} style={inputStyle}>
+                <option value="ONLINE">Online</option>
+                <option value="OFFLINE">Offline / Tatap muka</option>
+              </select>
             </label>
+            {deliveryMode === 'ONLINE' ? (
+              <label style={{ ...labelStyle, marginTop: 14 }}>
+                <span style={labelWithIconStyle}><Wifi size={15} /> Link kelas online</span>
+                <input
+                  type="text"
+                  inputMode="url"
+                  autoComplete="url"
+                  value={link}
+                  onChange={(event) => setLink(event.target.value)}
+                  style={inputStyle}
+                  placeholder="https://meet.google.com/abc-defg-hij"
+                  required
+                />
+              </label>
+            ) : (
+              <div style={{ display: 'grid', gap: 14, marginTop: 14 }}>
+                <label style={labelStyle}>
+                  <span style={labelWithIconStyle}><MapPin size={15} /> Nama tempat</span>
+                  <input value={locationName} onChange={(event) => setLocationName(event.target.value)} style={inputStyle} required />
+                </label>
+                <label style={labelStyle}>
+                  Alamat lengkap
+                  <textarea value={locationAddress} onChange={(event) => setLocationAddress(event.target.value)} style={{ ...inputStyle, minHeight: 78, resize: 'vertical' }} required />
+                </label>
+                <label style={labelStyle}>
+                  Link Google Maps
+                  <input type="url" value={locationMapsUrl} onChange={(event) => setLocationMapsUrl(event.target.value)} style={inputStyle} required />
+                </label>
+              </div>
+            )}
+            {classType === 'EKSKUL' ? (
+              <label style={toggleStyle}>
+                <input type="checkbox" checked={parentWhatsappEnabled} onChange={(event) => setParentWhatsappEnabled(event.target.checked)} style={{ width: 18, height: 18, accentColor: '#2563eb' }} />
+                <MessageCircle size={18} color="#2563eb" />
+                <span>
+                  <strong style={{ display: 'block', color: '#1e293b' }}>WhatsApp otomatis ke orang tua</strong>
+                  <span style={{ color: '#64748b', fontSize: 12, lineHeight: 1.5 }}>Mencakup reminder kelas, pesan absen, dan reminder makeup. PWA/notifikasi LMS tetap aktif.</span>
+                </span>
+              </label>
+            ) : null}
             {error && <p role="alert" style={errorStyle}>{error}</p>}
             <div style={actionsStyle}>
               <button type="button" onClick={() => setOpen(false)} disabled={isPending} style={cancelStyle}>Batal</button>
-              <button type="submit" disabled={isPending || !link.trim()} style={submitStyle}>{isPending ? 'Menyimpan...' : 'Simpan link'}</button>
+              <button
+                type="submit"
+                disabled={isPending || (deliveryMode === 'ONLINE' ? !link.trim() : !locationName.trim() || !locationAddress.trim() || !locationMapsUrl.trim())}
+                style={submitStyle}
+              >
+                {isPending ? 'Menyimpan...' : 'Simpan pengaturan'}
+              </button>
             </div>
           </form>
         </div>
@@ -108,6 +176,8 @@ const descriptionStyle: React.CSSProperties = { margin: '8px 0 18px', color: '#6
 const warningStyle: React.CSSProperties = { margin: '0 0 16px', padding: '10px 12px', border: '1px solid #fde68a', borderRadius: 9, background: '#fffbeb', color: '#92400e', fontSize: 12, lineHeight: 1.5 };
 const labelStyle: React.CSSProperties = { display: 'grid', gap: 6, color: '#334155', fontSize: 13, fontWeight: 700 };
 const inputStyle: React.CSSProperties = { width: '100%', boxSizing: 'border-box', padding: '10px 11px', border: '1px solid #cbd5e1', borderRadius: 8, background: '#fff', color: '#0f172a', fontSize: 14 };
+const labelWithIconStyle: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 6 };
+const toggleStyle: React.CSSProperties = { display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 16, padding: 13, border: '1px solid #bfdbfe', borderRadius: 10, background: '#eff6ff', color: '#334155', fontSize: 13, cursor: 'pointer' };
 const actionsStyle: React.CSSProperties = { display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8, marginTop: 20 };
 const cancelStyle: React.CSSProperties = { flex: '1 1 140px', padding: '9px 14px', border: '1px solid #cbd5e1', borderRadius: 8, background: '#fff', color: '#475569', fontWeight: 600, cursor: 'pointer' };
 const submitStyle: React.CSSProperties = { flex: '1 1 140px', padding: '9px 14px', border: 0, borderRadius: 8, background: '#1e3a5f', color: '#fff', fontWeight: 700, cursor: 'pointer' };

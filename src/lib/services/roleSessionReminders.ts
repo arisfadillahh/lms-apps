@@ -3,13 +3,25 @@ import {
   createNotification,
   hasNotificationByDedupeKey,
 } from '@/lib/dao/notificationsDao';
-import { filterWeeklyReminderSessions } from '@/lib/classReminderEligibility';
+import { buildClassPreparationMessage } from '@/lib/classDelivery';
 
 type ScheduledSession = {
   id: string;
   class_id: string;
   date_time: string;
-  classes: { id: string; name: string; coach_id: string | null; type: 'WEEKLY' | 'EKSKUL' } | Array<{ id: string; name: string; coach_id: string | null; type: 'WEEKLY' | 'EKSKUL' }> | null;
+  classes: {
+    id: string;
+    name: string;
+    coach_id: string | null;
+    type: 'WEEKLY' | 'EKSKUL';
+    delivery_mode: 'ONLINE' | 'OFFLINE';
+  } | Array<{
+    id: string;
+    name: string;
+    coach_id: string | null;
+    type: 'WEEKLY' | 'EKSKUL';
+    delivery_mode: 'ONLINE' | 'OFFLINE';
+  }> | null;
 };
 
 function getClass(session: ScheduledSession) {
@@ -51,13 +63,13 @@ export async function sendOneHourSessionReminders(now = new Date()) {
   const windowEnd = new Date(now.getTime() + 70 * 60_000).toISOString();
   const { data, error } = await supabase
     .from('sessions')
-    .select('id, class_id, date_time, classes(id, name, coach_id, type)')
+    .select('id, class_id, date_time, classes(id, name, coach_id, type, delivery_mode)')
     .eq('status', 'SCHEDULED')
     .gte('date_time', windowStart)
     .lte('date_time', windowEnd);
 
   if (error) throw new Error(`Failed to load one-hour sessions: ${error.message}`);
-  const sessions = filterWeeklyReminderSessions((data ?? []) as unknown as ScheduledSession[]);
+  const sessions = (data ?? []) as unknown as ScheduledSession[];
   if (sessions.length === 0) return { sent: 0, sessions: 0 };
 
   const classIds = [...new Set(sessions.map((session) => session.class_id))];
@@ -102,7 +114,7 @@ export async function sendOneHourSessionReminders(now = new Date()) {
         userId: coder.id,
         dedupeKey: `session-${scheduled.id}-coder-1h`,
         title: 'Kelas dimulai 1 jam lagi',
-        message: `${klass.name} dimulai pukul ${time} WIB. Siapkan perangkat dan koneksi internet sebelum kelas.`,
+        message: `${klass.name} dimulai pukul ${time} WIB. ${buildClassPreparationMessage(klass)}`,
         actionUrl: '/coder/dashboard',
         priority: 'HIGH',
       }));
@@ -122,9 +134,7 @@ export async function sendCoderDayBeforeReminders(
 ) {
   if (sessions.length === 0) return { sent: 0 };
   const supabase = getSupabaseAdmin();
-  const weeklySessions = filterWeeklyReminderSessions(sessions);
-  if (weeklySessions.length === 0) return { sent: 0 };
-  const classIds = [...new Set(weeklySessions.map((session) => session.class_id))];
+  const classIds = [...new Set(sessions.map((session) => session.class_id))];
   const { data: enrollmentRows, error } = await supabase
     .from('enrollments')
     .select('class_id, coder_id, users!enrollments_coder_id_fkey(id, is_active)')
@@ -133,7 +143,7 @@ export async function sendCoderDayBeforeReminders(
   if (error) throw new Error(`Failed to load H-1 coder enrollments: ${error.message}`);
 
   const schedulesByCoder = new Map<string, string[]>();
-  for (const scheduled of weeklySessions) {
+  for (const scheduled of sessions) {
     const klass = getClass(scheduled);
     if (!klass) continue;
     for (const enrollment of (enrollmentRows ?? [])) {
@@ -151,7 +161,7 @@ export async function sendCoderDayBeforeReminders(
     userId: coderId,
     dedupeKey: `coder-classes-${dateKey}-h1`,
     title: 'Pengingat kelas besok',
-    message: `Besok ada ${schedules.length} kelas: ${schedules.join('; ')}. Siapkan perangkat dan koneksi internet yang stabil.`,
+    message: `Besok ada ${schedules.length} kelas: ${schedules.join('; ')}. Buka dashboard untuk melihat link atau lokasi kelas.`,
     actionUrl: '/coder/dashboard',
     priority: 'NORMAL',
   })));

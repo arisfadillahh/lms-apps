@@ -255,6 +255,7 @@ export async function POST() {
       scheduleDay: spec.scheduleDay,
       scheduleTime: spec.scheduleTime,
       zoomLink: spec.zoomLink,
+      deliveryMode: 'ONLINE',
       startDate,
       endDate,
     });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { resolveCoderProgram } from '@/lib/coderProgram';
-import { filterWeeklyReminderSessions } from '@/lib/classReminderEligibility';
+import { filterParentWhatsappReminderSessions, shouldSendParentWhatsappForClass } from '@/lib/classReminderEligibility';
 
 describe('coder program and class reminder behavior', () => {
   it('does not infer a coder program from a phone number', () => {
@@ -13,13 +13,15 @@ describe('coder program and class reminder behavior', () => {
     expect(resolveCoderProgram('EKSKUL', 'WEEKLY')).toBe('EKSKUL');
   });
 
-  it('returns only Weekly sessions for class reminders', () => {
+  it('keeps Weekly enabled and makes Ekskul parent WhatsApp explicitly opt-in', () => {
     const sessions = [
       { id: 'weekly', classes: { type: 'WEEKLY' } },
-      { id: 'ekskul', classes: { type: 'EKSKUL' } },
+      { id: 'ekskul-off', classes: { type: 'EKSKUL', parent_whatsapp_enabled: false } },
+      { id: 'ekskul-on', classes: { type: 'EKSKUL', parent_whatsapp_enabled: true } },
       { id: 'unknown', classes: null },
     ];
 
-    expect(filterWeeklyReminderSessions(sessions).map((session) => session.id)).toEqual(['weekly']);
+    expect(filterParentWhatsappReminderSessions(sessions).map((session) => session.id)).toEqual(['weekly', 'ekskul-on']);
+    expect(shouldSendParentWhatsappForClass({ type: 'EKSKUL' })).toBe(false);
   });
 });

@@ -17,6 +17,7 @@ import { getAppBaseUrl } from '@/lib/env';
 import { computeLessonSchedule } from '@/lib/services/lessonScheduler';
 import { sendAbsentNotification } from '@/lib/services/whatsappClient';
 import { getInvoiceSettings } from '@/lib/dao/invoicesDao';
+import { shouldSendParentWhatsappForClass } from '@/lib/classReminderEligibility';
 
 const markAttendanceSchema = z.object({
   sessionId: z.string().uuid(),
@@ -156,7 +157,7 @@ export async function POST(request: Request) {
       console.error('[Attendance] Failed to notify Coder about make-up task', notificationError);
     }
     const parentPhone = coder?.parent_contact_phone;
-    if (parentPhone) {
+    if (parentPhone && shouldSendParentWhatsappForClass(classRecord)) {
       // Check if absent notification is enabled
       const appSettings = await getInvoiceSettings();
       const isAbsentNotifEnabled = appSettings?.enable_absent_notification ?? true;
@@ -196,6 +197,8 @@ export async function POST(request: Request) {
           await reportsDao.updateWhatsappLogStatus(logEntry.id, 'FAILED', { message: error.message ?? 'Failed' });
         }
       }
+    } else if (parentPhone) {
+      console.log('[Attendance] Automatic parent WhatsApp is disabled for this class; PWA make-up notification remains active');
     }
   }
 

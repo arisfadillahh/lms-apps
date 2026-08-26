@@ -6,6 +6,7 @@ import { getAppBaseUrl } from '@/lib/env';
 import { sendAbsentNotification } from '@/lib/services/whatsappClient';
 import { buildMakeupReminderIdempotencyKey } from '@/lib/services/reminderIdempotency';
 import { verifyCronRequest } from '@/lib/cron';
+import { shouldSendParentWhatsappForClass } from '@/lib/classReminderEligibility';
 
 export async function POST(request: Request) {
   if (!verifyCronRequest(request)) {
@@ -44,6 +45,11 @@ export async function POST(request: Request) {
 
       if (!coder || !session || !classRecord || !coder.parent_contact_phone) {
         results.push({ taskId: task.id, reminderType: window.label, status: 'SKIPPED' });
+        continue;
+      }
+
+      if (!shouldSendParentWhatsappForClass(classRecord)) {
+        results.push({ taskId: task.id, reminderType: window.label, status: 'SKIPPED_PARENT_WHATSAPP_DISABLED' });
         continue;
       }
 

@@ -4,7 +4,7 @@ import path from 'path';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { BookOpen, Bug, Flame, Pencil, ChevronRight, ListChecks, Zap, Play, Dumbbell, Lock, Rocket, Palette, Star, Download, Map, Hand, Monitor, Brush, Gamepad2, Cat, Package, Palmtree } from 'lucide-react';
+import { BookOpen, Bug, Flame, Pencil, ChevronRight, ListChecks, Zap, Play, Dumbbell, Lock, Rocket, Palette, Star, Download, Map, MapPin, Hand, Monitor, Brush, Gamepad2, Cat, Package, Palmtree } from 'lucide-react';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { normalizeClassMeetingUrl } from '@/lib/classMeetingUrl';
@@ -115,8 +115,10 @@ export default async function CoderDashboardPage() {
   // (lesson.scheduledAt is unreliable — depends on lessonMap template matching)
   let isLinkActive = false;
   let zoomLink = normalizeClassMeetingUrl(activeBlock?.schedule?.zoomLink);
+  const deliveryMode = activeBlock?.schedule?.deliveryMode === 'OFFLINE' ? 'OFFLINE' : 'ONLINE';
+  const locationMapsUrl = activeBlock?.schedule?.locationMapsUrl || null;
 
-  if (activeBlock) {
+  if (activeBlock && deliveryMode === 'ONLINE') {
     const supabase = getSupabaseAdmin();
     const nowMs = Date.now();
     const todayStart = new Date();
@@ -349,7 +351,27 @@ export default async function CoderDashboardPage() {
                               <div className="bg-gradient-to-r from-sky to-clevio-green h-full rounded-full transition-all duration-1000" style={{ width: `${activeProgressPct}%` }}></div>
                             </div>
                           </div>
-                          {isLinkActive && zoomLink ? (
+                          {deliveryMode === 'OFFLINE' && locationMapsUrl ? (
+                            <div className="w-full md:w-auto flex flex-col gap-2">
+                              <div className="text-left md:text-right">
+                                <p className="text-xs font-black uppercase tracking-widest text-slate-400">Lokasi kelas</p>
+                                <p className="text-sm font-black text-clevio-navy">{activeBlock?.schedule?.locationName || 'Lokasi kelas'}</p>
+                                {activeBlock?.schedule?.locationAddress ? <p className="text-xs font-bold text-slate-500 max-w-sm">{activeBlock.schedule.locationAddress}</p> : null}
+                              </div>
+                              <a
+                                href={locationMapsUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-coral text-white px-8 py-3 rounded-xl font-black text-base shadow-[0_6px_0_0_#E86E7E] hover:translate-y-1 hover:shadow-[0_2px_0_0_#E86E7E] active:translate-y-1.5 active:shadow-none transition-all"
+                              >
+                                <MapPin size={19} /> Buka Lokasi Kelas
+                              </a>
+                            </div>
+                          ) : deliveryMode === 'OFFLINE' ? (
+                            <button disabled className="w-full md:w-auto bg-slate-200 text-slate-400 px-8 py-3 rounded-xl font-black text-base">
+                              Lokasi belum diatur
+                            </button>
+                          ) : isLinkActive && zoomLink ? (
                             <a
                               href={zoomLink}
                               target="_blank"

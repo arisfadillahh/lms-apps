@@ -3,7 +3,8 @@ import { getInvoiceSettings } from '@/lib/dao/invoicesDao';
 import { sendClassReminder } from '@/lib/services/whatsappClient';
 import { buildClassReminderIdempotencyKey } from '@/lib/services/reminderIdempotency';
 import { sendCoderDayBeforeReminders, sendOneHourSessionReminders } from '@/lib/services/roleSessionReminders';
-import { filterWeeklyReminderSessions } from '@/lib/classReminderEligibility';
+import { filterParentWhatsappReminderSessions } from '@/lib/classReminderEligibility';
+import { renderClassReminderMessage, type ClassDeliveryDetails } from '@/lib/classDelivery';
 
 /**
  * Check and Send Class Reminders for "Today"
@@ -116,7 +117,7 @@ export async function checkAndSendClassReminders(): Promise<{
     // Query sessions with classes first
     const { data: rawSessions, error: sessionError } = await supabase
         .from('sessions')
-        .select('id, date_time, class_id, classes(id, name, zoom_link, type)')
+        .select('id, date_time, class_id, classes(id, name, zoom_link, type, delivery_mode, location_name, location_address, location_maps_url, parent_whatsapp_enabled)')
         .eq('status', 'SCHEDULED' as any)
         .gte('date_time', startFilter)
         .lte('date_time', endFilter);
@@ -135,44 +136,54 @@ export async function checkAndSendClassReminders(): Promise<{
         id: string;
         date_time: string;
         class_id: string;
-        classes: {
+        classes: ({
             id: string;
             name: string;
             zoom_link: string | null;
             type: 'WEEKLY' | 'EKSKUL';
-        } | Array<{
+            delivery_mode: 'ONLINE' | 'OFFLINE';
+            location_name: string | null;
+            location_address: string | null;
+            location_maps_url: string | null;
+            parent_whatsapp_enabled: boolean;
+        } & ClassDeliveryDetails) | Array<({
             id: string;
             name: string;
             zoom_link: string | null;
             type: 'WEEKLY' | 'EKSKUL';
-        }> | null;
+            delivery_mode: 'ONLINE' | 'OFFLINE';
+            location_name: string | null;
+            location_address: string | null;
+            location_maps_url: string | null;
+            parent_whatsapp_enabled: boolean;
+        } & ClassDeliveryDetails)> | null;
     };
-    const weeklySessions = filterWeeklyReminderSessions((rawSessions ?? []) as RawReminderSession[]);
-    if (weeklySessions.length === 0) {
-        return { success: true, sent: 0, message: 'No Weekly sessions tomorrow', skippedReason: 'NO_WEEKLY_SESSIONS' };
-    }
+    const allSessions = (rawSessions ?? []) as RawReminderSession[];
 
     try {
-        await sendCoderDayBeforeReminders(weeklySessions as any, tomorrowStr);
+        await sendCoderDayBeforeReminders(allSessions as any, tomorrowStr);
     } catch (coderReminderError) {
         console.error('[Scheduler] Failed to send H-1 Coder reminders:', coderReminderError);
     }
 
-    // Fetch enrollments for classes
-    const classIds = [...new Set(weeklySessions.map(s => s.class_id).filter(Boolean))];
-
-    const { data: enrollments } = await supabase
-        .from('enrollments')
-        .select('coder_id, class_id, users(id, full_name, parent_name, parent_contact_phone)')
-        .in('class_id', classIds)
-        .eq('status', 'ACTIVE');
+    const classIds = [...new Set(allSessions.map(s => s.class_id).filter(Boolean))];
+    const parentWhatsappSessions = filterParentWhatsappReminderSessions(allSessions);
+    const parentWhatsappClassIds = [...new Set(parentWhatsappSessions.map(s => s.class_id).filter(Boolean))];
+    const enrollmentResult = parentWhatsappClassIds.length > 0
+        ? await supabase
+            .from('enrollments')
+            .select('coder_id, class_id, users(id, full_name, parent_name, parent_contact_phone)')
+            .in('class_id', parentWhatsappClassIds)
+            .eq('status', 'ACTIVE')
+        : { data: [], error: null };
+    const enrollments = enrollmentResult.data ?? [];
 
     console.log(`[Scheduler] Enrollments found for tomorrow:`, {
         total: enrollments?.length || 0
     });
 
     // Map sessions to their enrolled students
-    const sessions = weeklySessions.flatMap(s => {
+    const sessions = parentWhatsappSessions.flatMap(s => {
         const classEnrollments = enrollments?.filter(e => e.class_id === s.class_id) || [];
         const classData = Array.isArray(s.classes) ? s.classes[0] : s.classes;
 
@@ -200,7 +211,7 @@ export async function checkAndSendClassReminders(): Promise<{
         parentName: string;
         students: string[];
         time: string;
-        zoomLink: string;
+        klass: ClassDeliveryDetails;
         idempotencyKey: string;
     }>();
 
@@ -222,7 +233,7 @@ export async function checkAndSendClassReminders(): Promise<{
                 parentName: coder.parent_name || 'Ayah/Bunda',
                 students: [],
                 time: time,
-                zoomLink: (session.class as any)?.zoom_link || '-',
+                klass: (session.class as any) ?? {},
                 idempotencyKey,
             });
         }
@@ -238,12 +249,13 @@ export async function checkAndSendClassReminders(): Promise<{
     const template = settings.class_reminder_message_template || '';
 
     for (const [phone, data] of reminders) {
-        // Simple template replacement
-        const msg = template
-            .replace('{parent_name}', data.parentName)
-            .replace('{student_name}', data.students.join(', '))
-            .replace('{time}', data.time)
-            .replace('{zoom_link}', data.zoomLink);
+        const msg = renderClassReminderMessage({
+            template,
+            parentName: data.parentName,
+            studentNames: data.students,
+            time: data.time,
+            klass: data.klass,
+        });
 
         const response = await sendClassReminder(phone, msg, data.students.join(', '), 'CLASS_REMINDER', data.idempotencyKey);
         if (!response.skipped) {
@@ -273,7 +285,7 @@ export async function checkAndSendClassReminders(): Promise<{
             // Group sessions by coach to send one summarized notification
             const coachSchedules = new Map<string, string[]>(); // coach_id -> array of descriptions
             
-            for (const session of weeklySessions) {
+            for (const session of allSessions) {
                 const cls = coachesClasses.find(c => c.id === session.class_id);
                 if (cls && cls.coach_id) {
                     const time = new Date(session.date_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });

@@ -178,7 +178,8 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
   const scheduleDayLabel = scheduleDayLabels[klass.schedule_day ?? ''] ?? klass.schedule_day ?? 'Belum diatur';
   const enrolledCoderIds = new Set(enrollments.map((enrollment) => enrollment.coder_id));
   const availableCoders = coders.filter((coder) => !enrolledCoderIds.has(coder.id));
-  const configuredClassLink = normalizeClassMeetingUrl(klass.zoom_link);
+  const deliveryMode = klass.delivery_mode === 'OFFLINE' ? 'OFFLINE' : 'ONLINE';
+  const configuredClassLink = deliveryMode === 'ONLINE' ? normalizeClassMeetingUrl(klass.zoom_link) : null;
 
   const competenciesMap =
     klass.type === 'EKSKUL'
@@ -234,16 +235,37 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
 
       <section style={scheduleCardStyle} aria-labelledby="class-link-title">
         <div style={scheduleCardContentStyle}>
-          <p style={scheduleEyebrowStyle}>LINK KELAS</p>
-          <h2 id="class-link-title" style={scheduleTitleStyle}>Ruang kelas online</h2>
+          <p style={scheduleEyebrowStyle}>METODE & AKSES KELAS</p>
+          <h2 id="class-link-title" style={scheduleTitleStyle}>
+            {deliveryMode === 'OFFLINE' ? 'Offline / Tatap muka' : 'Online'}
+          </h2>
           <p style={{ ...scheduleValueStyle, wordBreak: 'break-word' }}>
-            {configuredClassLink ?? 'Belum diatur'}
+            {deliveryMode === 'OFFLINE'
+              ? klass.location_name || 'Lokasi belum diatur'
+              : configuredClassLink ?? 'Link belum diatur'}
           </p>
+          {deliveryMode === 'OFFLINE' && klass.location_address ? (
+            <p style={{ ...scheduleDescriptionStyle, marginBottom: 4 }}>{klass.location_address}</p>
+          ) : null}
+          {deliveryMode === 'OFFLINE' && klass.location_maps_url ? (
+            <a href={klass.location_maps_url} target="_blank" rel="noreferrer" style={sectionLinkStyle}>Buka Google Maps →</a>
+          ) : null}
           <p style={scheduleDescriptionStyle}>
-            Link ini muncul di dashboard Coach dan Coder saat waktu kelas tiba. Perubahan hanya disinkronkan ke sesi aktif atau mendatang yang masih terjadwal.
+            {klass.type === 'EKSKUL'
+              ? `WhatsApp otomatis ke orang tua: ${klass.parent_whatsapp_enabled ? 'Aktif' : 'Mati'}. PWA dan notifikasi LMS tetap aktif.`
+              : 'WhatsApp otomatis orang tua tetap aktif untuk program Weekly. PWA dan notifikasi LMS tetap aktif.'}
           </p>
         </div>
-        <EditClassLinkModal classId={classIdParam} currentLink={klass.zoom_link} />
+        <EditClassLinkModal
+          classId={classIdParam}
+          classType={klass.type}
+          currentLink={klass.zoom_link}
+          currentDeliveryMode={deliveryMode}
+          currentLocationName={klass.location_name}
+          currentLocationAddress={klass.location_address}
+          currentLocationMapsUrl={klass.location_maps_url}
+          currentParentWhatsappEnabled={klass.parent_whatsapp_enabled}
+        />
       </section>
 
       {klass.type === 'WEEKLY' ? (

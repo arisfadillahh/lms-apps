@@ -18,8 +18,8 @@ describe('class meeting link contract', () => {
     const route = read('src/app/api/admin/classes/[id]/route.ts');
 
     expect(route).toContain("await assertRole(session, 'ADMIN')");
-    expect(route).toContain(".update({ zoom_link: zoomLink })");
-    expect(route).toContain(".update({ zoom_link_snapshot: zoomLink })");
+    expect(route).toContain("zoom_link: zoomLink ?? ''");
+    expect(route).toContain(".update({ zoom_link_snapshot: zoomLink ?? '' })");
     expect(route).toContain(".eq('status', 'SCHEDULED')");
     expect(route).toContain(".gt('date_time', activeWindowStart)");
   });
@@ -29,7 +29,8 @@ describe('class meeting link contract', () => {
     const modal = read('src/app/(admin)/admin/classes/[id]/EditClassLinkModal.tsx');
 
     expect(page).toContain('<EditClassLinkModal');
-    expect(page).toContain('Ruang kelas online');
+    expect(page).toContain('METODE & AKSES KELAS');
+    expect(page).toContain("deliveryMode === 'OFFLINE'");
     expect(modal).toContain("width: 'min(520px, 100%)'");
     expect(modal).toContain("maxHeight: 'calc(100svh - 24px)'");
   });

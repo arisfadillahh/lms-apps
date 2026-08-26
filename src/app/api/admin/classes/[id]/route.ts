@@ -12,8 +12,22 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-const updateClassLinkSchema = z.object({
-  zoomLink: z.string().trim().min(1).max(2048),
+const updateClassDeliverySchema = z.object({
+  deliveryMode: z.enum(['ONLINE', 'OFFLINE']),
+  zoomLink: z.string().trim().max(2048).optional().default(''),
+  locationName: z.string().trim().max(160).optional().default(''),
+  locationAddress: z.string().trim().max(500).optional().default(''),
+  locationMapsUrl: z.string().trim().url('Link Google Maps tidak valid').max(2048).optional().or(z.literal('')).default(''),
+  parentWhatsappEnabled: z.boolean().default(false),
+}).superRefine((value, ctx) => {
+  if (value.deliveryMode === 'ONLINE' && !value.zoomLink) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['zoomLink'], message: 'Link kelas wajib diisi untuk kelas Online' });
+  }
+  if (value.deliveryMode === 'OFFLINE') {
+    if (!value.locationName) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['locationName'], message: 'Nama tempat wajib diisi' });
+    if (!value.locationAddress) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['locationAddress'], message: 'Alamat wajib diisi' });
+    if (!value.locationMapsUrl) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['locationMapsUrl'], message: 'Link Google Maps wajib diisi' });
+  }
 });
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
@@ -21,13 +35,16 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   await assertRole(session, 'ADMIN');
 
   const classId = (await context.params).id;
-  const parsed = updateClassLinkSchema.safeParse(await request.json().catch(() => null));
+  const parsed = updateClassDeliverySchema.safeParse(await request.json().catch(() => null));
   if (!classId || !parsed.success) {
-    return NextResponse.json({ error: 'Link kelas tidak valid' }, { status: 400 });
+    const firstError = parsed.success ? null : parsed.error.issues[0]?.message;
+    return NextResponse.json({ error: firstError || 'Pengaturan kelas tidak valid' }, { status: 400 });
   }
 
-  const zoomLink = normalizeClassMeetingUrl(parsed.data.zoomLink);
-  if (!zoomLink) {
+  const zoomLink = parsed.data.deliveryMode === 'ONLINE'
+    ? normalizeClassMeetingUrl(parsed.data.zoomLink)
+    : '';
+  if (parsed.data.deliveryMode === 'ONLINE' && !zoomLink) {
     return NextResponse.json(
       { error: 'Gunakan link Google Meet, Zoom, atau ruang kelas online yang valid. Link placeholder Clevio tidak dapat dipakai.' },
       { status: 400 },
@@ -37,7 +54,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   const supabase = getSupabaseAdmin();
   const { data: klass, error: classError } = await supabase
     .from('classes')
-    .select('id')
+    .select('id, type')
     .eq('id', classId)
     .maybeSingle();
   if (classError) return NextResponse.json({ error: classError.message }, { status: 500 });
@@ -45,26 +62,39 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
   const { error: updateClassError } = await supabase
     .from('classes')
-    .update({ zoom_link: zoomLink })
+    .update({
+      delivery_mode: parsed.data.deliveryMode,
+      zoom_link: zoomLink ?? '',
+      location_name: parsed.data.deliveryMode === 'OFFLINE' ? parsed.data.locationName : null,
+      location_address: parsed.data.deliveryMode === 'OFFLINE' ? parsed.data.locationAddress : null,
+      location_maps_url: parsed.data.deliveryMode === 'OFFLINE' ? parsed.data.locationMapsUrl : null,
+      parent_whatsapp_enabled: klass.type === 'EKSKUL' && parsed.data.parentWhatsappEnabled,
+    })
     .eq('id', classId);
   if (updateClassError) return NextResponse.json({ error: updateClassError.message }, { status: 500 });
 
   const activeWindowStart = new Date(Date.now() - 120 * 60 * 1000).toISOString();
   const { data: updatedSessions, error: updateSessionsError } = await supabase
     .from('sessions')
-    .update({ zoom_link_snapshot: zoomLink })
+    .update({ zoom_link_snapshot: zoomLink ?? '' })
     .eq('class_id', classId)
     .eq('status', 'SCHEDULED')
     .gt('date_time', activeWindowStart)
     .select('id');
   if (updateSessionsError) {
     return NextResponse.json(
-      { error: 'Link kelas tersimpan, tetapi sinkronisasi sesi mendatang gagal. Silakan coba simpan lagi.' },
+      { error: 'Pengaturan kelas tersimpan, tetapi sinkronisasi sesi mendatang gagal. Silakan coba simpan lagi.' },
       { status: 500 },
     );
   }
 
-  return NextResponse.json({ success: true, zoomLink, updatedFutureSessions: updatedSessions?.length ?? 0 });
+  return NextResponse.json({
+    success: true,
+    deliveryMode: parsed.data.deliveryMode,
+    zoomLink: zoomLink ?? '',
+    parentWhatsappEnabled: klass.type === 'EKSKUL' && parsed.data.parentWhatsappEnabled,
+    updatedFutureSessions: updatedSessions?.length ?? 0,
+  });
 }
 
 export async function DELETE(request: NextRequest, context: RouteContext) {

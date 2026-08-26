@@ -38,6 +38,11 @@ export type CreateClassInput = {
   scheduleDay: string;
   scheduleTime: string;
   zoomLink: string;
+  deliveryMode: ClassRecord['delivery_mode'];
+  locationName?: string | null;
+  locationAddress?: string | null;
+  locationMapsUrl?: string | null;
+  parentWhatsappEnabled?: boolean;
   startDate: string;
   endDate?: string;
 };
@@ -53,6 +58,11 @@ export async function createClass(input: CreateClassInput): Promise<ClassRecord>
     schedule_day: input.scheduleDay,
     schedule_time: input.scheduleTime,
     zoom_link: input.zoomLink,
+    delivery_mode: input.deliveryMode,
+    location_name: input.locationName ?? null,
+    location_address: input.locationAddress ?? null,
+    location_maps_url: input.locationMapsUrl ?? null,
+    parent_whatsapp_enabled: input.type === 'EKSKUL' && input.parentWhatsappEnabled === true,
     start_date: input.startDate,
     end_date: input.endDate ?? input.startDate,
   };
@@ -82,6 +92,11 @@ export async function updateClass(id: string, updates: Partial<Omit<CreateClassI
   if (updates.scheduleDay !== undefined) payload.schedule_day = updates.scheduleDay;
   if (updates.scheduleTime !== undefined) payload.schedule_time = updates.scheduleTime;
   if (updates.zoomLink !== undefined) payload.zoom_link = updates.zoomLink;
+  if (updates.deliveryMode !== undefined) payload.delivery_mode = updates.deliveryMode;
+  if (updates.locationName !== undefined) payload.location_name = updates.locationName;
+  if (updates.locationAddress !== undefined) payload.location_address = updates.locationAddress;
+  if (updates.locationMapsUrl !== undefined) payload.location_maps_url = updates.locationMapsUrl;
+  if (updates.parentWhatsappEnabled !== undefined) payload.parent_whatsapp_enabled = updates.parentWhatsappEnabled;
   if (updates.startDate !== undefined) payload.start_date = updates.startDate;
   if (updates.endDate !== undefined) payload.end_date = updates.endDate;
 

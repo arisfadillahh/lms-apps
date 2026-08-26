@@ -6,6 +6,7 @@ import { assertRole } from '@/lib/roles';
 import { lessonTemplatesDao, blocksDao, classesDao } from '@/lib/dao';
 import { splitEkskulLessonMakeUp } from '@/lib/ekskulMakeUpInstructions';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { resolveCoachExampleUrl } from '@/lib/services/coachLessonContent';
 import ReportLessonButton from './ReportLessonButton';
 
 type PageProps = {
@@ -91,6 +92,34 @@ export default async function CoachLessonDetailPage({ params, searchParams }: Pa
 
     if (!lesson) {
         notFound();
+    }
+
+    // Weekly classes keep a class-scoped example snapshot. Use it when this
+    // detail page is opened from a specific class/session, with template data
+    // as a backwards-compatible fallback for older rows.
+    if (!isEkskulLesson && classIdFromUrl) {
+        const supabase = getSupabaseAdmin();
+        let classLessonQuery = supabase
+            .from('class_lessons')
+            .select('coach_example_url, class_blocks!inner(class_id)')
+            .eq('lesson_template_id', lesson.id)
+            .eq('class_blocks.class_id', classIdFromUrl);
+
+        if (sessionIdFromUrl) {
+            classLessonQuery = classLessonQuery.eq('session_id', sessionIdFromUrl);
+        }
+
+        const { data: classLesson } = await classLessonQuery
+            .order('order_index', { ascending: true })
+            .limit(1)
+            .maybeSingle();
+
+        if (classLesson) {
+            lesson = {
+                ...lesson,
+                example_url: resolveCoachExampleUrl(classLesson.coach_example_url, lesson.example_url),
+            };
+        }
     }
 
     const block = lesson.block_id ? await blocksDao.getBlockById(lesson.block_id) : null;

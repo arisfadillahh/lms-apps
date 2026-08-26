@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import Link from 'next/link';
+import { resolveCoachExampleUrl } from '@/lib/services/coachLessonContent';
 
 type Session = {
     id: string;
@@ -15,6 +16,7 @@ type Lesson = {
     session_id: string | null;
     slide_url?: string | null;
     coach_example_url?: string | null;
+    example_url?: string | null;
     block_title?: string | null;
 };
 
@@ -49,6 +51,7 @@ export default function LessonScheduleTable({ sessions, lessons, classType = 'WE
                     <tbody>
                         {sessions.map((session) => {
                             const lesson = lessonMap.get(session.id);
+                            const exampleUrl = resolveCoachExampleUrl(lesson?.coach_example_url, lesson?.example_url);
                             const isCancelled = session.status === 'CANCELLED';
                             const isPast = new Date(session.date_time) < new Date();
 
@@ -96,8 +99,8 @@ export default function LessonScheduleTable({ sessions, lessons, classType = 'WE
                                         )}
                                     </td>
                                     <td style={tdStyle}>
-                                        {lesson?.coach_example_url ? (
-                                            <a href={lesson.coach_example_url} target="_blank" rel="noreferrer" style={linkStyle}>
+                                        {exampleUrl ? (
+                                            <a href={exampleUrl} target="_blank" rel="noreferrer" style={linkStyle}>
                                                 Contoh Game
                                             </a>
                                         ) : '—'}

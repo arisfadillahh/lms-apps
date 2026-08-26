@@ -849,6 +849,17 @@ html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-card-upcoming {
   backdrop-filter: blur(18px);
 }
 
+/* Keep Coach attendance actions above the phone navigation safe area. */
+.coach-attendance-action-strip {
+  bottom: 0;
+}
+
+@media (max-width: 767px) {
+  .coach-attendance-action-strip {
+    bottom: calc(70px + env(safe-area-inset-bottom));
+  }
+}
+
 .coach-mobile-nav-item {
   position: relative;
   display: flex;

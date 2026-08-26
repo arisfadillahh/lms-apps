@@ -258,8 +258,10 @@ export default function AttendanceWrapper({
                 </div>
             )}
 
+            <div className="h-24 md:hidden" aria-hidden="true" />
+
             {/* Fixed Bottom Action Strip */}
-            <div className="fixed bottom-0 left-0 md:left-[260px] right-0 bg-white border-t border-slate-200 px-3 sm:px-6 py-3 flex items-center justify-between z-30 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
+            <div className="coach-attendance-action-strip fixed bottom-0 left-0 md:left-[260px] right-0 bg-white border-t border-slate-200 px-3 sm:px-6 py-3 flex items-center justify-between z-30 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
                 <div className="flex items-center gap-2 min-w-0">
                     <span className="material-symbols-outlined text-slate-400 text-base shrink-0">info</span>
                     <p className="text-xs text-slate-500 font-medium whitespace-nowrap hidden sm:block">Auto-save aktif.</p>

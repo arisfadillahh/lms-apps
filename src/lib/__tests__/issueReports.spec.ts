@@ -41,6 +41,30 @@ describe('issue report helpers', () => {
     expect(issueReportSchema.safeParse({ title: 'Err', description: 'Pendek' }).success).toBe(false);
   });
 
+  it('keeps the error page link optional when a report is submitted', () => {
+    const result = issueReportSchema.safeParse({
+      title: 'Simpan presensi tertutup navigasi',
+      description: 'Tombol simpan presensi tertutup bottom navigation di mobile.',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.pageUrl).toBe('');
+    }
+
+    const message = buildIssueReportWhatsAppMessage({
+      id: 'a1b2c3d4-1111-2222-3333-444455556666',
+      reporterName: 'Coach Test',
+      reporterRole: 'COACH',
+      title: 'Simpan presensi tertutup navigasi',
+      description: 'Tombol simpan presensi tertutup bottom navigation di mobile.',
+      createdAt: '2026-08-12T03:00:00.000Z',
+      hasScreenshot: false,
+    });
+
+    expect(message).not.toContain('Halaman:');
+  });
+
   it('requires a resolution summary before closing', () => {
     expect(issueReportUpdateSchema.safeParse({ status: 'RESOLVED', priority: 'HIGH', resolutionSummary: '' }).success).toBe(false);
     expect(issueReportUpdateSchema.safeParse({ status: 'RESOLVED', priority: 'HIGH', resolutionSummary: 'Data stale sudah diperbaiki.' }).success).toBe(true);

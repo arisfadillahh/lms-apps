@@ -2,6 +2,8 @@
 
 import { useState, useEffect, type CSSProperties } from 'react';
 import type { InvoiceSettings, WhatsAppStatus } from '@/lib/types/invoice';
+import { renderClassReminderMessage } from '@/lib/classDelivery';
+import { resolveClassReminderTemplate } from '@/lib/classReminderTemplates';
 
 interface ExtendedStatus extends WhatsAppStatus {
     serverTime?: string;
@@ -140,13 +142,21 @@ Mohon hadir tepat waktu ya. Terima kasih! 🙏`;
         setTestMsg(null);
 
         try {
-            // Construct message
-            const template = invoiceSettings.class_reminder_message_template || '';
-            const msg = template
-                .replace('{parent_name}', testStudent.parent_name || 'Ayah/Bunda')
-                .replace('{student_name}', testStudent.student_name)
-                .replace('{time}', testStudent.time)
-                .replace('{zoom_link}', testStudent.zoom_link);
+            const klass = {
+                name: testStudent.class_name,
+                delivery_mode: testStudent.delivery_mode,
+                zoom_link: testStudent.zoom_link,
+                location_name: testStudent.location_name,
+                location_address: testStudent.location_address,
+                location_maps_url: testStudent.location_maps_url,
+            } as const;
+            const msg = renderClassReminderMessage({
+                template: resolveClassReminderTemplate(klass, {}, invoiceSettings.class_reminder_message_template),
+                parentName: testStudent.parent_name || 'Ayah/Bunda',
+                studentNames: [testStudent.student_name],
+                time: testStudent.time,
+                klass,
+            });
 
             const res = await fetch('/api/whatsapp/test-reminder', {
                 method: 'POST',
@@ -454,17 +464,10 @@ Mohon hadir tepat waktu ya. Terima kasih! 🙏`;
                         </div>
                     </div>
 
-                    <div style={formGroupStyle}>
-                        <label style={labelStyle}>Template Pesan Reminder</label>
-                        <textarea
-                            value={invoiceSettings.class_reminder_message_template || ''}
-                            onChange={(e) => handleSettingChange('class_reminder_message_template', e.target.value)}
-                            style={textareaStyle}
-                            rows={8}
-                        />
-                        <p style={helpTextStyle}>
-                            Variables: {'{parent_name}'}, {'{student_name}'}, {'{time}'}, {'{zoom_link}'}
-                        </p>
+                    <div style={{ ...formGroupStyle, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 14 }}>
+                        <strong style={{ color: '#0f172a' }}>Template pesan dipisah berdasarkan jenis kelas</strong>
+                        <p style={{ ...helpTextStyle, marginBottom: 8 }}>Atur template Online dan Offline di halaman Template WhatsApp agar pengaturan jadwal tidak tercampur dengan isi pesan.</p>
+                        <a href="/admin/whatsapp/templates" style={{ color: '#15803d', fontWeight: 600, fontSize: 13 }}>Buka Template WhatsApp →</a>
                     </div>
 
                     <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between' }}>

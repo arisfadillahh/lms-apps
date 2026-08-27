@@ -5,6 +5,7 @@ import { buildClassReminderIdempotencyKey } from '@/lib/services/reminderIdempot
 import { sendCoderDayBeforeReminders, sendOneHourSessionReminders } from '@/lib/services/roleSessionReminders';
 import { filterParentWhatsappReminderSessions } from '@/lib/classReminderEligibility';
 import { renderClassReminderMessage, type ClassDeliveryDetails } from '@/lib/classDelivery';
+import { getClassReminderTemplateCategory, resolveClassReminderTemplate, type ClassReminderTemplateCategory } from '@/lib/classReminderTemplates';
 
 /**
  * Check and Send Class Reminders for "Today"
@@ -94,7 +95,7 @@ export async function checkAndSendClassReminders(): Promise<{
 
     if (logs && logs.length > 0) {
         logs.forEach((log: any) => {
-            if (log.payload?.type === 'CLASS_REMINDER' && log.payload?.parent_phone) {
+            if (log.payload?.type === 'CLASS_REMINDER' && log.payload?.parent_phone && !log.payload?.idempotency_key) {
                 sentParentPhones.add(log.payload.parent_phone);
             }
             if (log.payload?.type === 'CLASS_REMINDER' && log.payload?.idempotency_key) {
@@ -169,6 +170,21 @@ export async function checkAndSendClassReminders(): Promise<{
     }
 
     const classIds = [...new Set(allSessions.map(s => s.class_id).filter(Boolean))];
+    const { data: configuredReminderTemplates, error: reminderTemplateError } = await (supabase as any)
+        .from('whatsapp_templates')
+        .select('category, template_content')
+        .in('category', ['CLASS_REMINDER_ONLINE', 'CLASS_REMINDER_OFFLINE']);
+    if (reminderTemplateError) {
+        // A pre-migration database may not know the new categories yet. The
+        // resolver below still provides a safe default (and preserves the old
+        // Online template) until the additive migration is applied.
+        console.warn('[Scheduler] Failed to load class reminder templates:', reminderTemplateError.message);
+    }
+    const reminderTemplates = ((configuredReminderTemplates ?? []) as Array<{ category: ClassReminderTemplateCategory; template_content: string }>)
+        .reduce<Partial<Record<ClassReminderTemplateCategory, string>>>((acc, row) => {
+            acc[row.category] = row.template_content;
+            return acc;
+        }, {});
     const parentWhatsappSessions = filterParentWhatsappReminderSessions(allSessions, 'CLASS_REMINDER');
     const parentWhatsappClassIds = [...new Set(parentWhatsappSessions.map(s => s.class_id).filter(Boolean))];
     const enrollmentResult = parentWhatsappClassIds.length > 0
@@ -223,24 +239,30 @@ export async function checkAndSendClassReminders(): Promise<{
 
         if (!phone) continue;
 
-        // SKIP if this parent already received a reminder today
-        const idempotencyKey = buildClassReminderIdempotencyKey(tomorrowStr, phone);
-        if (sentParentPhones.has(phone) || sentReminderKeys.has(idempotencyKey)) {
+        // Skip duplicates for this parent and delivery mode. A parent with
+        // both Online and Offline classes receives one correctly formatted
+        // message per mode instead of mixing access details.
+        const classData = Array.isArray(session.class) ? session.class[0] : session.class;
+        const templateCategory = getClassReminderTemplateCategory(classData);
+        const legacyIdempotencyKey = buildClassReminderIdempotencyKey(tomorrowStr, phone);
+        const idempotencyKey = `${legacyIdempotencyKey}:${templateCategory}`;
+        if (sentParentPhones.has(phone) || sentReminderKeys.has(idempotencyKey) || sentReminderKeys.has(legacyIdempotencyKey)) {
             continue;
         }
 
-        if (!reminders.has(phone)) {
+        const reminderKey = `${phone}:${templateCategory}`;
+        if (!reminders.has(reminderKey)) {
             const time = new Date(session.date_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-            reminders.set(phone, {
+            reminders.set(reminderKey, {
                 parentName: coder.parent_name || 'Ayah/Bunda',
                 students: [],
                 time: time,
-                klass: (session.class as any) ?? {},
+                klass: (classData as any) ?? {},
                 idempotencyKey,
             });
         }
 
-        const entry = reminders.get(phone)!;
+        const entry = reminders.get(reminderKey)!;
         if (!entry.students.includes(coder.full_name)) {
             entry.students.push(coder.full_name);
         }
@@ -248,11 +270,9 @@ export async function checkAndSendClassReminders(): Promise<{
 
     // 6. Send Messages to Parents
     let sentCount = 0;
-    const template = settings.class_reminder_message_template || '';
-
     for (const [phone, data] of reminders) {
         const msg = renderClassReminderMessage({
-            template,
+            template: resolveClassReminderTemplate(data.klass, reminderTemplates, settings.class_reminder_message_template),
             parentName: data.parentName,
             studentNames: data.students,
             time: data.time,

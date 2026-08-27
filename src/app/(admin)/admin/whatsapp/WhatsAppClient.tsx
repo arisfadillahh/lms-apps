@@ -4,6 +4,8 @@ import { useState, useEffect, type CSSProperties } from 'react';
 import type { InvoiceSettings, WhatsAppStatus } from '@/lib/types/invoice';
 import WhatsAppTemplatesContent from './WhatsAppTemplates';
 import WhatsAppReportTemplates from './WhatsAppReportTemplates';
+import { renderClassReminderMessage } from '@/lib/classDelivery';
+import { resolveClassReminderTemplate } from '@/lib/classReminderTemplates';
 
 // SVG Icons
 const ConnectionIcon = () => (
@@ -270,12 +272,21 @@ export default function WhatsAppSettingsPage() {
         setSendingTest(true);
         setTestMsg(null);
         try {
-            const template = settings.class_reminder_message_template || '';
-            const msg = template
-                .replace('{parent_name}', testStudent.parent_name || 'Ayah/Bunda')
-                .replace('{student_name}', testStudent.student_name)
-                .replace('{time}', testStudent.time)
-                .replace('{zoom_link}', testStudent.zoom_link);
+            const klass = {
+                name: testStudent.class_name,
+                delivery_mode: testStudent.delivery_mode,
+                zoom_link: testStudent.zoom_link,
+                location_name: testStudent.location_name,
+                location_address: testStudent.location_address,
+                location_maps_url: testStudent.location_maps_url,
+            } as const;
+            const msg = renderClassReminderMessage({
+                template: resolveClassReminderTemplate(klass, {}, settings.class_reminder_message_template),
+                parentName: testStudent.parent_name || 'Ayah/Bunda',
+                studentNames: [testStudent.student_name],
+                time: testStudent.time,
+                klass,
+            });
 
             const res = await fetch('/api/whatsapp/test-reminder', {
                 method: 'POST',
@@ -300,7 +311,7 @@ export default function WhatsAppSettingsPage() {
         { key: 'connection', label: 'Koneksi', icon: <ConnectionIcon /> },
         { key: 'class', label: 'Reminder Kelas', icon: <ClassIcon /> },
         { key: 'makeup', label: 'Reminder Susulan', icon: <MakeupIcon /> },
-        { key: 'templates', label: 'Pesan Absen', icon: <TemplateIcon /> },
+        { key: 'templates', label: 'Template Pesan', icon: <TemplateIcon /> },
         { key: 'reports', label: 'Pesan Rapor', icon: <TemplateIcon /> },
         { key: 'logs', label: 'Log Pengiriman', icon: <LogIcon /> },
     ];
@@ -536,10 +547,9 @@ function ClassReminderTab({ settings, settingsMsg, savingSettings, onSettingChan
                 </div>
             </div>
 
-            <div style={formGroupStyle}>
-                <label style={labelStyle}>Template Pesan</label>
-                <textarea value={settings.class_reminder_message_template || ''} onChange={(e) => onSettingChange('class_reminder_message_template', e.target.value)} style={textareaStyle} rows={6} />
-                <p style={helpTextStyle}>Variables: {'{parent_name}'}, {'{student_name}'}, {'{time}'}, {'{zoom_link}'}</p>
+            <div style={infoBoxStyle}>
+                <strong>Template pesan</strong>
+                <p style={{ ...helpTextStyle, marginBottom: 0 }}>Template Online dan Offline dikelola terpisah di tab Template Pesan dan dipilih otomatis dari jenis kelas.</p>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 20 }}>
@@ -703,6 +713,7 @@ const tabContentStyle: CSSProperties = {};
 
 const cardStyle: CSSProperties = { backgroundColor: 'var(--surface)', borderRadius: 18, border: '1px solid var(--border)', padding: 24, marginBottom: 20, boxShadow: 'var(--shadow-sm)' };
 const sectionTitleStyle: CSSProperties = { fontSize: 18, fontWeight: 700, margin: '0 0 16px 0', color: 'var(--text)' };
+const infoBoxStyle: CSSProperties = { background: 'var(--surface-muted, #f8fafc)', border: '1px solid var(--border)', borderRadius: 12, padding: 14, marginTop: 8, color: 'var(--text)' };
 
 const statusContainerStyle: CSSProperties = { marginBottom: 20 };
 const statusIndicatorStyle = (connected: boolean): CSSProperties => ({ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, fontWeight: 600, color: connected ? '#22c55e' : '#ef4444' });

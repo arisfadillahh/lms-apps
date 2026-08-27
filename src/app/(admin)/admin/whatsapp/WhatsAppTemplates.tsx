@@ -2,6 +2,12 @@
 
 import { useState, useEffect, type CSSProperties } from 'react';
 import type { InvoiceSettings } from '@/lib/types/invoice';
+import {
+    CLASS_REMINDER_TEMPLATE_CATEGORIES,
+    CLASS_REMINDER_TEMPLATE_VARIABLES,
+    DEFAULT_CLASS_REMINDER_TEMPLATES,
+    type ClassReminderTemplateCategory,
+} from '@/lib/classReminderTemplates';
 
 function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
     return (
@@ -65,8 +71,13 @@ interface WhatsAppTemplatesProps {
 export default function WhatsAppTemplatesContent({ settings, settingsMsg, savingSettings, onSettingChange, onSave }: WhatsAppTemplatesProps) {
     const [template, setTemplate] = useState<Template | null>(null);
     const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
+    const [saving, setSaving] = useState<string | null>(null);
     const [editedContent, setEditedContent] = useState(DEFAULT_TEMPLATE.content);
+    const [editedClassReminderContent, setEditedClassReminderContent] = useState<Record<ClassReminderTemplateCategory, string>>({
+        CLASS_REMINDER_ONLINE: DEFAULT_CLASS_REMINDER_TEMPLATES.CLASS_REMINDER_ONLINE.content,
+        CLASS_REMINDER_OFFLINE: DEFAULT_CLASS_REMINDER_TEMPLATES.CLASS_REMINDER_OFFLINE.content,
+    });
+    const [classReminderTemplates, setClassReminderTemplates] = useState<Partial<Record<ClassReminderTemplateCategory, Template>>>({});
     const [showPreview, setShowPreview] = useState(false);
     const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -82,12 +93,24 @@ export default function WhatsAppTemplatesContent({ settings, settingsMsg, saving
             const found = (data.templates || []).find((t: Template) => t.category === 'PARENT_ABSENT');
             setTemplate(found || null);
             setEditedContent(found?.template_content || DEFAULT_TEMPLATE.content);
+            const configured = Object.fromEntries(
+                CLASS_REMINDER_TEMPLATE_CATEGORIES.map(category => {
+                    const row = (data.templates || []).find((t: Template) => t.category === category);
+                    return [category, row?.template_content || DEFAULT_CLASS_REMINDER_TEMPLATES[category].content];
+                }),
+            ) as Record<ClassReminderTemplateCategory, string>;
+            setEditedClassReminderContent(configured);
+            setClassReminderTemplates(Object.fromEntries(
+                CLASS_REMINDER_TEMPLATE_CATEGORIES
+                    .map(category => [category, (data.templates || []).find((t: Template) => t.category === category)])
+                    .filter(([, row]) => row),
+            ));
         } catch (e) { console.error('Failed to fetch template:', e); }
         finally { setLoading(false); }
     }
 
     async function handleSave() {
-        setSaving(true);
+        setSaving('PARENT_ABSENT');
         setMsg(null);
         try {
             const method = template ? 'PUT' : 'POST';
@@ -109,7 +132,35 @@ export default function WhatsAppTemplatesContent({ settings, settingsMsg, saving
                 setMsg({ type: 'error', text: d.error || 'Gagal menyimpan' });
             }
         } catch { setMsg({ type: 'error', text: 'Gagal menyimpan template' }); }
-        finally { setSaving(false); }
+        finally { setSaving(null); }
+    }
+
+    async function handleSaveClassReminder(category: ClassReminderTemplateCategory) {
+        setSaving(category);
+        setMsg(null);
+        try {
+            const existing = classReminderTemplates[category];
+            const res = await fetch('/api/admin/whatsapp/templates', {
+                method: existing ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: existing?.id,
+                    category,
+                    templateContent: editedClassReminderContent[category],
+                    variables: [...CLASS_REMINDER_TEMPLATE_VARIABLES],
+                }),
+            });
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Gagal menyimpan template');
+            }
+            await fetchTemplate();
+            setMsg({ type: 'success', text: 'Template reminder kelas berhasil disimpan!' });
+        } catch (error) {
+            setMsg({ type: 'error', text: error instanceof Error ? error.message : 'Gagal menyimpan template' });
+        } finally {
+            setSaving(null);
+        }
     }
 
     function getPreview(): string {
@@ -126,6 +177,50 @@ export default function WhatsAppTemplatesContent({ settings, settingsMsg, saving
 
     return (
         <div>
+            <div style={sectionHeaderStyle}>
+                <h2 style={titleStyle}>Template Reminder Kelas</h2>
+                <p style={descStyle}>Template dipilih otomatis berdasarkan jenis kelas. Pengaturan jadwal dan toggle tetap berada di menu Reminder Kelas.</p>
+            </div>
+            <div style={templateGridStyle}>
+                {CLASS_REMINDER_TEMPLATE_CATEGORIES.map(category => {
+                    const definition = DEFAULT_CLASS_REMINDER_TEMPLATES[category];
+                    const existing = classReminderTemplates[category];
+                    const content = editedClassReminderContent[category];
+                    const changed = content !== (existing?.template_content || definition.content);
+                    return (
+                        <div key={category} style={cardStyle}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                                <div>
+                                    <h3 style={{ ...titleStyle, fontSize: 16 }}>{definition.label}</h3>
+                                    <p style={descStyle}>{definition.description}</p>
+                                </div>
+                                {changed && <span style={unsavedBadge}>Belum disimpan</span>}
+                            </div>
+                            <textarea
+                                aria-label={`Template ${definition.label}`}
+                                value={content}
+                                onChange={(e) => setEditedClassReminderContent(prev => ({ ...prev, [category]: e.target.value }))}
+                                style={textareaStyle}
+                                rows={9}
+                            />
+                            <div style={variablesBox}>
+                                <p style={{ fontSize: 12, color: '#64748b', fontWeight: 500, margin: '0 0 6px' }}>Variabel tersedia</p>
+                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                    {CLASS_REMINDER_TEMPLATE_VARIABLES.map(variable => <code key={variable} style={varTag}>{`{${variable}}`}</code>)}
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                                <button onClick={() => setEditedClassReminderContent(prev => ({ ...prev, [category]: definition.content }))} style={outlineBtnStyle}>↺ Reset Default</button>
+                                <button onClick={() => handleSaveClassReminder(category)} style={{ ...greenBtnStyle, opacity: changed ? 1 : 0.5 }} disabled={saving === category || !changed}>
+                                    {saving === category ? 'Menyimpan...' : '💾 Simpan Template'}
+                                </button>
+                            </div>
+                            {existing && <p style={{ fontSize: 11, color: '#94a3b8', margin: '10px 0 0' }}>Terakhir diupdate: {new Date(existing.updated_at).toLocaleString('id-ID')}</p>}
+                        </div>
+                    );
+                })}
+            </div>
+
             {/* Toggle */}
             <div style={cardStyle}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -190,8 +285,8 @@ export default function WhatsAppTemplatesContent({ settings, settingsMsg, saving
                 {/* Actions */}
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                     <button onClick={() => setEditedContent(DEFAULT_TEMPLATE.content)} style={outlineBtnStyle}>↺ Reset Default</button>
-                    <button onClick={handleSave} style={{ ...greenBtnStyle, opacity: !hasChanges ? 0.5 : 1 }} disabled={saving || !hasChanges}>
-                        {saving ? 'Menyimpan...' : '💾 Simpan Template'}
+                    <button onClick={handleSave} style={{ ...greenBtnStyle, opacity: !hasChanges ? 0.5 : 1 }} disabled={saving === 'PARENT_ABSENT' || !hasChanges}>
+                        {saving === 'PARENT_ABSENT' ? 'Menyimpan...' : '💾 Simpan Template'}
                     </button>
                 </div>
 
@@ -207,6 +302,8 @@ export default function WhatsAppTemplatesContent({ settings, settingsMsg, saving
 
 // Styles
 const cardStyle: CSSProperties = { backgroundColor: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: 24, marginBottom: 20 };
+const sectionHeaderStyle: CSSProperties = { margin: '4px 0 12px' };
+const templateGridStyle: CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 };
 const titleStyle: CSSProperties = { fontSize: 18, fontWeight: 600, margin: '0 0 4px 0', color: '#0f172a' };
 const descStyle: CSSProperties = { color: '#64748b', fontSize: 14, margin: 0 };
 const unsavedBadge: CSSProperties = { backgroundColor: '#fef3c7', color: '#92400e', padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap' };

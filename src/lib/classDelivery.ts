@@ -5,6 +5,7 @@ export const DEFAULT_CLASS_LOCATION = {
 } as const;
 
 export type ClassDeliveryDetails = {
+  name?: string | null;
   delivery_mode?: 'ONLINE' | 'OFFLINE' | null;
   zoom_link?: string | null;
   location_name?: string | null;
@@ -57,6 +58,7 @@ export function renderClassReminderMessage(input: {
   return template
     .replaceAll('{parent_name}', input.parentName)
     .replaceAll('{student_name}', input.studentNames.join(', '))
+    .replaceAll('{class_name}', input.klass.name?.trim() || '-')
     .replaceAll('{time}', input.time)
     .replaceAll('{zoom_link}', accessDetails)
     .replaceAll('{class_access}', accessDetails)

@@ -4,6 +4,11 @@ import {
   buildClassPreparationMessage,
   renderClassReminderMessage,
 } from '@/lib/classDelivery';
+import {
+  DEFAULT_CLASS_REMINDER_TEMPLATES,
+  getClassReminderTemplateCategory,
+  resolveClassReminderTemplate,
+} from '@/lib/classReminderTemplates';
 import { createClassSchema } from '@/lib/validation/admin';
 
 const baseClassInput = {
@@ -106,5 +111,47 @@ describe('class delivery behavior', () => {
       .toBe('Siapkan perangkat dan koneksi internet sebelum kelas.');
     expect(buildClassPreparationMessage({ delivery_mode: 'OFFLINE' }))
       .toBe('Cek alamat lokasi kelas di dashboard dan siapkan perjalanan.');
+  });
+
+  it('selects and renders separate Online and Offline WhatsApp reminder templates', () => {
+    const onlineClass = { name: 'Scratch Online', delivery_mode: 'ONLINE' as const, zoom_link: 'https://zoom.us/j/999' };
+    const offlineClass = {
+      name: 'Scratch Tatap Muka',
+      delivery_mode: 'OFFLINE' as const,
+      location_name: 'Rumah Tebih',
+      location_address: 'Riverside 1 Blok A7 No. 25',
+      location_maps_url: 'https://maps.google.com/?q=Rumah+Tebih',
+    };
+
+    expect(getClassReminderTemplateCategory(onlineClass)).toBe('CLASS_REMINDER_ONLINE');
+    expect(getClassReminderTemplateCategory(offlineClass)).toBe('CLASS_REMINDER_OFFLINE');
+
+    const onlineMessage = renderClassReminderMessage({
+      template: resolveClassReminderTemplate(onlineClass),
+      parentName: 'Ayah/Bunda',
+      studentNames: ['Alya'],
+      time: '16.00',
+      klass: onlineClass,
+    });
+    const offlineMessage = renderClassReminderMessage({
+      template: resolveClassReminderTemplate(offlineClass),
+      parentName: 'Ayah/Bunda',
+      studentNames: ['Alya'],
+      time: '16.00',
+      klass: offlineClass,
+    });
+
+    expect(onlineMessage).toContain('🔗 Link kelas: https://zoom.us/j/999');
+    expect(onlineMessage).not.toContain('📍 Lokasi:');
+    expect(offlineMessage).toContain('📍 Lokasi: Rumah Tebih');
+    expect(offlineMessage).toContain('🗺️ Google Maps: https://maps.google.com/?q=Rumah+Tebih');
+    expect(offlineMessage).not.toContain('🔗 Link kelas:');
+    expect(DEFAULT_CLASS_REMINDER_TEMPLATES.CLASS_REMINDER_ONLINE.content).not.toBe(DEFAULT_CLASS_REMINDER_TEMPLATES.CLASS_REMINDER_OFFLINE.content);
+  });
+
+  it('preserves a customised legacy Online template while never using it for Offline classes', () => {
+    const legacy = 'Halo {parent_name}\nJadwal {student_name}\n{zoom_link}';
+    expect(resolveClassReminderTemplate({ delivery_mode: 'ONLINE' }, {}, legacy)).toBe(legacy);
+    expect(resolveClassReminderTemplate({ delivery_mode: 'OFFLINE' }, {}, legacy)).toBe(DEFAULT_CLASS_REMINDER_TEMPLATES.CLASS_REMINDER_OFFLINE.content);
   });
 });

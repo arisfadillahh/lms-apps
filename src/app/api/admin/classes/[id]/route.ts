@@ -18,7 +18,9 @@ const updateClassDeliverySchema = z.object({
   locationName: z.string().trim().max(160).optional().default(''),
   locationAddress: z.string().trim().max(500).optional().default(''),
   locationMapsUrl: z.string().trim().url('Link Google Maps tidak valid').max(2048).optional().or(z.literal('')).default(''),
-  parentWhatsappEnabled: z.boolean().default(false),
+  parentWhatsappClassReminderEnabled: z.boolean().default(false),
+  parentWhatsappAbsenceEnabled: z.boolean().default(false),
+  parentWhatsappMakeupEnabled: z.boolean().default(false),
 }).superRefine((value, ctx) => {
   if (value.deliveryMode === 'ONLINE' && !value.zoomLink) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['zoomLink'], message: 'Link kelas wajib diisi untuk kelas Online' });
@@ -68,7 +70,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       location_name: parsed.data.deliveryMode === 'OFFLINE' ? parsed.data.locationName : null,
       location_address: parsed.data.deliveryMode === 'OFFLINE' ? parsed.data.locationAddress : null,
       location_maps_url: parsed.data.deliveryMode === 'OFFLINE' ? parsed.data.locationMapsUrl : null,
-      parent_whatsapp_enabled: klass.type === 'EKSKUL' && parsed.data.parentWhatsappEnabled,
+      parent_whatsapp_class_reminder_enabled: klass.type === 'EKSKUL' && parsed.data.parentWhatsappClassReminderEnabled,
+      parent_whatsapp_absence_enabled: klass.type === 'EKSKUL' && parsed.data.parentWhatsappAbsenceEnabled,
+      parent_whatsapp_makeup_enabled: klass.type === 'EKSKUL' && parsed.data.parentWhatsappMakeupEnabled,
     })
     .eq('id', classId);
   if (updateClassError) return NextResponse.json({ error: updateClassError.message }, { status: 500 });
@@ -92,7 +96,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     success: true,
     deliveryMode: parsed.data.deliveryMode,
     zoomLink: zoomLink ?? '',
-    parentWhatsappEnabled: klass.type === 'EKSKUL' && parsed.data.parentWhatsappEnabled,
+    parentWhatsappClassReminderEnabled: klass.type === 'EKSKUL' && parsed.data.parentWhatsappClassReminderEnabled,
+    parentWhatsappAbsenceEnabled: klass.type === 'EKSKUL' && parsed.data.parentWhatsappAbsenceEnabled,
+    parentWhatsappMakeupEnabled: klass.type === 'EKSKUL' && parsed.data.parentWhatsappMakeupEnabled,
     updatedFutureSessions: updatedSessions?.length ?? 0,
   });
 }

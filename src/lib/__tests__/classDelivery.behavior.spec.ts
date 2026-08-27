@@ -38,6 +38,33 @@ describe('class delivery behavior', () => {
     expect(validOffline.success).toBe(true);
   });
 
+  it('defaults every Ekskul parent WhatsApp type off and preserves independent selections', () => {
+    const defaultResult = createClassSchema.parse({
+      ...baseClassInput,
+      deliveryMode: 'ONLINE',
+      zoomLink: 'https://zoom.us/j/123456',
+    });
+    const selectedResult = createClassSchema.parse({
+      ...baseClassInput,
+      deliveryMode: 'ONLINE',
+      zoomLink: 'https://zoom.us/j/123456',
+      parentWhatsappClassReminderEnabled: true,
+      parentWhatsappAbsenceEnabled: false,
+      parentWhatsappMakeupEnabled: true,
+    });
+
+    expect([
+      defaultResult.parentWhatsappClassReminderEnabled,
+      defaultResult.parentWhatsappAbsenceEnabled,
+      defaultResult.parentWhatsappMakeupEnabled,
+    ]).toEqual([false, false, false]);
+    expect([
+      selectedResult.parentWhatsappClassReminderEnabled,
+      selectedResult.parentWhatsappAbsenceEnabled,
+      selectedResult.parentWhatsappMakeupEnabled,
+    ]).toEqual([true, false, true]);
+  });
+
   it('renders a clean Online parent reminder with the meeting link', () => {
     expect(renderClassReminderMessage({
       template: 'Halo {parent_name}\nCoder: {student_name}\nPukul: {time}\n🔗 Zoom: {zoom_link}',

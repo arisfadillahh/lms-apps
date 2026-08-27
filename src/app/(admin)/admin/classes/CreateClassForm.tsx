@@ -64,7 +64,9 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
       locationName: DEFAULT_CLASS_LOCATION.name,
       locationAddress: DEFAULT_CLASS_LOCATION.address,
       locationMapsUrl: DEFAULT_CLASS_LOCATION.mapsUrl,
-      parentWhatsappEnabled: false,
+      parentWhatsappClassReminderEnabled: false,
+      parentWhatsappAbsenceEnabled: false,
+      parentWhatsappMakeupEnabled: false,
       initialBlockId: '',
       initialLessonId: '',
       ekskulLessonPlanId: '',
@@ -143,7 +145,11 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
   }, [selectedLevelId, selectedType, setValue]);
 
   useEffect(() => {
-    if (selectedType !== 'EKSKUL') setValue('parentWhatsappEnabled', false);
+    if (selectedType !== 'EKSKUL') {
+      setValue('parentWhatsappClassReminderEnabled', false);
+      setValue('parentWhatsappAbsenceEnabled', false);
+      setValue('parentWhatsappMakeupEnabled', false);
+    }
   }, [selectedType, setValue]);
 
   const onSubmit = async (values: ParsedFormValues) => {
@@ -178,7 +184,9 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
         initialBlockId: '',
         initialLessonId: '',
         ekskulInitialLessonId: '',
-        parentWhatsappEnabled: false,
+        parentWhatsappClassReminderEnabled: false,
+        parentWhatsappAbsenceEnabled: false,
+        parentWhatsappMakeupEnabled: false,
       });
       setAvailableLessons([]);
       setAvailableEkskulLessons([]);
@@ -462,14 +470,22 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
             )}
 
             {selectedType === 'EKSKUL' ? (
-              <label style={toggleCardStyle}>
-                <input type="checkbox" {...register('parentWhatsappEnabled')} style={{ width: 18, height: 18, accentColor: '#2563eb' }} />
-                <MessageCircle size={20} color="#2563eb" />
-                <span>
-                  <strong style={{ display: 'block', color: '#1e293b', fontSize: 14 }}>Kirim pesan otomatis ke WhatsApp orang tua</strong>
-                  <span style={helpStyle}>Default mati. Hanya WhatsApp orang tua yang mengikuti toggle ini; PWA dan notifikasi LMS tetap aktif.</span>
-                </span>
-              </label>
+              <fieldset style={whatsappSettingsStyle}>
+                <legend style={whatsappLegendStyle}><MessageCircle size={20} color="#2563eb" /> WhatsApp otomatis ke orang tua</legend>
+                <span style={helpStyle}>Pilih tiap tipe pesan secara terpisah. Default semuanya mati; PWA dan notifikasi LMS tetap aktif.</span>
+                <label style={notificationToggleStyle}>
+                  <input type="checkbox" {...register('parentWhatsappClassReminderEnabled')} style={checkboxStyle} />
+                  <span><strong style={toggleTitleStyle}>Pengingat jadwal kelas</strong><span style={helpStyle}>Pesan H-1 berisi waktu dan akses/lokasi kelas.</span></span>
+                </label>
+                <label style={notificationToggleStyle}>
+                  <input type="checkbox" {...register('parentWhatsappAbsenceEnabled')} style={checkboxStyle} />
+                  <span><strong style={toggleTitleStyle}>Notifikasi tidak hadir</strong><span style={helpStyle}>Pesan ketika Coder dicatat Absent atau Excused.</span></span>
+                </label>
+                <label style={notificationToggleStyle}>
+                  <input type="checkbox" {...register('parentWhatsappMakeupEnabled')} style={checkboxStyle} />
+                  <span><strong style={toggleTitleStyle}>Reminder tugas makeup</strong><span style={helpStyle}>Pengingat H-3 dan H-1 sebelum tenggat tugas susulan.</span></span>
+                </label>
+              </fieldset>
             ) : null}
 
             <div style={fieldStyle}>
@@ -578,3 +594,8 @@ const toggleCardStyle: CSSProperties = {
   background: '#eff6ff',
   cursor: 'pointer',
 };
+const whatsappSettingsStyle: CSSProperties = { ...toggleCardStyle, display: 'grid', cursor: 'default' };
+const whatsappLegendStyle: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 4px', color: '#1e293b', fontSize: 14, fontWeight: 700 };
+const notificationToggleStyle: CSSProperties = { display: 'flex', alignItems: 'flex-start', gap: 10, paddingTop: 10, cursor: 'pointer' };
+const checkboxStyle: CSSProperties = { width: 18, height: 18, flex: '0 0 18px', accentColor: '#2563eb' };
+const toggleTitleStyle: CSSProperties = { display: 'block', color: '#1e293b', fontSize: 13 };

@@ -178,7 +178,9 @@ export async function POST(request: NextRequest) {
     locationName: input.deliveryMode === 'OFFLINE' ? input.locationName ?? null : null,
     locationAddress: input.deliveryMode === 'OFFLINE' ? input.locationAddress ?? null : null,
     locationMapsUrl: input.deliveryMode === 'OFFLINE' ? input.locationMapsUrl ?? null : null,
-    parentWhatsappEnabled: input.type === 'EKSKUL' && input.parentWhatsappEnabled,
+    parentWhatsappClassReminderEnabled: input.type === 'EKSKUL' && input.parentWhatsappClassReminderEnabled,
+    parentWhatsappAbsenceEnabled: input.type === 'EKSKUL' && input.parentWhatsappAbsenceEnabled,
+    parentWhatsappMakeupEnabled: input.type === 'EKSKUL' && input.parentWhatsappMakeupEnabled,
     startDate: input.startDate,
     endDate,
   });

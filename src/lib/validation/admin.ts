@@ -59,7 +59,9 @@ export const createClassSchema = z.object({
   locationName: z.string().trim().max(160).optional().or(z.literal('')),
   locationAddress: z.string().trim().max(500).optional().or(z.literal('')),
   locationMapsUrl: z.string().trim().url('Link Google Maps tidak valid').max(2048).optional().or(z.literal('')),
-  parentWhatsappEnabled: z.boolean().default(false),
+  parentWhatsappClassReminderEnabled: z.boolean().default(false),
+  parentWhatsappAbsenceEnabled: z.boolean().default(false),
+  parentWhatsappMakeupEnabled: z.boolean().default(false),
   initialBlockId: z
     .union([z.string().uuid(), z.literal('')])
     .transform((value) => (value === '' ? undefined : value))

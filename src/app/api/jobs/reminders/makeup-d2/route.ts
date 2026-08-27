@@ -48,7 +48,7 @@ export async function POST(request: Request) {
         continue;
       }
 
-      if (!shouldSendParentWhatsappForClass(classRecord)) {
+      if (!shouldSendParentWhatsappForClass(classRecord, 'MAKEUP_REMINDER')) {
         results.push({ taskId: task.id, reminderType: window.label, status: 'SKIPPED_PARENT_WHATSAPP_DISABLED' });
         continue;
       }

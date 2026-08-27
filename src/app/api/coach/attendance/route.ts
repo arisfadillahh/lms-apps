@@ -157,7 +157,7 @@ export async function POST(request: Request) {
       console.error('[Attendance] Failed to notify Coder about make-up task', notificationError);
     }
     const parentPhone = coder?.parent_contact_phone;
-    if (parentPhone && shouldSendParentWhatsappForClass(classRecord)) {
+    if (parentPhone && shouldSendParentWhatsappForClass(classRecord, 'ABSENCE')) {
       // Check if absent notification is enabled
       const appSettings = await getInvoiceSettings();
       const isAbsentNotifEnabled = appSettings?.enable_absent_notification ?? true;

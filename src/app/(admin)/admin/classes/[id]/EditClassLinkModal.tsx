@@ -14,7 +14,9 @@ type Props = {
   currentLocationName: string | null;
   currentLocationAddress: string | null;
   currentLocationMapsUrl: string | null;
-  currentParentWhatsappEnabled: boolean;
+  currentParentWhatsappClassReminderEnabled: boolean;
+  currentParentWhatsappAbsenceEnabled: boolean;
+  currentParentWhatsappMakeupEnabled: boolean;
 };
 
 export default function EditClassLinkModal({
@@ -25,7 +27,9 @@ export default function EditClassLinkModal({
   currentLocationName,
   currentLocationAddress,
   currentLocationMapsUrl,
-  currentParentWhatsappEnabled,
+  currentParentWhatsappClassReminderEnabled,
+  currentParentWhatsappAbsenceEnabled,
+  currentParentWhatsappMakeupEnabled,
 }: Props) {
   const router = useRouter();
   const configuredLink = normalizeClassMeetingUrl(currentLink) ?? '';
@@ -35,7 +39,9 @@ export default function EditClassLinkModal({
   const [locationName, setLocationName] = useState(currentLocationName ?? '');
   const [locationAddress, setLocationAddress] = useState(currentLocationAddress ?? '');
   const [locationMapsUrl, setLocationMapsUrl] = useState(currentLocationMapsUrl ?? '');
-  const [parentWhatsappEnabled, setParentWhatsappEnabled] = useState(currentParentWhatsappEnabled);
+  const [parentWhatsappClassReminderEnabled, setParentWhatsappClassReminderEnabled] = useState(currentParentWhatsappClassReminderEnabled);
+  const [parentWhatsappAbsenceEnabled, setParentWhatsappAbsenceEnabled] = useState(currentParentWhatsappAbsenceEnabled);
+  const [parentWhatsappMakeupEnabled, setParentWhatsappMakeupEnabled] = useState(currentParentWhatsappMakeupEnabled);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -53,14 +59,18 @@ export default function EditClassLinkModal({
             locationName,
             locationAddress,
             locationMapsUrl,
-            parentWhatsappEnabled,
+            parentWhatsappClassReminderEnabled,
+            parentWhatsappAbsenceEnabled,
+            parentWhatsappMakeupEnabled,
           }),
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || 'Gagal mengubah link kelas');
 
         setLink(payload.zoomLink ?? link);
-        setParentWhatsappEnabled(payload.parentWhatsappEnabled ?? parentWhatsappEnabled);
+        setParentWhatsappClassReminderEnabled(payload.parentWhatsappClassReminderEnabled ?? parentWhatsappClassReminderEnabled);
+        setParentWhatsappAbsenceEnabled(payload.parentWhatsappAbsenceEnabled ?? parentWhatsappAbsenceEnabled);
+        setParentWhatsappMakeupEnabled(payload.parentWhatsappMakeupEnabled ?? parentWhatsappMakeupEnabled);
         setOpen(false);
         router.refresh();
       } catch (caught) {
@@ -138,14 +148,22 @@ export default function EditClassLinkModal({
               </div>
             )}
             {classType === 'EKSKUL' ? (
-              <label style={toggleStyle}>
-                <input type="checkbox" checked={parentWhatsappEnabled} onChange={(event) => setParentWhatsappEnabled(event.target.checked)} style={{ width: 18, height: 18, accentColor: '#2563eb' }} />
-                <MessageCircle size={18} color="#2563eb" />
-                <span>
-                  <strong style={{ display: 'block', color: '#1e293b' }}>WhatsApp otomatis ke orang tua</strong>
-                  <span style={{ color: '#64748b', fontSize: 12, lineHeight: 1.5 }}>Mencakup reminder kelas, pesan absen, dan reminder makeup. PWA/notifikasi LMS tetap aktif.</span>
-                </span>
-              </label>
+              <fieldset style={whatsappSettingsStyle}>
+                <legend style={whatsappLegendStyle}><MessageCircle size={18} color="#2563eb" /> WhatsApp otomatis ke orang tua</legend>
+                <span style={toggleHelpStyle}>Centang tiap tipe pesan yang diizinkan sekolah. PWA/notifikasi LMS tetap aktif.</span>
+                <label style={toggleStyle}>
+                  <input type="checkbox" checked={parentWhatsappClassReminderEnabled} onChange={(event) => setParentWhatsappClassReminderEnabled(event.target.checked)} style={checkboxStyle} />
+                  <span><strong style={toggleTitleStyle}>Pengingat jadwal kelas</strong><span style={toggleHelpStyle}>Pesan H-1 berisi waktu dan akses/lokasi kelas.</span></span>
+                </label>
+                <label style={toggleStyle}>
+                  <input type="checkbox" checked={parentWhatsappAbsenceEnabled} onChange={(event) => setParentWhatsappAbsenceEnabled(event.target.checked)} style={checkboxStyle} />
+                  <span><strong style={toggleTitleStyle}>Notifikasi tidak hadir</strong><span style={toggleHelpStyle}>Pesan ketika Coder dicatat Absent atau Excused.</span></span>
+                </label>
+                <label style={toggleStyle}>
+                  <input type="checkbox" checked={parentWhatsappMakeupEnabled} onChange={(event) => setParentWhatsappMakeupEnabled(event.target.checked)} style={checkboxStyle} />
+                  <span><strong style={toggleTitleStyle}>Reminder tugas makeup</strong><span style={toggleHelpStyle}>Pengingat H-3 dan H-1 sebelum tenggat tugas susulan.</span></span>
+                </label>
+              </fieldset>
             ) : null}
             {error && <p role="alert" style={errorStyle}>{error}</p>}
             <div style={actionsStyle}>
@@ -177,7 +195,12 @@ const warningStyle: React.CSSProperties = { margin: '0 0 16px', padding: '10px 1
 const labelStyle: React.CSSProperties = { display: 'grid', gap: 6, color: '#334155', fontSize: 13, fontWeight: 700 };
 const inputStyle: React.CSSProperties = { width: '100%', boxSizing: 'border-box', padding: '10px 11px', border: '1px solid #cbd5e1', borderRadius: 8, background: '#fff', color: '#0f172a', fontSize: 14 };
 const labelWithIconStyle: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 6 };
-const toggleStyle: React.CSSProperties = { display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 16, padding: 13, border: '1px solid #bfdbfe', borderRadius: 10, background: '#eff6ff', color: '#334155', fontSize: 13, cursor: 'pointer' };
+const whatsappSettingsStyle: React.CSSProperties = { display: 'grid', gap: 2, marginTop: 16, padding: 13, border: '1px solid #bfdbfe', borderRadius: 10, background: '#eff6ff', color: '#334155' };
+const whatsappLegendStyle: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 7, padding: '0 4px', color: '#1e293b', fontSize: 13, fontWeight: 700 };
+const toggleStyle: React.CSSProperties = { display: 'flex', alignItems: 'flex-start', gap: 10, paddingTop: 10, color: '#334155', fontSize: 13, cursor: 'pointer' };
+const checkboxStyle: React.CSSProperties = { width: 18, height: 18, flex: '0 0 18px', accentColor: '#2563eb' };
+const toggleTitleStyle: React.CSSProperties = { display: 'block', color: '#1e293b' };
+const toggleHelpStyle: React.CSSProperties = { display: 'block', color: '#64748b', fontSize: 12, lineHeight: 1.5 };
 const actionsStyle: React.CSSProperties = { display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8, marginTop: 20 };
 const cancelStyle: React.CSSProperties = { flex: '1 1 140px', padding: '9px 14px', border: '1px solid #cbd5e1', borderRadius: 8, background: '#fff', color: '#475569', fontWeight: 600, cursor: 'pointer' };
 const submitStyle: React.CSSProperties = { flex: '1 1 140px', padding: '9px 14px', border: 0, borderRadius: 8, background: '#1e3a5f', color: '#fff', fontWeight: 700, cursor: 'pointer' };

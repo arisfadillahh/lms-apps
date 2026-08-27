@@ -252,7 +252,7 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
           ) : null}
           <p style={scheduleDescriptionStyle}>
             {klass.type === 'EKSKUL'
-              ? `WhatsApp otomatis ke orang tua: ${klass.parent_whatsapp_enabled ? 'Aktif' : 'Mati'}. PWA dan notifikasi LMS tetap aktif.`
+              ? `WhatsApp orang tua — jadwal: ${klass.parent_whatsapp_class_reminder_enabled ? 'Aktif' : 'Mati'}, absen: ${klass.parent_whatsapp_absence_enabled ? 'Aktif' : 'Mati'}, makeup: ${klass.parent_whatsapp_makeup_enabled ? 'Aktif' : 'Mati'}. PWA dan notifikasi LMS tetap aktif.`
               : 'WhatsApp otomatis orang tua tetap aktif untuk program Weekly. PWA dan notifikasi LMS tetap aktif.'}
           </p>
         </div>
@@ -264,7 +264,9 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
           currentLocationName={klass.location_name}
           currentLocationAddress={klass.location_address}
           currentLocationMapsUrl={klass.location_maps_url}
-          currentParentWhatsappEnabled={klass.parent_whatsapp_enabled}
+          currentParentWhatsappClassReminderEnabled={klass.parent_whatsapp_class_reminder_enabled}
+          currentParentWhatsappAbsenceEnabled={klass.parent_whatsapp_absence_enabled}
+          currentParentWhatsappMakeupEnabled={klass.parent_whatsapp_makeup_enabled}
         />
       </section>
 

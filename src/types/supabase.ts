@@ -334,6 +334,9 @@ export interface Database {
           location_address: string | null;
           location_maps_url: string | null;
           parent_whatsapp_enabled: boolean;
+          parent_whatsapp_class_reminder_enabled: boolean;
+          parent_whatsapp_absence_enabled: boolean;
+          parent_whatsapp_makeup_enabled: boolean;
           start_date: string;
           end_date: string;
           created_at: string;
@@ -354,6 +357,9 @@ export interface Database {
           location_address?: string | null;
           location_maps_url?: string | null;
           parent_whatsapp_enabled?: boolean;
+          parent_whatsapp_class_reminder_enabled?: boolean;
+          parent_whatsapp_absence_enabled?: boolean;
+          parent_whatsapp_makeup_enabled?: boolean;
           start_date: string;
           end_date: string;
           created_at?: string;

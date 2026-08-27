@@ -64,9 +64,12 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
       locationName: DEFAULT_CLASS_LOCATION.name,
       locationAddress: DEFAULT_CLASS_LOCATION.address,
       locationMapsUrl: DEFAULT_CLASS_LOCATION.mapsUrl,
+      parentWhatsappEnabled: false,
       parentWhatsappClassReminderEnabled: false,
       parentWhatsappAbsenceEnabled: false,
       parentWhatsappMakeupEnabled: false,
+      parentWhatsappReportEnabled: false,
+      parentWhatsappEventEnabled: false,
       initialBlockId: '',
       initialLessonId: '',
       ekskulLessonPlanId: '',
@@ -79,6 +82,7 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
   const selectedLevelId = watch('levelId');
   const selectedBlockId = watch('initialBlockId');
   const selectedEkskulPlanId = watch('ekskulLessonPlanId');
+  const parentWhatsappEnabled = watch('parentWhatsappEnabled');
 
   const availableBlocks = useMemo(() => {
     if (selectedType !== 'WEEKLY' || !selectedLevelId) {
@@ -146,9 +150,12 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
 
   useEffect(() => {
     if (selectedType !== 'EKSKUL') {
+      setValue('parentWhatsappEnabled', false);
       setValue('parentWhatsappClassReminderEnabled', false);
       setValue('parentWhatsappAbsenceEnabled', false);
       setValue('parentWhatsappMakeupEnabled', false);
+      setValue('parentWhatsappReportEnabled', false);
+      setValue('parentWhatsappEventEnabled', false);
     }
   }, [selectedType, setValue]);
 
@@ -184,9 +191,12 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
         initialBlockId: '',
         initialLessonId: '',
         ekskulInitialLessonId: '',
+        parentWhatsappEnabled: false,
         parentWhatsappClassReminderEnabled: false,
         parentWhatsappAbsenceEnabled: false,
         parentWhatsappMakeupEnabled: false,
+        parentWhatsappReportEnabled: false,
+        parentWhatsappEventEnabled: false,
       });
       setAvailableLessons([]);
       setAvailableEkskulLessons([]);
@@ -472,18 +482,30 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
             {selectedType === 'EKSKUL' ? (
               <fieldset style={whatsappSettingsStyle}>
                 <legend style={whatsappLegendStyle}><MessageCircle size={20} color="#2563eb" /> WhatsApp otomatis ke orang tua</legend>
-                <span style={helpStyle}>Pilih tiap tipe pesan secara terpisah. Default semuanya mati; PWA dan notifikasi LMS tetap aktif.</span>
+                <span style={helpStyle}>Kebijakan sekolah adalah pengaman utama. PWA dan notifikasi LMS tetap aktif apa pun pengaturan WhatsApp-nya.</span>
                 <label style={notificationToggleStyle}>
-                  <input type="checkbox" {...register('parentWhatsappClassReminderEnabled')} style={checkboxStyle} />
+                  <input type="checkbox" {...register('parentWhatsappEnabled')} style={checkboxStyle} />
+                  <span><strong style={toggleTitleStyle}>Sekolah mengizinkan WhatsApp orang tua</strong><span style={helpStyle}>Jika mati, seluruh pesan WhatsApp orang tua dari kelas ini diblokir.</span></span>
+                </label>
+                <label style={notificationToggleStyle}>
+                  <input type="checkbox" {...register('parentWhatsappClassReminderEnabled')} disabled={!parentWhatsappEnabled} style={checkboxStyle} />
                   <span><strong style={toggleTitleStyle}>Pengingat jadwal kelas</strong><span style={helpStyle}>Pesan H-1 berisi waktu dan akses/lokasi kelas.</span></span>
                 </label>
                 <label style={notificationToggleStyle}>
-                  <input type="checkbox" {...register('parentWhatsappAbsenceEnabled')} style={checkboxStyle} />
+                  <input type="checkbox" {...register('parentWhatsappAbsenceEnabled')} disabled={!parentWhatsappEnabled} style={checkboxStyle} />
                   <span><strong style={toggleTitleStyle}>Notifikasi tidak hadir</strong><span style={helpStyle}>Pesan ketika Coder dicatat Absent atau Excused.</span></span>
                 </label>
                 <label style={notificationToggleStyle}>
-                  <input type="checkbox" {...register('parentWhatsappMakeupEnabled')} style={checkboxStyle} />
+                  <input type="checkbox" {...register('parentWhatsappMakeupEnabled')} disabled={!parentWhatsappEnabled} style={checkboxStyle} />
                   <span><strong style={toggleTitleStyle}>Reminder tugas makeup</strong><span style={helpStyle}>Pengingat H-3 dan H-1 sebelum tenggat tugas susulan.</span></span>
+                </label>
+                <label style={notificationToggleStyle}>
+                  <input type="checkbox" {...register('parentWhatsappReportEnabled')} disabled={!parentWhatsappEnabled} style={checkboxStyle} />
+                  <span><strong style={toggleTitleStyle}>Kirim rapor</strong><span style={helpStyle}>WhatsApp saat Admin memublikasikan rapor. Rapor dan PWA tetap terbit jika pilihan ini mati.</span></span>
+                </label>
+                <label style={notificationToggleStyle}>
+                  <input type="checkbox" {...register('parentWhatsappEventEnabled')} disabled={!parentWhatsappEnabled} style={checkboxStyle} />
+                  <span><strong style={toggleTitleStyle}>Event & festival</strong><span style={helpStyle}>Reminder broadcast event yang menargetkan kelas ini.</span></span>
                 </label>
               </fieldset>
             ) : null}

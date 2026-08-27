@@ -117,7 +117,7 @@ export async function checkAndSendClassReminders(): Promise<{
     // Query sessions with classes first
     const { data: rawSessions, error: sessionError } = await supabase
         .from('sessions')
-        .select('id, date_time, class_id, classes(id, name, zoom_link, type, delivery_mode, location_name, location_address, location_maps_url, parent_whatsapp_class_reminder_enabled)')
+        .select('id, date_time, class_id, classes(id, name, zoom_link, type, delivery_mode, location_name, location_address, location_maps_url, parent_whatsapp_enabled, parent_whatsapp_class_reminder_enabled)')
         .eq('status', 'SCHEDULED' as any)
         .gte('date_time', startFilter)
         .lte('date_time', endFilter);
@@ -145,6 +145,7 @@ export async function checkAndSendClassReminders(): Promise<{
             location_name: string | null;
             location_address: string | null;
             location_maps_url: string | null;
+            parent_whatsapp_enabled: boolean;
             parent_whatsapp_class_reminder_enabled: boolean;
         } & ClassDeliveryDetails) | Array<({
             id: string;
@@ -155,6 +156,7 @@ export async function checkAndSendClassReminders(): Promise<{
             location_name: string | null;
             location_address: string | null;
             location_maps_url: string | null;
+            parent_whatsapp_enabled: boolean;
             parent_whatsapp_class_reminder_enabled: boolean;
         } & ClassDeliveryDetails)> | null;
     };

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, type CSSProperties, type FormEvent, useRef, useCallback } from 'react';
-import { Megaphone, Send, CheckCircle, AlertCircle, Bold, Italic, Link, Image as ImageIcon, List, Undo, Redo } from 'lucide-react';
+import NextLink from 'next/link';
+import { Megaphone, Send, CheckCircle, AlertCircle, Bold, Italic, Link as LinkIcon, Image as ImageIcon, List, Undo, Redo, CalendarDays } from 'lucide-react';
 import PageHead from '@/components/admin/PageHead';
 
 type Target = 'ALL' | 'COACHES' | 'CODERS';
@@ -84,6 +85,11 @@ export default function BroadcastPage() {
                 desc="Kirim pesan massal ke segmen orang tua, coder, atau coach dengan kontrol delivery."
             />
 
+            <NextLink href="/admin/broadcast/events" style={eventLinkStyle}>
+                <CalendarDays size={20} />
+                <span><strong>Broadcast Event Ekskul</strong><small>Atur festival, target kelas, reminder, dan WhatsApp orang tua.</small></span>
+            </NextLink>
+
             {/* Result Banner */}
             {result && (
                 <div style={result.success ? resultBannerSuccessStyle : resultBannerErrorStyle}>
@@ -142,7 +148,7 @@ export default function BroadcastPage() {
                         </button>
                         <div style={toolbarDividerStyle} />
                         <button type="button" onClick={insertLink} style={toolbarButtonStyle} title="Insert Link">
-                            <Link size={18} />
+                            <LinkIcon size={18} />
                         </button>
                         <button type="button" onClick={insertImage} style={toolbarButtonStyle} title="Insert Image">
                             <ImageIcon size={18} />
@@ -201,6 +207,19 @@ const formStyle: CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
     gap: '1.5rem',
+};
+
+const eventLinkStyle: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.8rem',
+    marginBottom: '1.2rem',
+    padding: '1rem 1.2rem',
+    borderRadius: '14px',
+    border: '1px solid #bfdbfe',
+    background: '#eff6ff',
+    color: '#1d4ed8',
+    textDecoration: 'none',
 };
 
 const fieldGroupStyle: CSSProperties = {

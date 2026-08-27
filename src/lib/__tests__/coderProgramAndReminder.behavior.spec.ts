@@ -24,6 +24,7 @@ describe('coder program and class reminder behavior', () => {
   it('gates each Ekskul parent WhatsApp type independently', () => {
     const allDisabled = {
       type: 'EKSKUL',
+      parent_whatsapp_enabled: true,
       parent_whatsapp_class_reminder_enabled: false,
       parent_whatsapp_absence_enabled: false,
       parent_whatsapp_makeup_enabled: false,
@@ -57,9 +58,9 @@ describe('coder program and class reminder behavior', () => {
   it('filters schedule reminders without leaking absence or makeup consent', () => {
     const sessions = [
       { id: 'weekly', classes: { type: 'WEEKLY' } },
-      { id: 'schedule', classes: { type: 'EKSKUL', parent_whatsapp_class_reminder_enabled: true } },
-      { id: 'absence', classes: { type: 'EKSKUL', parent_whatsapp_absence_enabled: true } },
-      { id: 'makeup', classes: { type: 'EKSKUL', parent_whatsapp_makeup_enabled: true } },
+      { id: 'schedule', classes: { type: 'EKSKUL', parent_whatsapp_enabled: true, parent_whatsapp_class_reminder_enabled: true } },
+      { id: 'absence', classes: { type: 'EKSKUL', parent_whatsapp_enabled: true, parent_whatsapp_absence_enabled: true } },
+      { id: 'makeup', classes: { type: 'EKSKUL', parent_whatsapp_enabled: true, parent_whatsapp_makeup_enabled: true } },
       { id: 'unknown', classes: null },
     ];
 

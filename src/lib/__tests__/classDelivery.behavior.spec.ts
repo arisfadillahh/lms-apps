@@ -38,7 +38,7 @@ describe('class delivery behavior', () => {
     expect(validOffline.success).toBe(true);
   });
 
-  it('defaults every Ekskul parent WhatsApp type off and preserves independent selections', () => {
+  it('defaults the school policy and every Ekskul parent WhatsApp type off and preserves independent selections', () => {
     const defaultResult = createClassSchema.parse({
       ...baseClassInput,
       deliveryMode: 'ONLINE',
@@ -48,21 +48,30 @@ describe('class delivery behavior', () => {
       ...baseClassInput,
       deliveryMode: 'ONLINE',
       zoomLink: 'https://zoom.us/j/123456',
+      parentWhatsappEnabled: true,
       parentWhatsappClassReminderEnabled: true,
       parentWhatsappAbsenceEnabled: false,
       parentWhatsappMakeupEnabled: true,
+      parentWhatsappReportEnabled: true,
+      parentWhatsappEventEnabled: false,
     });
 
     expect([
+      defaultResult.parentWhatsappEnabled,
       defaultResult.parentWhatsappClassReminderEnabled,
       defaultResult.parentWhatsappAbsenceEnabled,
       defaultResult.parentWhatsappMakeupEnabled,
-    ]).toEqual([false, false, false]);
+      defaultResult.parentWhatsappReportEnabled,
+      defaultResult.parentWhatsappEventEnabled,
+    ]).toEqual([false, false, false, false, false, false]);
     expect([
+      selectedResult.parentWhatsappEnabled,
       selectedResult.parentWhatsappClassReminderEnabled,
       selectedResult.parentWhatsappAbsenceEnabled,
       selectedResult.parentWhatsappMakeupEnabled,
-    ]).toEqual([true, false, true]);
+      selectedResult.parentWhatsappReportEnabled,
+      selectedResult.parentWhatsappEventEnabled,
+    ]).toEqual([true, true, false, true, true, false]);
   });
 
   it('renders a clean Online parent reminder with the meeting link', () => {

@@ -337,6 +337,8 @@ export interface Database {
           parent_whatsapp_class_reminder_enabled: boolean;
           parent_whatsapp_absence_enabled: boolean;
           parent_whatsapp_makeup_enabled: boolean;
+          parent_whatsapp_report_enabled: boolean;
+          parent_whatsapp_event_enabled: boolean;
           start_date: string;
           end_date: string;
           created_at: string;
@@ -360,6 +362,8 @@ export interface Database {
           parent_whatsapp_class_reminder_enabled?: boolean;
           parent_whatsapp_absence_enabled?: boolean;
           parent_whatsapp_makeup_enabled?: boolean;
+          parent_whatsapp_report_enabled?: boolean;
+          parent_whatsapp_event_enabled?: boolean;
           start_date: string;
           end_date: string;
           created_at?: string;

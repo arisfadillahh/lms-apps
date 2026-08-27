@@ -14,9 +14,12 @@ type Props = {
   currentLocationName: string | null;
   currentLocationAddress: string | null;
   currentLocationMapsUrl: string | null;
+  currentParentWhatsappEnabled: boolean;
   currentParentWhatsappClassReminderEnabled: boolean;
   currentParentWhatsappAbsenceEnabled: boolean;
   currentParentWhatsappMakeupEnabled: boolean;
+  currentParentWhatsappReportEnabled: boolean;
+  currentParentWhatsappEventEnabled: boolean;
 };
 
 export default function EditClassLinkModal({
@@ -27,9 +30,12 @@ export default function EditClassLinkModal({
   currentLocationName,
   currentLocationAddress,
   currentLocationMapsUrl,
+  currentParentWhatsappEnabled,
   currentParentWhatsappClassReminderEnabled,
   currentParentWhatsappAbsenceEnabled,
   currentParentWhatsappMakeupEnabled,
+  currentParentWhatsappReportEnabled,
+  currentParentWhatsappEventEnabled,
 }: Props) {
   const router = useRouter();
   const configuredLink = normalizeClassMeetingUrl(currentLink) ?? '';
@@ -39,9 +45,12 @@ export default function EditClassLinkModal({
   const [locationName, setLocationName] = useState(currentLocationName ?? '');
   const [locationAddress, setLocationAddress] = useState(currentLocationAddress ?? '');
   const [locationMapsUrl, setLocationMapsUrl] = useState(currentLocationMapsUrl ?? '');
+  const [parentWhatsappEnabled, setParentWhatsappEnabled] = useState(currentParentWhatsappEnabled);
   const [parentWhatsappClassReminderEnabled, setParentWhatsappClassReminderEnabled] = useState(currentParentWhatsappClassReminderEnabled);
   const [parentWhatsappAbsenceEnabled, setParentWhatsappAbsenceEnabled] = useState(currentParentWhatsappAbsenceEnabled);
   const [parentWhatsappMakeupEnabled, setParentWhatsappMakeupEnabled] = useState(currentParentWhatsappMakeupEnabled);
+  const [parentWhatsappReportEnabled, setParentWhatsappReportEnabled] = useState(currentParentWhatsappReportEnabled);
+  const [parentWhatsappEventEnabled, setParentWhatsappEventEnabled] = useState(currentParentWhatsappEventEnabled);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -59,18 +68,24 @@ export default function EditClassLinkModal({
             locationName,
             locationAddress,
             locationMapsUrl,
+            parentWhatsappEnabled,
             parentWhatsappClassReminderEnabled,
             parentWhatsappAbsenceEnabled,
             parentWhatsappMakeupEnabled,
+            parentWhatsappReportEnabled,
+            parentWhatsappEventEnabled,
           }),
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || 'Gagal mengubah link kelas');
 
         setLink(payload.zoomLink ?? link);
+        setParentWhatsappEnabled(payload.parentWhatsappEnabled ?? parentWhatsappEnabled);
         setParentWhatsappClassReminderEnabled(payload.parentWhatsappClassReminderEnabled ?? parentWhatsappClassReminderEnabled);
         setParentWhatsappAbsenceEnabled(payload.parentWhatsappAbsenceEnabled ?? parentWhatsappAbsenceEnabled);
         setParentWhatsappMakeupEnabled(payload.parentWhatsappMakeupEnabled ?? parentWhatsappMakeupEnabled);
+        setParentWhatsappReportEnabled(payload.parentWhatsappReportEnabled ?? parentWhatsappReportEnabled);
+        setParentWhatsappEventEnabled(payload.parentWhatsappEventEnabled ?? parentWhatsappEventEnabled);
         setOpen(false);
         router.refresh();
       } catch (caught) {
@@ -150,18 +165,30 @@ export default function EditClassLinkModal({
             {classType === 'EKSKUL' ? (
               <fieldset style={whatsappSettingsStyle}>
                 <legend style={whatsappLegendStyle}><MessageCircle size={18} color="#2563eb" /> WhatsApp otomatis ke orang tua</legend>
-                <span style={toggleHelpStyle}>Centang tiap tipe pesan yang diizinkan sekolah. PWA/notifikasi LMS tetap aktif.</span>
+                <span style={toggleHelpStyle}>PWA/notifikasi LMS tetap aktif. Kebijakan sekolah di bawah ini menjadi pengaman untuk seluruh WhatsApp orang tua.</span>
                 <label style={toggleStyle}>
-                  <input type="checkbox" checked={parentWhatsappClassReminderEnabled} onChange={(event) => setParentWhatsappClassReminderEnabled(event.target.checked)} style={checkboxStyle} />
+                  <input type="checkbox" checked={parentWhatsappEnabled} onChange={(event) => setParentWhatsappEnabled(event.target.checked)} style={checkboxStyle} />
+                  <span><strong style={toggleTitleStyle}>Sekolah mengizinkan WhatsApp orang tua</strong><span style={toggleHelpStyle}>Matikan untuk memblokir semua jenis pesan WA dari kelas ini.</span></span>
+                </label>
+                <label style={toggleStyle}>
+                  <input type="checkbox" checked={parentWhatsappClassReminderEnabled} disabled={!parentWhatsappEnabled} onChange={(event) => setParentWhatsappClassReminderEnabled(event.target.checked)} style={checkboxStyle} />
                   <span><strong style={toggleTitleStyle}>Pengingat jadwal kelas</strong><span style={toggleHelpStyle}>Pesan H-1 berisi waktu dan akses/lokasi kelas.</span></span>
                 </label>
                 <label style={toggleStyle}>
-                  <input type="checkbox" checked={parentWhatsappAbsenceEnabled} onChange={(event) => setParentWhatsappAbsenceEnabled(event.target.checked)} style={checkboxStyle} />
+                  <input type="checkbox" checked={parentWhatsappAbsenceEnabled} disabled={!parentWhatsappEnabled} onChange={(event) => setParentWhatsappAbsenceEnabled(event.target.checked)} style={checkboxStyle} />
                   <span><strong style={toggleTitleStyle}>Notifikasi tidak hadir</strong><span style={toggleHelpStyle}>Pesan ketika Coder dicatat Absent atau Excused.</span></span>
                 </label>
                 <label style={toggleStyle}>
-                  <input type="checkbox" checked={parentWhatsappMakeupEnabled} onChange={(event) => setParentWhatsappMakeupEnabled(event.target.checked)} style={checkboxStyle} />
+                  <input type="checkbox" checked={parentWhatsappMakeupEnabled} disabled={!parentWhatsappEnabled} onChange={(event) => setParentWhatsappMakeupEnabled(event.target.checked)} style={checkboxStyle} />
                   <span><strong style={toggleTitleStyle}>Reminder tugas makeup</strong><span style={toggleHelpStyle}>Pengingat H-3 dan H-1 sebelum tenggat tugas susulan.</span></span>
+                </label>
+                <label style={toggleStyle}>
+                  <input type="checkbox" checked={parentWhatsappReportEnabled} disabled={!parentWhatsappEnabled} onChange={(event) => setParentWhatsappReportEnabled(event.target.checked)} style={checkboxStyle} />
+                  <span><strong style={toggleTitleStyle}>Kirim rapor</strong><span style={toggleHelpStyle}>WhatsApp saat Admin memublikasikan rapor.</span></span>
+                </label>
+                <label style={toggleStyle}>
+                  <input type="checkbox" checked={parentWhatsappEventEnabled} disabled={!parentWhatsappEnabled} onChange={(event) => setParentWhatsappEventEnabled(event.target.checked)} style={checkboxStyle} />
+                  <span><strong style={toggleTitleStyle}>Event & festival</strong><span style={toggleHelpStyle}>Reminder event yang menargetkan kelas ini.</span></span>
                 </label>
               </fieldset>
             ) : null}

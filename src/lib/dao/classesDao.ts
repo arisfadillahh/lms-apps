@@ -42,9 +42,12 @@ export type CreateClassInput = {
   locationName?: string | null;
   locationAddress?: string | null;
   locationMapsUrl?: string | null;
+  parentWhatsappEnabled?: boolean;
   parentWhatsappClassReminderEnabled?: boolean;
   parentWhatsappAbsenceEnabled?: boolean;
   parentWhatsappMakeupEnabled?: boolean;
+  parentWhatsappReportEnabled?: boolean;
+  parentWhatsappEventEnabled?: boolean;
   startDate: string;
   endDate?: string;
 };
@@ -64,9 +67,12 @@ export async function createClass(input: CreateClassInput): Promise<ClassRecord>
     location_name: input.locationName ?? null,
     location_address: input.locationAddress ?? null,
     location_maps_url: input.locationMapsUrl ?? null,
+    parent_whatsapp_enabled: input.type === 'EKSKUL' && input.parentWhatsappEnabled === true,
     parent_whatsapp_class_reminder_enabled: input.type === 'EKSKUL' && input.parentWhatsappClassReminderEnabled === true,
     parent_whatsapp_absence_enabled: input.type === 'EKSKUL' && input.parentWhatsappAbsenceEnabled === true,
     parent_whatsapp_makeup_enabled: input.type === 'EKSKUL' && input.parentWhatsappMakeupEnabled === true,
+    parent_whatsapp_report_enabled: input.type === 'EKSKUL' && input.parentWhatsappReportEnabled === true,
+    parent_whatsapp_event_enabled: input.type === 'EKSKUL' && input.parentWhatsappEventEnabled === true,
     start_date: input.startDate,
     end_date: input.endDate ?? input.startDate,
   };
@@ -100,9 +106,12 @@ export async function updateClass(id: string, updates: Partial<Omit<CreateClassI
   if (updates.locationName !== undefined) payload.location_name = updates.locationName;
   if (updates.locationAddress !== undefined) payload.location_address = updates.locationAddress;
   if (updates.locationMapsUrl !== undefined) payload.location_maps_url = updates.locationMapsUrl;
+  if (updates.parentWhatsappEnabled !== undefined) payload.parent_whatsapp_enabled = updates.parentWhatsappEnabled;
   if (updates.parentWhatsappClassReminderEnabled !== undefined) payload.parent_whatsapp_class_reminder_enabled = updates.parentWhatsappClassReminderEnabled;
   if (updates.parentWhatsappAbsenceEnabled !== undefined) payload.parent_whatsapp_absence_enabled = updates.parentWhatsappAbsenceEnabled;
   if (updates.parentWhatsappMakeupEnabled !== undefined) payload.parent_whatsapp_makeup_enabled = updates.parentWhatsappMakeupEnabled;
+  if (updates.parentWhatsappReportEnabled !== undefined) payload.parent_whatsapp_report_enabled = updates.parentWhatsappReportEnabled;
+  if (updates.parentWhatsappEventEnabled !== undefined) payload.parent_whatsapp_event_enabled = updates.parentWhatsappEventEnabled;
   if (updates.startDate !== undefined) payload.start_date = updates.startDate;
   if (updates.endDate !== undefined) payload.end_date = updates.endDate;
 

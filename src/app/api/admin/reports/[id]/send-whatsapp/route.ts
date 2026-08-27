@@ -2,12 +2,14 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 import { getSessionOrThrow } from '@/lib/auth';
-import { notificationsDao, reportsDao, usersDao } from '@/lib/dao';
+import { notificationsDao, reportsDao } from '@/lib/dao';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { assertRole } from '@/lib/roles';
 import { sendReportNotification } from '@/lib/services/whatsappClient';
 import { getAppBaseUrl } from '@/lib/env';
 import { isRegularReportWindowActive } from '@/lib/services/reportWindows';
+import { shouldSendParentWhatsappForClass } from '@/lib/classReminderEligibility';
+import { publishReportWithOptionalWhatsapp } from '@/lib/reportPublication';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -26,7 +28,7 @@ export async function POST(_request: NextRequest, context: RouteContext) {
     .from('block_reports')
     .select(`
       *,
-      class:classes(id, name, type),
+      class:classes(id, name, type, parent_whatsapp_enabled, parent_whatsapp_report_enabled),
       block:blocks(id, name),
       coder:users!block_reports_coder_id_fkey(id, full_name, parent_contact_phone)
     `)
@@ -75,76 +77,69 @@ export async function POST(_request: NextRequest, context: RouteContext) {
 
   const parentPhone = coder?.parent_contact_phone;
 
-  if (!parentPhone) {
-    return NextResponse.json({ error: 'Nomor WhatsApp orang tua belum tersedia untuk coder ini' }, { status: 400 });
-  }
-
   // Generate the new web view URL instead of a PDF URL
   const reportUrl = `${getAppBaseUrl()}/report/${reportId}`;
-
-  // Log to WA events table (using block report fields instead of old rubric submission ids)
-  const logEntry = await reportsDao.logWhatsappEvent({
-    category: 'REPORT_SEND',
-    payload: {
-      reportId,
-      coderId: coder.id,
-      classId: klass.id,
-      parentPhone,
-      reportUrl
+  const delivery = await publishReportWithOptionalWhatsapp({
+    shouldSendWhatsapp: shouldSendParentWhatsappForClass(klass as any, 'REPORT'),
+    hasParentPhone: Boolean(parentPhone),
+    now: () => new Date().toISOString(),
+    publish: async ({ sent_via_whatsapp, sent_at }) => {
+      await reportsDao.updateBlockReport(reportId, {
+        status: 'PUBLISHED',
+        sent_via_whatsapp,
+        sent_at,
+      });
     },
-  });
-
-  try {
-    const response = await sendReportNotification({
+    notifyCoder: async () => {
+      try {
+        await notificationsDao.createNotification(
+          coder.id,
+          'Rapor terbaru sudah tersedia',
+          `Rapor ${block?.name || klass.name} sudah dipublikasikan. Buka menu Rapor & Portofolio untuk melihat hasilnya.`,
+          'REPORT_PUBLISHED',
+          {
+            actionUrl: '/coder/reports',
+            category: 'REPORT',
+            priority: 'NORMAL',
+            dedupeKey: `report-published-${reportId}`,
+            push: true,
+            pushTag: `report-${reportId}`,
+          },
+        );
+      } catch (notificationError) {
+        console.error('[ReportPublish] Failed to notify Coder', notificationError);
+      }
+    },
+    createWhatsappLog: () => reportsDao.logWhatsappEvent({
+      category: 'REPORT_SEND',
+      payload: {
+        reportId,
+        coderId: coder.id,
+        classId: klass.id,
+        parentPhone,
+        reportUrl,
+      },
+    }),
+    sendWhatsapp: () => sendReportNotification({
       coderFullName: coder.full_name,
       className: klass.name,
       period: block?.name || undefined,
       reportUrl,
-      parentPhone,
-    });
+      parentPhone: parentPhone!,
+    }),
+    updateWhatsappLog: (id, status, response) => reportsDao.updateWhatsappLogStatus(id, status, response as any),
+  });
 
-    const sentAt = new Date().toISOString();
-    
-    // Update the block_reports sent status to PUBLISHED
-    await reportsDao.updateBlockReport(reportId, {
-       status: 'PUBLISHED',
-       sent_via_whatsapp: true,
-       sent_at: sentAt
-    });
-    
-    await reportsDao.updateWhatsappLogStatus(logEntry.id, 'SENT', response as any);
-
-    try {
-      await notificationsDao.createNotification(
-        coder.id,
-        'Rapor terbaru sudah tersedia',
-        `Rapor ${block?.name || klass.name} sudah dipublikasikan. Buka menu Rapor & Portofolio untuk melihat hasilnya.`,
-        'REPORT_PUBLISHED',
-        {
-          actionUrl: '/coder/reports',
-          category: 'REPORT',
-          priority: 'NORMAL',
-          dedupeKey: `report-published-${reportId}`,
-          push: true,
-          pushTag: `report-${reportId}`,
-        },
-      );
-    } catch (notificationError) {
-      console.error('[ReportPublish] Failed to notify Coder', notificationError);
-    }
-
-    return NextResponse.json({
-      status: 'PUBLISHED',
-      report: {
-        id: reportId,
-        reportUrl,
-        sentToParentAt: sentAt,
-      },
-    });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Gagal mengirim pesan WhatsApp';
-    await reportsDao.updateWhatsappLogStatus(logEntry.id, 'FAILED', { message });
-    console.error('Failed to send WhatsApp report', error);
-    return NextResponse.json({ error: message }, { status: 502 });
-  }
+  return NextResponse.json({
+    status: 'PUBLISHED',
+    whatsapp: {
+      status: delivery.whatsappStatus,
+      warning: delivery.warning,
+    },
+    report: {
+      id: reportId,
+      reportUrl,
+      sentToParentAt: delivery.sentAt,
+    },
+  });
 }

@@ -8,11 +8,12 @@ describe('public portfolio universe responsive shell', () => {
   const experience = read('src/components/portfolio/PublicPortfolioExperience.tsx');
   const gallery = read('src/components/portfolio/PublicPortfolioGallery.tsx');
   const motion = read('src/components/portfolio/PublicPortfolioExperience.module.css');
+  const scrollLock = read('src/lib/documentScrollLock.ts');
 
   it('locks the document while the full-screen intro is visible', () => {
-    expect(experience).toContain("html.style.overflow = 'hidden'");
-    expect(experience).toContain("body.style.overflow = 'hidden'");
-    expect(experience).toContain("body.style.overscrollBehavior = 'none'");
+    expect(experience).toContain('lockDocumentScroll()');
+    expect(scrollLock).toContain("setProperty('overflow-y', 'hidden', 'important')");
+    expect(scrollLock).toContain("setProperty('overscroll-behavior', 'none', 'important')");
     expect(experience).toContain('fixed inset-0');
     expect(experience).toContain('<section className={`${styles.introGate}');
     expect(experience).not.toContain('role="dialog" aria-modal="true"');
@@ -66,7 +67,9 @@ describe('public portfolio universe responsive shell', () => {
     expect(gallery).toContain('h-[100dvh] w-screen');
     expect(gallery).toContain('!max-w-none');
     expect(gallery).toContain('!w-screen');
-    expect(gallery).toContain("html.style.overflow = 'hidden'");
-    expect(gallery).toContain("body.style.overflow = 'hidden'");
+    expect(gallery).toContain('lockDocumentScroll()');
+    expect(gallery).toContain('unlockDocumentScroll()');
+    expect(scrollLock).toContain("getPropertyPriority(property)");
+    expect(scrollLock).toContain("restoreProperty(html, property");
   });
 });

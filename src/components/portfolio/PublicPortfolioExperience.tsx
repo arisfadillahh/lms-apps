@@ -19,6 +19,7 @@ import {
 
 import PublicPortfolioGallery from '@/components/portfolio/PublicPortfolioGallery';
 import type { PortfolioExperienceModel } from '@/lib/publicPortfolioExperience';
+import { lockDocumentScroll } from '@/lib/documentScrollLock';
 import styles from './PublicPortfolioExperience.module.css';
 
 const STAR_FIELD = [
@@ -222,22 +223,13 @@ export default function PublicPortfolioExperience({ model }: { model: PortfolioE
     if (!gateVisible) return;
     const html = document.documentElement;
     const body = document.body;
-    const previous = {
-      htmlOverflow: html.style.overflow,
-      bodyOverflow: body.style.overflow,
-      overscroll: body.style.overscrollBehavior,
-    };
-    html.style.overflow = 'hidden';
-    body.style.overflow = 'hidden';
-    body.style.overscrollBehavior = 'none';
+    const unlockDocumentScroll = lockDocumentScroll();
     html.classList.add(styles.introLocked);
     body.classList.add(styles.introLocked);
     return () => {
       html.classList.remove(styles.introLocked);
       body.classList.remove(styles.introLocked);
-      html.style.overflow = previous.htmlOverflow;
-      body.style.overflow = previous.bodyOverflow;
-      body.style.overscrollBehavior = previous.overscroll;
+      unlockDocumentScroll();
     };
   }, [gateVisible]);
 

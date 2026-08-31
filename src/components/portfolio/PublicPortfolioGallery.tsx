@@ -4,6 +4,7 @@ import { useEffect, useState, type CSSProperties, type PointerEvent as ReactPoin
 import { ArrowUpRight, Code2, ExternalLink, Gamepad2, Github, Lightbulb, Play, Sparkles, Target, X } from 'lucide-react';
 
 import type { PublishedPortfolioSnapshot } from '@/lib/coderPortfolio';
+import { lockDocumentScroll } from '@/lib/documentScrollLock';
 import motionStyles from './PublicPortfolioExperience.module.css';
 
 export type PublicProject = { id: string; snapshot: PublishedPortfolioSnapshot; publishedAt: string | null };
@@ -16,16 +17,10 @@ export default function PublicPortfolioGallery({ projects }: { projects: PublicP
   useEffect(() => {
     if (!selected) return;
     const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') setSelected(null); };
-    const html = document.documentElement;
-    const body = document.body;
-    const previousHtmlOverflow = html.style.overflow;
-    const previousBodyOverflow = body.style.overflow;
-    html.style.overflow = 'hidden';
-    body.style.overflow = 'hidden';
+    const unlockDocumentScroll = lockDocumentScroll();
     window.addEventListener('keydown', onKeyDown);
     return () => {
-      html.style.overflow = previousHtmlOverflow;
-      body.style.overflow = previousBodyOverflow;
+      unlockDocumentScroll();
       window.removeEventListener('keydown', onKeyDown);
     };
   }, [selected]);

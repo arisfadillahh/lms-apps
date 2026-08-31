@@ -39,6 +39,24 @@ describe('public portfolio universe responsive shell', () => {
     expect(motion).toContain('@media (prefers-reduced-motion: reduce)');
   });
 
+  it('adapts the reference background and motion without replacing the existing layout or palette', () => {
+    expect(experience).toContain('IntersectionObserver');
+    expect(experience).toContain("root.style.setProperty('--portfolio-pointer-x'");
+    expect(experience).toContain('data-portfolio-reveal');
+    expect(experience).toContain('lg:grid-cols-[.98fr_1.02fr]');
+    expect(experience).toContain('lg:grid-cols-[1.03fr_.97fr]');
+    expect(experience).toContain('lg:grid-cols-[.96fr_1.04fr]');
+    expect(experience).toContain('linear-gradient(180deg,#172761_0%,#111d4d_42%,#0e1740_100%)');
+    expect(gallery).toContain('md:grid-cols-12');
+    expect(gallery).toContain('onPointerMove={handlePointerMove}');
+    expect(motion).toContain("type='fractalNoise'");
+    expect(motion).toContain('.cursorGlow');
+    expect(motion).toContain('@keyframes ambientDrift');
+    expect(motion).toContain('.portalParallax');
+    expect(motion).toContain('.projectTilt');
+    expect(motion).toContain('.sheenButton::after');
+  });
+
   it('keeps project details reachable as a mobile bottom sheet', () => {
     expect(gallery).toContain('items-end overflow-hidden');
     expect(gallery).toContain('bg-[#050a22]/85 p-0');

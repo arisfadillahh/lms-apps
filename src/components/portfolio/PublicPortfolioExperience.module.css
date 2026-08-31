@@ -1,4 +1,8 @@
 .root {
+  --portfolio-pointer-x: 50vw;
+  --portfolio-pointer-y: 50vh;
+  --portfolio-rotate-x: 0deg;
+  --portfolio-rotate-y: 0deg;
   isolation: isolate;
 }
 
@@ -35,6 +39,38 @@
 .introUniverse {
   position: absolute;
   z-index: 1;
+}
+
+.ambientField,
+.noiseTexture,
+.cursorGlow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ambientField {
+  inset: -16%;
+  background:
+    radial-gradient(circle at 82% 4%, rgb(0 176 215 / 22%), transparent 31%),
+    radial-gradient(circle at 11% 56%, rgb(157 200 59 / 14%), transparent 29%);
+  filter: blur(92px);
+  opacity: 0.52;
+  animation: ambientDrift 12s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.noiseTexture {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.85'/%3E%3C/svg%3E");
+  mix-blend-mode: soft-light;
+  opacity: 0.035;
+}
+
+.cursorGlow {
+  position: fixed;
+  background: radial-gradient(430px circle at var(--portfolio-pointer-x) var(--portfolio-pointer-y), rgb(157 200 59 / 9.5%), transparent 56%);
+  opacity: 0.9;
+  transition: opacity 220ms ease;
 }
 
 .star {
@@ -92,6 +128,13 @@
   animation: portalArrive 1s cubic-bezier(.16, 1, .3, 1) 120ms both;
 }
 
+.portalParallax {
+  transform: perspective(1100px) rotateX(var(--portfolio-rotate-x)) rotateY(var(--portfolio-rotate-y));
+  transform-style: preserve-3d;
+  transition: transform 180ms ease-out;
+  will-change: transform;
+}
+
 .orbitClockwise {
   animation: orbitClockwise 24s linear infinite;
   will-change: transform;
@@ -125,9 +168,67 @@
   animation: portalFloat 7s ease-in-out infinite;
 }
 
+.motionReady :global([data-portfolio-reveal]) {
+  opacity: 0;
+  transform: translate3d(0, 1.9rem, 0);
+  transition: opacity 850ms cubic-bezier(.2, .75, .2, 1), transform 850ms cubic-bezier(.2, .75, .2, 1);
+}
+
+.motionReady :global([data-portfolio-reveal]).revealVisible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+.sheenButton {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.sheenButton::after {
+  position: absolute;
+  top: -95%;
+  left: -48%;
+  width: 34%;
+  height: 290%;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 52%), transparent);
+  content: '';
+  pointer-events: none;
+  transform: rotate(20deg) translate3d(0, 0, 0);
+  transition: transform 650ms cubic-bezier(.2, .8, .2, 1);
+}
+
+.sheenButton:hover::after,
+.sheenButton:focus-visible::after {
+  transform: rotate(20deg) translate3d(470%, 0, 0);
+}
+
+.projectTilt {
+  --project-lift: 0rem;
+  --project-tilt-x: 0deg;
+  --project-tilt-y: 0deg;
+  transform: perspective(1200px) rotateX(var(--project-tilt-x)) rotateY(var(--project-tilt-y)) translate3d(0, var(--project-lift), 0);
+  transform-style: preserve-3d;
+  transition: transform 180ms ease-out, border-color 250ms ease, box-shadow 250ms ease;
+  will-change: transform;
+}
+
+.projectTilt:hover {
+  --project-lift: -0.25rem;
+}
+
+.projectTilt:active {
+  --project-lift: 0rem;
+}
+
 @keyframes gateReveal {
   from { opacity: 0; transform: scale(1.018); }
   to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes ambientDrift {
+  from { transform: translate3d(-1.5vw, -1vw, 0) scale(1); }
+  to { transform: translate3d(3.5vw, 2.5vw, 0) scale(1.08); }
 }
 
 @keyframes gateExit {
@@ -192,7 +293,19 @@
   }
 }
 
+@media (hover: none), (pointer: coarse) {
+  .cursorGlow {
+    display: none;
+  }
+
+  .portalParallax,
+  .projectTilt {
+    transform: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .ambientField,
   .star,
   .comet,
   .introGate,
@@ -203,8 +316,23 @@
   .orbitCounterClockwise,
   .portalBlob,
   .scrollCueIcon,
-  .ctaPlanet {
+  .ctaPlanet,
+  .projectTilt {
     animation: none !important;
+    transition: none !important;
+  }
+
+  .cursorGlow {
+    display: none;
+  }
+
+  .portalParallax,
+  .projectTilt,
+  .motionReady :global([data-portfolio-reveal]),
+  .motionReady :global([data-portfolio-reveal]).revealVisible {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 
   .introGateExit {

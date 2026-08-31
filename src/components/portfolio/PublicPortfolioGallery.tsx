@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { ArrowUpRight, Code2, ExternalLink, Gamepad2, Github, Lightbulb, Play, Sparkles, Target, X } from 'lucide-react';
 
 import type { PublishedPortfolioSnapshot } from '@/lib/coderPortfolio';
+import motionStyles from './PublicPortfolioExperience.module.css';
 
 export type PublicProject = { id: string; snapshot: PublishedPortfolioSnapshot; publishedAt: string | null };
 
@@ -30,11 +31,11 @@ export default function PublicPortfolioGallery({ projects }: { projects: PublicP
   }, [selected]);
 
   if (projects.length === 0) {
-    return <section id="projects" className="relative z-10 mx-auto max-w-6xl px-5 py-24 text-center sm:px-8"><Sparkles className="mx-auto text-clevio-green" size={42} /><h2 className="mt-4 text-3xl font-black">Karya sedang dipersiapkan</h2><p className="mt-2 font-semibold text-white/60">Project yang sudah disetujui Coach akan muncul di sini.</p></section>;
+    return <section id="projects" data-portfolio-reveal className="relative z-10 mx-auto max-w-6xl px-5 py-24 text-center sm:px-8"><Sparkles className="mx-auto text-clevio-green" size={42} /><h2 className="mt-4 text-3xl font-black">Karya sedang dipersiapkan</h2><p className="mt-2 font-semibold text-white/60">Project yang sudah disetujui Coach akan muncul di sini.</p></section>;
   }
 
   return <>
-    <section id="projects" className="relative z-10 mx-auto w-full max-w-6xl px-5 py-24 sm:px-8 sm:py-28">
+    <section id="projects" data-portfolio-reveal className="relative z-10 mx-auto w-full max-w-6xl px-5 py-24 sm:px-8 sm:py-28">
       <div className="mb-10 grid gap-4 sm:grid-cols-[90px_1fr] sm:gap-5"><div className="pt-2 text-xs font-black tracking-[.18em] text-clevio-green">02</div><div><h2 className="m-0 max-w-full text-[clamp(2.75rem,13vw,5.1rem)] font-black uppercase leading-[.9] tracking-[-.048em] sm:text-[clamp(3rem,6.6vw,5.1rem)]">Project Universe</h2><p className="mt-5 max-w-2xl text-base font-semibold leading-relaxed text-white/65">Setiap project adalah cerita tentang ide, proses, tantangan, dan hal baru yang dipelajari.</p></div></div>
       <div className="grid gap-4 md:grid-cols-12">{projects.map((project, index) => <ProjectCard key={project.id} project={project} index={index} onOpen={setSelected} />)}</div>
     </section>
@@ -47,7 +48,20 @@ function ProjectCard({ project, index, onOpen }: { project: PublicProject; index
   const cover = project.snapshot.screenshots[0];
   const style = { '--portfolio-accent': accent } as CSSProperties;
   const spanClass = index === 2 ? 'md:col-span-7' : index === 3 ? 'md:col-span-5' : 'md:col-span-6';
-  return <button type="button" onClick={() => onOpen(project)} aria-label={`Buka cerita project ${project.snapshot.title}`} style={style} className={`group relative min-h-[360px] w-full overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/[.05] text-left shadow-2xl transition duration-300 hover:-translate-y-1 hover:border-[color:var(--portfolio-accent)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-clevio-cyan/60 active:translate-y-0 sm:min-h-[430px] sm:rounded-[2rem] ${spanClass}`}>
+  const handlePointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType === 'touch' || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / Math.max(rect.width, 1) - 0.5;
+    const y = (event.clientY - rect.top) / Math.max(rect.height, 1) - 0.5;
+    event.currentTarget.style.setProperty('--project-tilt-x', `${y * -2.4}deg`);
+    event.currentTarget.style.setProperty('--project-tilt-y', `${x * 3}deg`);
+  };
+  const resetTilt = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    event.currentTarget.style.setProperty('--project-tilt-x', '0deg');
+    event.currentTarget.style.setProperty('--project-tilt-y', '0deg');
+  };
+
+  return <button type="button" onClick={() => onOpen(project)} onPointerMove={handlePointerMove} onPointerLeave={resetTilt} aria-label={`Buka cerita project ${project.snapshot.title}`} style={style} className={`${motionStyles.projectTilt} group relative min-h-[360px] w-full overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/[.05] text-left shadow-2xl transition duration-300 hover:border-[color:var(--portfolio-accent)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-clevio-cyan/60 sm:min-h-[430px] sm:rounded-[2rem] ${spanClass}`}>
     <div className="absolute inset-0 overflow-hidden" style={{ background: `radial-gradient(circle at 72% 27%, ${accent}77, transparent 22%), linear-gradient(145deg, ${accent}55, #0f1945 68%)` }}>
       {cover ? <img src={cover.publicUrl} alt="" className="h-full w-full object-cover opacity-25 mix-blend-screen transition duration-500 group-hover:scale-105 group-hover:opacity-40" /> : <Gamepad2 className="absolute right-16 top-16 text-white/20" size={120} />}
       <div className="absolute inset-0 bg-gradient-to-t from-[#0e1740] via-[#0e1740]/25 to-transparent" />

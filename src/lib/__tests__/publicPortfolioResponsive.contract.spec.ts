@@ -1,0 +1,54 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { describe, expect, it } from 'vitest';
+
+const read = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8');
+
+describe('public portfolio universe responsive shell', () => {
+  const experience = read('src/components/portfolio/PublicPortfolioExperience.tsx');
+  const gallery = read('src/components/portfolio/PublicPortfolioGallery.tsx');
+  const motion = read('src/components/portfolio/PublicPortfolioExperience.module.css');
+
+  it('locks the document while the full-screen intro is visible', () => {
+    expect(experience).toContain("html.style.overflow = 'hidden'");
+    expect(experience).toContain("body.style.overflow = 'hidden'");
+    expect(experience).toContain("body.style.overscrollBehavior = 'none'");
+    expect(experience).toContain('fixed inset-0');
+    expect(experience).toContain('<section className={`${styles.introGate}');
+    expect(experience).not.toContain('role="dialog" aria-modal="true"');
+    expect(experience).not.toContain('grid h-[100dvh] w-full max-w-full');
+    expect(experience).toContain('overflow-x-clip');
+    expect(experience).toContain('classList.add(styles.introLocked)');
+    expect(motion).toContain('scrollbar-width: none');
+    expect(motion).toContain('max-width: none');
+    expect(motion).toContain('max-height: none');
+    expect(motion).toContain('width: 100%');
+    expect(motion).toContain('height: 100dvh');
+  });
+
+  it('keeps orbit geometry inside narrow viewports', () => {
+    expect(experience).not.toContain('size-[min(640px,100vw)]');
+    expect(experience).toContain('size-[min(640px,calc(100vw-1.5rem))]');
+    expect(experience).toContain('text-[clamp(2.75rem,13.5vw,6.6rem)]');
+  });
+
+  it('provides universe motion with a reduced-motion fallback', () => {
+    expect(motion).toContain('@keyframes orbitClockwise');
+    expect(motion).toContain('@keyframes starTwinkle');
+    expect(motion).toContain('@keyframes cometDrift');
+    expect(motion).toContain('@media (prefers-reduced-motion: reduce)');
+  });
+
+  it('keeps project details reachable as a mobile bottom sheet', () => {
+    expect(gallery).toContain('items-end overflow-hidden');
+    expect(gallery).toContain('bg-[#050a22]/85 p-0');
+    expect(gallery).toContain('!max-h-[100dvh]');
+    expect(gallery).toContain('overflow-x-hidden overflow-y-auto');
+    expect(gallery).toContain('sm:place-items-center');
+    expect(gallery).toContain('h-[100dvh] w-screen');
+    expect(gallery).toContain('!max-w-none');
+    expect(gallery).toContain('!w-screen');
+    expect(gallery).toContain("html.style.overflow = 'hidden'");
+    expect(gallery).toContain("body.style.overflow = 'hidden'");
+  });
+});

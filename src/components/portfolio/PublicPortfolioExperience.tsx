@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import {
   ArrowDown,
   ArrowRight,
@@ -19,6 +19,38 @@ import {
 
 import PublicPortfolioGallery from '@/components/portfolio/PublicPortfolioGallery';
 import type { PortfolioExperienceModel } from '@/lib/publicPortfolioExperience';
+import styles from './PublicPortfolioExperience.module.css';
+
+const STAR_FIELD = [
+  [7, 14, 2, 0.2, 5.4], [13, 68, 3, 1.4, 6.8], [18, 34, 2, 2.1, 5.9],
+  [24, 84, 2, 0.7, 7.2], [31, 18, 3, 2.8, 6.2], [37, 57, 2, 1.1, 5.1],
+  [44, 91, 2, 3.2, 7.6], [51, 29, 3, 0.5, 6.5], [57, 73, 2, 2.5, 5.7],
+  [63, 9, 2, 1.8, 7.1], [68, 48, 3, 3.5, 6.1], [73, 87, 2, 0.9, 5.5],
+  [79, 22, 2, 2.2, 7.4], [84, 61, 3, 1.2, 6.6], [90, 39, 2, 3.1, 5.8],
+  [94, 79, 2, 0.4, 6.9], [4, 46, 2, 2.7, 7.3], [47, 6, 2, 1.6, 5.6],
+] as const;
+
+function UniverseBackdrop({ intro = false }: { intro?: boolean }) {
+  return (
+    <div aria-hidden="true" className={`${styles.universeBackdrop} ${intro ? styles.introUniverse : ''}`}>
+      {STAR_FIELD.map(([x, y, size, delay, duration], index) => (
+        <i
+          key={`${x}-${y}-${index}`}
+          className={styles.star}
+          style={{
+            '--star-x': `${x}%`,
+            '--star-y': `${y}%`,
+            '--star-size': `${size}px`,
+            '--star-delay': `${delay}s`,
+            '--star-duration': `${duration}s`,
+          } as CSSProperties}
+        />
+      ))}
+      <i className={`${styles.comet} ${styles.cometOne}`} />
+      <i className={`${styles.comet} ${styles.cometTwo}`} />
+    </div>
+  );
+}
 
 function Brand({ compact = false }: { compact?: boolean }) {
   return (
@@ -28,28 +60,29 @@ function Brand({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function IntroGate({ model, onEnter }: { model: PortfolioExperienceModel; onEnter: () => void }) {
+function IntroGate({ model, onEnter, exiting }: { model: PortfolioExperienceModel; onEnter: () => void; exiting: boolean }) {
   return (
-    <div className="fixed inset-0 z-[1000] grid grid-rows-[auto_1fr_auto] overflow-hidden bg-[radial-gradient(circle_at_70%_40%,rgba(0,176,215,.19),transparent_26%),radial-gradient(circle_at_65%_51%,rgba(157,200,59,.17),transparent_22%),linear-gradient(145deg,#0e1740,#172862_55%,#111d4c)] px-5 py-6 text-white sm:px-11 sm:py-8" role="dialog" aria-modal="true" aria-label="Masuk portfolio">
+    <section className={`${styles.introGate} ${exiting ? styles.introGateExit : ''} fixed inset-0 z-[1000] grid grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden bg-[radial-gradient(circle_at_70%_40%,rgba(0,176,215,.19),transparent_26%),radial-gradient(circle_at_65%_51%,rgba(157,200,59,.17),transparent_22%),linear-gradient(145deg,#0e1740,#172862_55%,#111d4c)] px-4 py-4 text-white sm:px-8 sm:py-6 lg:px-11 lg:py-8`} aria-label="Masuk portfolio">
+      <UniverseBackdrop intro />
       <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(rgba(255,255,255,.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.04)_1px,transparent_1px)] [background-size:56px_56px] [mask-image:radial-gradient(circle_at_50%_50%,black,transparent_80%)]" />
-      <div className="relative z-10 flex items-center justify-between gap-4"><Brand /><span className="text-right text-[10px] font-black uppercase tracking-[.16em] text-white/55 sm:text-xs">{model.season}</span></div>
-      <div className="relative z-10 mx-auto grid w-full max-w-6xl items-center gap-10 lg:grid-cols-[1.04fr_.96fr]">
-        <div>
-          <p className="mb-5 flex items-center gap-2 text-xs font-black uppercase tracking-[.16em] text-clevio-green"><Sparkles size={16} /> Portfolio Experience</p>
-          <h1 className="max-w-4xl text-5xl font-black uppercase leading-[.9] tracking-[-.06em] sm:text-7xl lg:text-[clamp(4rem,6.7vw,6.6rem)]">This isn’t a report.<br /><span className="text-transparent [-webkit-text-stroke:1.5px_rgba(255,255,255,.84)]">It’s {model.firstName}’s learning universe.</span></h1>
-          <p className="mt-6 max-w-xl text-base font-semibold leading-relaxed text-white/65 sm:text-lg">Masuk ke project, keputusan, eksperimen, dan perkembangan yang terbentuk di balik setiap karya.</p>
-          <button type="button" onClick={onEnter} className="mt-7 inline-flex min-h-14 items-center gap-3 rounded-2xl bg-clevio-green px-6 font-black text-[#0e1740] shadow-[0_14px_34px_rgba(157,200,59,.2)] transition hover:-translate-y-1 hover:shadow-[0_20px_44px_rgba(157,200,59,.28)]">Enter Portfolio <ArrowRight size={19} /></button>
+      <div className="relative z-20 flex items-center justify-between gap-3"><Brand /><span className="max-w-[42%] text-right text-[9px] font-black uppercase tracking-[.14em] text-white/55 sm:text-xs">{model.season}</span></div>
+      <div className="relative z-10 mx-auto grid h-full min-h-0 w-full max-w-6xl items-center overflow-hidden lg:grid-cols-[1.04fr_.96fr] lg:gap-10">
+        <div className={`${styles.introCopy} relative z-20 max-w-[48rem] py-4 sm:py-6`}>
+          <p className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-[.16em] text-clevio-green sm:mb-5 sm:text-xs"><Sparkles size={16} /> Portfolio Experience</p>
+          <h1 className="max-w-[11ch] text-[clamp(2.75rem,13.5vw,6.6rem)] font-black uppercase leading-[.88] tracking-[-.052em] sm:max-w-4xl sm:text-[clamp(4rem,9vw,6.6rem)] lg:text-[clamp(4rem,6.7vw,6.6rem)]">This isn’t a report.<br /><span className="text-transparent [-webkit-text-stroke:1.35px_rgba(255,255,255,.84)]">It’s {model.firstName}’s learning universe.</span></h1>
+          <p className="mt-4 max-w-[34rem] text-sm font-semibold leading-relaxed text-white/70 sm:mt-6 sm:text-lg">Masuk ke project, keputusan, eksperimen, dan perkembangan yang terbentuk di balik setiap karya.</p>
+          <button type="button" onClick={onEnter} className="mt-5 inline-flex min-h-12 items-center gap-3 rounded-xl bg-clevio-green px-5 font-black text-[#0e1740] shadow-[0_14px_34px_rgba(157,200,59,.2)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_44px_rgba(157,200,59,.28)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-clevio-cyan/60 active:translate-y-0 sm:mt-7 sm:min-h-14 sm:rounded-2xl sm:px-6">Enter Portfolio <ArrowRight size={19} /></button>
         </div>
-        <div className="relative mx-auto flex aspect-square w-full max-w-md items-center justify-center">
-          <div className="absolute inset-0 rounded-full border border-white/10" />
-          <div className="absolute inset-[16%] rounded-full border border-dashed border-clevio-green/40" />
-          <div className="absolute inset-[25%] rounded-[45%_55%_62%_38%] bg-gradient-to-br from-clevio-green via-[#c8ef58] to-clevio-cyan opacity-90 shadow-[0_0_65px_rgba(0,176,215,.4)]" />
-          <div className="relative z-10 grid size-28 place-items-center rounded-[2rem] border border-white/15 bg-[#0e1740]/85 text-3xl font-black shadow-2xl backdrop-blur sm:size-32">{model.initials}</div>
-          <span className="absolute bottom-[20%] z-10 rounded-full border border-clevio-green/35 bg-clevio-green/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[.14em] text-[#dcff84]">Coder Portfolio</span>
+        <div className={`${styles.introPortal} pointer-events-none absolute -right-[24%] top-[11%] flex aspect-square w-[62vw] items-center justify-center opacity-25 sm:-right-[18%] sm:top-1/2 sm:w-[58vw] sm:-translate-y-1/2 sm:opacity-55 lg:relative lg:right-auto lg:top-auto lg:mx-auto lg:w-full lg:max-w-md lg:translate-y-0 lg:opacity-100`}>
+          <div className={`${styles.orbitClockwise} absolute inset-0 rounded-full border border-white/10`} />
+          <div className={`${styles.orbitCounterClockwise} absolute inset-[16%] rounded-full border border-dashed border-clevio-green/40`} />
+          <div className={`${styles.portalBlob} absolute inset-[25%] rounded-[45%_55%_62%_38%] bg-gradient-to-br from-clevio-green via-[#c8ef58] to-clevio-cyan opacity-90 shadow-[0_0_65px_rgba(0,176,215,.4)]`} />
+          <div className="relative z-10 hidden size-28 place-items-center rounded-[2rem] border border-white/15 bg-[#0e1740]/85 text-3xl font-black shadow-2xl backdrop-blur sm:grid sm:size-32">{model.initials}</div>
+          <span className="absolute bottom-[20%] z-10 hidden rounded-full border border-clevio-green/35 bg-clevio-green/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[.14em] text-[#dcff84] sm:block">Coder Portfolio</span>
         </div>
       </div>
-      <div className="relative z-10 flex items-center justify-between gap-4 text-[10px] font-bold uppercase tracking-[.13em] text-white/45"><span className="hidden sm:inline">Clever · Leverage · Human-centric · Greater good</span><span className="ml-auto inline-flex items-center gap-2"><ArrowDown size={16} /> Enter to explore</span></div>
-    </div>
+      <div className="relative z-20 flex items-center justify-between gap-4 text-[9px] font-bold uppercase tracking-[.12em] text-white/45 sm:text-[10px]"><span className="hidden sm:inline">Clever · Leverage · Human-centric · Greater good</span><span className="ml-auto inline-flex items-center gap-2"><ArrowDown className={styles.scrollCueIcon} size={16} /> Enter to explore</span></div>
+    </section>
   );
 }
 
@@ -79,11 +112,11 @@ function Portal({ model }: { model: PortfolioExperienceModel }) {
 
   return (
     <div className="relative grid min-h-[420px] place-items-center [perspective:1000px] sm:min-h-[560px]">
-      <div className="absolute size-[min(560px,88vw)] rounded-full border border-white/10" />
-      <div className="absolute size-[min(470px,74vw)] rounded-full border border-dashed border-clevio-green/35" />
-      <div className="absolute size-[min(640px,100vw)] rounded-full border border-white/10 opacity-30" />
-      <div className="relative flex aspect-square w-[min(480px,78vw)] items-center justify-center rounded-full">
-        <div className="absolute size-[56%] rotate-[-7deg] rounded-[42%_58%_64%_36%] bg-gradient-to-br from-clevio-green via-[#caf05d] to-clevio-cyan shadow-[0_0_50px_rgba(0,176,215,.34)]" />
+      <div className={`${styles.orbitClockwise} absolute size-[min(560px,calc(100vw-2rem))] rounded-full border border-white/10`} />
+      <div className={`${styles.orbitCounterClockwise} absolute size-[min(470px,calc(84vw-2rem))] rounded-full border border-dashed border-clevio-green/35`} />
+      <div className="absolute size-[min(640px,calc(100vw-1.5rem))] rounded-full border border-white/10 opacity-30" />
+      <div className="relative flex aspect-square w-[min(480px,calc(78vw-1rem))] items-center justify-center rounded-full">
+        <div className={`${styles.portalBlob} absolute size-[56%] rotate-[-7deg] rounded-[42%_58%_64%_36%] bg-gradient-to-br from-clevio-green via-[#caf05d] to-clevio-cyan shadow-[0_0_50px_rgba(0,176,215,.34)]`} />
         <div className="relative z-10 grid w-[71%] grid-cols-[auto_1fr_auto] items-center gap-3 rounded-3xl border border-white/15 bg-[#0e1740]/75 p-4 shadow-2xl backdrop-blur-xl">
           <div className="grid size-14 place-items-center rounded-2xl bg-gradient-to-br from-clevio-cyan to-clevio-green text-xl font-black text-[#0e1740]">{model.initials}</div>
           <div className="min-w-0"><span className="block text-[9px] font-black uppercase tracking-[.14em] text-clevio-green">{programLabel}</span><strong className="block truncate text-lg">{model.fullName}</strong><p className="m-0 truncate text-xs text-white/60">{model.levelName || 'Coder'}{model.schoolVisible && model.schoolName ? ` · ${model.schoolName}` : ''}</p></div>
@@ -96,10 +129,10 @@ function Portal({ model }: { model: PortfolioExperienceModel }) {
 
 function Hero({ model }: { model: PortfolioExperienceModel }) {
   return (
-    <header id="top" className="relative grid min-h-screen items-center px-5 pb-20 pt-28 sm:px-8">
+    <header id="top" className="relative grid min-h-[100dvh] items-center px-5 pb-20 pt-28 sm:px-8">
       <div className="mx-auto grid w-full max-w-6xl items-center gap-8 lg:grid-cols-[.98fr_1.02fr]">
         <div>
-          <h1 className="m-0 text-[clamp(4rem,8vw,7.25rem)] font-black uppercase leading-[.82] tracking-[-.058em]">MY CODE,<br /><span className="text-transparent [-webkit-text-stroke:1.5px_rgba(255,255,255,.82)]">MY WORLD.</span></h1>
+          <h1 className="m-0 max-w-full text-[clamp(3rem,15vw,7.25rem)] font-black uppercase leading-[.84] tracking-[-.052em] sm:text-[clamp(4rem,8vw,7.25rem)]">MY CODE,<br /><span className="text-transparent [-webkit-text-stroke:1.5px_rgba(255,255,255,.82)]">MY WORLD.</span></h1>
           <p className="mt-7 max-w-xl text-base font-semibold leading-relaxed text-white/65 sm:text-lg">Portfolio hidup berisi project, ide, eksperimen, dan perkembangan yang dibangun melalui teknologi, kreativitas, kolaborasi, dan keberanian.</p>
           <div className="mt-7 flex flex-wrap gap-3"><a href="#projects" className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-clevio-green px-5 font-black text-[#0e1740] hover:-translate-y-1">Lihat Project <ArrowUpRight size={18} /></a><a href="#journey" className="inline-flex min-h-12 items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-5 font-black text-white backdrop-blur hover:bg-white/10">Lihat Perjalanan Belajar <ChevronRight size={17} /></a></div>
           <div className="mt-10 flex flex-wrap gap-8"><Metric label="Projects" value={model.stats.projects} /><Metric label="Skills Practiced" value={model.stats.skills} /><Metric label="Reflections" value={model.stats.reflections} /></div>
@@ -177,6 +210,39 @@ function CharacterSection({ model }: { model: PortfolioExperienceModel }) {
 
 export default function PublicPortfolioExperience({ model }: { model: PortfolioExperienceModel }) {
   const [entered, setEntered] = useState(false);
+  const [gateVisible, setGateVisible] = useState(true);
+
   useEffect(() => { document.documentElement.style.scrollBehavior = 'smooth'; return () => { document.documentElement.style.scrollBehavior = ''; }; }, []);
-  return <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_13%_10%,rgba(0,176,215,.22),transparent_27%),radial-gradient(circle_at_88%_18%,rgba(157,200,59,.18),transparent_25%),linear-gradient(180deg,#172761_0%,#111d4d_42%,#0e1740_100%)] text-white"><div className="pointer-events-none fixed inset-0 z-0 opacity-50 [background-image:linear-gradient(rgba(255,255,255,.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.035)_1px,transparent_1px)] [background-size:48px_48px] [mask-image:linear-gradient(to_bottom,rgba(0,0,0,.9),transparent_82%)]" />{!entered && <IntroGate model={model} onEnter={() => setEntered(true)} />}<div className={`relative z-10 transition duration-700 ${entered ? 'opacity-100' : 'pointer-events-none h-screen overflow-hidden opacity-0'}`} aria-hidden={!entered}><ExperienceNav /><Hero model={model} /><JourneySection model={model} /><PublicPortfolioGallery projects={model.projects} /><CharacterSection model={model} /><section className="relative z-10 px-5 pb-28 pt-10 sm:px-8"><div className="mx-auto grid min-h-[360px] max-w-6xl items-center gap-8 overflow-hidden rounded-[2.4rem] bg-gradient-to-br from-clevio-green via-[#c0e451] to-clevio-cyan p-8 text-[#0e1740] shadow-[0_40px_100px_rgba(0,176,215,.17)] sm:grid-cols-[1.15fr_.85fr] sm:p-14"><div><span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[.14em]"><Sparkles size={18} /> The journey continues</span><h2 className="mt-4 max-w-3xl text-[clamp(3rem,7vw,5.5rem)] font-black uppercase leading-[.86] tracking-[-.06em]">What will {model.firstName} build next?</h2><p className="max-w-xl text-base font-semibold leading-relaxed text-[#0e1740]/70">Setiap project baru menjadi bab berikutnya—menunjukkan bukan hanya apa yang bisa dibuat, tetapi juga bagaimana coder bertumbuh saat membuatnya.</p><a href="#projects" className="mt-3 inline-flex min-h-12 items-center gap-2 rounded-xl bg-[#0e1740] px-5 font-black text-white">Revisit Projects <FolderKanban size={18} /></a></div><div className="mx-auto grid size-48 place-items-center rounded-full bg-[#0e1740] text-clevio-green shadow-[0_30px_80px_rgba(14,23,64,.24),0_0_0_28px_rgba(255,255,255,.14),0_0_0_62px_rgba(255,255,255,.08)] sm:size-56"><Rocket size={54} /></div></div></section><footer className="relative z-10 px-5 pb-10 sm:px-8"><div className="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center justify-between gap-5 border-t border-white/10 pt-5 text-[10px] font-black uppercase tracking-[.1em] text-white/45"><Brand compact /><span>Clever · Leverage · Human-centric · Greater good</span><span>Portfolio Experience · {new Date().getFullYear()}</span></div></footer></div></div>;
+
+  useEffect(() => {
+    if (!gateVisible) return;
+    const html = document.documentElement;
+    const body = document.body;
+    const previous = {
+      htmlOverflow: html.style.overflow,
+      bodyOverflow: body.style.overflow,
+      overscroll: body.style.overscrollBehavior,
+    };
+    html.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+    body.style.overscrollBehavior = 'none';
+    html.classList.add(styles.introLocked);
+    body.classList.add(styles.introLocked);
+    return () => {
+      html.classList.remove(styles.introLocked);
+      body.classList.remove(styles.introLocked);
+      html.style.overflow = previous.htmlOverflow;
+      body.style.overflow = previous.bodyOverflow;
+      body.style.overscrollBehavior = previous.overscroll;
+    };
+  }, [gateVisible]);
+
+  useEffect(() => {
+    if (!entered || !gateVisible) return;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const timeout = window.setTimeout(() => setGateVisible(false), reducedMotion ? 0 : 620);
+    return () => window.clearTimeout(timeout);
+  }, [entered, gateVisible]);
+
+  return <div className={`${styles.root} relative min-h-[100dvh] w-full max-w-full overflow-x-clip bg-[radial-gradient(circle_at_13%_10%,rgba(0,176,215,.22),transparent_27%),radial-gradient(circle_at_88%_18%,rgba(157,200,59,.18),transparent_25%),linear-gradient(180deg,#172761_0%,#111d4d_42%,#0e1740_100%)] text-white`}><UniverseBackdrop /><div className="pointer-events-none fixed inset-0 z-0 opacity-50 [background-image:linear-gradient(rgba(255,255,255,.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.035)_1px,transparent_1px)] [background-size:48px_48px] [mask-image:linear-gradient(to_bottom,rgba(0,0,0,.9),transparent_82%)]" />{gateVisible && <IntroGate model={model} onEnter={() => setEntered(true)} exiting={entered} />}<div className={`relative z-10 transition duration-700 ${entered ? styles.experienceEntered : `${styles.experienceHidden} pointer-events-none h-[100dvh] overflow-hidden`}`} aria-hidden={!entered}><ExperienceNav /><Hero model={model} /><JourneySection model={model} /><PublicPortfolioGallery projects={model.projects} /><CharacterSection model={model} /><section className="relative z-10 px-5 pb-28 pt-10 sm:px-8"><div className="mx-auto grid min-h-[360px] max-w-6xl items-center gap-8 overflow-hidden rounded-[2rem] bg-gradient-to-br from-clevio-green via-[#c0e451] to-clevio-cyan p-6 text-[#0e1740] shadow-[0_40px_100px_rgba(0,176,215,.17)] sm:grid-cols-[1.15fr_.85fr] sm:p-14"><div><span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[.14em]"><Sparkles size={18} /> The journey continues</span><h2 className="mt-4 max-w-3xl text-[clamp(2.65rem,12vw,5.5rem)] font-black uppercase leading-[.88] tracking-[-.052em] sm:text-[clamp(3rem,7vw,5.5rem)]">What will {model.firstName} build next?</h2><p className="max-w-xl text-base font-semibold leading-relaxed text-[#0e1740]/70">Setiap project baru menjadi bab berikutnya—menunjukkan bukan hanya apa yang bisa dibuat, tetapi juga bagaimana coder bertumbuh saat membuatnya.</p><a href="#projects" className="mt-3 inline-flex min-h-12 items-center gap-2 rounded-xl bg-[#0e1740] px-5 font-black text-white transition duration-300 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/70 active:translate-y-0">Revisit Projects <FolderKanban size={18} /></a></div><div className={`${styles.ctaPlanet} mx-auto grid size-40 place-items-center rounded-full bg-[#0e1740] text-clevio-green shadow-[0_30px_80px_rgba(14,23,64,.24),0_0_0_20px_rgba(255,255,255,.14),0_0_0_42px_rgba(255,255,255,.08)] sm:size-56 sm:shadow-[0_30px_80px_rgba(14,23,64,.24),0_0_0_28px_rgba(255,255,255,.14),0_0_0_62px_rgba(255,255,255,.08)]`}><Rocket size={54} /></div></div></section><footer className="relative z-10 px-5 pb-10 sm:px-8"><div className="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center justify-between gap-5 border-t border-white/10 pt-5 text-[10px] font-black uppercase tracking-[.1em] text-white/45"><Brand compact /><span>Clever · Leverage · Human-centric · Greater good</span><span>Portfolio Experience · {new Date().getFullYear()}</span></div></footer></div></div>;
 }

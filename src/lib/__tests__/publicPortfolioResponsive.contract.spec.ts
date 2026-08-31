@@ -9,6 +9,7 @@ describe('public portfolio universe responsive shell', () => {
   const gallery = read('src/components/portfolio/PublicPortfolioGallery.tsx');
   const motion = read('src/components/portfolio/PublicPortfolioExperience.module.css');
   const scrollLock = read('src/lib/documentScrollLock.ts');
+  const mobileScrollFix = read('src/components/layout/MobileScrollFix.tsx');
 
   it('locks the document while the full-screen intro is visible', () => {
     expect(experience).toContain('lockDocumentScroll()');
@@ -71,5 +72,8 @@ describe('public portfolio universe responsive shell', () => {
     expect(gallery).toContain('unlockDocumentScroll()');
     expect(scrollLock).toContain("getPropertyPriority(property)");
     expect(scrollLock).toContain("restoreProperty(html, property");
+    expect(scrollLock).toContain("classList.add(DOCUMENT_SCROLL_LOCK_CLASS)");
+    expect(mobileScrollFix).toContain("classList.contains(DOCUMENT_SCROLL_LOCK_CLASS)");
+    expect(mobileScrollFix).toContain("scrollLocked ? 'hidden' : 'scroll'");
   });
 });

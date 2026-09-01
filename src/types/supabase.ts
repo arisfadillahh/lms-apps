@@ -559,6 +559,59 @@ export interface Database {
           },
         ];
       };
+      class_change_audit_logs: {
+        Row: {
+          id: string;
+          class_id: string;
+          actor_user_id: string | null;
+          event_type: 'RECURRING_SCHEDULE_UPDATED' | 'LESSON_REASSIGNED' | 'HISTORY_RECONSTRUCTED';
+          session_id: string | null;
+          class_lesson_id: string | null;
+          before_state: Json;
+          after_state: Json;
+          context: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          class_id: string;
+          actor_user_id?: string | null;
+          event_type: 'RECURRING_SCHEDULE_UPDATED' | 'LESSON_REASSIGNED' | 'HISTORY_RECONSTRUCTED';
+          session_id?: string | null;
+          class_lesson_id?: string | null;
+          before_state?: Json;
+          after_state?: Json;
+          context?: string | null;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: 'class_change_audit_logs_class_id_fkey';
+            columns: ['class_id'];
+            referencedRelation: 'classes';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'class_change_audit_logs_actor_user_id_fkey';
+            columns: ['actor_user_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'class_change_audit_logs_session_id_fkey';
+            columns: ['session_id'];
+            referencedRelation: 'sessions';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'class_change_audit_logs_class_lesson_id_fkey';
+            columns: ['class_lesson_id'];
+            referencedRelation: 'class_lessons';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       lesson_extensions: {
         Row: {
           id: string;

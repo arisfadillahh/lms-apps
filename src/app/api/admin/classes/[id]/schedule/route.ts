@@ -6,6 +6,7 @@ import { assertRole } from '@/lib/roles';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { DAY_CODE_MAP } from '@/lib/constants/scheduleConstants';
 import { createNotification } from '@/lib/dao/notificationsDao';
+import { recordClassChangeAudit } from '@/lib/dao/classChangeAuditDao';
 import { buildRecurringScheduleUpdates } from '@/lib/services/classScheduleReflow';
 
 const schema = z.object({
@@ -78,6 +79,33 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const { error: updateClassError } = await supabase.from('classes').update({ schedule_day: parsed.data.scheduleDay.trim().toUpperCase(), schedule_time: normalizeTime(parsed.data.scheduleTime) }).eq('id', classId);
   if (updateClassError) return NextResponse.json({ error: updateClassError.message }, { status: 500 });
+
+  try {
+    await recordClassChangeAudit({
+      classId,
+      actorUserId: session.user.id,
+      eventType: 'RECURRING_SCHEDULE_UPDATED',
+      beforeState: {
+        scheduleDay: klass.schedule_day,
+        scheduleTime: klass.schedule_time,
+        sessions: futureSessions.map((futureSession) => ({
+          id: futureSession.id,
+          dateTime: futureSession.date_time,
+        })),
+      },
+      afterState: {
+        scheduleDay: parsed.data.scheduleDay.trim().toUpperCase(),
+        scheduleTime: normalizeTime(parsed.data.scheduleTime),
+        sessions: scheduleUpdates.map((scheduleUpdate) => ({
+          id: scheduleUpdate.id,
+          dateTime: scheduleUpdate.dateTime,
+        })),
+      },
+      context: 'PATCH /api/admin/classes/[id]/schedule',
+    });
+  } catch (auditError) {
+    console.error('[ClassSchedule] Failed to record audit log', auditError);
+  }
 
   try {
     const { data: enrollments } = await supabase

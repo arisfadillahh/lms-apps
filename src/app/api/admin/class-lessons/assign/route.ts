@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { getSessionOrThrow } from '@/lib/auth';
 import { assertRole } from '@/lib/roles';
 import { classLessonsDao, classesDao, sessionsDao } from '@/lib/dao';
+import { recordClassChangeAudit } from '@/lib/dao/classChangeAuditDao';
 
 const assignSchema = z.object({
   lessonId: z.string().uuid(),
@@ -61,6 +62,37 @@ export async function POST(request: NextRequest) {
   }
 
   await classLessonsDao.assignLessonToSession(lesson.id, sessionId, targetSession.date_time);
+
+  try {
+    await recordClassChangeAudit({
+      classId: classBlock.class_id,
+      actorUserId: session.user.id,
+      eventType: 'LESSON_REASSIGNED',
+      sessionId,
+      classLessonId: lesson.id,
+      beforeState: {
+        selectedLesson: {
+          id: lesson.id,
+          sessionId: lesson.session_id,
+        },
+        displacedLesson: existingLessonForSession
+          ? { id: existingLessonForSession.id, sessionId: existingLessonForSession.session_id }
+          : null,
+      },
+      afterState: {
+        selectedLesson: {
+          id: lesson.id,
+          sessionId,
+        },
+        displacedLesson: existingLessonForSession && existingLessonForSession.id !== lesson.id
+          ? { id: existingLessonForSession.id, sessionId: null }
+          : null,
+      },
+      context: 'POST /api/admin/class-lessons/assign',
+    });
+  } catch (auditError) {
+    console.error('[class-lessons/assign] Failed to record audit log', auditError);
+  }
 
   // Only sync block statuses — do NOT call autoAssignLessonsForClass here.
   // autoAssignLessonsForClass force-unassigns all future sessions which would

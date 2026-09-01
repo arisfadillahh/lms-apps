@@ -13,6 +13,7 @@ import {
 } from '@/lib/dao';
 import type { ClassLessonRecord } from '@/lib/dao/classLessonsDao';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
+import { resolveBlockProgress } from '@/lib/services/classBlockProgress';
 import { normalizeClassMeetingUrl } from '@/lib/classMeetingUrl';
 
 import AssignSubstituteForm from './AssignSubstituteForm';
@@ -92,24 +93,10 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
   const blockSummaries: BlockSummary[] = await Promise.all(
     classBlocks.map(async (block) => {
       const classLessons = await classLessonsDao.listLessonsByClassBlock(block.id);
-      const sortedLessons = classLessons.slice().sort((a, b) => a.order_index - b.order_index);
-
-      // Calculate progress: Logic "Waterfall" / "Implicit Completion"
-      // Find the last lesson that is COMPLETED. All lessons before it are considered completed.
-      let lastCompletedIndex = -1;
-
-      for (let i = 0; i < sortedLessons.length; i++) {
-        const lesson = sortedLessons[i];
-        if (lesson.session_id) {
-          const session = sessionMap.get(lesson.session_id);
-          if (session?.status === 'COMPLETED') {
-            lastCompletedIndex = i;
-          }
-        }
-      }
-
-      const completedLessons = lastCompletedIndex + 1;
-      const nextLesson = sortedLessons[lastCompletedIndex + 1];
+      const { sortedLessons, completedLessons, nextLesson } = resolveBlockProgress({
+        lessons: classLessons,
+        sessions,
+      });
 
       return {
         block,

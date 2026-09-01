@@ -27,4 +27,12 @@ describe('class change audit contract', () => {
     expect(migration).toContain('after_state jsonb NOT NULL');
     expect(migration).toContain('idx_class_change_audit_logs_class_created');
   });
+
+  it('keeps an append-only persistent fallback when the audit migration is unavailable', () => {
+    const dao = read('src/lib/dao/classChangeAuditDao.ts');
+
+    expect(dao).toContain("'/root/lms/shared/class-change-audit.jsonl'");
+    expect(dao).toContain('await appendFile');
+    expect(dao).not.toContain('writeFile');
+  });
 });

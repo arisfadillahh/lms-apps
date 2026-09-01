@@ -1,3 +1,6 @@
+import { appendFile, mkdir } from 'node:fs/promises';
+import path from 'node:path';
+
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import type { Json } from '@/types/supabase';
 
@@ -13,6 +16,7 @@ export async function recordClassChangeAudit(input: {
   afterState: Json;
   context?: string | null;
 }) {
+  const createdAt = new Date().toISOString();
   const { error } = await getSupabaseAdmin().from('class_change_audit_logs').insert({
     class_id: input.classId,
     actor_user_id: input.actorUserId ?? null,
@@ -24,5 +28,16 @@ export async function recordClassChangeAudit(input: {
     context: input.context ?? null,
   });
 
-  if (error) throw new Error(`Failed to record class change audit: ${error.message}`);
+  if (!error) return;
+
+  const fallbackPath = process.env.CLASS_CHANGE_AUDIT_LOG_PATH
+    || (process.env.NODE_ENV === 'production'
+      ? '/root/lms/shared/class-change-audit.jsonl'
+      : path.join(process.cwd(), '.codex-tmp-class-change-audit.jsonl'));
+  await mkdir(path.dirname(fallbackPath), { recursive: true });
+  await appendFile(fallbackPath, `${JSON.stringify({ ...input, createdAt, storageError: error.message })}\n`, {
+    encoding: 'utf8',
+    mode: 0o600,
+  });
+  console.warn(`[ClassChangeAudit] Database audit unavailable; event persisted to ${fallbackPath}`);
 }

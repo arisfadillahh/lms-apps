@@ -11,7 +11,7 @@
 }
 
 :global(body[data-portfolio-page="true"]) {
-  overflow-y: visible !important;
+  overflow: visible !important;
 }
 
 .introGate {

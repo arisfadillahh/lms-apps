@@ -185,6 +185,15 @@
   isolation: isolate;
 }
 
+.greenGlow {
+  filter: drop-shadow(0 14px 18px rgb(157 200 59 / 22%));
+}
+
+.greenGlow:hover,
+.greenGlow:focus-visible {
+  filter: drop-shadow(0 18px 22px rgb(157 200 59 / 28%));
+}
+
 .sheenButton::after {
   position: absolute;
   top: -95%;
@@ -337,5 +346,11 @@
 
   .introGateExit {
     opacity: 0;
+  }
+
+  .greenGlow,
+  .greenGlow:hover,
+  .greenGlow:focus-visible {
+    filter: none;
   }
 }

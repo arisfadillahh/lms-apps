@@ -6,6 +6,7 @@ import { assertRole } from '@/lib/roles';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { DAY_CODE_MAP } from '@/lib/constants/scheduleConstants';
 import { createNotification } from '@/lib/dao/notificationsDao';
+import { buildRecurringScheduleUpdates } from '@/lib/services/classScheduleReflow';
 
 const schema = z.object({
   scheduleDay: z.string().min(2),
@@ -14,13 +15,6 @@ const schema = z.object({
 
 function normalizeTime(value: string) {
   return value.length === 5 ? `${value}:00` : value;
-}
-
-function toWibDate(date: Date, time: string) {
-  const yyyy = date.getUTCFullYear();
-  const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const dd = String(date.getUTCDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}T${normalizeTime(time)}+07:00`;
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -43,12 +37,40 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (sessionsError) return NextResponse.json({ error: sessionsError.message }, { status: 500 });
 
   const futureSessions = (sessions ?? []).filter((session) => session.status === 'SCHEDULED' && new Date(session.date_time).getTime() > Date.now());
-  const updates = futureSessions.map((session) => {
-    const date = new Date(session.date_time);
-    const currentDay = date.getUTCDay();
-    const delta = schedule.index - currentDay;
-    date.setUTCDate(date.getUTCDate() + delta);
-    return supabase.from('sessions').update({ date_time: toWibDate(date, parsed.data.scheduleTime), zoom_link_snapshot: klass.zoom_link }).eq('id', session.id);
+  const sessionIds = futureSessions.map((futureSession) => futureSession.id);
+  const { data: assignedLessons, error: assignedLessonsError } = sessionIds.length
+    ? await supabase.from('class_lessons').select('session_id, order_index, class_block_id').in('session_id', sessionIds)
+    : { data: [], error: null };
+  if (assignedLessonsError) return NextResponse.json({ error: assignedLessonsError.message }, { status: 500 });
+
+  const blockIds = [...new Set((assignedLessons ?? []).map((lesson) => lesson.class_block_id))];
+  const { data: classBlocks, error: classBlocksError } = blockIds.length
+    ? await supabase.from('class_blocks').select('id, start_date').in('id', blockIds)
+    : { data: [], error: null };
+  if (classBlocksError) return NextResponse.json({ error: classBlocksError.message }, { status: 500 });
+
+  const blockStartById = new Map((classBlocks ?? []).map((block) => [block.id, block.start_date]));
+  const lessonBySessionId = new Map((assignedLessons ?? [])
+    .filter((lesson) => lesson.session_id)
+    .map((lesson) => [lesson.session_id as string, lesson]));
+  const scheduleUpdates = buildRecurringScheduleUpdates({
+    sessions: futureSessions.map((futureSession) => {
+      const lesson = lessonBySessionId.get(futureSession.id);
+      const blockStart = lesson ? blockStartById.get(lesson.class_block_id) : null;
+      return {
+        id: futureSession.id,
+        dateTime: futureSession.date_time,
+        curriculumOrder: lesson
+          ? `${blockStart ?? '9999-12-31'}:${String(lesson.order_index).padStart(12, '0')}`
+          : null,
+      };
+    }),
+    targetDayIndex: schedule.index,
+    targetTime: parsed.data.scheduleTime,
+  });
+
+  const updates = scheduleUpdates.map((sessionUpdate) => {
+    return supabase.from('sessions').update({ date_time: sessionUpdate.dateTime, zoom_link_snapshot: klass.zoom_link }).eq('id', sessionUpdate.id);
   });
   const results = await Promise.all(updates);
   const failed = results.find((result) => result.error);
@@ -103,5 +125,5 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     console.error('[ClassSchedule] Failed to notify class members', notificationError);
   }
 
-  return NextResponse.json({ success: true, updatedSessions: futureSessions.length });
+  return NextResponse.json({ success: true, updatedSessions: scheduleUpdates.length });
 }

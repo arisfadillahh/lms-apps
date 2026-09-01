@@ -62,7 +62,7 @@ export default function ChangeClassScheduleModal({ classId, currentDay, currentT
               </button>
             </div>
             <p style={descriptionStyle}>
-              Perubahan ini berlaku terus untuk kelas ini. Sesi mendatang yang masih berstatus terjadwal akan dipindahkan ke hari dan jam baru.
+              Perubahan ini berlaku terus untuk kelas ini. Sesi mendatang akan dipindahkan ke hari dan jam baru dengan urutan lesson tetap terjaga, satu pertemuan per minggu.
             </p>
             <div style={currentScheduleStyle}>
               <span style={currentScheduleLabelStyle}>Jadwal saat ini</span>

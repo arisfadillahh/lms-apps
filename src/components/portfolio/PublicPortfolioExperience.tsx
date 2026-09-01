@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import {
   ArrowDown,
   ArrowRight,
@@ -216,6 +216,15 @@ export default function PublicPortfolioExperience({ model }: { model: PortfolioE
   const [entered, setEntered] = useState(false);
   const [gateVisible, setGateVisible] = useState(true);
   const rootRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    document.body.dataset.portfolioPage = 'true';
+    window.dispatchEvent(new Event('portfolio-scroll-mode-change'));
+    return () => {
+      delete document.body.dataset.portfolioPage;
+      window.dispatchEvent(new Event('portfolio-scroll-mode-change'));
+    };
+  }, []);
 
   useEffect(() => { document.documentElement.style.scrollBehavior = 'smooth'; return () => { document.documentElement.style.scrollBehavior = ''; }; }, []);
 

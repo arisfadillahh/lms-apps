@@ -59,6 +59,9 @@ describe('public portfolio universe responsive shell', () => {
     expect(motion).toContain('.sheenButton::after');
     expect(motion).toContain('.greenGlow');
     expect(experience).not.toContain('shadow-[0_14px_34px_rgba(157,200,59,.2)]');
+    expect(experience).toContain('dataset.portfolioPage');
+    expect(mobileScrollFix).toContain('body:not([data-portfolio-page="true"])');
+    expect(mobileScrollFix).toContain("portfolio-scroll-mode-change");
   });
 
   it('keeps project details reachable as a mobile bottom sheet', () => {

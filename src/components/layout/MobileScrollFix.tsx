@@ -26,12 +26,12 @@ export default function MobileScrollFix() {
                 // Hide scrollbar on main content areas and ensure only body scrolls
                 styleEl.textContent = `
                     @media (max-width: 768px) {
-                        html {
+                        html:not([data-portfolio-page="true"]) {
                             height: auto !important;
                             overflow: visible !important;
                         }
                         
-                        body {
+                        body:not([data-portfolio-page="true"]) {
                             height: auto !important;
                             min-height: 100vh !important;
                             overflow-x: hidden !important;
@@ -70,7 +70,21 @@ export default function MobileScrollFix() {
                             height: 0 !important;
                         }
                     }
-                `;
+        `;
+
+                const isPortfolioPage = document.body.dataset.portfolioPage === 'true';
+                if (isPortfolioPage) {
+                    document.documentElement.style.removeProperty('height');
+                    document.documentElement.style.removeProperty('overflow');
+                    document.documentElement.style.removeProperty('overflow-x');
+                    document.documentElement.style.removeProperty('overflow-y');
+                    document.body.style.removeProperty('height');
+                    document.body.style.removeProperty('overflow');
+                    document.body.style.removeProperty('overflow-x');
+                    document.body.style.removeProperty('overflow-y');
+                    document.body.style.removeProperty('overscroll-behavior');
+                    return;
+                }
 
                 // Also apply inline styles
                 const scrollLocked = document.documentElement.classList.contains(DOCUMENT_SCROLL_LOCK_CLASS)
@@ -139,6 +153,7 @@ export default function MobileScrollFix() {
 
         // Apply on resize
         window.addEventListener('resize', applyMobileFix);
+        window.addEventListener('portfolio-scroll-mode-change', applyMobileFix);
 
         // Re-apply on navigation (SPA)
         const observer = new MutationObserver(() => {
@@ -151,6 +166,7 @@ export default function MobileScrollFix() {
         // Cleanup
         return () => {
             window.removeEventListener('resize', applyMobileFix);
+            window.removeEventListener('portfolio-scroll-mode-change', applyMobileFix);
             observer.disconnect();
         };
     }, []);

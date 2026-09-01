@@ -6,6 +6,14 @@
   isolation: isolate;
 }
 
+:global(html[data-portfolio-page="true"]) {
+  overflow-y: auto !important;
+}
+
+:global(body[data-portfolio-page="true"]) {
+  overflow-y: visible !important;
+}
+
 .introGate {
   width: 100%;
   height: 100dvh;

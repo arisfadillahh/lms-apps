@@ -73,7 +73,7 @@ function IntroGate({ model, onEnter, exiting }: { model: PortfolioExperienceMode
       <div className="relative z-10 mx-auto grid h-full min-h-0 w-full max-w-6xl items-center overflow-hidden lg:grid-cols-[1.04fr_.96fr] lg:gap-10">
         <div className={`${styles.introCopy} relative z-20 max-w-[48rem] py-4 sm:py-6`}>
           <p className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-[.16em] text-clevio-green sm:mb-5 sm:text-xs"><Sparkles size={16} /> Portfolio Experience</p>
-          <h1 className="max-w-[11ch] text-[clamp(2.75rem,13.5vw,6.6rem)] font-black uppercase leading-[.88] tracking-[-.052em] sm:max-w-4xl sm:text-[clamp(4rem,9vw,6.6rem)] lg:text-[clamp(4rem,6.7vw,6.6rem)]">This isn’t a report.<br /><span className="text-transparent [-webkit-text-stroke:1.35px_rgba(255,255,255,.84)]">It’s {model.firstName}’s learning universe.</span></h1>
+          <h1 className="max-w-[11ch] text-[clamp(2.5rem,12vw,5.6rem)] font-black uppercase leading-[.88] tracking-[-.052em] sm:max-w-4xl sm:text-[clamp(3.25rem,7.6vw,5.4rem)] lg:text-[clamp(4rem,6.7vw,6.6rem)]">This isn’t a report.<br /><span className="text-transparent [-webkit-text-stroke:1.35px_rgba(255,255,255,.84)]">It’s {model.firstName}’s learning universe.</span></h1>
           <p className="mt-4 max-w-[34rem] text-sm font-semibold leading-relaxed text-white/70 sm:mt-6 sm:text-lg">Masuk ke project, keputusan, eksperimen, dan perkembangan yang terbentuk di balik setiap karya.</p>
           <button type="button" onClick={onEnter} className={`${styles.sheenButton} ${styles.greenGlow} mt-5 inline-flex min-h-12 items-center gap-3 rounded-xl bg-clevio-green px-5 font-black text-[#0e1740] transition duration-300 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-clevio-cyan/60 active:translate-y-0 sm:mt-7 sm:min-h-14 sm:rounded-2xl sm:px-6`}>Enter Portfolio <ArrowRight size={19} /></button>
         </div>
@@ -136,7 +136,7 @@ function Hero({ model }: { model: PortfolioExperienceModel }) {
     <header id="top" data-portfolio-reveal className="relative grid min-h-[100dvh] items-center px-5 pb-20 pt-28 sm:px-8">
       <div className="mx-auto grid w-full max-w-6xl items-center gap-8 lg:grid-cols-[.98fr_1.02fr]">
         <div>
-          <h1 className="m-0 max-w-full text-[clamp(3rem,15vw,7.25rem)] font-black uppercase leading-[.84] tracking-[-.052em] sm:text-[clamp(4rem,8vw,7.25rem)]">MY CODE,<br /><span className="text-transparent [-webkit-text-stroke:1.5px_rgba(255,255,255,.82)]">MY WORLD.</span></h1>
+          <h1 className="m-0 max-w-full text-[clamp(2.6rem,13vw,5.8rem)] font-black uppercase leading-[.84] tracking-[-.052em] sm:text-[clamp(3.25rem,7.6vw,5.4rem)] lg:text-[clamp(4rem,8vw,7.25rem)]">MY CODE,<br /><span className="text-transparent [-webkit-text-stroke:1.5px_rgba(255,255,255,.82)]">MY WORLD.</span></h1>
           <p className="mt-7 max-w-xl text-base font-semibold leading-relaxed text-white/65 sm:text-lg">Portfolio hidup berisi project, ide, eksperimen, dan perkembangan yang dibangun melalui teknologi, kreativitas, kolaborasi, dan keberanian.</p>
           <div className="mt-7 flex flex-wrap gap-3"><a href="#projects" className={`${styles.sheenButton} ${styles.greenGlow} inline-flex min-h-12 items-center gap-2 rounded-2xl bg-clevio-green px-5 font-black text-[#0e1740] hover:-translate-y-1`}>Lihat Project <ArrowUpRight size={18} /></a><a href="#journey" className="inline-flex min-h-12 items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-5 font-black text-white backdrop-blur hover:bg-white/10">Lihat Perjalanan Belajar <ChevronRight size={17} /></a></div>
           <div className="mt-10 flex flex-wrap gap-8"><Metric label="Projects" value={model.stats.projects} /><Metric label="Skills Practiced" value={model.stats.skills} /><Metric label="Reflections" value={model.stats.reflections} /></div>
@@ -151,7 +151,7 @@ function Hero({ model }: { model: PortfolioExperienceModel }) {
 function Metric({ label, value }: { label: string; value: number }) { return <div className="grid gap-1"><span className="text-[10px] font-black uppercase tracking-[.15em] text-white/50">{label}</span><strong className="text-xl">{value}</strong></div>; }
 
 function SectionHeader({ number, title, description }: { number: string; title: string; description: string }) {
-  return <div className="mb-10 grid gap-4 sm:grid-cols-[90px_1fr] sm:gap-5"><div className="pt-2 text-xs font-black tracking-[.18em] text-clevio-green">{number}</div><div><h2 className="m-0 text-[clamp(3rem,6.6vw,5.1rem)] font-black uppercase leading-[.9] tracking-[-.052em]">{title}</h2><p className="mt-5 max-w-2xl text-base font-semibold leading-relaxed text-white/65">{description}</p></div></div>;
+  return <div className="mb-10 grid gap-4 sm:grid-cols-[90px_1fr] sm:gap-5"><div className="pt-2 text-xs font-black tracking-[.18em] text-clevio-green">{number}</div><div><h2 className="m-0 text-[clamp(2.35rem,11vw,4.4rem)] font-black uppercase leading-[.9] tracking-[-.052em] sm:text-[clamp(2.6rem,5.4vw,4.4rem)] lg:text-[clamp(3rem,6.6vw,5.1rem)]">{title}</h2><p className="mt-5 max-w-2xl text-base font-semibold leading-relaxed text-white/65">{description}</p></div></div>;
 }
 
 function JourneySection({ model }: { model: PortfolioExperienceModel }) {

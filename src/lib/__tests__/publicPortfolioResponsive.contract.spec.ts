@@ -31,7 +31,7 @@ describe('public portfolio universe responsive shell', () => {
   it('keeps orbit geometry inside narrow viewports', () => {
     expect(experience).not.toContain('size-[min(640px,100vw)]');
     expect(experience).toContain('size-[min(640px,calc(100vw-1.5rem))]');
-    expect(experience).toContain('text-[clamp(2.75rem,13.5vw,6.6rem)]');
+    expect(experience).toContain('text-[clamp(2.5rem,12vw,5.6rem)]');
   });
 
   it('provides universe motion with a reduced-motion fallback', () => {
@@ -60,6 +60,10 @@ describe('public portfolio universe responsive shell', () => {
     expect(motion).toContain('.sheenButton::after');
     expect(motion).toContain('.greenGlow');
     expect(motion).toContain('@media (max-width: 400px) and (max-height: 560px)');
+    expect(motion).toContain('@media (min-width: 640px) and (max-width: 1023px) and (min-height: 701px)');
+    expect(motion).toContain('.root :global(h1)');
+    expect(motion).toContain('.root :global(h2)');
+    expect(motion).toContain('.root :global(h3)');
     expect(experience).not.toContain('shadow-[0_14px_34px_rgba(157,200,59,.2)]');
     expect(experience).toContain('dataset.portfolioPage');
     expect(mobileScrollFix).toContain('body:not([data-portfolio-page="true"])');

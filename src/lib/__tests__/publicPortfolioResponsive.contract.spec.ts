@@ -49,7 +49,8 @@ describe('public portfolio universe responsive shell', () => {
     expect(experience).toContain('lg:grid-cols-[1.03fr_.97fr]');
     expect(experience).toContain('lg:grid-cols-[.96fr_1.04fr]');
     expect(experience).toContain('linear-gradient(180deg,#172761_0%,#111d4d_42%,#0e1740_100%)');
-    expect(gallery).toContain('md:grid-cols-12');
+    expect(gallery).toContain('sm:grid-cols-2 lg:grid-cols-3');
+    expect(gallery).toContain('aspect-[3/2] min-h-[18rem]');
     expect(gallery).toContain('onPointerMove={handlePointerMove}');
     expect(motion).toContain("type='fractalNoise'");
     expect(motion).toContain('.cursorGlow');
@@ -58,6 +59,7 @@ describe('public portfolio universe responsive shell', () => {
     expect(motion).toContain('.projectTilt');
     expect(motion).toContain('.sheenButton::after');
     expect(motion).toContain('.greenGlow');
+    expect(motion).toContain('@media (max-width: 400px) and (max-height: 560px)');
     expect(experience).not.toContain('shadow-[0_14px_34px_rgba(157,200,59,.2)]');
     expect(experience).toContain('dataset.portfolioPage');
     expect(mobileScrollFix).toContain('body:not([data-portfolio-page="true"])');
@@ -76,6 +78,7 @@ describe('public portfolio universe responsive shell', () => {
     expect(gallery).toContain('h-[100dvh] w-screen');
     expect(gallery).toContain('!max-w-none');
     expect(gallery).toContain('!w-screen');
+    expect(gallery).toContain('aspect-[4/3] overflow-hidden rounded-2xl');
     expect(gallery).toContain('lockDocumentScroll()');
     expect(gallery).toContain('unlockDocumentScroll()');
     expect(scrollLock).toContain("getPropertyPriority(property)");

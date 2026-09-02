@@ -310,6 +310,59 @@
   }
 }
 
+@media (max-height: 700px) {
+  .introGate {
+    padding-block: 0.75rem;
+  }
+
+  .introCopy {
+    padding-block: 0.25rem !important;
+  }
+
+  .introCopy :global(h1) {
+    font-size: clamp(2.4rem, min(10.5vh, 13.5vw), 4.5rem) !important;
+    line-height: 0.86 !important;
+  }
+
+  .introCopy :global(p) {
+    margin-top: 1rem;
+    font-size: 0.95rem;
+    line-height: 1.35;
+  }
+
+  .introCopy :global(button) {
+    margin-top: 1rem;
+    min-height: 3rem;
+  }
+}
+
+@media (max-width: 400px) and (max-height: 560px) {
+  .introGate {
+    padding-block: 0.5rem;
+  }
+
+  .introCopy {
+    padding-block: 0 !important;
+  }
+
+  .introCopy :global(h1) {
+    font-size: clamp(2.15rem, 9.5vw, 3.2rem) !important;
+    line-height: 0.84 !important;
+  }
+
+  .introCopy :global(p) {
+    margin-top: 0.65rem;
+    font-size: 0.85rem;
+    line-height: 1.25;
+  }
+
+  .introCopy :global(button) {
+    margin-top: 0.65rem;
+    min-height: 2.75rem;
+    padding-inline: 1rem;
+  }
+}
+
 @media (hover: none), (pointer: coarse) {
   .cursorGlow {
     display: none;

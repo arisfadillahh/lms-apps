@@ -74,9 +74,12 @@ export function buildPortfolioExperienceModel(input: PortfolioExperienceInput): 
     nextSteps: latest?.nextSteps || 'Project berikutnya akan menambahkan bab baru di sini.',
   };
 
-  const latestProjectType = latest?.projectType?.trim() || 'Project terbaru';
-  const latestProgram = latest?.programType === 'EKSKUL' ? 'Perjalanan ekskul' : latest?.programType === 'WEEKLY' ? 'Perjalanan weekly' : 'Perjalanan coder';
-  const focusSkill = journey[0]?.label ? `Skill: ${journey[0].label}` : 'Skill yang dipraktikkan';
+  const programLabel = input.programTypes.length > 0
+    ? input.programTypes.map((program) => program === 'WEEKLY' ? 'Weekly' : 'Ekskul').join(' · ')
+    : 'Program belum tercatat';
+  const levelLabel = input.levelName || 'Level belum tercatat';
+  const focusSkill = journey[0]?.label || 'Skill yang dipraktikkan';
+  const projectLabel = `${projects.length} project approved tersimpan di portfolio.`;
 
   return {
     ...input,
@@ -91,10 +94,10 @@ export function buildPortfolioExperienceModel(input: PortfolioExperienceInput): 
     journey,
     latestStory,
     traits: [
-      { label: latestProjectType, detail: latest?.summary || 'Ringkasan project akan muncul setelah project disetujui Coach.' },
-      { label: latestProgram, detail: latestStory.roleContribution },
-      { label: focusSkill, detail: journey[0]?.detail || 'Skill akan muncul setelah ada project yang disetujui Coach.' },
-      { label: 'Next step', detail: latestStory.nextSteps },
+      { label: 'Program & level', detail: `${programLabel} · ${levelLabel}` },
+      { label: 'Karya yang dibangun', detail: projectLabel },
+      { label: `Skill utama: ${focusSkill}`, detail: journey[0]?.detail || 'Skill akan muncul setelah ada project yang disetujui Coach.' },
+      { label: 'Fokus berikutnya', detail: latestStory.nextSteps },
     ],
   };
 }

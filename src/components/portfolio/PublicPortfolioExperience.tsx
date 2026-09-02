@@ -164,7 +164,6 @@ function JourneySection({ model }: { model: PortfolioExperienceModel }) {
 }
 
 function CharacterSection({ model }: { model: PortfolioExperienceModel }) {
-  const latestProject = model.projects[0]?.snapshot;
   const programLabel = model.programTypes.length > 0
     ? model.programTypes.map((program) => program === 'WEEKLY' ? 'Weekly' : 'Ekskul').join(' · ')
     : 'Belum ada program tercatat';
@@ -182,8 +181,8 @@ function CharacterSection({ model }: { model: PortfolioExperienceModel }) {
           <article className="relative min-h-[560px] overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_50%_45%,rgba(157,200,59,.22),transparent_26%),linear-gradient(145deg,rgba(255,255,255,.09),rgba(255,255,255,.035))] p-5 shadow-2xl sm:p-8">
             <div className="relative z-10 flex items-start justify-between gap-3">
               <div>
-                <small className="block text-[9px] font-black uppercase tracking-[.16em] text-clevio-green">Ringkasan perjalanan</small>
-                <strong className="mt-1 block max-w-[18rem] text-xl leading-tight">{latestProject?.title || 'Belum ada project terbaru'}</strong>
+                <small className="block text-[9px] font-black uppercase tracking-[.16em] text-clevio-green">Snapshot coder</small>
+                <strong className="mt-1 block max-w-[18rem] text-xl leading-tight">{model.fullName}</strong>
               </div>
               <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-black uppercase tracking-[.12em] text-white/60">{programLabel}</span>
             </div>
@@ -197,6 +196,7 @@ function CharacterSection({ model }: { model: PortfolioExperienceModel }) {
               <span className="absolute left-0 top-12 max-w-[45%] rounded-xl border border-white/10 bg-[#0e1740]/85 px-3 py-2 text-xs font-black text-white/75 backdrop-blur">{model.journey[0]?.label || 'Belum ada skill'}</span>
               {model.levelName && <span className="absolute right-0 top-20 max-w-[45%] rounded-xl border border-white/10 bg-[#0e1740]/85 px-3 py-2 text-xs font-black text-white/75 backdrop-blur">{model.levelName}</span>}
               {model.schoolVisible && model.schoolName && <span className="absolute bottom-8 left-0 max-w-[52%] rounded-xl border border-white/10 bg-[#0e1740]/85 px-3 py-2 text-xs font-black text-white/75 backdrop-blur">{model.schoolName}</span>}
+              <span className="absolute bottom-2 right-0 max-w-[45%] rounded-xl border border-white/10 bg-[#0e1740]/85 px-3 py-2 text-xs font-black text-white/75 backdrop-blur">{model.stats.projects} project approved</span>
             </div>
             <div className="relative z-10 grid grid-cols-3 gap-2 border-t border-white/10 pt-5">
               {statChips.map((stat) => <div key={stat.label} className="rounded-2xl border border-white/10 bg-white/[.045] px-3 py-3"><strong className="block text-xl text-clevio-green">{stat.value}</strong><span className="text-[9px] font-black uppercase tracking-[.12em] text-white/50">{stat.label}</span></div>)}
@@ -204,7 +204,6 @@ function CharacterSection({ model }: { model: PortfolioExperienceModel }) {
           </article>
           <div className="grid content-center gap-0">
             {model.traits.map((trait, index) => <article key={trait.label} className="grid min-h-28 grid-cols-[44px_1fr] items-start gap-3 border-b border-white/10 py-5 first:pt-0"><span className="text-xs font-black tracking-[.12em] text-clevio-green">0{index + 1}</span><div><strong className="text-lg">{trait.label}</strong><p className="m-0 mt-2 text-sm leading-relaxed text-white/60">{trait.detail}</p></div></article>)}
-            <div className="mt-6 rounded-2xl border border-clevio-green/30 bg-clevio-green/10 p-5"><div className="flex items-center gap-2 text-clevio-green"><Sparkles size={20} /><strong>Next step dari project terbaru</strong></div><p className="m-0 mt-3 text-sm font-semibold leading-relaxed text-white/70">{model.latestStory.nextSteps}</p></div>
           </div>
         </div>
       </div>

@@ -43,15 +43,9 @@ export async function listLessonsByClassBlock(classBlockId: string): Promise<Cla
     throw new Error(`Failed to list class lessons: ${error.message}`);
   }
 
-  // Map the joined data to a flat structure with template_ prefix for clarity
+  // Preserve class snapshots; current template values are comparison-only.
   return (data ?? []).map((row: any) => ({
     ...row,
-    // Override with template values (live reference)
-    title: row.lesson_templates?.title ?? row.title,
-    summary: row.lesson_templates?.summary ?? row.summary,
-    slide_url: row.lesson_templates?.slide_url ?? row.slide_url,
-    make_up_instructions: row.lesson_templates?.make_up_instructions ?? row.make_up_instructions,
-    // Also expose template_ prefixed for explicit access
     template_title: row.lesson_templates?.title ?? null,
     template_summary: row.lesson_templates?.summary ?? null,
     template_slide_url: row.lesson_templates?.slide_url ?? null,
@@ -106,16 +100,10 @@ export async function getClassLessonById(id: string): Promise<ClassLessonWithTem
 
   if (!data) return null;
 
-  // Map to flat structure with template_ prefix and override with template values
+  // Preserve the class snapshot and expose current template values separately.
   const row = data as any;
   return {
     ...row,
-    // Override with template values (live reference)
-    title: row.lesson_templates?.title ?? row.title,
-    summary: row.lesson_templates?.summary ?? row.summary,
-    slide_url: row.lesson_templates?.slide_url ?? row.slide_url,
-    make_up_instructions: row.lesson_templates?.make_up_instructions ?? row.make_up_instructions,
-    // Also expose template_ prefixed for explicit access
     template_title: row.lesson_templates?.title ?? null,
     template_summary: row.lesson_templates?.summary ?? null,
     template_slide_url: row.lesson_templates?.slide_url ?? null,
@@ -202,144 +190,12 @@ export async function updateLessonExample(lessonId: string, url: string | null, 
   }
 }
 
-export async function syncTemplateLessonExample(
-  lessonTemplateId: string,
-  url: string | null,
-  storagePath: string | null,
-): Promise<void> {
-  const supabase = getSupabaseAdmin();
-  const payload: TablesUpdate<'class_lessons'> = {
-    coach_example_url: url,
-    coach_example_storage_path: storagePath,
-  };
-
-  const { error } = await supabase
-    .from('class_lessons')
-    .update(payload)
-    .eq('lesson_template_id', lessonTemplateId);
-
-  if (error) {
-    throw new Error(`Failed to sync template lesson examples: ${error.message}`);
-  }
-}
-
-export async function syncTemplateLessonContent(
-  lessonTemplateId: string,
-  input: {
-    title?: string | null;
-    summary?: string | null;
-    makeUpInstructions?: string | null;
-    slideUrl?: string | null;
-    exampleUrl?: string | null;
-    exampleStoragePath?: string | null;
-    estimatedMeetingCount?: number | null;
-  },
-): Promise<void> {
-  const supabase = getSupabaseAdmin();
-  const sharedPayload: TablesUpdate<'class_lessons'> = {};
-
-  if (Object.prototype.hasOwnProperty.call(input, 'summary')) {
-    sharedPayload.summary = input.summary ?? null;
-  }
-  if (Object.prototype.hasOwnProperty.call(input, 'makeUpInstructions')) {
-    sharedPayload.make_up_instructions = input.makeUpInstructions ?? null;
-  }
-  if (Object.prototype.hasOwnProperty.call(input, 'slideUrl')) {
-    sharedPayload.slide_url = input.slideUrl ?? null;
-  }
-  if (Object.prototype.hasOwnProperty.call(input, 'exampleUrl')) {
-    sharedPayload.coach_example_url = input.exampleUrl ?? null;
-  }
-  if (Object.prototype.hasOwnProperty.call(input, 'exampleStoragePath')) {
-    sharedPayload.coach_example_storage_path = input.exampleStoragePath ?? null;
-  }
-
-  const shouldSyncTitle = Object.prototype.hasOwnProperty.call(input, 'title');
-
-  if (!shouldSyncTitle) {
-    if (Object.keys(sharedPayload).length === 0) {
-      return;
-    }
-
-    const { error } = await supabase
-      .from('class_lessons')
-      .update(sharedPayload)
-      .eq('lesson_template_id', lessonTemplateId);
-
-    if (error) {
-      throw new Error(`Failed to sync template lesson content: ${error.message}`);
-    }
-    return;
-  }
-
-  const { data: lessons, error: fetchError } = await supabase
-    .from('class_lessons')
-    .select('id, class_block_id, order_index')
-    .eq('lesson_template_id', lessonTemplateId);
-
-  if (fetchError) {
-    throw new Error(`Failed to fetch class lessons for content sync: ${fetchError.message}`);
-  }
-
-  const lessonsByBlock = new Map<string, NonNullable<typeof lessons>>();
-  for (const lesson of lessons ?? []) {
-    if (!lesson.class_block_id) {
-      continue;
-    }
-    const current = lessonsByBlock.get(lesson.class_block_id) ?? [];
-    current.push(lesson);
-    lessonsByBlock.set(lesson.class_block_id, current);
-  }
-
-  for (const group of lessonsByBlock.values()) {
-    const ordered = group.slice().sort((a, b) => {
-      if (a.order_index !== b.order_index) {
-        return a.order_index - b.order_index;
-      }
-      return a.id.localeCompare(b.id);
-    });
-    const totalParts = Math.max(1, input.estimatedMeetingCount ?? ordered.length);
-
-    for (let index = 0; index < ordered.length; index += 1) {
-      const payload: TablesUpdate<'class_lessons'> = {
-        ...sharedPayload,
-        title: buildClassLessonTitle(input.title ?? '', totalParts, index + 1),
-      };
-
-      const { error } = await supabase
-        .from('class_lessons')
-        .update(payload)
-        .eq('id', ordered[index].id);
-
-      if (error) {
-        throw new Error(`Failed to sync template lesson content: ${error.message}`);
-      }
-    }
-  }
-}
-
 export async function deleteClassLesson(id: string): Promise<void> {
   const supabase = getSupabaseAdmin();
   const { error } = await supabase.from('class_lessons').delete().eq('id', id);
 
   if (error) {
     throw new Error(`Failed to delete class lesson: ${error.message}`);
-  }
-}
-
-export async function syncTemplateLessonSlide(lessonTemplateId: string, slideUrl: string | null): Promise<void> {
-  const supabase = getSupabaseAdmin();
-  const payload: TablesUpdate<'class_lessons'> = {
-    slide_url: slideUrl,
-  };
-
-  const { error } = await supabase
-    .from('class_lessons')
-    .update(payload)
-    .eq('lesson_template_id', lessonTemplateId);
-
-  if (error) {
-    throw new Error(`Failed to sync template lesson slide: ${error.message}`);
   }
 }
 

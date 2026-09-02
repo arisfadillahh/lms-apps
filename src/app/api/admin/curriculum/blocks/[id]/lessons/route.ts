@@ -89,7 +89,7 @@ export async function POST(request: Request, context: RouteContext) {
     });
 
     if (lesson.block_id) {
-      // Propagate to active classes (Fix for "Live Reference" gap on creation)
+      await blocksDao.updateBlock(lesson.block_id, { isPublished: true });
       const { syncClassesForBlockTemplate } = await import('@/lib/services/lessonRebalancer');
       await syncClassesForBlockTemplate(lesson.block_id);
     }

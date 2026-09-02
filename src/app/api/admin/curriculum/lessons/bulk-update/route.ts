@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { getSessionOrThrow } from '@/lib/auth';
-import { lessonTemplatesDao } from '@/lib/dao';
+import { blocksDao, lessonTemplatesDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
 import { normalizeSlideUrl } from '@/lib/slides';
 
@@ -50,6 +50,7 @@ export async function POST(request: Request) {
             const firstId = parsed.data.updates[0].id;
             const lesson = await lessonTemplatesDao.getLessonTemplateById(firstId);
             if (lesson && lesson.block_id) {
+                await blocksDao.updateBlock(lesson.block_id, { isPublished: true });
                 const { syncClassesForBlockTemplate } = await import('@/lib/services/lessonRebalancer');
                 await syncClassesForBlockTemplate(lesson.block_id);
             }

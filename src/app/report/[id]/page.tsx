@@ -130,6 +130,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
   const block = Array.isArray(report.block) ? report.block[0] : report.block;
   const coder = Array.isArray(report.coder) ? report.coder[0] : report.coder;
   const coach = klass?.coach ? (Array.isArray(klass.coach) ? klass.coach[0] : klass.coach) : null;
+  const reportCoachName = report.coach_name_snapshot || coach?.full_name || 'Clevio Coach';
 
   const [{ data: evalCriteria }, { data: reportClassBlocks }] = await Promise.all([
     supabase.from('evaluation_criteria').select('*').order('order_index'),
@@ -168,6 +169,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
     const { data: evalData } = await queryTable('block_evaluations')
       .select('answers')
       .eq('coder_id', report.coder_id)
+      .eq('class_id', report.class_id)
       .eq('block_id', report.block_id)
       .maybeSingle();
     const answers = isRecord(evalData) ? toStringMap(evalData.answers) : null;
@@ -339,7 +341,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
               studentName={coder?.full_name ?? 'Coder Clevio'}
               reportTitle={reportTitle}
               contextLabel={reportContextLabel}
-              coachName={coach?.full_name ?? 'Clevio Coach'}
+              coachName={reportCoachName}
               publishedDate={pubDate}
               score={scorePercentage}
               grade={grade}
@@ -366,7 +368,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
             <div className="mt-5 flex flex-wrap gap-2.5 text-xs font-bold text-[#526886] sm:text-sm">
               <span className="inline-flex items-center gap-2 rounded-lg border border-[#dce7ef] bg-[#f8fbfd] px-3 py-2">
                 <UserRound size={15} className="text-[#00a9ce]" aria-hidden="true" />
-                Coach: {coach?.full_name ?? 'Clevio Coach'}
+                Coach: {reportCoachName}
               </span>
               <span className="inline-flex items-center gap-2 rounded-lg border border-[#dce7ef] bg-[#f8fbfd] px-3 py-2">
                 <CalendarDays size={15} className="text-[#ff7b6b]" aria-hidden="true" />
@@ -500,7 +502,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
             studentName={coder?.full_name ?? 'Coder Clevio'}
             reportTitle={reportTitle}
             contextLabel={reportContextLabel}
-            coachName={coach?.full_name ?? 'Clevio Coach'}
+            coachName={reportCoachName}
             publishedDate={pubDate}
             score={scorePercentage}
             grade={grade}

@@ -28,6 +28,8 @@ import EditCoachForm from './EditCoachForm';
 import AttendanceRecapTable from './AttendanceRecapTable';
 import ChangeClassScheduleModal from './ChangeClassScheduleModal';
 import EditClassLinkModal from './EditClassLinkModal';
+import ClassLifecycleControl from './ClassLifecycleControl';
+import TransferCoderButton from './TransferCoderButton';
 
 type ClassBlockRow = Awaited<ReturnType<typeof classesDao.getClassBlocks>>[number];
 type BlockSummary = {
@@ -72,19 +74,20 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
 
 
 
-  if (klass.type === 'EKSKUL' && (klass as { ekskul_lesson_plan_id?: string | null }).ekskul_lesson_plan_id) {
+  if (klass.lifecycle_status === 'ACTIVE' && klass.type === 'EKSKUL' && (klass as { ekskul_lesson_plan_id?: string | null }).ekskul_lesson_plan_id) {
     const { syncEkskulClassesForPlan } = await import('@/lib/services/ekskulLessonPlanSync');
     await syncEkskulClassesForPlan((klass as { ekskul_lesson_plan_id: string }).ekskul_lesson_plan_id);
-  } else {
+  } else if (klass.lifecycle_status === 'ACTIVE') {
     // Ensure future sessions exist (Rolling 12 sessions)
     await sessionsDao.ensureFutureSessions(classIdParam);
   }
 
-  const [sessions, enrollments, coaches, coders] = await Promise.all([
+  const [sessions, enrollments, coaches, coders, allClasses] = await Promise.all([
     sessionsDao.listSessionsByClass(classIdParam),
     classesDao.listEnrollmentsByClass(classIdParam, { includeInactive: true }),
     usersDao.listUsersByRole('COACH'),
     usersDao.listUsersByRole('CODER'),
+    classesDao.listClasses(),
   ]);
 
   const sessionMap = new Map(sessions.map(s => [s.id, s]));
@@ -165,6 +168,9 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
   const scheduleDayLabel = scheduleDayLabels[klass.schedule_day ?? ''] ?? klass.schedule_day ?? 'Belum diatur';
   const enrolledCoderIds = new Set(enrollments.map((enrollment) => enrollment.coder_id));
   const availableCoders = coders.filter((coder) => !enrolledCoderIds.has(coder.id));
+  const transferTargets = allClasses
+    .filter((candidate) => candidate.id !== klass.id && candidate.type === klass.type && candidate.lifecycle_status === 'ACTIVE')
+    .map((candidate) => ({ id: candidate.id, name: candidate.name, levelName: null }));
   const deliveryMode = klass.delivery_mode === 'OFFLINE' ? 'OFFLINE' : 'ONLINE';
   const configuredClassLink = deliveryMode === 'ONLINE' ? normalizeClassMeetingUrl(klass.zoom_link) : null;
 
@@ -207,6 +213,17 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
           </span>
         </div>
       </header>
+
+      <section style={scheduleCardStyle} aria-labelledby="class-lifecycle-title">
+        <div style={scheduleCardContentStyle}>
+          <p style={scheduleEyebrowStyle}>STATUS OPERASIONAL</p>
+          <h2 id="class-lifecycle-title" style={scheduleTitleStyle}>
+            {klass.lifecycle_status === 'ACTIVE' ? 'Kelas aktif' : klass.lifecycle_status === 'PAUSED' ? 'Kelas dijeda' : klass.lifecycle_status === 'ENDED' ? 'Kelas selesai' : 'Kelas ditiadakan'}
+          </h2>
+          <p style={scheduleDescriptionStyle}>Reminder WhatsApp, notifikasi PWA, dan aktivitas sesi hanya berjalan ketika kelas berstatus aktif. Menyelesaikan atau meniadakan kelas juga menutup enrollment dan sesi mendatang.</p>
+        </div>
+        <ClassLifecycleControl classId={classIdParam} currentStatus={klass.lifecycle_status} />
+      </section>
 
       <section style={scheduleCardStyle} aria-labelledby="recurring-schedule-title">
         <div style={scheduleCardContentStyle}>
@@ -376,6 +393,12 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
                         />
                         {enrollment.status === 'ACTIVE' ? (
                           <>
+                            <TransferCoderButton
+                              classId={classIdParam}
+                              coderId={enrollment.coder_id}
+                              coderName={coderMap.get(enrollment.coder_id) ?? 'Unknown'}
+                              targetClasses={transferTargets}
+                            />
                             <SetCoderStatusButton classId={classIdParam} coderId={enrollment.coder_id} targetStatus="INACTIVE" />
                             <RemoveCoderButton classId={classIdParam} coderId={enrollment.coder_id} />
                           </>

@@ -43,7 +43,8 @@ describe('reminder duplicate-send contracts', () => {
 
     expect(source).toContain('buildClassReminderIdempotencyKey(tomorrowStr, phone)');
     expect(source).toContain('sentReminderKeys.has(idempotencyKey)');
-    expect(source).toContain("sendClassReminder(phone, msg, data.students.join(', '), 'CLASS_REMINDER', data.idempotencyKey)");
+    expect(source).toContain("revalidateParentReminderRecipients({");
+    expect(source).toContain("sendClassReminder(data.phone, msg, validStudents.join(', '), 'CLASS_REMINDER', data.idempotencyKey)");
   });
 
   it('checks task and reminder type before makeup reminders are sent', () => {

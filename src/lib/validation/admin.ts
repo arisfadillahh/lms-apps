@@ -139,6 +139,17 @@ export const updateEnrollmentStatusSchema = z.object({
   status: z.enum(['ACTIVE', 'INACTIVE']),
 });
 
+export const transferCoderSchema = z.object({
+  coderId: z.string().uuid(),
+  targetClassId: z.string().uuid(),
+  effectiveAt: z.string().datetime(),
+  reason: z.string().trim().min(3).max(500),
+});
+
+export const updateClassLifecycleSchema = z.object({
+  status: z.enum(['ACTIVE', 'PAUSED', 'ENDED', 'CANCELLED']),
+});
+
 export const createBlockTemplateSchema = z.object({
   levelId: z.string().uuid(),
   name: z.string().min(3),

@@ -410,6 +410,8 @@ export type UpsertBlockReportInput = {
   averageScore?: number | null;
   grade?: string | null;
   isAiGenerated?: boolean;
+  coachIdSnapshot?: string | null;
+  coachNameSnapshot?: string | null;
 };
 
 export async function upsertBlockReport(input: UpsertBlockReportInput): Promise<BlockReportRecord> {
@@ -422,6 +424,8 @@ export async function upsertBlockReport(input: UpsertBlockReportInput): Promise<
     average_score: input.averageScore,
     grade: input.grade,
     is_ai_generated: input.isAiGenerated ?? false,
+    coach_id_snapshot: input.coachIdSnapshot ?? null,
+    coach_name_snapshot: input.coachNameSnapshot ?? null,
   };
 
   const { data, error } = await supabase

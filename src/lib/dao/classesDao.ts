@@ -419,9 +419,15 @@ export async function listEnrollmentsByClass(classId: string, options: ListEnrol
 
 export async function updateEnrollmentStatus(classId: string, coderId: string, status: EnrollmentRecord['status']): Promise<void> {
   const supabase = getSupabaseAdmin();
+  const now = new Date().toISOString();
   const { error } = await supabase
     .from('enrollments')
-    .update({ status })
+    .update({
+      status,
+      ended_at: status === 'INACTIVE' ? now : null,
+      exit_reason: status === 'INACTIVE' ? 'INACTIVE' : null,
+      updated_at: now,
+    })
     .eq('class_id', classId)
     .eq('coder_id', coderId);
 
@@ -432,15 +438,46 @@ export async function updateEnrollmentStatus(classId: string, coderId: string, s
 
 export async function deleteEnrollment(classId: string, coderId: string): Promise<void> {
   const supabase = getSupabaseAdmin();
+  const now = new Date().toISOString();
   const { error } = await supabase
     .from('enrollments')
-    .delete()
+    .update({ status: 'INACTIVE', ended_at: now, exit_reason: 'INACTIVE', updated_at: now })
     .eq('class_id', classId)
     .eq('coder_id', coderId);
 
   if (error) {
     throw new Error(`Failed to remove enrollment: ${error.message}`);
   }
+}
+
+export async function transferCoderEnrollment(input: {
+  coderId: string;
+  fromClassId: string;
+  toClassId: string;
+  effectiveAt: string;
+  reason: string;
+  adminId: string;
+}): Promise<EnrollmentRecord> {
+  const supabase = getSupabaseAdmin();
+  const { error } = await (supabase as any).rpc('transfer_coder_enrollment', {
+    p_coder_id: input.coderId,
+    p_from_class_id: input.fromClassId,
+    p_to_class_id: input.toClassId,
+    p_effective_at: input.effectiveAt,
+    p_reason: input.reason,
+    p_admin_id: input.adminId,
+  });
+  if (error) throw new Error(`Failed to transfer coder: ${error.message}`);
+
+  const { data: enrollment, error: enrollmentError } = await supabase
+    .from('enrollments')
+    .select('*')
+    .eq('class_id', input.toClassId)
+    .eq('coder_id', input.coderId)
+    .eq('status', 'ACTIVE')
+    .single();
+  if (enrollmentError) throw new Error(`Transfer saved but target enrollment could not be loaded: ${enrollmentError.message}`);
+  return enrollment;
 }
 
 export async function listClassesForCoach(coachId: string): Promise<ClassRecord[]> {

@@ -4,6 +4,7 @@ import { getSessionOrThrow } from '@/lib/auth';
 import { createAdminNotifications } from '@/lib/dao/notificationsDao';
 import { reportsDao, classesDao } from '@/lib/dao';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { isEnrollmentActiveForSession } from '@/lib/services/enrollmentEligibility';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // Verify ownership
     const { data: report } = await supabase
       .from('block_reports')
-      .select('status, class:classes(id, coach_id)')
+      .select('status, class_id, block_id, coder_id, class:classes(id, coach_id, lifecycle_status)')
       .eq('id', id)
       .single();
 
@@ -43,6 +44,49 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const klass = Array.isArray(report.class) ? report.class[0] : report.class;
     if (!klass) {
        return NextResponse.json({ error: 'Class not found' }, { status: 404 });
+    }
+
+    const [
+      { data: enrollmentRows, error: enrollmentError },
+      { data: reflection, error: reflectionError },
+      { data: reportBlock, error: reportBlockError },
+    ] = await Promise.all([
+      supabase
+        .from('enrollments')
+        .select('*')
+        .eq('class_id', (report as any).class_id)
+        .eq('coder_id', (report as any).coder_id),
+      supabase
+        .from('block_evaluations')
+        .select('id')
+        .eq('class_id', (report as any).class_id)
+        .eq('block_id', (report as any).block_id)
+        .eq('coder_id', (report as any).coder_id)
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('class_blocks')
+        .select('pitching_day_date')
+        .eq('class_id', (report as any).class_id)
+        .eq('block_id', (report as any).block_id)
+        .order('start_date', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    if (enrollmentError || reflectionError || reportBlockError) {
+      throw new Error(enrollmentError?.message || reflectionError?.message || reportBlockError?.message || 'Gagal memvalidasi rapor');
+    }
+    const eligibilityTime = reportBlock?.pitching_day_date
+      ? reportBlock.pitching_day_date + 'T23:59:59+07:00'
+      : new Date().toISOString();
+    const eligibleEnrollment = (enrollmentRows ?? []).some((enrollment) =>
+      isEnrollmentActiveForSession(enrollment, eligibilityTime),
+    );
+    if (!eligibleEnrollment) {
+      return NextResponse.json({ error: 'Coder tidak terdaftar di kelas ini pada periode rapor' }, { status: 400 });
+    }
+    if (!reflection) {
+      return NextResponse.json({ error: 'Refleksi evaluasi coder belum selesai' }, { status: 400 });
     }
     
     // Proper multi-coach check
@@ -69,7 +113,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     // 2. Change status to SUBMITTED
     await reportsDao.updateBlockReport(id, {
-      status: 'SUBMITTED'
+      status: 'SUBMITTED',
+      coach_id_snapshot: sessionUser.user.id,
+      coach_name_snapshot: sessionUser.user.fullName || sessionUser.user.username,
     });
 
     try {

@@ -5,6 +5,7 @@ import SendReportButton from './SendReportButton';
 import RejectReportButton from './RejectReportButton';
 import PageHead from '@/components/admin/PageHead';
 import { isRegularReportWindowActive } from '@/lib/services/reportWindows';
+import { isEnrollmentActiveForSession } from '@/lib/services/enrollmentEligibility';
 
 export const revalidate = 0;
 
@@ -17,13 +18,14 @@ export default async function AdminReportsPage() {
       id,
       class_id,
       block_id,
+      coder_id,
       average_score,
       grade,
       status,
       sent_via_whatsapp,
       sent_at,
       updated_at,
-      class:classes(name, type),
+      class:classes(name, type, lifecycle_status),
       block:blocks(name),
       coder:users!block_reports_coder_id_fkey(full_name)
     `)
@@ -37,17 +39,24 @@ export default async function AdminReportsPage() {
 
   const allReports = reports || [];
   const classIds = Array.from(new Set(allReports.map((report: any) => report.class_id).filter(Boolean)));
-  const { data: classBlocks, error: classBlocksError } = classIds.length > 0
-    ? await supabase
-        .from('class_blocks')
-        .select('class_id, block_id, pitching_day_date')
-        .in('class_id', classIds)
-    : { data: [], error: null };
+  const [{ data: classBlocks, error: classBlocksError }, { data: enrollmentRows, error: enrollmentError }] = classIds.length > 0
+    ? await Promise.all([
+        supabase
+          .from('class_blocks')
+          .select('class_id, block_id, pitching_day_date')
+          .in('class_id', classIds),
+        supabase
+          .from('enrollments')
+          .select('*')
+          .in('class_id', classIds),
+      ])
+    : [{ data: [], error: null }, { data: [], error: null }];
 
   if (classBlocksError) {
     console.error('[AdminReportsPage] Class blocks Query Error:', classBlocksError);
   }
   const classBlockLookupFailed = Boolean(classBlocksError);
+  if (enrollmentError) console.error('[AdminReportsPage] Enrollment Query Error:', enrollmentError);
 
   const classBlockByKey = new Map(
     (classBlocks ?? []).map((classBlock: any) => [
@@ -57,9 +66,18 @@ export default async function AdminReportsPage() {
   );
   const now = new Date();
   const isReportActionable = (report: any) => {
+    const classBlock = classBlockByKey.get(`${report.class_id}:${report.block_id}`);
+    const eligibilityTime = classBlock?.pitching_day_date
+      ? classBlock.pitching_day_date + 'T23:59:59+07:00'
+      : report.updated_at;
+    const hasEligibleEnrollment = (enrollmentRows ?? []).some((enrollment) =>
+      enrollment.class_id === report.class_id
+      && enrollment.coder_id === report.coder_id
+      && isEnrollmentActiveForSession(enrollment, eligibilityTime),
+    );
+    if (!hasEligibleEnrollment) return false;
     if ((report.class as any)?.type === 'EKSKUL') return true;
     if (classBlockLookupFailed) return true;
-    const classBlock = classBlockByKey.get(`${report.class_id}:${report.block_id}`);
     return isRegularReportWindowActive(classBlock, now);
   };
 

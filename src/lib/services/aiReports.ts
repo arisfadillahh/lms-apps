@@ -13,6 +13,7 @@ import {
   hasVisibleOrGeneratableDraft,
 } from '@/lib/services/aiReportGuards';
 import { getRegularReportWindowDays, isRegularReportWindowActive } from '@/lib/services/reportWindows';
+import { isEnrollmentActiveForSession } from '@/lib/services/enrollmentEligibility';
 
 const EKSKUL_REVIEW_LEVEL_NAME = 'Ekskul';
 const EKSKUL_REPORT_GENERATION_CONCURRENCY = 4;
@@ -23,7 +24,21 @@ type ClassBlockWithRelations = {
   block_id: string;
   start_date: string;
   pitching_day_date: string | null;
-  classes: { id: string; name: string; level_id: string | null } | { id: string; name: string; level_id: string | null }[] | null;
+  classes: {
+    id: string;
+    name: string;
+    level_id: string | null;
+    coach_id: string | null;
+    lifecycle_status: 'ACTIVE' | 'PAUSED' | 'ENDED' | 'CANCELLED';
+    coach: { id: string; full_name: string } | { id: string; full_name: string }[] | null;
+  } | Array<{
+    id: string;
+    name: string;
+    level_id: string | null;
+    coach_id: string | null;
+    lifecycle_status: 'ACTIVE' | 'PAUSED' | 'ENDED' | 'CANCELLED';
+    coach: { id: string; full_name: string } | { id: string; full_name: string }[] | null;
+  }> | null;
   blocks: { id: string; name: string | null } | { id: string; name: string | null }[] | null;
 };
 
@@ -200,6 +215,30 @@ async function generateDraftReportsFromClassBlocks(
       continue;
     }
 
+    const evaluatedCoderIds = [...new Set(evaluations.map((evaluation) => evaluation.coder_id))];
+    const [{ data: enrollmentRows, error: enrollmentError }, { data: completedReflections, error: reflectionError }] = await Promise.all([
+      supabase
+        .from('enrollments')
+        .select('*')
+        .eq('class_id', classId)
+        .in('coder_id', evaluatedCoderIds),
+      supabase
+        .from('block_evaluations')
+        .select('coder_id')
+        .eq('class_id', classId)
+        .eq('block_id', blockId)
+        .in('coder_id', evaluatedCoderIds),
+    ]);
+    if (enrollmentError) throw new Error(`Failed to validate report enrollments: ${enrollmentError.message}`);
+    if (reflectionError) throw new Error(`Failed to validate coder reflections: ${reflectionError.message}`);
+
+    const eligibleCoderIds = new Set(
+      (enrollmentRows ?? [])
+        .filter((enrollment) => isEnrollmentActiveForSession(enrollment, lastBlockSession.date_time))
+        .map((enrollment) => enrollment.coder_id),
+    );
+    const reflectedCoderIds = new Set((completedReflections ?? []).map((reflection) => reflection.coder_id));
+
     const coderScores: Record<string, Record<string, number[]>> = {};
 
     for (const ev of evaluations) {
@@ -219,6 +258,10 @@ async function generateDraftReportsFromClassBlocks(
     }
 
     for (const coderId of Object.keys(coderScores)) {
+      if (!eligibleCoderIds.has(coderId) || !reflectedCoderIds.has(coderId)) {
+        console.log(`[${logPrefix}] Skipping Coder ${coderId} in block ${blockId}: enrollment period or coder reflection is incomplete.`);
+        continue;
+      }
       const existingReport = await reportsDao.getBlockReport(classId, blockId, coderId);
       const skipReason = getAiReportGenerationSkipReason(existingReport);
       if (skipReason) {
@@ -261,6 +304,8 @@ async function generateDraftReportsFromClassBlocks(
         averageScore: Number(globalAverage.toFixed(2)),
         grade: finalGrade,
         isAiGenerated: true,
+        coachIdSnapshot: klass.coach_id,
+        coachNameSnapshot: (Array.isArray(klass.coach) ? klass.coach[0] : klass.coach)?.full_name ?? null,
       });
 
       const descPayload = aiDescriptions.map(d => ({
@@ -635,7 +680,7 @@ export async function generateDraftReportsTask() {
   // it's mapped per class. We scan recent ones.
   const { data: classBlocks, error: blocksError } = await supabase
     .from('class_blocks')
-    .select('id, class_id, block_id, start_date, pitching_day_date, classes!inner(id, name, level_id), blocks!inner(id, name)')
+    .select('id, class_id, block_id, start_date, pitching_day_date, classes!inner(id, name, level_id, coach_id, lifecycle_status, coach:users!classes_coach_id_fkey(id, full_name)), blocks!inner(id, name)')
     .order('start_date', { ascending: false })
     .limit(100);
 
@@ -662,7 +707,7 @@ export async function generateDraftReportsForClasses(classIds: string[]): Promis
 
   const { data: classBlocks, error: blocksError } = await supabase
     .from('class_blocks')
-    .select('id, class_id, block_id, start_date, pitching_day_date, classes!inner(id, name, level_id), blocks!inner(id, name)')
+    .select('id, class_id, block_id, start_date, pitching_day_date, classes!inner(id, name, level_id, coach_id, lifecycle_status, coach:users!classes_coach_id_fkey(id, full_name)), blocks!inner(id, name)')
     .in('class_id', normalizedClassIds)
     .order('start_date', { ascending: false });
 

@@ -339,6 +339,7 @@ export interface Database {
           parent_whatsapp_makeup_enabled: boolean;
           parent_whatsapp_report_enabled: boolean;
           parent_whatsapp_event_enabled: boolean;
+          lifecycle_status: 'ACTIVE' | 'PAUSED' | 'ENDED' | 'CANCELLED';
           start_date: string;
           end_date: string;
           created_at: string;
@@ -364,6 +365,7 @@ export interface Database {
           parent_whatsapp_makeup_enabled?: boolean;
           parent_whatsapp_report_enabled?: boolean;
           parent_whatsapp_event_enabled?: boolean;
+          lifecycle_status?: 'ACTIVE' | 'PAUSED' | 'ENDED' | 'CANCELLED';
           start_date: string;
           end_date: string;
           created_at?: string;
@@ -699,14 +701,20 @@ export interface Database {
           class_id: string;
           coder_id: string;
           enrolled_at: string;
+          ended_at: string | null;
+          exit_reason: 'TRANSFERRED' | 'INACTIVE' | 'COMPLETED' | null;
           status: 'ACTIVE' | 'INACTIVE';
+          updated_at: string;
         };
         Insert: {
           id?: string;
           class_id: string;
           coder_id: string;
           enrolled_at?: string;
+          ended_at?: string | null;
+          exit_reason?: 'TRANSFERRED' | 'INACTIVE' | 'COMPLETED' | null;
           status?: 'ACTIVE' | 'INACTIVE';
+          updated_at?: string;
         };
         Update: Partial<Database['public']['Tables']['enrollments']['Insert']>;
         Relationships: [
@@ -723,6 +731,56 @@ export interface Database {
             referencedColumns: ['id'];
           },
         ];
+      };
+      enrollment_transfers: {
+        Row: {
+          id: string;
+          coder_id: string;
+          from_class_id: string;
+          to_class_id: string;
+          source_enrollment_id: string | null;
+          target_enrollment_id: string | null;
+          effective_at: string;
+          reason: string;
+          transferred_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          coder_id: string;
+          from_class_id: string;
+          to_class_id: string;
+          source_enrollment_id?: string | null;
+          target_enrollment_id?: string | null;
+          effective_at: string;
+          reason: string;
+          transferred_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['enrollment_transfers']['Insert']>;
+        Relationships: [];
+      };
+      class_lifecycle_changes: {
+        Row: {
+          id: string;
+          class_id: string;
+          previous_status: string;
+          new_status: string;
+          changed_by: string | null;
+          cancelled_session_count: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          class_id: string;
+          previous_status: string;
+          new_status: string;
+          changed_by?: string | null;
+          cancelled_session_count?: number;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['class_lifecycle_changes']['Insert']>;
+        Relationships: [];
       };
       attendance: {
         Row: {
@@ -1380,6 +1438,8 @@ export interface Database {
           average_score: number | null;
           grade: string | null;
           is_ai_generated: boolean;
+          coach_id_snapshot: string | null;
+          coach_name_snapshot: string | null;
           sent_via_whatsapp: boolean;
           sent_at: string | null;
           created_at: string;
@@ -1394,6 +1454,8 @@ export interface Database {
           average_score?: number | null;
           grade?: string | null;
           is_ai_generated?: boolean;
+          coach_id_snapshot?: string | null;
+          coach_name_snapshot?: string | null;
           sent_via_whatsapp?: boolean;
           sent_at?: string | null;
           created_at?: string;

@@ -4,6 +4,11 @@ import {
   hasNotificationByDedupeKey,
 } from '@/lib/dao/notificationsDao';
 import { buildClassPreparationMessage } from '@/lib/classDelivery';
+import {
+  isClassActiveForOperationalMessages,
+  isEnrollmentCurrentForUpcomingSession,
+} from '@/lib/services/enrollmentEligibility';
+import type { EnrollmentRecord } from '@/lib/dao/classesDao';
 
 type ScheduledSession = {
   id: string;
@@ -15,12 +20,14 @@ type ScheduledSession = {
     coach_id: string | null;
     type: 'WEEKLY' | 'EKSKUL';
     delivery_mode: 'ONLINE' | 'OFFLINE';
+    lifecycle_status: 'ACTIVE' | 'PAUSED' | 'ENDED' | 'CANCELLED';
   } | Array<{
     id: string;
     name: string;
     coach_id: string | null;
     type: 'WEEKLY' | 'EKSKUL';
     delivery_mode: 'ONLINE' | 'OFFLINE';
+    lifecycle_status: 'ACTIVE' | 'PAUSED' | 'ENDED' | 'CANCELLED';
   }> | null;
 };
 
@@ -44,8 +51,10 @@ async function notifyOnce(input: {
   message: string;
   actionUrl: string;
   priority: 'NORMAL' | 'HIGH';
+  isStillEligible?: () => Promise<boolean>;
 }) {
   if (await hasNotificationByDedupeKey(input.userId, input.dedupeKey)) return false;
+  if (input.isStillEligible && !await input.isStillEligible()) return false;
   await createNotification(input.userId, input.title, input.message, 'SESSION_REMINDER', {
     actionUrl: input.actionUrl,
     category: 'SCHEDULE',
@@ -63,19 +72,20 @@ export async function sendOneHourSessionReminders(now = new Date()) {
   const windowEnd = new Date(now.getTime() + 70 * 60_000).toISOString();
   const { data, error } = await supabase
     .from('sessions')
-    .select('id, class_id, date_time, classes(id, name, coach_id, type, delivery_mode)')
+    .select('id, class_id, date_time, classes(id, name, coach_id, type, delivery_mode, lifecycle_status)')
     .eq('status', 'SCHEDULED')
     .gte('date_time', windowStart)
     .lte('date_time', windowEnd);
 
   if (error) throw new Error(`Failed to load one-hour sessions: ${error.message}`);
-  const sessions = (data ?? []) as unknown as ScheduledSession[];
+  const sessions = ((data ?? []) as unknown as ScheduledSession[])
+    .filter((session) => isClassActiveForOperationalMessages(getClass(session)?.lifecycle_status));
   if (sessions.length === 0) return { sent: 0, sessions: 0 };
 
   const classIds = [...new Set(sessions.map((session) => session.class_id))];
   const { data: enrollmentRows, error: enrollmentError } = await supabase
     .from('enrollments')
-    .select('class_id, coder_id, users!enrollments_coder_id_fkey(id, is_active)')
+    .select('*, users!enrollments_coder_id_fkey(id, is_active, notif_session_reminder)')
     .in('class_id', classIds)
     .eq('status', 'ACTIVE');
   if (enrollmentError) throw new Error(`Failed to load reminder enrollments: ${enrollmentError.message}`);
@@ -93,7 +103,7 @@ export async function sendOneHourSessionReminders(now = new Date()) {
   const tasks: Array<Promise<boolean>> = [];
   for (const scheduled of sessions) {
     const klass = getClass(scheduled);
-    if (!klass) continue;
+    if (!klass || !isClassActiveForOperationalMessages(klass.lifecycle_status)) continue;
     const time = formatWibTime(scheduled.date_time);
     if (klass.coach_id && enabledCoachIds.has(klass.coach_id)) {
       tasks.push(notifyOnce({
@@ -103,13 +113,19 @@ export async function sendOneHourSessionReminders(now = new Date()) {
         message: `${klass.name} dimulai pukul ${time} WIB. Siapkan materi dan buka detail kelas sebelum sesi dimulai.`,
         actionUrl: `/coach/classes/${klass.id}`,
         priority: 'HIGH',
+        isStillEligible: () => isCoachSessionReminderEligible(scheduled.id, klass.id, klass.coach_id!),
       }));
     }
 
     for (const enrollment of (enrollmentRows ?? [])) {
       if (enrollment.class_id !== scheduled.class_id) continue;
       const coder = Array.isArray(enrollment.users) ? enrollment.users[0] : enrollment.users;
-      if (!coder?.id || coder.is_active === false) continue;
+      if (
+        !coder?.id
+        || coder.is_active !== true
+        || coder.notif_session_reminder !== true
+        || !isEnrollmentCurrentForUpcomingSession(enrollment as unknown as EnrollmentRecord, scheduled.date_time)
+      ) continue;
       tasks.push(notifyOnce({
         userId: coder.id,
         dedupeKey: `session-${scheduled.id}-coder-1h`,
@@ -117,6 +133,7 @@ export async function sendOneHourSessionReminders(now = new Date()) {
         message: `${klass.name} dimulai pukul ${time} WIB. ${buildClassPreparationMessage(klass)}`,
         actionUrl: '/coder/dashboard',
         priority: 'HIGH',
+        isStillEligible: () => isCoderSessionReminderEligible(scheduled.id, scheduled.class_id, coder.id),
       }));
     }
   }
@@ -137,7 +154,7 @@ export async function sendCoderDayBeforeReminders(
   const classIds = [...new Set(sessions.map((session) => session.class_id))];
   const { data: enrollmentRows, error } = await supabase
     .from('enrollments')
-    .select('class_id, coder_id, users!enrollments_coder_id_fkey(id, is_active)')
+    .select('*, users!enrollments_coder_id_fkey(id, is_active, notif_session_reminder)')
     .in('class_id', classIds)
     .eq('status', 'ACTIVE');
   if (error) throw new Error(`Failed to load H-1 coder enrollments: ${error.message}`);
@@ -145,11 +162,16 @@ export async function sendCoderDayBeforeReminders(
   const schedulesByCoder = new Map<string, string[]>();
   for (const scheduled of sessions) {
     const klass = getClass(scheduled);
-    if (!klass) continue;
+    if (!klass || !isClassActiveForOperationalMessages(klass.lifecycle_status)) continue;
     for (const enrollment of (enrollmentRows ?? [])) {
       if (enrollment.class_id !== scheduled.class_id) continue;
       const coder = Array.isArray(enrollment.users) ? enrollment.users[0] : enrollment.users;
-      if (!coder?.id || coder.is_active === false) continue;
+      if (
+        !coder?.id
+        || coder.is_active !== true
+        || coder.notif_session_reminder !== true
+        || !isEnrollmentCurrentForUpcomingSession(enrollment as unknown as EnrollmentRecord, scheduled.date_time)
+      ) continue;
       const schedule = `${klass.name}, pukul ${formatWibTime(scheduled.date_time)} WIB`;
       const existing = schedulesByCoder.get(coder.id) ?? [];
       if (!existing.includes(schedule)) existing.push(schedule);
@@ -164,7 +186,48 @@ export async function sendCoderDayBeforeReminders(
     message: `Besok ada ${schedules.length} kelas: ${schedules.join('; ')}. Buka dashboard untuk melihat link atau lokasi kelas.`,
     actionUrl: '/coder/dashboard',
     priority: 'NORMAL',
+    isStillEligible: () => hasEligibleCoderSession(coderId, sessions),
   })));
 
   return { sent: results.filter((result) => result.status === 'fulfilled' && result.value).length };
+}
+
+export async function isCoachSessionReminderEligible(sessionId: string, classId: string, coachId: string) {
+  const supabase = getSupabaseAdmin();
+  const [{ data: scheduled }, { data: coach }, { data: activeEnrollments }] = await Promise.all([
+    supabase.from('sessions').select('id, class_id, date_time, classes(id, name, coach_id, type, delivery_mode, lifecycle_status)').eq('id', sessionId).eq('class_id', classId).eq('status', 'SCHEDULED').maybeSingle(),
+    supabase.from('users' as any).select('id').eq('id', coachId).eq('role', 'COACH').eq('is_active', true).eq('notif_session_reminder', true).maybeSingle(),
+    supabase.from('enrollments').select('*, users!enrollments_coder_id_fkey(is_active)').eq('class_id', classId).eq('status', 'ACTIVE'),
+  ]);
+  const klass = scheduled ? getClass(scheduled as unknown as ScheduledSession) : null;
+  const hasActiveCoder = Boolean(scheduled && (activeEnrollments ?? []).some((enrollment) => {
+    const coder = Array.isArray(enrollment.users) ? enrollment.users[0] : enrollment.users;
+    return coder?.is_active === true
+      && isEnrollmentCurrentForUpcomingSession(enrollment as unknown as EnrollmentRecord, scheduled.date_time);
+  }));
+  return Boolean(scheduled && coach && hasActiveCoder && isClassActiveForOperationalMessages(klass?.lifecycle_status));
+}
+
+async function isCoderSessionReminderEligible(sessionId: string, classId: string, coderId: string) {
+  const supabase = getSupabaseAdmin();
+  const [{ data: scheduled }, { data: enrollment }, { data: coder }] = await Promise.all([
+    supabase.from('sessions').select('id, date_time, class_id, classes(id, name, coach_id, type, delivery_mode, lifecycle_status)').eq('id', sessionId).eq('class_id', classId).eq('status', 'SCHEDULED').maybeSingle(),
+    supabase.from('enrollments').select('*').eq('class_id', classId).eq('coder_id', coderId).eq('status', 'ACTIVE').maybeSingle(),
+    supabase.from('users' as any).select('id').eq('id', coderId).eq('role', 'CODER').eq('is_active', true).eq('notif_session_reminder', true).maybeSingle(),
+  ]);
+  const klass = scheduled ? getClass(scheduled as unknown as ScheduledSession) : null;
+  return Boolean(
+    scheduled
+    && enrollment
+    && coder
+    && isClassActiveForOperationalMessages(klass?.lifecycle_status)
+    && isEnrollmentCurrentForUpcomingSession(enrollment, scheduled.date_time),
+  );
+}
+
+async function hasEligibleCoderSession(coderId: string, sessions: ScheduledSession[]) {
+  const results = await Promise.all(sessions.map((session) =>
+    isCoderSessionReminderEligible(session.id, session.class_id, coderId),
+  ));
+  return results.some(Boolean);
 }

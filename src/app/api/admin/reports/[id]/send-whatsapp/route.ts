@@ -10,6 +10,7 @@ import { getAppBaseUrl } from '@/lib/env';
 import { isRegularReportWindowActive } from '@/lib/services/reportWindows';
 import { shouldSendParentWhatsappForClass } from '@/lib/classReminderEligibility';
 import { publishReportWithOptionalWhatsapp } from '@/lib/reportPublication';
+import { isEnrollmentActiveForSession } from '@/lib/services/enrollmentEligibility';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -54,6 +55,7 @@ export async function POST(_request: NextRequest, context: RouteContext) {
   const coder = Array.isArray(report.coder) ? report.coder[0] : report.coder;
   const klass = Array.isArray(report.class) ? report.class[0] : report.class;
   const block = Array.isArray(report.block) ? report.block[0] : report.block;
+  let reportEligibilityTime = report.updated_at;
 
   if (klass && (klass as any).type !== 'EKSKUL') {
     const { data: classBlock, error: classBlockError } = await supabase
@@ -73,6 +75,24 @@ export async function POST(_request: NextRequest, context: RouteContext) {
         { status: 400 },
       );
     }
+    if (classBlock?.pitching_day_date) {
+      reportEligibilityTime = classBlock.pitching_day_date + 'T23:59:59+07:00';
+    }
+  }
+
+  const { data: reportEnrollments, error: enrollmentError } = await supabase
+    .from('enrollments')
+    .select('*')
+    .eq('class_id', report.class_id)
+    .eq('coder_id', report.coder_id);
+  if (enrollmentError) {
+    return NextResponse.json({ error: `Gagal memvalidasi enrollment rapor: ${enrollmentError.message}` }, { status: 500 });
+  }
+  if (!(reportEnrollments ?? []).some((enrollment) => isEnrollmentActiveForSession(enrollment, reportEligibilityTime))) {
+    return NextResponse.json(
+      { error: 'Rapor tidak sesuai dengan periode enrollment coder di kelas ini.' },
+      { status: 400 },
+    );
   }
 
   const parentPhone = coder?.parent_contact_phone;

@@ -21,7 +21,7 @@ export default function RemoveCoderButton({ classId, coderId, disabled }: Remove
     }
     if (
       !window.confirm(
-        'Hapus coder ini dari kelas? Setelah dihapus, coder tidak bisa lagi mengakses materi dan riwayat kelas ini.',
+        'Keluarkan coder dari kelas aktif? Akses berikutnya dan reminder akan berhenti, sementara riwayat belajar tetap tersimpan.',
       )
     ) {
       return;
@@ -53,7 +53,7 @@ export default function RemoveCoderButton({ classId, coderId, disabled }: Remove
         type="button"
         onClick={handleRemove}
         disabled={disabled || isPending}
-        title="Hapus Siswa"
+        title="Keluarkan dari kelas"
         style={{
           width: '32px',
           height: '32px',

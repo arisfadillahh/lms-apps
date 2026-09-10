@@ -11,6 +11,7 @@ type ReportBlock = { name: string | null };
 type ReportCoder = { id: string | null; full_name: string | null };
 type ReportRecord = {
   id: string;
+  class_id: string;
   status: string;
   coder_id: string | null;
   block_id: string | null;
@@ -112,6 +113,7 @@ export default async function CoachReportReviewPage({ params }: { params: Promis
     const { data: evalData } = await queryTable('block_evaluations')
       .select('answers')
       .eq('coder_id', coderId)
+      .eq('class_id', reportRecord.class_id)
       .eq('block_id', reportRecord.block_id)
       .maybeSingle();
 

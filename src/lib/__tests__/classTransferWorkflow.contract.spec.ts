@@ -13,6 +13,15 @@ describe('coder class transfer workflow contract', () => {
     expect(migration).toContain("ON CONFLICT (class_id, coder_id) DO UPDATE");
     expect(migration).toContain('UPDATE public.coder_payment_periods');
     expect(migration).toContain('INSERT INTO public.enrollment_transfers');
+    expect(migration).toContain("v_previous_status IN ('ENDED', 'CANCELLED') AND p_status = 'ACTIVE'");
+  });
+
+  it('keeps the Admin transfer dialog usable on narrow and short viewports', () => {
+    const transferUi = read('src/app/(admin)/admin/classes/[id]/TransferCoderButton.tsx');
+    expect(transferUi).toContain('aria-modal="true"');
+    expect(transferUi).toContain("width: 'min(100%, 480px)'");
+    expect(transferUi).toContain("maxHeight: 'calc(100dvh - 32px)'");
+    expect(transferUi).toContain("overflowY: 'auto'");
   });
 
   it('requires report eligibility and coder reflection before generation or submit', () => {

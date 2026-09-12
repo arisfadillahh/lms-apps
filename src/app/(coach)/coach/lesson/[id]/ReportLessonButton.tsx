@@ -78,7 +78,7 @@ export default function ReportLessonButton({ lessonId, lessonTitle, coachId, les
                     onClick={handleClose}
                 >
                     <div
-                        className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-slate-200"
+                    className="flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Modal Header */}
@@ -96,7 +96,7 @@ export default function ReportLessonButton({ lessonId, lessonTitle, coachId, les
                         </div>
 
                         {/* Modal Body */}
-                        <div className="p-6 space-y-5">
+                        <div className="overflow-y-auto p-6 space-y-5">
                             {success ? (
                                 <div className="flex flex-col items-center justify-center py-6 text-center gap-3">
                                     <span className="material-symbols-outlined text-5xl text-emerald-500">check_circle</span>
@@ -112,7 +112,8 @@ export default function ReportLessonButton({ lessonId, lessonTitle, coachId, les
                                             <select
                                                 value={reportType}
                                                 onChange={(e) => setReportType(e.target.value)}
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-slate-400 focus:border-slate-400 appearance-none text-slate-700 pr-10"
+                                                className="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-3 pr-10 text-sm text-slate-900 caret-slate-900 focus:border-slate-500 focus:ring-2 focus:ring-slate-300"
+                                                style={{ color: '#0f172a', backgroundColor: '#ffffff', WebkitTextFillColor: '#0f172a' }}
                                             >
                                                 <option value="">Pilih jenis masalah...</option>
                                                 {REPORT_TYPES.map((t) => (
@@ -133,7 +134,8 @@ export default function ReportLessonButton({ lessonId, lessonTitle, coachId, les
                                             onChange={(e) => setDescription(e.target.value)}
                                             placeholder="Jelaskan masalah yang Anda temukan secara detail..."
                                             rows={4}
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-slate-400 placeholder-slate-400 resize-none"
+                                            className="w-full resize-none rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 caret-slate-900 placeholder:text-slate-500 focus:border-slate-500 focus:ring-2 focus:ring-slate-300"
+                                            style={{ color: '#0f172a', backgroundColor: '#ffffff', WebkitTextFillColor: '#0f172a' }}
                                         />
                                     </div>
 

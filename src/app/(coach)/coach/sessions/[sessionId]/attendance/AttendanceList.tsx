@@ -17,6 +17,7 @@ interface Attendee {
 interface AttendanceListProps {
   sessionId: string;
   attendees: Attendee[];
+  canEdit?: boolean;
 }
 
 export type AttendanceListHandle = {
@@ -87,7 +88,7 @@ const STATUS_STYLES: Record<string, { active: string; inactive: string }> = {
 };
 
 const AttendanceList = forwardRef<AttendanceListHandle, AttendanceListProps>(
-  function AttendanceList({ sessionId, attendees }, ref) {
+  function AttendanceList({ sessionId, attendees, canEdit = true }, ref) {
     const router = useRouter();
     const [records, setRecords] = useState<RecordState[]>(() =>
       attendees.map((a) => ({
@@ -103,13 +104,19 @@ const AttendanceList = forwardRef<AttendanceListHandle, AttendanceListProps>(
     const [saveSuccess, setSaveSuccess] = useState(false);
 
     const mark = useCallback((coderId: string, status: AttendanceStatus, reason = '') => {
+      if (!canEdit) return;
       setRecords((prev) =>
         prev.map((r) => (r.coderId === coderId ? { ...r, status, reason, dirty: true } : r))
       );
       setSaveSuccess(false);
-    }, []);
+    }, [canEdit]);
 
     const save = useCallback(async () => {
+      if (!canEdit) {
+        const message = 'Presensi baru dapat diisi setelah sesi dimulai.';
+        setErrorMessage(message);
+        throw new Error(message);
+      }
       const missing = records.filter((r) => r.status === null);
       if (missing.length > 0) {
         const message = `Lengkapi presensi ${missing.length} coder dulu.`;
@@ -138,8 +145,11 @@ const AttendanceList = forwardRef<AttendanceListHandle, AttendanceListProps>(
                 status: r.status,
                 reason: r.reason.trim(),
               }),
-            }).then((res) => {
-              if (!res.ok) throw new Error(`Failed for ${r.fullName}`);
+            }).then(async (res) => {
+              if (!res.ok) {
+                const payload = await res.json().catch(() => ({}));
+                throw new Error(payload.error ?? `Gagal menyimpan presensi ${r.fullName}`);
+              }
               return res;
             })
           )
@@ -156,7 +166,7 @@ const AttendanceList = forwardRef<AttendanceListHandle, AttendanceListProps>(
       } finally {
         setIsSaving(false);
       }
-    }, [records, sessionId, router]);
+    }, [canEdit, records, sessionId, router]);
 
     // Expose save fn to parent via ref
     useImperativeHandle(ref, () => ({ save, isSaving }), [save, isSaving]);
@@ -221,6 +231,8 @@ const AttendanceList = forwardRef<AttendanceListHandle, AttendanceListProps>(
                   return (
                     <button
                       key={option}
+                      type="button"
+                      disabled={!canEdit}
                       onClick={() => {
                         const statusMap: Record<string, { status: AttendanceStatus; reason: string }> = {
                           HADIR: { status: 'PRESENT', reason: '' },
@@ -231,7 +243,7 @@ const AttendanceList = forwardRef<AttendanceListHandle, AttendanceListProps>(
                         const { status, reason } = statusMap[option];
                         mark(record.coderId, status, reason);
                       }}
-                      className={`px-3 sm:px-4 py-2 text-[10px] sm:text-xs font-bold rounded-lg transition-all whitespace-nowrap ${isActive ? STATUS_STYLES[option].active : STATUS_STYLES[option].inactive}`}
+                      className={`px-3 sm:px-4 py-2 text-[10px] sm:text-xs font-bold rounded-lg transition-all whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50 ${isActive ? STATUS_STYLES[option].active : STATUS_STYLES[option].inactive}`}
                     >
                       {option}
                     </button>

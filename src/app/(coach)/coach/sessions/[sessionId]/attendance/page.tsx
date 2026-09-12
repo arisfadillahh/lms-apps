@@ -4,6 +4,7 @@ import { attendanceDao, classesDao, sessionsDao, usersDao } from '@/lib/dao';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 import { canExtendBeforeNextLessonSession } from '@/lib/services/lessonExtensionBoundary';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { hasSessionStarted } from '@/lib/sessionTiming';
 
 import AttendanceWrapper from './AttendanceWrapper';
 import type { AttendanceStatus } from './AttendanceList';
@@ -249,6 +250,7 @@ export default async function SessionAttendancePage({ params }: PageProps) {
   }
 
   const sessionStart = new Date(sessionRecord.date_time);
+  const canMarkAttendance = hasSessionStarted(sessionRecord.date_time);
   const sessionEnd = new Date(sessionStart.getTime() + 90 * 60000);
   const formattedDate = sessionStart.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
   const formattedTime = `${sessionStart.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} - ${sessionEnd.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`;
@@ -364,7 +366,8 @@ export default async function SessionAttendancePage({ params }: PageProps) {
         <AttendanceWrapper
           sessionId={sessionRecord.id}
           attendees={attendees}
-          canComplete={sessionRecord.status === 'SCHEDULED'}
+          canMarkAttendance={canMarkAttendance}
+          canComplete={sessionRecord.status === 'SCHEDULED' && canMarkAttendance}
           slideUrl={slideUrl}
           slideTitle={slideTitle}
           isLastSessionOfBlock={isLastSessionOfBlock}

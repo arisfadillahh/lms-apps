@@ -18,6 +18,7 @@ interface Attendee {
 interface AttendanceWrapperProps {
     sessionId: string;
     attendees: Attendee[];
+    canMarkAttendance: boolean;
     canComplete: boolean;
     slideUrl?: string | null;
     slideTitle?: string | null;
@@ -38,6 +39,7 @@ interface AttendanceWrapperProps {
 export default function AttendanceWrapper({
     sessionId,
     attendees,
+    canMarkAttendance,
     canComplete,
     slideUrl,
     slideTitle,
@@ -67,6 +69,10 @@ export default function AttendanceWrapper({
     const [isSaving, setIsSaving] = useState(false);
 
     const handleSave = async () => {
+        if (!canMarkAttendance) {
+            alert('Presensi baru dapat diisi setelah sesi dimulai.');
+            return;
+        }
         setIsSaving(true);
         try {
             await listRef.current?.save();
@@ -176,7 +182,16 @@ export default function AttendanceWrapper({
 
     return (
         <>
-            <AttendanceList ref={listRef} sessionId={sessionId} attendees={attendees} />
+            {!canMarkAttendance && (
+                <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">
+                    <span className="material-symbols-outlined mt-0.5 text-amber-600">schedule</span>
+                    <div>
+                        <p className="font-bold">Presensi belum dibuka</p>
+                        <p className="mt-0.5 text-amber-800">Coach dapat mengisi presensi setelah waktu sesi dimulai.</p>
+                    </div>
+                </div>
+            )}
+            <AttendanceList ref={listRef} sessionId={sessionId} attendees={attendees} canEdit={canMarkAttendance} />
 
             {/* Slide Modal */}
             {isSlideOpen && slideUrl && (
@@ -316,9 +331,9 @@ export default function AttendanceWrapper({
                             Lihat Slide
                         </button>
                     )}
-                    <button type="button" onClick={handleSave} disabled={isSaving} className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 disabled:opacity-60">
-                        {isSaving ? 'Menyimpan...' : 'Simpan Presensi'}
-                        {!isSaving && <span className="material-symbols-outlined text-lg">check_circle</span>}
+                    <button type="button" onClick={handleSave} disabled={isSaving || !canMarkAttendance} title={!canMarkAttendance ? 'Presensi tersedia setelah sesi dimulai.' : undefined} className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 disabled:opacity-100">
+                        {isSaving ? 'Menyimpan...' : canMarkAttendance ? 'Simpan Presensi' : 'Belum Dimulai'}
+                        {!isSaving && <span className="material-symbols-outlined text-lg">{canMarkAttendance ? 'check_circle' : 'lock_clock'}</span>}
                     </button>
                 </div>
             </div>

@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { getSessionOrThrow } from '@/lib/auth';
 import { classLessonsDao, classesDao, sessionsDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
+import { hasSessionStarted, SESSION_NOT_STARTED_MESSAGE } from '@/lib/sessionTiming';
 
 const updateStatusSchema = z.object({
   status: z.enum(['COMPLETED', 'CANCELLED']),
@@ -54,6 +55,10 @@ export async function PATCH(request: Request, context: RouteContext) {
     const parsed = updateStatusSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: 'Validation failed', details: parsed.error.flatten() }, { status: 400 });
+    }
+
+    if (parsed.data.status === 'COMPLETED' && !hasSessionStarted(sessionRecord.date_time)) {
+      return NextResponse.json({ error: SESSION_NOT_STARTED_MESSAGE }, { status: 409 });
     }
 
     await sessionsDao.updateSessionStatus(sessionId, parsed.data.status);

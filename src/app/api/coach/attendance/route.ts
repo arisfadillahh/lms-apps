@@ -18,6 +18,7 @@ import { computeLessonSchedule } from '@/lib/services/lessonScheduler';
 import { sendAbsentNotification } from '@/lib/services/whatsappClient';
 import { getInvoiceSettings } from '@/lib/dao/invoicesDao';
 import { shouldSendParentWhatsappForClass } from '@/lib/classReminderEligibility';
+import { hasSessionStarted, SESSION_NOT_STARTED_MESSAGE } from '@/lib/sessionTiming';
 
 const markAttendanceSchema = z.object({
   sessionId: z.string().uuid(),
@@ -61,6 +62,10 @@ export async function POST(request: Request) {
   const sessionRecord = await sessionsDao.getSessionById(sessionId);
   if (!sessionRecord) {
     return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+  }
+
+  if (!hasSessionStarted(sessionRecord.date_time)) {
+    return NextResponse.json({ error: SESSION_NOT_STARTED_MESSAGE }, { status: 409 });
   }
 
   const classRecord = await classesDao.getClassById(sessionRecord.class_id);

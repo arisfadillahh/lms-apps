@@ -278,7 +278,7 @@ export default function KanbanBoard({ initialReports }: KanbanBoardProps) {
                       </div>
                     )}
 
-                    {/* Footer: coach + link */}
+                    {/* Footer: coach + detail */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginTop: 2 }}>
                       <div className="row gap-1">
                         <div
@@ -289,16 +289,14 @@ export default function KanbanBoard({ initialReports }: KanbanBoardProps) {
                         </div>
                         <span className="muted" style={{ fontSize: 11 }}>{report.coach?.full_name || 'Unknown'}</span>
                       </div>
-                      {report.block?.level_id && report.lesson?.block_id && (
-                        <Link
-                          href={`/admin/curriculum/${report.block.level_id}/blocks/${report.lesson.block_id}#lesson-${report.id}`}
-                          className="btn btn-ghost"
-                          style={{ padding: '2px 8px', fontSize: 11, height: 'auto' }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          Lihat →
-                        </Link>
-                      )}
+                      <Link
+                        href={`/admin/curriculum/reports/${report.id}`}
+                        className="btn btn-ghost"
+                        style={{ padding: '4px 9px', fontSize: 11, height: 'auto' }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Detail →
+                      </Link>
                     </div>
 
                     {/* Quick status change via select (fallback for non-drag) */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { Archive, CheckSquare, List, Pencil, RotateCcw, Square, Table } from 'lucide-react';
 // import * as Checkbox from '@radix-ui/react-checkbox'; // Not installed
@@ -37,6 +37,13 @@ export default function BlockLessonList({ blockId, lessons }: BlockLessonListPro
     .filter((lesson) => lesson.is_archived)
     .sort((a, b) => (b.archived_at ?? '').localeCompare(a.archived_at ?? ''));
   const sortedLessons = [...activeLessons].sort((a, b) => a.order_index - b.order_index);
+
+  useEffect(() => {
+    const targetLessonId = new URLSearchParams(window.location.search).get('editLesson');
+    if (targetLessonId && activeLessons.some((lesson) => lesson.id === targetLessonId)) {
+      setEditingLessonId(targetLessonId);
+    }
+  }, [lessons]);
 
   const toggleSelectAll = () => {
     if (selectedLessonIds.size === sortedLessons.length) {
@@ -163,7 +170,7 @@ export default function BlockLessonList({ blockId, lessons }: BlockLessonListPro
                   sortedLessons.map((lesson, lessonIndex) => {
                     const isSelected = selectedLessonIds.has(lesson.id);
                     return (
-                      <tr key={lesson.id} style={trStyle}>
+                      <tr key={lesson.id} id={`lesson-${lesson.id}`} style={trStyle}>
                         <td style={tdStyle}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <button
@@ -253,6 +260,7 @@ export default function BlockLessonList({ blockId, lessons }: BlockLessonListPro
                 return (
                   <article
                     key={lesson.id}
+                    id={`lesson-mobile-${lesson.id}`}
                     className={`weekly-lesson-mobile-card${isSelected ? ' is-selected' : ''}`}
                   >
                     <div className="weekly-lesson-mobile-head">

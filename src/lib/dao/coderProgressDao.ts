@@ -1,5 +1,7 @@
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import type { BlockRecord } from '@/lib/dao/blocksDao';
+import { finalizeCoderLevel } from '@/lib/dao/levelProgressionsDao';
+import { createAdminNotifications, createNotification } from '@/lib/dao/notificationsDao';
 
 type EnsureJourneyParams = {
   coderId: string;
@@ -28,26 +30,8 @@ export async function ensureJourneyForCoder({ coderId, levelId, blocks, entryBlo
   }
 
   if (existing && existing.length > 0) {
-    const knownBlockIds = new Set(existing.map((row) => row.block_id));
-    const missingBlockIds = computeJourneyOrder(blocks).filter((blockId) => !knownBlockIds.has(blockId));
-
-    if (missingBlockIds.length === 0) {
-      return;
-    }
-
-    const lastJourneyOrder = existing.reduce((max, row) => Math.max(max, row.journey_order), -1);
-    const payload = missingBlockIds.map((blockId, index) => ({
-      coder_id: coderId,
-      level_id: levelId,
-      block_id: blockId,
-      journey_order: lastJourneyOrder + index + 1,
-      status: 'PENDING' as const,
-    }));
-
-    const insertResult = await supabase.from('coder_block_progress').insert(payload);
-    if (insertResult.error) {
-      throw new Error(`Failed to extend coder block journey: ${insertResult.error.message}`);
-    }
+    // Existing rows are the Coder's curriculum snapshot. A later global
+    // curriculum edit must not silently add requirements to an active journey.
     return;
   }
 
@@ -175,15 +159,70 @@ export async function markBlockCompletedForClass(classId: string, blockId: strin
     }
   }
 
-  if (completedCoderIds.length > 0) {
-    const enrollmentUpdate = await supabase
-      .from('enrollments')
-      .update({ status: 'INACTIVE' })
-      .eq('class_id', classId)
-      .in('coder_id', completedCoderIds);
-    if (enrollmentUpdate.error) {
-      throw new Error(`Failed to deactivate completed enrollments: ${enrollmentUpdate.error.message}`);
-    }
+  await finalizeEligibleCoders({ supabase, coderIds: completedCoderIds, classId, levelId });
+}
+
+export async function reconcileCompletedLevelsForClass(classId: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const [{ data: klass, error: classError }, { data: enrollments, error: enrollmentError }] = await Promise.all([
+    supabase.from('classes').select('level_id, type').eq('id', classId).maybeSingle(),
+    supabase.from('enrollments').select('coder_id').eq('class_id', classId).eq('status', 'ACTIVE'),
+  ]);
+  if (classError) throw new Error(`Failed to load class for level reconciliation: ${classError.message}`);
+  if (enrollmentError) throw new Error(`Failed to load enrollments for level reconciliation: ${enrollmentError.message}`);
+  if (!klass?.level_id || klass.type !== 'WEEKLY') return;
+
+  await finalizeEligibleCoders({
+    supabase,
+    coderIds: (enrollments ?? []).map((row) => row.coder_id),
+    classId,
+    levelId: klass.level_id,
+  });
+}
+
+async function finalizeEligibleCoders(input: {
+  supabase: ReturnType<typeof getSupabaseAdmin>;
+  coderIds: string[];
+  classId: string;
+  levelId: string;
+}): Promise<void> {
+  const { supabase, coderIds, classId, levelId } = input;
+  if (coderIds.length > 0) {
+    const [{ data: classInfo }, { data: levelInfo }, { data: coders }] = await Promise.all([
+      supabase.from('classes').select('name').eq('id', classId).maybeSingle(),
+      supabase.from('levels').select('name').eq('id', levelId).maybeSingle(),
+      supabase.from('users').select('id, full_name').in('id', coderIds),
+    ]);
+    const coderNames = new Map((coders ?? []).map((coder) => [coder.id, coder.full_name]));
+
+    await Promise.all(coderIds.map(async (coderId) => {
+      const result = await finalizeCoderLevel({ coderId, sourceLevelId: levelId, sourceClassId: classId });
+      if (!result) return;
+
+      const coderName = coderNames.get(coderId) ?? 'Coder';
+      const levelName = levelInfo?.name ?? 'level saat ini';
+      const className = classInfo?.name ?? 'kelas sebelumnya';
+      const isProgramComplete = result.status === 'PROGRAM_COMPLETED';
+      const title = isProgramComplete ? 'Program belajar selesai' : 'Naik level';
+      const coderMessage = isProgramComplete
+        ? `Selamat! Kamu sudah menyelesaikan seluruh blok di ${levelName}.`
+        : `Selamat! Seluruh blok ${levelName} sudah selesai. Kamu sedang menunggu penempatan kelas berikutnya.`;
+      const adminMessage = isProgramComplete
+        ? `${coderName} telah menyelesaikan level terakhir dari ${className}.`
+        : `${coderName} telah menyelesaikan ${levelName} dari ${className} dan menunggu penempatan kelas berikutnya.`;
+
+      await Promise.all([
+        createNotification(coderId, title, coderMessage, 'LEVEL_PROGRESSION', {
+          actionUrl: '/coder/dashboard', category: 'ACADEMIC', priority: 'HIGH',
+          dedupeKey: `level-complete:${result.progressionId}`, push: true,
+        }),
+        createAdminNotifications({
+          title, message: adminMessage, type: 'LEVEL_PROGRESSION',
+          actionUrl: '/admin/level-progressions', category: 'ACADEMIC', priority: 'HIGH',
+          dedupeKey: `level-complete:${result.progressionId}`, push: true,
+        }),
+      ]);
+    }));
   }
 }
 

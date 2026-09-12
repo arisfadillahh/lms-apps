@@ -49,7 +49,7 @@ export default function ReportLessonButton({ lessonId, lessonTitle, coachId, les
                 });
                 if (!res.ok) {
                     const data = await res.json().catch(() => ({}));
-                    setError(data.error || 'Gagal mengirim laporan');
+                    setError(data.error || 'Gagal mengirim masalah lesson');
                     return;
                 }
                 setSuccess(true);
@@ -68,7 +68,7 @@ export default function ReportLessonButton({ lessonId, lessonTitle, coachId, les
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-rose-400/40 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-semibold transition-all text-sm"
             >
                 <span className="material-symbols-outlined text-xl">flag</span>
-                Laporkan Masalah
+                Laporkan Masalah Lesson
             </button>
 
             {/* Modal */}
@@ -84,7 +84,7 @@ export default function ReportLessonButton({ lessonId, lessonTitle, coachId, les
                         {/* Modal Header */}
                         <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900">Laporkan Masalah</h3>
+                                <h3 className="text-lg font-bold text-slate-900">Laporkan Masalah Lesson</h3>
                                 <p className="text-xs text-slate-500 mt-0.5 truncate max-w-xs">{lessonTitle}</p>
                             </div>
                             <button
@@ -100,8 +100,8 @@ export default function ReportLessonButton({ lessonId, lessonTitle, coachId, les
                             {success ? (
                                 <div className="flex flex-col items-center justify-center py-6 text-center gap-3">
                                     <span className="material-symbols-outlined text-5xl text-emerald-500">check_circle</span>
-                                    <p className="font-bold text-slate-800">Laporan Terkirim!</p>
-                                    <p className="text-sm text-slate-500">Admin akan segera meninjau laporan Anda.</p>
+                                    <p className="font-bold text-slate-800">Masalah Lesson Terkirim!</p>
+                                    <p className="text-sm text-slate-500">Admin akan segera meninjau masalah tersebut.</p>
                                 </div>
                             ) : (
                                 <>
@@ -169,7 +169,7 @@ export default function ReportLessonButton({ lessonId, lessonTitle, coachId, les
                                                     </svg>
                                                     Mengirim...
                                                 </>
-                                            ) : 'Kirim Laporan'}
+                                            ) : 'Kirim Masalah Lesson'}
                                         </button>
                                     </div>
                                 </>

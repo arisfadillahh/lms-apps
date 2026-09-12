@@ -652,6 +652,7 @@ async function syncBlockStatuses(
     await Promise.all(
       completedBlocks.map((block) => coderProgressDao.markBlockCompletedForClass(block.class_id, block.block_id ?? null)),
     );
+    await coderProgressDao.reconcileCompletedLevelsForClass(completedBlocks[0].class_id);
   }
 }
 

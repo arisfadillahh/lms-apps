@@ -4,12 +4,13 @@ import path from 'path';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { BookOpen, Bug, Flame, Pencil, ChevronRight, ListChecks, Zap, Play, Dumbbell, Lock, Rocket, Palette, Star, Download, Map, MapPin, Hand, Monitor, Brush, Gamepad2, Cat, Package, Palmtree } from 'lucide-react';
+import { BookOpen, Bug, Flame, Pencil, ChevronRight, ListChecks, Zap, Play, Dumbbell, Lock, Rocket, Palette, Star, Download, Map, MapPin, Hand, Monitor, Brush, Gamepad2, Cat, Package, Palmtree, GraduationCap } from 'lucide-react';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { normalizeClassMeetingUrl } from '@/lib/classMeetingUrl';
 import { getCoderProgress } from '@/lib/services/coder';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { levelProgressionsDao } from '@/lib/dao';
 
 import JourneyModal from './JourneyModal';
 import UpcomingLessonsModal from './UpcomingLessonsModal';
@@ -44,9 +45,10 @@ async function getBanners(): Promise<Banner[]> {
 
 export default async function CoderDashboardPage() {
   const session = await getSessionOrThrow();
-  const [progress, banners] = await Promise.all([
+  const [progress, banners, levelProgression] = await Promise.all([
     getCoderProgress(session.user.id),
     getBanners(),
+    levelProgressionsDao.getLatestForCoder(session.user.id),
   ]);
 
   const upcomingBlocks = progress
@@ -216,6 +218,26 @@ export default async function CoderDashboardPage() {
         ))}
 
         <MobilePwaOnboardingCard role="CODER" />
+
+        {levelProgression && (
+          <StaggerItem className="mb-5">
+            <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950 shadow-sm sm:p-5">
+              <div className="flex items-start gap-3">
+                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-600 text-white"><GraduationCap size={21} /></span>
+                <div>
+                  <h2 className="font-black">{levelProgression.status === 'PROGRAM_COMPLETED' ? 'Program selesai' : levelProgression.status === 'WAITING_PLACEMENT' ? 'Kamu naik level!' : 'Kelas level barumu sudah siap'}</h2>
+                  <p className="mt-1 text-sm font-semibold leading-relaxed text-emerald-800">
+                    {levelProgression.status === 'PROGRAM_COMPLETED'
+                      ? 'Seluruh perjalanan belajar pada program ini sudah kamu selesaikan.'
+                      : levelProgression.status === 'WAITING_PLACEMENT'
+                        ? 'Semua blok sudah selesai. Admin sedang menyiapkan kelas berikutnya untukmu.'
+                        : 'Penempatan selesai. Jadwal dan materi berikutnya sudah tersedia di dashboard.'}
+                  </p>
+                </div>
+              </div>
+            </section>
+          </StaggerItem>
+        )}
 
         {/* ===== BANNER SECTION ===== */}
         <StaggerItem className="mb-10">

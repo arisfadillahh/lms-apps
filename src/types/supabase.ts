@@ -695,6 +695,42 @@ export interface Database {
           },
         ];
       };
+      coder_level_progressions: {
+        Row: {
+          id: string;
+          coder_id: string;
+          source_level_id: string;
+          target_level_id: string | null;
+          source_class_id: string;
+          source_enrollment_id: string;
+          target_class_id: string | null;
+          target_enrollment_id: string | null;
+          status: 'WAITING_PLACEMENT' | 'PLACED' | 'PROGRAM_COMPLETED';
+          completed_at: string;
+          placed_at: string | null;
+          placed_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          coder_id: string;
+          source_level_id: string;
+          target_level_id?: string | null;
+          source_class_id: string;
+          source_enrollment_id: string;
+          target_class_id?: string | null;
+          target_enrollment_id?: string | null;
+          status: 'WAITING_PLACEMENT' | 'PLACED' | 'PROGRAM_COMPLETED';
+          completed_at?: string;
+          placed_at?: string | null;
+          placed_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['coder_level_progressions']['Insert']>;
+        Relationships: [];
+      };
       enrollments: {
         Row: {
           id: string;

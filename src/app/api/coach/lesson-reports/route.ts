@@ -87,7 +87,7 @@ export async function POST(request: Request) {
     if (error) {
         console.error('[Lesson Report] Error:', error);
         return NextResponse.json({
-            error: 'Gagal menyimpan laporan. Pastikan tabel lesson_reports sudah ada.',
+            error: 'Gagal menyimpan masalah lesson. Pastikan tabel lesson_reports sudah ada.',
             details: error.message,
         }, { status: 500 });
     }
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
     try {
         await createAdminNotifications({
             type: 'LESSON_REPORT',
-            title: 'Laporan masalah lesson',
+            title: 'Masalah lesson baru',
             message: `${coachName} melaporkan masalah "${reportTypeLabel}" pada lesson "${lessonTitle}". Catatan: ${parsed.data.description}`,
             pushUrl: '/admin/curriculum/reports',
             pushTag: `lesson-report-${data.id}`,

@@ -80,7 +80,7 @@ export default async function LessonReportsPage() {
   return (
     <div className="col gap-4">
       <PageHead
-        title="Laporan Lesson"
+        title="Masalah Lesson"
         desc="Laporan dari coach tentang masalah pada materi lesson — bug, konten usang, atau kesulitan siswa."
         actions={
           <Link href="/admin/curriculum" className="btn btn-ghost btn-sm">
@@ -93,7 +93,7 @@ export default async function LessonReportsPage() {
       <div className="grid grid-4">
         <div className="stat">
           <div className="stat-icon"><AlertCircle size={16} /></div>
-          <div className="stat-label">Total Laporan</div>
+          <div className="stat-label">Total Masalah</div>
           <div className="stat-value">{enrichedReports.length}</div>
         </div>
         <div className="stat">

@@ -97,14 +97,14 @@ export default async function LessonReportDetailPage({ params }: PageProps) {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 pb-10">
       <Link href="/admin/curriculum/reports" className="inline-flex w-fit items-center gap-2 text-sm font-bold text-slate-600 hover:text-slate-950">
-        <ArrowLeft size={17} /> Kembali ke laporan lesson
+        <ArrowLeft size={17} /> Kembali ke masalah lesson
       </Link>
 
       <header className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-xs font-bold uppercase text-rose-700">{REPORT_TYPE_LABELS[report.report_type] ?? report.report_type}</p>
-            <h1 className="mt-2 text-2xl font-bold text-slate-950 sm:text-3xl">Detail laporan lesson</h1>
+            <h1 className="mt-2 text-2xl font-bold text-slate-950 sm:text-3xl">Detail masalah lesson</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Periksa masalah yang dilaporkan Coach, lihat konteks lesson, lalu perbarui tindak lanjutnya.</p>
           </div>
           <span className="w-fit rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700">{report.status}</span>

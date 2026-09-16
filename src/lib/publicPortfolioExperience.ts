@@ -1,4 +1,5 @@
 import type { PublishedPortfolioSnapshot } from '@/lib/coderPortfolio';
+import { portfolioTagKey, uniquePortfolioTags } from '@/lib/portfolioTags';
 
 export type ExperienceProject = {
   id: string;
@@ -37,6 +38,7 @@ export type PortfolioExperienceModel = PortfolioExperienceInput & {
     nextSteps: string;
   };
   traits: Array<{ label: string; detail: string }>;
+  timeline: Array<{ id: string; title: string; publishedAt: string | null; program: string; reflection: string }>;
 };
 
 function initialsFor(fullName: string): string {
@@ -49,10 +51,13 @@ export function buildPortfolioExperienceModel(input: PortfolioExperienceInput): 
   const firstName = input.fullName.trim().split(/\s+/).filter(Boolean)[0] || 'Coder';
   const year = new Date().getFullYear();
   const skillCounts = new Map<string, number>();
+  const skillLabels = new Map<string, string>();
 
   for (const project of projects) {
-    for (const skill of project.snapshot.skills ?? []) {
-      skillCounts.set(skill, (skillCounts.get(skill) ?? 0) + 1);
+    for (const skill of uniquePortfolioTags(project.snapshot.skills ?? [])) {
+      const key = portfolioTagKey(skill);
+      if (!skillLabels.has(key)) skillLabels.set(key, skill);
+      skillCounts.set(key, (skillCounts.get(key) ?? 0) + 1);
     }
   }
 
@@ -61,10 +66,10 @@ export function buildPortfolioExperienceModel(input: PortfolioExperienceInput): 
     .sort(([, left], [, right]) => right - left)
     .slice(0, 4)
     .map(([label, count]) => ({
-      label,
+      label: skillLabels.get(label)!,
       count,
       percent: projects.length > 0 ? Math.round((count / projects.length) * 100) : 0,
-      detail: `Muncul di ${count} ${count === 1 ? 'project' : 'project'}.`,
+      detail: `Dipraktikkan dalam ${count} project.`,
     }));
 
   const latest = projects[0]?.snapshot;
@@ -92,6 +97,16 @@ export function buildPortfolioExperienceModel(input: PortfolioExperienceInput): 
       reflections: projects.filter((project) => project.snapshot.learningReflection.trim().length > 0).length,
     },
     journey,
+    timeline: [...projects].sort((a, b) => {
+      const time = (value: string | null) => value && Number.isFinite(Date.parse(value)) ? Date.parse(value) : Infinity;
+      return time(a.publishedAt) - time(b.publishedAt) || a.id.localeCompare(b.id);
+    }).map((project) => ({
+      id: project.id,
+      title: project.snapshot.title,
+      publishedAt: project.publishedAt && Number.isFinite(Date.parse(project.publishedAt)) ? project.publishedAt : null,
+      program: project.snapshot.programType === 'EKSKUL' ? 'Ekskul' : 'Weekly',
+      reflection: project.snapshot.learningReflection,
+    })),
     latestStory,
     traits: [
       { label: 'Program & level', detail: `${programLabel} · ${levelLabel}` },

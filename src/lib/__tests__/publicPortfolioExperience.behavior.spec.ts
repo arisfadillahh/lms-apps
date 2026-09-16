@@ -26,6 +26,29 @@ const project = (overrides: Partial<ExperienceProject['snapshot']> = {}): Experi
 });
 
 describe('public portfolio experience model', () => {
+  it('counts spelling variants once per project, without altering approved content', () => {
+    const first = project({ skills: ['Game Design', 'game design', '  Game   Design ', 'Game Development'] });
+    const second = project({ skills: ['game design'] });
+    const model = buildPortfolioExperienceModel({ fullName: 'Test Coder', schoolName: null, schoolVisible: false, levelName: null, programTypes: ['WEEKLY'], projects: [first, second] });
+    expect(model.stats.skills).toBe(2);
+    expect(model.journey).toEqual([
+      { label: 'Game Design', count: 2, percent: 100, detail: 'Dipraktikkan dalam 2 project.' },
+      { label: 'Game Development', count: 1, percent: 50, detail: 'Dipraktikkan dalam 1 project.' },
+    ]);
+    expect(first.snapshot.skills).toEqual(['Game Design', 'game design', '  Game   Design ', 'Game Development']);
+  });
+
+  it('orders the journey by publication date and preserves historical program without inventing a level', () => {
+    const older = { ...project({ title: 'Older', programType: 'EKSKUL' }), id: 'old', publishedAt: '2026-01-01T00:00:00Z' };
+    const newer = { ...project({ title: 'Newer', programType: 'WEEKLY' }), id: 'new', publishedAt: '2026-02-01T00:00:00Z' };
+    const unknown = { ...project(), id: 'unknown', publishedAt: 'invalid' };
+    const model = buildPortfolioExperienceModel({ fullName: 'Test Coder', schoolName: null, schoolVisible: false, levelName: 'Current level', programTypes: ['WEEKLY', 'EKSKUL'], projects: [newer, unknown, older] });
+    expect(model.timeline.map((item) => [item.id, item.program, item.publishedAt])).toEqual([
+      ['old', 'Ekskul', '2026-01-01T00:00:00Z'], ['new', 'Weekly', '2026-02-01T00:00:00Z'], ['unknown', 'Weekly', null],
+    ]);
+    expect(model.projects.map((item) => item.id)).toEqual(['new', 'unknown', 'old']);
+    expect(model.timeline[0]).not.toHaveProperty('level');
+  });
   it('keeps portfolio fields while deriving data-backed journey stats', () => {
     const model = buildPortfolioExperienceModel({
       fullName: 'Alya Putri',

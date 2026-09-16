@@ -46,8 +46,7 @@ describe('public portfolio universe responsive shell', () => {
     expect(experience).toContain("root.style.setProperty('--portfolio-pointer-x'");
     expect(experience).toContain('data-portfolio-reveal');
     expect(experience).toContain('lg:grid-cols-[.98fr_1.02fr]');
-    expect(experience).toContain('lg:grid-cols-[1.03fr_.97fr]');
-    expect(experience).toContain('lg:grid-cols-[.96fr_1.04fr]');
+    expect(experience).toContain('lg:grid-cols-[1.4fr_1fr]');
     expect(experience).toContain('linear-gradient(180deg,#172761_0%,#111d4d_42%,#0e1740_100%)');
     expect(gallery).toContain('sm:grid-cols-2 lg:grid-cols-3');
     expect(gallery).toContain('aspect-[3/2] min-h-[18rem]');

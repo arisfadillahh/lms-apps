@@ -18,6 +18,7 @@ import {
 import PublicPortfolioGallery from '@/components/portfolio/PublicPortfolioGallery';
 import type { PortfolioExperienceModel } from '@/lib/publicPortfolioExperience';
 import { lockDocumentScroll } from '@/lib/documentScrollLock';
+import { createLatestFrame } from '@/lib/latestFrame';
 import styles from './PublicPortfolioExperience.module.css';
 
 const STAR_FIELD = [
@@ -68,12 +69,11 @@ function IntroGate({ model, onEnter, exiting }: { model: PortfolioExperienceMode
       <UniverseBackdrop intro />
       <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(rgba(255,255,255,.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.04)_1px,transparent_1px)] [background-size:56px_56px] [mask-image:radial-gradient(circle_at_50%_50%,black,transparent_80%)]" />
       <div className="relative z-20 flex items-center justify-between gap-3"><Brand /><span className="max-w-[42%] text-right text-[9px] font-black uppercase tracking-[.14em] text-white/55 sm:text-xs">{model.season}</span></div>
-      <div className="relative z-10 mx-auto grid h-full min-h-0 w-full max-w-6xl items-center overflow-hidden lg:grid-cols-[1.04fr_.96fr] lg:gap-10">
+      <div className={`${styles.introContent} relative z-10 mx-auto grid min-h-0 w-full max-w-6xl lg:grid-cols-[1.04fr_.96fr] lg:gap-10`}>
         <div className={`${styles.introCopy} relative z-20 max-w-[48rem] py-4 sm:py-6`}>
           <p className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-[.16em] text-clevio-green sm:mb-5 sm:text-xs"><Sparkles size={16} /> Portfolio Experience</p>
           <h1 className="max-w-[11ch] text-[clamp(2.5rem,12vw,5.6rem)] font-black uppercase leading-[.88] tracking-[-.052em] sm:max-w-4xl sm:text-[clamp(3.25rem,7.6vw,5.4rem)] lg:text-[clamp(4rem,6.7vw,6.6rem)]">This isn’t a report.<br /><span className="text-transparent [-webkit-text-stroke:1.35px_rgba(255,255,255,.84)]">It’s {model.firstName}’s learning universe.</span></h1>
           <p className="mt-4 max-w-[34rem] text-sm font-semibold leading-relaxed text-white/70 sm:mt-6 sm:text-lg">Masuk ke project, keputusan, eksperimen, dan perkembangan yang terbentuk di balik setiap karya.</p>
-          <button type="button" onClick={onEnter} className={`${styles.sheenButton} ${styles.greenGlow} mt-5 inline-flex min-h-12 items-center gap-3 rounded-xl bg-clevio-green px-5 font-black text-[#0e1740] transition duration-300 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-clevio-cyan/60 active:translate-y-0 sm:mt-7 sm:min-h-14 sm:rounded-2xl sm:px-6`}>Lihat Portofolio <ArrowRight size={19} /></button>
         </div>
         <div className={`${styles.introPortal} pointer-events-none absolute -right-[24%] top-[11%] flex aspect-square w-[62vw] items-center justify-center opacity-25 sm:-right-[18%] sm:top-1/2 sm:w-[58vw] sm:-translate-y-1/2 sm:opacity-55 lg:relative lg:right-auto lg:top-auto lg:mx-auto lg:w-full lg:max-w-md lg:translate-y-0 lg:opacity-100`}>
           <div className={`${styles.orbitClockwise} absolute inset-0 rounded-full border border-white/10`} />
@@ -83,7 +83,10 @@ function IntroGate({ model, onEnter, exiting }: { model: PortfolioExperienceMode
           <span className="absolute bottom-[20%] z-10 hidden rounded-full border border-clevio-green/35 bg-clevio-green/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[.14em] text-[#dcff84] sm:block">Coder Portfolio</span>
         </div>
       </div>
-      <div className="relative z-20 flex items-center justify-between gap-4 text-[9px] font-bold uppercase tracking-[.12em] text-white/45 sm:text-[10px]"><span className="hidden sm:inline">Clever · Leverage · Human-centric · Greater good</span><span className="ml-auto inline-flex items-center gap-2"><ArrowDown className={styles.scrollCueIcon} size={16} /> Jelajahi karya</span></div>
+      <div className={`${styles.introActions} relative z-20 mx-auto flex w-full max-w-6xl items-center justify-between gap-4 border-t border-white/10 pt-4`}>
+        <button type="button" onClick={onEnter} disabled={exiting} className={`${styles.sheenButton} ${styles.greenGlow} inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl bg-clevio-green px-6 text-base font-black text-[#0e1740] transition duration-300 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-clevio-cyan/60 active:translate-y-0 sm:w-auto`}>Lihat Portofolio <ArrowRight size={19} /></button>
+        <span className="hidden text-right text-xs font-semibold leading-relaxed text-white/60 sm:block">Karya, eksperimen, dan cerita belajar<br /><span className="text-white/90">{model.fullName}</span></span>
+      </div>
     </section>
   );
 }
@@ -141,7 +144,7 @@ function Hero({ model }: { model: PortfolioExperienceModel }) {
         </div>
         <Portal model={model} />
       </div>
-      <a href="#journey" className="absolute bottom-5 left-1/2 inline-flex -translate-x-1/2 items-center gap-2 text-[10px] font-black uppercase tracking-[.16em] text-white/45"><ArrowDown size={16} /> Jelajahi karya</a>
+      <a href="#journey" className="absolute bottom-5 left-1/2 inline-flex -translate-x-1/2 items-center gap-2 text-[10px] font-black uppercase tracking-[.16em] text-white/45"><ArrowDown className={styles.scrollCueIcon} size={16} /> Jelajahi karya</a>
     </header>
   );
 }
@@ -182,6 +185,20 @@ export default function PublicPortfolioExperience({ model }: { model: PortfolioE
   const [entered, setEntered] = useState(false);
   const [gateVisible, setGateVisible] = useState(true);
   const rootRef = useRef<HTMLDivElement>(null);
+  const pointerFrame = useRef<ReturnType<typeof createLatestFrame<{ x: number; y: number }>> | null>(null);
+
+  useEffect(() => {
+    const frame = createLatestFrame<{ x: number; y: number }>(({ x, y }) => {
+      const root = rootRef.current;
+      if (!root) return;
+      root.style.setProperty('--portfolio-pointer-x', `${x}px`);
+      root.style.setProperty('--portfolio-pointer-y', `${y}px`);
+      root.style.setProperty('--portfolio-rotate-x', `${(0.5 - y / Math.max(window.innerHeight, 1)) * 3.4}deg`);
+      root.style.setProperty('--portfolio-rotate-y', `${(x / Math.max(window.innerWidth, 1) - 0.5) * 5.2}deg`);
+    });
+    pointerFrame.current = frame;
+    return () => { frame.cancel(); pointerFrame.current = null; };
+  }, []);
 
   useLayoutEffect(() => {
     document.body.dataset.portfolioPage = 'true';
@@ -216,6 +233,10 @@ export default function PublicPortfolioExperience({ model }: { model: PortfolioE
   }, [entered, gateVisible]);
 
   useEffect(() => {
+    if (!gateVisible) rootRef.current?.querySelector<HTMLAnchorElement>('#top a[href="#projects"]')?.focus({ preventScroll: true });
+  }, [gateVisible]);
+
+  useEffect(() => {
     if (!entered || gateVisible) return;
     const root = rootRef.current;
     if (!root) return;
@@ -244,17 +265,11 @@ export default function PublicPortfolioExperience({ model }: { model: PortfolioE
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.pointerType === 'touch' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const root = rootRef.current;
-    if (!root) return;
-    const width = Math.max(window.innerWidth, 1);
-    const height = Math.max(window.innerHeight, 1);
-    root.style.setProperty('--portfolio-pointer-x', `${event.clientX}px`);
-    root.style.setProperty('--portfolio-pointer-y', `${event.clientY}px`);
-    root.style.setProperty('--portfolio-rotate-x', `${(0.5 - event.clientY / height) * 3.4}deg`);
-    root.style.setProperty('--portfolio-rotate-y', `${(event.clientX / width - 0.5) * 5.2}deg`);
+    pointerFrame.current?.schedule({ x: event.clientX, y: event.clientY });
   };
 
   const resetPointer = () => {
+    pointerFrame.current?.cancel();
     const root = rootRef.current;
     if (!root) return;
     root.style.setProperty('--portfolio-pointer-x', '50vw');
@@ -263,5 +278,5 @@ export default function PublicPortfolioExperience({ model }: { model: PortfolioE
     root.style.setProperty('--portfolio-rotate-y', '0deg');
   };
 
-  return <div ref={rootRef} onPointerMove={handlePointerMove} onPointerLeave={resetPointer} className={`${styles.root} relative min-h-[100dvh] w-full max-w-full overflow-x-clip bg-[radial-gradient(circle_at_13%_10%,rgba(0,176,215,.22),transparent_27%),radial-gradient(circle_at_88%_18%,rgba(157,200,59,.18),transparent_25%),linear-gradient(180deg,#172761_0%,#111d4d_42%,#0e1740_100%)] text-white`}><UniverseBackdrop /><div className="pointer-events-none fixed inset-0 z-0 opacity-50 [background-image:linear-gradient(rgba(255,255,255,.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.035)_1px,transparent_1px)] [background-size:48px_48px] [mask-image:linear-gradient(to_bottom,rgba(0,0,0,.9),transparent_82%)]" />{gateVisible && <IntroGate model={model} onEnter={() => setEntered(true)} exiting={entered} />}<div className={`relative z-10 transition duration-700 ${entered ? styles.experienceEntered : `${styles.experienceHidden} pointer-events-none h-[100dvh] overflow-hidden`}`} aria-hidden={!entered}><ExperienceNav /><Hero model={model} /><PublicPortfolioGallery projects={model.projects} /><JourneySection model={model} /><section id="next" data-portfolio-reveal className="relative z-10 px-5 pb-28 pt-10 sm:px-8"><div className="mx-auto grid min-h-[360px] max-w-6xl items-center gap-8 overflow-hidden rounded-[2rem] bg-gradient-to-br from-clevio-green via-[#c0e451] to-clevio-cyan p-6 text-[#0e1740] shadow-[0_40px_100px_rgba(0,176,215,.17)] sm:grid-cols-[1.15fr_.85fr] sm:p-14"><div><span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[.14em]"><Sparkles size={18} /> Target berikutnya</span><h2 className="mt-4 max-w-3xl text-[clamp(2rem,9vw,3.5rem)] font-black uppercase leading-[.88] tracking-[-.052em] sm:text-[clamp(2.5rem,4.5vw,3.5rem)]">Langkah berikutnya untuk {model.firstName}</h2><p className="max-w-xl text-base font-semibold leading-relaxed text-[#0e1740]/70">{model.latestStory.nextSteps}</p><a href="#projects" className={`${styles.sheenButton} mt-3 inline-flex min-h-12 items-center gap-2 rounded-xl bg-[#0e1740] px-5 font-black text-white transition duration-300 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/70 active:translate-y-0`}>Lihat Karya Lagi <FolderKanban size={18} /></a></div><div className={`${styles.ctaPlanet} mx-auto grid size-40 place-items-center rounded-full bg-[#0e1740] text-clevio-green shadow-[0_30px_80px_rgba(14,23,64,.24),0_0_0_20px_rgba(255,255,255,.14),0_0_0_42px_rgba(255,255,255,.08)] sm:size-56 sm:shadow-[0_30px_80px_rgba(14,23,64,.24),0_0_0_28px_rgba(255,255,255,.14),0_0_0_62px_rgba(255,255,255,.08)]`}><Rocket size={54} /></div></div></section><footer data-portfolio-reveal className="relative z-10 px-5 pb-10 sm:px-8"><div className="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center justify-between gap-5 border-t border-white/10 pt-5 text-[10px] font-black uppercase tracking-[.1em] text-white/45"><Brand compact /><span>Clever · Leverage · Human-centric · Greater good</span><span>Portfolio Experience · {new Date().getFullYear()}</span></div></footer></div></div>;
+  return <div ref={rootRef} onPointerMove={handlePointerMove} onPointerLeave={resetPointer} className={`${styles.root} relative min-h-[100dvh] w-full max-w-full overflow-x-clip bg-[radial-gradient(circle_at_13%_10%,rgba(0,176,215,.22),transparent_27%),radial-gradient(circle_at_88%_18%,rgba(157,200,59,.18),transparent_25%),linear-gradient(180deg,#172761_0%,#111d4d_42%,#0e1740_100%)] text-white`}>{entered && <UniverseBackdrop />}<div className="pointer-events-none fixed inset-0 z-0 opacity-50 [background-image:linear-gradient(rgba(255,255,255,.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.035)_1px,transparent_1px)] [background-size:48px_48px] [mask-image:linear-gradient(to_bottom,rgba(0,0,0,.9),transparent_82%)]" />{gateVisible && <IntroGate model={model} onEnter={() => setEntered(true)} exiting={entered} />}{entered && <div className={`relative z-10 transition duration-700 ${entered ? styles.experienceEntered : `${styles.experienceHidden} pointer-events-none h-[100dvh] overflow-hidden`}`} aria-hidden={!entered}><ExperienceNav /><Hero model={model} /><PublicPortfolioGallery projects={model.projects} /><JourneySection model={model} /><section id="next" data-portfolio-reveal className="relative z-10 px-5 pb-28 pt-10 sm:px-8"><div className="mx-auto grid min-h-[360px] max-w-6xl items-center gap-8 overflow-hidden rounded-[2rem] bg-gradient-to-br from-clevio-green via-[#c0e451] to-clevio-cyan p-6 text-[#0e1740] shadow-[0_40px_100px_rgba(0,176,215,.17)] sm:grid-cols-[1.15fr_.85fr] sm:p-14"><div><span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[.14em]"><Sparkles size={18} /> Target berikutnya</span><h2 className="mt-4 max-w-3xl text-[clamp(2rem,9vw,3.5rem)] font-black uppercase leading-[.88] tracking-[-.052em] sm:text-[clamp(2.5rem,4.5vw,3.5rem)]">Langkah berikutnya untuk {model.firstName}</h2><p className="max-w-xl text-base font-semibold leading-relaxed text-[#0e1740]/70">{model.latestStory.nextSteps}</p><a href="#projects" className={`${styles.sheenButton} mt-3 inline-flex min-h-12 items-center gap-2 rounded-xl bg-[#0e1740] px-5 font-black text-white transition duration-300 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/70 active:translate-y-0`}>Lihat Karya Lagi <FolderKanban size={18} /></a></div><div className={`${styles.ctaPlanet} mx-auto grid size-40 place-items-center rounded-full bg-[#0e1740] text-clevio-green shadow-[0_30px_80px_rgba(14,23,64,.24),0_0_0_20px_rgba(255,255,255,.14),0_0_0_42px_rgba(255,255,255,.08)] sm:size-56 sm:shadow-[0_30px_80px_rgba(14,23,64,.24),0_0_0_28px_rgba(255,255,255,.14),0_0_0_62px_rgba(255,255,255,.08)]`}><Rocket size={54} /></div></div></section><footer data-portfolio-reveal className="relative z-10 px-5 pb-10 sm:px-8"><div className="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center justify-between gap-5 border-t border-white/10 pt-5 text-[10px] font-black uppercase tracking-[.1em] text-white/45"><Brand compact /><span>Clever · Leverage · Human-centric · Greater good</span><span>Portfolio Experience · {new Date().getFullYear()}</span></div></footer></div>}</div>;
 }

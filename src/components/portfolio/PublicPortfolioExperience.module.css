@@ -16,11 +16,51 @@
 
 .introGate {
   width: 100%;
+  height: 100vh;
   height: 100dvh;
   max-width: none !important;
   max-height: none !important;
   overflow: hidden !important;
   overscroll-behavior: none;
+}
+
+/* Reserve the action row even when browser chrome, zoom or a long name makes
+   the copy taller than the viewport. Only the middle row may scroll. */
+.introContent {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  align-items: safe center;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 25%) transparent;
+  padding-block: 1rem;
+}
+
+.introCopy {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.introActions {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.introActions > span {
+  max-width: 50%;
+  overflow-wrap: anywhere;
+}
+
+.introGate .introCopy h1 {
+  font-size: clamp(2.25rem, min(5.5vw, 8dvh), 5.1rem) !important;
+  line-height: 1 !important;
+  max-width: 14ch;
+  text-wrap: balance;
+}
+
+@media (max-width: 639px) {
+  .introGate .introCopy h1 {
+    font-size: clamp(2rem, min(10vw, 7.5dvh), 3.6rem) !important;
+  }
 }
 
 :global(html).introLocked,
@@ -133,6 +173,8 @@
 }
 
 .introPortal {
+  /* Rotating orbit bounds must not enlarge the copy's scrollable area. */
+  overflow: clip;
   animation: portalArrive 1s cubic-bezier(.16, 1, .3, 1) 120ms both;
 }
 
@@ -170,6 +212,12 @@
 .experienceEntered {
   opacity: 1;
   transform: none;
+  animation: experienceReveal 700ms cubic-bezier(.4, 0, .2, 1) both;
+}
+
+@keyframes experienceReveal {
+  from { opacity: 0; transform: scale(1.018); }
+  to { opacity: 1; transform: none; }
 }
 
 .ctaPlanet {
@@ -396,6 +444,7 @@
   .introGateExit,
   .introCopy,
   .introPortal,
+  .experienceEntered,
   .orbitClockwise,
   .orbitCounterClockwise,
   .portalBlob,

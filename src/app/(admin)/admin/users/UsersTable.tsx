@@ -55,11 +55,11 @@ export default function UsersTable({ users }: UsersTableProps) {
   };
 
   return (
-    <div className="card">
+    <div className="card users-table-card">
       {/* Header / Filters */}
-      <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
-        <div className="filters">
-          <div className="searchbar" style={{ maxWidth: 320, flex: 'none' }}>
+      <div className="users-table-toolbar">
+        <div className="filters users-table-filters">
+          <div className="searchbar users-table-search">
             <Search size={16} />
             <input
               type="text"
@@ -70,7 +70,7 @@ export default function UsersTable({ users }: UsersTableProps) {
           </div>
 
           {/* Role filter as chip buttons */}
-          <div className="row gap-1" style={{ padding: 3, background: 'var(--surface-2)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+          <div className="row gap-1 users-role-filter">
             {(['ALL', 'ADMIN', 'COACH', 'CODER'] as RoleFilter[]).map((r) => (
               <button
                 key={r}
@@ -114,8 +114,8 @@ export default function UsersTable({ users }: UsersTableProps) {
       </div>
 
       {/* Table */}
-      <div style={{ overflowX: 'auto' }}>
-        <table className="table">
+      <div className="users-table-wrap">
+        <table className="table users-table">
           <thead>
             <tr>
               <th>Nama</th>
@@ -137,7 +137,7 @@ export default function UsersTable({ users }: UsersTableProps) {
             ) : (
               filteredUsers.map((user) => (
                 <tr key={user.id}>
-                  <td>
+                  <td className="users-identity-cell" data-label="Pengguna">
                     <div className="row gap-3">
                       <div className="avatar avatar-lg">
                         {user.full_name.slice(0, 2).toUpperCase()}
@@ -147,13 +147,13 @@ export default function UsersTable({ users }: UsersTableProps) {
                       </div>
                     </div>
                   </td>
-                  <td>
+                  <td data-label="Username">
                     <span className="mono muted">@{user.username}</span>
                   </td>
-                  <td>
+                  <td data-label="Role">
                     <span className={`badge ${roleBadge(user.role)}`}>{user.role}</span>
                   </td>
-                  <td>
+                  <td data-label="Program">
                     {user.role === 'CODER' ? (
                       <span className="badge badge-neutral">
                         {user.coder_program === 'WEEKLY' ? 'Weekly' : user.coder_program === 'EKSKUL' ? 'Ekskul' : 'Belum ditentukan'}
@@ -162,19 +162,19 @@ export default function UsersTable({ users }: UsersTableProps) {
                       <span className="muted">—</span>
                     )}
                   </td>
-                  <td>
+                  <td data-label="Status">
                     {user.is_active ? (
                       <span className="badge badge-success">Aktif</span>
                     ) : (
                       <span className="badge badge-neutral">Nonaktif</span>
                     )}
                   </td>
-                  <td>
+                  <td data-label="Kontak orang tua">
                     <span className="muted" style={{ fontSize: 12.5 }}>
                       {user.role === 'CODER' ? (user.parent_contact_phone ?? '—') : '—'}
                     </span>
                   </td>
-                  <td style={{ textAlign: 'right' }}>
+                  <td className="users-actions-cell" data-label="Aksi">
                     <ActionDropdown>
                       <div className="col gap-1" style={{ padding: '4px' }}>
                         <EditUserButton user={user} />

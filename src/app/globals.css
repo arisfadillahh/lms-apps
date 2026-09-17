@@ -2764,7 +2764,7 @@ html[data-coder-theme='dark'] .coder-report-card button {
     -webkit-overflow-scrolling: touch;
   }
 
-  .invoice-card .table-container table {
+.invoice-card .table-container table {
     min-width: 560px;
   }
 
@@ -3513,6 +3513,165 @@ html[data-coder-theme='dark'] .coder-report-card button {
   [data-admin-shell='true'] .ekskul-lesson-modal-actions {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Admin users: keep dense desktop scanning while turning rows into readable
+   records on phones instead of forcing a horizontal table scroll. */
+[data-admin-shell='true'] .users-table-toolbar {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+[data-admin-shell='true'] .users-table-filters {
+  align-items: center;
+}
+
+[data-admin-shell='true'] .users-table-search {
+  flex: 0 1 320px;
+  max-width: 320px;
+}
+
+[data-admin-shell='true'] .users-role-filter {
+  padding: 3px;
+  overflow-x: auto;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  scrollbar-width: none;
+}
+
+[data-admin-shell='true'] .users-role-filter::-webkit-scrollbar {
+  display: none;
+}
+
+[data-admin-shell='true'] .users-actions-cell {
+  text-align: right;
+}
+
+@media (max-width: 760px) {
+  [data-admin-shell='true'] .users-table-card {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  [data-admin-shell='true'] .users-table-toolbar {
+    padding: 0 0 14px;
+    border: 0;
+  }
+
+  [data-admin-shell='true'] .users-table-filters {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+
+  [data-admin-shell='true'] .users-table-search,
+  [data-admin-shell='true'] .users-role-filter {
+    grid-column: 1 / -1;
+    width: 100%;
+    max-width: none;
+  }
+
+  [data-admin-shell='true'] .users-role-filter .btn {
+    flex: 1 0 auto;
+    justify-content: center;
+  }
+
+  [data-admin-shell='true'] .users-table-filters > .input {
+    width: 100% !important;
+    min-width: 0;
+  }
+
+  [data-admin-shell='true'] .users-table-filters > .flex1 {
+    display: none;
+  }
+
+  [data-admin-shell='true'] .users-table-filters > .chip {
+    justify-self: end;
+    white-space: nowrap;
+  }
+
+  [data-admin-shell='true'] .users-table-wrap {
+    overflow: visible;
+  }
+
+  [data-admin-shell='true'] .users-table,
+  [data-admin-shell='true'] .users-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  [data-admin-shell='true'] .users-table thead {
+    display: none;
+  }
+
+  [data-admin-shell='true'] .users-table tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  [data-admin-shell='true'] .users-table tbody tr {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(108px, 0.42fr) minmax(0, 0.58fr);
+    gap: 10px 12px;
+    padding: 16px;
+    overflow: visible;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  [data-admin-shell='true'] .users-table tbody td {
+    display: contents;
+    padding: 0;
+    border: 0;
+    text-align: left;
+  }
+
+  [data-admin-shell='true'] .users-table tbody td::before {
+    content: attr(data-label);
+    align-self: center;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.3;
+    text-transform: uppercase;
+  }
+
+  [data-admin-shell='true'] .users-table .users-identity-cell {
+    display: block;
+    grid-column: 1 / -1;
+    padding-right: 44px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  [data-admin-shell='true'] .users-table .users-identity-cell::before,
+  [data-admin-shell='true'] .users-table .users-actions-cell::before {
+    display: none;
+  }
+
+  [data-admin-shell='true'] .users-table .users-actions-cell {
+    position: absolute;
+    top: 12px;
+    right: 10px;
+    display: block;
+  }
+
+  [data-admin-shell='true'] .users-table td.empty {
+    display: block;
+    grid-column: 1 / -1;
+    padding: 28px 16px;
+    text-align: center;
+  }
+
+  [data-admin-shell='true'] .users-table td.empty::before {
+    display: none;
   }
 }
 

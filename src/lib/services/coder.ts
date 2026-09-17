@@ -897,15 +897,24 @@ export type CoderLessonOverview = {
 
 export async function getAccessibleLessonsForCoder(coderId: string): Promise<CoderLessonOverview[]> {
   const [classes, grantedSessionIds] = await Promise.all([
-    classesDao.listClassesForCoder(coderId),
+    // Completed migration blocks remain part of the Coder's learning history even
+    // after level progression closes the source enrollment.
+    classesDao.listClassesForCoder(coderId, { includeInactive: true }),
     coderSessionAccessDao.listGrantedSessionIdsByCoder(coderId),
   ]);
   const now = new Date();
 
-  return Promise.all(
+  const classEntries: Array<CoderLessonOverview | null> = await Promise.all(
     classes.map(async (klass) => {
+      const coderEnrollment = await classesDao.getEnrollment(klass.id, coderId);
+      const hasActiveEnrollment = coderEnrollment?.status === 'ACTIVE';
+
       // --- EKSKUL HANDLING ---
       if (klass.type === 'EKSKUL') {
+        if (!hasActiveEnrollment) {
+          return null;
+        }
+
         if (!klass.ekskul_lesson_plan_id) {
           return {
             classId: klass.id,
@@ -976,10 +985,9 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
       }
 
       // --- WEEKLY HANDLING ---
-      const [blocks, sessions, enrollment] = await Promise.all([
+      const [blocks, sessions] = await Promise.all([
         classesDao.getClassBlocks(klass.id),
         sessionsDao.listSessionsByClass(klass.id),
-        classesDao.getEnrollment(klass.id, coderId),
       ]);
 
       const lessonMap = klass.level_id ? await computeLessonSchedule(klass.id, klass.level_id) : new Map();
@@ -989,8 +997,8 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
       const journey = klass.level_id ? await coderProgressDao.getCoderJourney(coderId, klass.level_id) : [];
       const journeyStatusMap = new Map(journey.map((row) => [row.block_id, row.status]));
 
-      const enrollmentDate = enrollment ? new Date(enrollment.enrolled_at) : new Date(0); // Default to epoch if no date (shouldn't happen)
-      const entryBlock = enrollment ? findEntryBlockBySchedule(runtimeBlocks, enrollmentDate) : null;
+      const enrollmentDate = coderEnrollment ? new Date(coderEnrollment.enrolled_at) : new Date(0); // Default to epoch if no date (shouldn't happen)
+      const entryBlock = coderEnrollment ? findEntryBlockBySchedule(runtimeBlocks, enrollmentDate) : null;
       const activeBlock =
         blocks.find((block) => block.status === 'CURRENT') ??
         blocks.find((block) => block.status === 'UPCOMING') ??
@@ -1028,8 +1036,7 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
               const isAccessible =
                 isCompletedBlock ||
                 isArchived ||
-                isCatchUpInEntryBlock ||
-                isCompletedSinceEnrollment;
+                (hasActiveEnrollment && (isCatchUpInEntryBlock || isCompletedSinceEnrollment));
               
               return {
                 id: lesson.id,
@@ -1047,7 +1054,10 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
           const isCurrentScheduleBlock = activeBlock?.id === block.id;
           const isEntryBlock = entryBlock?.id === block.id;
 
-          if (!hasAccessibleLesson && !isCurrentScheduleBlock && !isEntryBlock) {
+          if (
+            !hasAccessibleLesson &&
+            (!hasActiveEnrollment || (!isCurrentScheduleBlock && !isEntryBlock))
+          ) {
             return null;
           }
 
@@ -1069,6 +1079,8 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
       };
     }),
   );
+
+  return classEntries.filter((entry): entry is CoderLessonOverview => entry !== null && entry.blocks.length > 0);
 }
 
 export async function getStoredLessonsForCoder(coderId: string): Promise<CoderStoredLessonOverview[]> {

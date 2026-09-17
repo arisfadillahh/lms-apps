@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { KeyRound } from 'lucide-react';
 
 interface ResetPasswordButtonProps {
   userId: string;
@@ -46,6 +47,7 @@ export default function ResetPasswordButton({ userId }: ResetPasswordButtonProps
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
       <button
         type="button"
+        className="admin-action-control admin-action-password"
         onClick={handleReset}
         style={{
           padding: '0.35rem 0.75rem',
@@ -59,7 +61,8 @@ export default function ResetPasswordButton({ userId }: ResetPasswordButtonProps
         }}
         disabled={isPending}
       >
-        {isPending ? 'Resetting…' : 'Reset Password'}
+        <KeyRound size={14} />
+        <span>{isPending ? 'Memuat...' : 'Reset password'}</span>
       </button>
       {message ? <span style={{ fontSize: '0.75rem', color: '#15803d' }}>{message}</span> : null}
     </div>

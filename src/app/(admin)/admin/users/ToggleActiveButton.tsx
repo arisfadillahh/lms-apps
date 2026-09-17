@@ -56,7 +56,8 @@ export default function ToggleActiveButton({ userId, initialActive }: ToggleActi
 
   return (
     <>
-      <button
+        <button
+        className="admin-action-control admin-action-status"
         type="button"
         onClick={() => handleToggle(!isActive)}
         disabled={isPending}
@@ -72,7 +73,7 @@ export default function ToggleActiveButton({ userId, initialActive }: ToggleActi
           opacity: isPending ? 0.6 : 1,
         }}
       >
-        {isPending ? 'Loading...' : isActive ? 'Deactivate' : 'Activate'}
+        {isPending ? 'Memuat...' : isActive ? 'Nonaktifkan' : 'Aktifkan'}
       </button>
 
       {/* Toast Notification */}

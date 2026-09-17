@@ -41,6 +41,8 @@ describe('Coder migration progress override', () => {
 
 describe('Admin users table responsive UX', () => {
   const table = read('src/app/(admin)/admin/users/UsersTable.tsx');
+  const editButton = read('src/app/(admin)/admin/users/EditUserButton.tsx');
+  const deleteButton = read('src/app/(admin)/admin/users/DeleteUserButton.tsx');
   const css = read('src/app/globals.css');
 
   it('provides mobile labels and keeps the action menu directly reachable', () => {
@@ -57,5 +59,9 @@ describe('Admin users table responsive UX', () => {
     expect(css).toContain('.admin-action-item > button');
     expect(css).toContain('min-width: 172px');
     expect(css).toContain('white-space: nowrap');
+    expect(editButton).toContain('admin-action-control admin-action-edit');
+    expect(deleteButton).toContain('admin-action-control admin-action-delete');
+    expect(editButton).toContain('Edit user');
+    expect(deleteButton).toContain('Hapus user');
   });
 });

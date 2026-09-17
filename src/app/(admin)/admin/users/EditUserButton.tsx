@@ -111,8 +111,9 @@ export default function EditUserButton({ user }: Props) {
 
     return (
         <>
-            <button onClick={handleOpen} style={editBtnStyle} title="Edit User">
+            <button className="admin-action-control admin-action-edit" onClick={handleOpen} style={editBtnStyle} title="Edit User">
                 <Edit2 size={14} />
+                <span>Edit user</span>
             </button>
 
             {open && (

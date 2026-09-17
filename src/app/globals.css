@@ -3568,11 +3568,11 @@ html[data-coder-theme='dark'] .coder-report-card button {
   width: 100%;
   min-height: 34px;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: flex-start !important;
   gap: 8px;
   box-sizing: border-box;
   margin: 0;
-  padding: 7px 10px;
+  padding: 7px 10px !important;
   border-radius: 7px;
   font-size: 13px;
   line-height: 1.25;
@@ -3585,8 +3585,40 @@ html[data-coder-theme='dark'] .coder-report-card button {
 }
 
 [data-admin-shell='true'] .admin-action-item:first-child > button {
-  justify-content: center;
-  padding-inline: 8px;
+  justify-content: flex-start !important;
+}
+
+[data-admin-shell='true'] .admin-action-control {
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+
+[data-admin-shell='true'] .admin-action-edit,
+[data-admin-shell='true'] .admin-action-status,
+[data-admin-shell='true'] .admin-action-password,
+[data-admin-shell='true'] .admin-action-menu-item {
+  border: 1px solid var(--border) !important;
+  background: var(--surface-2, #f8fafc) !important;
+  color: var(--text) !important;
+}
+
+[data-admin-shell='true'] .admin-action-edit:hover,
+[data-admin-shell='true'] .admin-action-status:hover,
+[data-admin-shell='true'] .admin-action-password:hover,
+[data-admin-shell='true'] .admin-action-menu-item:hover {
+  background: var(--surface-3, #eef2f7) !important;
+  color: var(--text) !important;
+}
+
+[data-admin-shell='true'] .admin-action-delete {
+  border: 1px solid #fca5a5 !important;
+  background: #fff1f2 !important;
+  color: #be123c !important;
+}
+
+[data-admin-shell='true'] .admin-action-delete:hover {
+  background: #ffe4e6 !important;
+  color: #9f1239 !important;
 }
 
 @media (max-width: 760px) {

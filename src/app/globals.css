@@ -3549,6 +3549,46 @@ html[data-coder-theme='dark'] .coder-report-card button {
   text-align: right;
 }
 
+[data-admin-shell='true'] .admin-action-list {
+  display: flex;
+  min-width: 172px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+}
+
+[data-admin-shell='true'] .admin-action-item {
+  display: flex;
+  min-width: 0;
+}
+
+[data-admin-shell='true'] .admin-action-item > button,
+[data-admin-shell='true'] .admin-action-item .admin-action-menu-item {
+  display: flex;
+  width: 100%;
+  min-height: 34px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 7px 10px;
+  border-radius: 7px;
+  font-size: 13px;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+[data-admin-shell='true'] .admin-action-item > button:hover,
+[data-admin-shell='true'] .admin-action-item .admin-action-menu-item:hover {
+  filter: brightness(0.98);
+}
+
+[data-admin-shell='true'] .admin-action-item:first-child > button {
+  justify-content: center;
+  padding-inline: 8px;
+}
+
 @media (max-width: 760px) {
   [data-admin-shell='true'] .users-table-card {
     overflow: visible;

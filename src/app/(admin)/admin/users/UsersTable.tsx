@@ -176,16 +176,16 @@ export default function UsersTable({ users }: UsersTableProps) {
                   </td>
                   <td className="users-actions-cell" data-label="Aksi">
                     <ActionDropdown>
-                      <div className="col gap-1" style={{ padding: '4px' }}>
-                        <EditUserButton user={user} />
-                        <ToggleActiveButton userId={user.id} initialActive={user.is_active} />
+                      <div className="admin-action-list">
+                        <div className="admin-action-item"><EditUserButton user={user} /></div>
+                        <div className="admin-action-item"><ToggleActiveButton userId={user.id} initialActive={user.is_active} /></div>
                         {user.role === 'CODER' || user.role === 'COACH' ? (
-                          <ResetPasswordButton userId={user.id} />
+                          <div className="admin-action-item"><ResetPasswordButton userId={user.id} /></div>
                         ) : null}
                         {user.role === 'CODER' && (
-                          <ProgressOverrideButton coderId={user.id} coderName={user.full_name} />
+                          <div className="admin-action-item"><ProgressOverrideButton coderId={user.id} coderName={user.full_name} /></div>
                         )}
-                        <DeleteUserButton userId={user.id} />
+                        <div className="admin-action-item"><DeleteUserButton userId={user.id} /></div>
                       </div>
                     </ActionDropdown>
                   </td>

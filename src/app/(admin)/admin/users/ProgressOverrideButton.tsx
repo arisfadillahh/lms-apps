@@ -101,7 +101,7 @@ export default function ProgressOverrideButton({ coderId, coderName }: { coderId
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger asChild>
-        <button className="admin-action-menu-item" title="Migrasi progress Coder">
+        <button type="button" className="admin-action-menu-item" title="Migrasi progress Coder">
           <History size={16} />
           <span>Migrasi progress</span>
         </button>

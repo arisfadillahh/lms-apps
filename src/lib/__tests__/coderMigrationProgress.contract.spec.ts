@@ -50,4 +50,12 @@ describe('Admin users table responsive UX', () => {
     expect(css).toContain(".users-table tbody td::before");
     expect(css).toContain(".users-table .users-actions-cell");
   });
+
+  it('keeps every user action in one consistent full-width menu row', () => {
+    expect(table).toContain('className="admin-action-list"');
+    expect(table).toContain('className="admin-action-item"');
+    expect(css).toContain('.admin-action-item > button');
+    expect(css).toContain('min-width: 172px');
+    expect(css).toContain('white-space: nowrap');
+  });
 });

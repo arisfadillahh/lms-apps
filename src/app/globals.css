@@ -3551,10 +3551,11 @@ html[data-coder-theme='dark'] .coder-report-card button {
 
 [data-admin-shell='true'] .admin-action-list {
   display: flex;
-  min-width: 172px;
+  min-width: 320px;
   flex-direction: column;
-  gap: 4px;
-  padding: 4px;
+  gap: 10px;
+  padding: 14px;
+  background: var(--surface, #fff);
 }
 
 [data-admin-shell='true'] .admin-action-item {
@@ -3569,12 +3570,13 @@ html[data-coder-theme='dark'] .coder-report-card button {
   min-height: 34px;
   align-items: center;
   justify-content: flex-start !important;
-  gap: 8px;
+  gap: 18px;
   box-sizing: border-box;
   margin: 0;
-  padding: 7px 10px !important;
+  padding: 12px 14px !important;
   border-radius: 7px;
-  font-size: 13px;
+  font-size: 20px;
+  font-weight: 500;
   line-height: 1.25;
   white-space: nowrap;
 }
@@ -3593,13 +3595,50 @@ html[data-coder-theme='dark'] .coder-report-card button {
   opacity: 1 !important;
 }
 
+[data-admin-shell='true'] .admin-action-control svg,
+[data-admin-shell='true'] .admin-action-menu-item svg {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  padding: 12px;
+  box-sizing: border-box;
+  border-radius: 14px;
+}
+
 [data-admin-shell='true'] .admin-action-edit,
 [data-admin-shell='true'] .admin-action-status,
 [data-admin-shell='true'] .admin-action-password,
 [data-admin-shell='true'] .admin-action-menu-item {
-  border: 1px solid var(--border) !important;
+  min-height: 72px;
+  border: 1px solid transparent !important;
   background: var(--surface-2, #f8fafc) !important;
   color: var(--text) !important;
+}
+
+[data-admin-shell='true'] .admin-action-edit svg,
+[data-admin-shell='true'] .admin-action-password svg {
+  background: #eef4ff;
+  color: #18365f;
+}
+
+[data-admin-shell='true'] .admin-action-status {
+  background: #fff1f2 !important;
+  color: #be123c !important;
+}
+
+[data-admin-shell='true'] .admin-action-status svg {
+  background: #ffe4e6;
+  color: #be123c;
+}
+
+[data-admin-shell='true'] .admin-action-menu-item {
+  background: #f5f3fb !important;
+  color: var(--text) !important;
+}
+
+[data-admin-shell='true'] .admin-action-menu-item svg {
+  background: #f0eef9;
+  color: #4b4b70;
 }
 
 [data-admin-shell='true'] .admin-action-edit:hover,
@@ -3611,9 +3650,21 @@ html[data-coder-theme='dark'] .coder-report-card button {
 }
 
 [data-admin-shell='true'] .admin-action-delete {
+  min-height: 84px;
   border: 1px solid #fca5a5 !important;
   background: #fff1f2 !important;
   color: #be123c !important;
+}
+
+[data-admin-shell='true'] .admin-action-item:last-child {
+  margin-top: 2px;
+  padding-top: 12px;
+  border-top: 3px solid var(--border);
+}
+
+[data-admin-shell='true'] .admin-action-delete svg {
+  background: #ffe4e6;
+  color: #be123c;
 }
 
 [data-admin-shell='true'] .admin-action-delete:hover {

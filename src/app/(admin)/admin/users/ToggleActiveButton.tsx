@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useEffect, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
+import { Ban } from 'lucide-react';
 
 type ToggleActiveButtonProps = {
   userId: string;
@@ -72,7 +73,8 @@ export default function ToggleActiveButton({ userId, initialActive }: ToggleActi
           cursor: 'pointer',
           opacity: isPending ? 0.6 : 1,
         }}
-      >
+        >
+        <Ban size={22} />
         {isPending ? 'Memuat...' : isActive ? 'Nonaktifkan' : 'Aktifkan'}
       </button>
 

@@ -57,8 +57,10 @@ describe('Admin users table responsive UX', () => {
     expect(table).toContain('className="admin-action-list"');
     expect(table).toContain('className="admin-action-item"');
     expect(css).toContain('.admin-action-item > button');
-    expect(css).toContain('min-width: 172px');
+    expect(css).toContain('min-width: 320px');
     expect(css).toContain('white-space: nowrap');
+    expect(css).toContain('min-height: 72px');
+    expect(css).toContain('width: 48px');
     expect(editButton).toContain('admin-action-control admin-action-edit');
     expect(deleteButton).toContain('admin-action-control admin-action-delete');
     expect(editButton).toContain('Edit user');

@@ -90,3 +90,4 @@ Search this file and the linked monthly log before changing related code.
 
 | 2026-09-16 | INTERNAL-20260916-01 | Coder portfolio usability | Unsafe save retries, duplicate skill labels, repetitive journey content and obscured project actions | [2026-09](./2026-09.md#internal-20260916-01-portfolio-save-recovery-and-clearer-learning-journey) |
 | 2026-09-17 | INTERNAL-20260917-02 | Coder migration progress and Admin users table | Migration bypass wrote to a legacy table, so completed blocks did not reliably unlock Coder materials | [2026-09](./2026-09.md#internal-20260917-02-coder-migration-progress-and-admin-users-table) |
+| 2026-09-18 | INTERNAL-20260918-02 | Admin user action menu | The repaired three-dot menu remained oversized for routine table use | [2026-09](./2026-09.md#internal-20260918-02-compact-admin-user-action-menu) |

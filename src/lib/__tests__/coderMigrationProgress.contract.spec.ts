@@ -58,10 +58,10 @@ describe('Admin users table responsive UX', () => {
     expect(table).toContain('className="admin-action-list"');
     expect(table).toContain('className="admin-action-item"');
     expect(css).toContain('.admin-action-item > button');
-    expect(css).toContain('min-width: 320px');
+    expect(css).toContain('width: min(292px, calc(100vw - 16px))');
     expect(css).toContain('white-space: nowrap');
-    expect(css).toContain('min-height: 72px');
-    expect(css).toContain('width: 48px');
+    expect(css).toContain('min-height: 56px');
+    expect(css).toContain('width: 38px');
     expect(css).toContain('.dropdown-menu.admin-user-actions-menu');
     expect(table).toContain('menuClassName="admin-user-actions-menu"');
     expect(dropdown).toContain('createPortal(');

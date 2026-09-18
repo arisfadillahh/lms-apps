@@ -22,6 +22,15 @@ describe('LMS WhatsApp authentication persistence contract', () => {
         expect(source).not.toContain('Too many QR attempts, clearing credentials');
     });
 
+    it('reserves credential deletion for an explicit Admin reset', () => {
+        const source = read('src/lib/services/whatsappClient.ts');
+        const closeHandler = source.slice(source.indexOf("if (connection === 'close')"), source.indexOf("} else if (connection === 'open')"));
+
+        expect(closeHandler).toContain('preserving credentials for manual Admin recovery');
+        expect(closeHandler).not.toContain('fs.rmSync');
+        expect(source).toContain('Force resetting - clearing all session data');
+    });
+
     it('injects the shared directory into the production LMS process', () => {
         const script = read('scripts/deploy-production.sh');
 

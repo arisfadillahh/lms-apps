@@ -345,6 +345,7 @@ export type EvaluationCriteriaRecord = TablesRow<'evaluation_criteria'>;
 export type LessonEvaluationRecord = TablesRow<'lesson_evaluations'>;
 export type BlockReportRecord = TablesRow<'block_reports'>;
 export type BlockReportDescriptionRecord = TablesRow<'block_report_descriptions'>;
+export type EkskulReportCycleRecord = TablesRow<'ekskul_report_cycles'>;
 
 // 1. Evaluation Criteria
 export async function getEvaluationCriteria(): Promise<EvaluationCriteriaRecord[]> {
@@ -413,6 +414,85 @@ export type UpsertBlockReportInput = {
   coachIdSnapshot?: string | null;
   coachNameSnapshot?: string | null;
 };
+
+export type CreateEkskulMidtermCycleInput = {
+  classId: string;
+  cutoffAt: string;
+  createdBy: string;
+};
+
+export async function createEkskulMidtermCycle(input: CreateEkskulMidtermCycleInput): Promise<EkskulReportCycleRecord> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('ekskul_report_cycles')
+    .insert({
+      class_id: input.classId,
+      report_type: 'MIDTERM',
+      cutoff_at: input.cutoffAt,
+      created_by: input.createdBy,
+    })
+    .select('*')
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to create Ekskul midterm report cycle: ${error.message}`);
+  }
+
+  return data;
+}
+
+export async function getEkskulMidtermCycleForClass(classId: string): Promise<EkskulReportCycleRecord | null> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('ekskul_report_cycles')
+    .select('*')
+    .eq('class_id', classId)
+    .eq('report_type', 'MIDTERM')
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to load Ekskul midterm report cycle: ${error.message}`);
+  }
+
+  return data;
+}
+
+export type CreateEkskulMidtermReportInput = {
+  cycleId: string;
+  classId: string;
+  coderId: string;
+  averageScore: number;
+  grade: string;
+  coachIdSnapshot?: string | null;
+  coachNameSnapshot?: string | null;
+};
+
+export async function createEkskulMidtermReport(input: CreateEkskulMidtermReportInput): Promise<BlockReportRecord> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('block_reports')
+    .insert({
+      class_id: input.classId,
+      block_id: null,
+      coder_id: input.coderId,
+      report_period_type: 'EKSKUL_MIDTERM',
+      report_cycle_id: input.cycleId,
+      status: 'DRAFT',
+      average_score: input.averageScore,
+      grade: input.grade,
+      is_ai_generated: true,
+      coach_id_snapshot: input.coachIdSnapshot ?? null,
+      coach_name_snapshot: input.coachNameSnapshot ?? null,
+    })
+    .select('*')
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to create Ekskul midterm report: ${error.message}`);
+  }
+
+  return data;
+}
 
 export async function upsertBlockReport(input: UpsertBlockReportInput): Promise<BlockReportRecord> {
   const supabase = getSupabaseAdmin();

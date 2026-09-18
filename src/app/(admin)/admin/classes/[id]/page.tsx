@@ -10,6 +10,7 @@ import {
   sessionsDao,
   usersDao,
   exkulCompetenciesDao,
+  reportsDao,
 } from '@/lib/dao';
 import type { ClassLessonRecord } from '@/lib/dao/classLessonsDao';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
@@ -30,6 +31,7 @@ import ChangeClassScheduleModal from './ChangeClassScheduleModal';
 import EditClassLinkModal from './EditClassLinkModal';
 import ClassLifecycleControl from './ClassLifecycleControl';
 import TransferCoderButton from './TransferCoderButton';
+import PublishEkskulMidtermReportButton from './PublishEkskulMidtermReportButton';
 
 type ClassBlockRow = Awaited<ReturnType<typeof classesDao.getClassBlocks>>[number];
 type BlockSummary = {
@@ -180,6 +182,9 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
       : {};
 
   const attendanceRecords = await attendanceDao.listAttendanceForSessions(sessions.map((s) => s.id));
+  const midtermReportCycle = klass.type === 'EKSKUL'
+    ? await reportsDao.getEkskulMidtermCycleForClass(classIdParam)
+    : null;
 
   return (
     <div style={pageContainerStyle}>
@@ -276,6 +281,19 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
           currentParentWhatsappEventEnabled={klass.parent_whatsapp_event_enabled}
         />
       </section>
+
+      {klass.type === 'EKSKUL' ? (
+        <section style={scheduleCardStyle} aria-labelledby="midterm-report-title">
+          <div style={scheduleCardContentStyle}>
+            <p style={scheduleEyebrowStyle}>RAPOR EKSKUL</p>
+            <h2 id="midterm-report-title" style={scheduleTitleStyle}>Rapor Tengah Semester</h2>
+            <p style={scheduleDescriptionStyle}>
+              Buat draf rapor dari lesson yang sudah selesai sampai hari ini. Coach mereview dan mengajukan setiap rapor, lalu Admin menerbitkannya seperti alur rapor biasa. Rapor akhir semester otomatis tetap terpisah.
+            </p>
+          </div>
+          <PublishEkskulMidtermReportButton classId={classIdParam} alreadyCreated={Boolean(midtermReportCycle)} />
+        </section>
+      ) : null}
 
       {klass.type === 'WEEKLY' ? (
         <section style={cardStyle}>

@@ -361,8 +361,9 @@ export type DraftReportInfo = {
   coderName: string;
   classId: string;
   className: string;
-  blockId: string;
+  blockId: string | null;
   blockName: string;
+  reportPeriodType: 'BLOCK' | 'EKSKUL_MIDTERM';
   createdAt: string;
   averageScore?: number;
 };
@@ -382,6 +383,7 @@ export async function getDraftReportsForCoach(coachId: string): Promise<DraftRep
       coder_id,
       class_id,
       block_id,
+      report_period_type,
       created_at,
       average_score,
       classes:class_id(name, type),
@@ -434,7 +436,8 @@ export async function getDraftReportsForCoach(coachId: string): Promise<DraftRep
       classId: row.class_id,
       className: klass?.name ?? 'Class',
       blockId: row.block_id,
-      blockName: block?.name ?? 'Block',
+      blockName: row.report_period_type === 'EKSKUL_MIDTERM' ? 'Rapor Tengah Semester' : block?.name ?? 'Block',
+      reportPeriodType: row.report_period_type === 'EKSKUL_MIDTERM' ? 'EKSKUL_MIDTERM' : 'BLOCK',
       createdAt: row.created_at,
       averageScore: row.average_score ? Number(row.average_score) : undefined,
     };

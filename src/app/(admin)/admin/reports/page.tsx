@@ -18,6 +18,7 @@ export default async function AdminReportsPage() {
       id,
       class_id,
       block_id,
+      report_period_type,
       coder_id,
       average_score,
       grade,
@@ -184,7 +185,7 @@ function ReportTable({ reports, isInbox }: { reports: any[]; isInbox: boolean })
                   <td>
                     <div style={{ fontWeight: 600 }}>{(report.class as any)?.name}</div>
                     <div className="muted" style={{ fontSize: 11.5, marginTop: 2 }}>
-                      {(report.class as any)?.type === 'EKSKUL' ? 'Ekskul' : 'Reguler'} · {(report.block as any)?.name}
+                      {(report.class as any)?.type === 'EKSKUL' ? 'Ekskul' : 'Reguler'} · {report.report_period_type === 'EKSKUL_MIDTERM' ? 'Rapor Tengah Semester' : (report.class as any)?.type === 'EKSKUL' ? 'Rapor Akhir Semester' : (report.block as any)?.name}
                     </div>
                   </td>
                   <td>

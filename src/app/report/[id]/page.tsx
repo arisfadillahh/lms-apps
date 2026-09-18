@@ -131,17 +131,21 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
   const coder = Array.isArray(report.coder) ? report.coder[0] : report.coder;
   const coach = klass?.coach ? (Array.isArray(klass.coach) ? klass.coach[0] : klass.coach) : null;
   const reportCoachName = report.coach_name_snapshot || coach?.full_name || 'Clevio Coach';
+  const isEkskulMidterm = report.report_period_type === 'EKSKUL_MIDTERM';
 
-  const [{ data: evalCriteria }, { data: reportClassBlocks }] = await Promise.all([
+  const [{ data: evalCriteria }, reportClassBlocksResult] = await Promise.all([
     supabase.from('evaluation_criteria').select('*').order('order_index'),
-    supabase
+    report.block_id
+      ? supabase
       .from('class_blocks')
       .select('id, start_date')
       .eq('class_id', report.class_id)
       .eq('block_id', report.block_id)
       .order('start_date', { ascending: false })
-      .limit(1),
+      .limit(1)
+      : Promise.resolve({ data: [] }),
   ]);
+  const reportClassBlocks = reportClassBlocksResult.data;
 
   const reportClassBlockId = reportClassBlocks?.[0]?.id ?? null;
   const { data: actualClassLessons } = reportClassBlockId
@@ -151,7 +155,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
         .eq('class_block_id', reportClassBlockId)
         .order('order_index')
     : { data: null };
-  const { data: fallbackLessonTemplates } = !actualClassLessons || actualClassLessons.length === 0
+  const { data: fallbackLessonTemplates } = report.block_id && (!actualClassLessons || actualClassLessons.length === 0)
     ? await supabase
         .from('lesson_templates')
         .select('title, order_index')
@@ -244,8 +248,8 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
       : avgScore >= 5.5
         ? 'Kemampuan utama mulai berkembang dan akan semakin kuat dengan latihan yang konsisten.'
         : 'Coder memerlukan pendampingan lanjutan untuk memperkuat pemahaman dan rasa percaya diri.';
-  const reportTitle = klass?.type === 'EKSKUL' ? 'Performance Report' : 'Block Performance Report';
-  const reportContextLabel = klass?.type === 'EKSKUL' ? 'Ekskul' : `${klass?.name ?? ''} - ${block?.name ?? ''}`;
+  const reportTitle = isEkskulMidterm ? 'Rapor Tengah Semester' : klass?.type === 'EKSKUL' ? 'Rapor Akhir Semester' : 'Block Performance Report';
+  const reportContextLabel = isEkskulMidterm ? `${klass?.name ?? 'Ekskul'} - Tengah Semester` : klass?.type === 'EKSKUL' ? 'Ekskul' : `${klass?.name ?? ''} - ${block?.name ?? ''}`;
   const lessonSectionTitle = klass?.type === 'EKSKUL' ? 'Materi Ekskul' : 'Materi yang Dibahas';
   const lessonSectionSubtitle = 'Daftar materi yang menjadi konteks penilaian laporan ini.';
   const scorePercentage = Math.max(0, Math.min(100, Math.round(avgScore * 10)));

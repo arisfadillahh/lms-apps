@@ -15,6 +15,7 @@ type ReportRecord = {
   status: string;
   coder_id: string | null;
   block_id: string | null;
+  report_period_type?: 'BLOCK' | 'EKSKUL_MIDTERM';
   grade: string | null;
   average_score: number | null;
   class: ReportClass | ReportClass[] | null;
@@ -202,7 +203,7 @@ export default async function CoachReportReviewPage({ params }: { params: Promis
         coderName={coderName}
         coderAvatarUrl={coderAvatarUrl}
         className={klass.name}
-        blockName={block?.name ?? ''}
+        blockName={reportRecord.report_period_type === 'EKSKUL_MIDTERM' ? 'Rapor Tengah Semester Ekskul' : block?.name ?? ''}
         grade={reportRecord.grade}
         averageScore={reportRecord.average_score}
         status={reportRecord.status}

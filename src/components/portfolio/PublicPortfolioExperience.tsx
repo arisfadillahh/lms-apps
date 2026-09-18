@@ -88,7 +88,26 @@ export default function PublicPortfolioExperience({ model }: { model: PortfolioE
         <article className={styles.infoCard}><h2><Heart size={19} /> Strengths In My Work</h2><p>Skills visible in published projects, not an invented personality assessment.</p><div className={styles.chips}>{model.journey.length > 0 ? model.journey.map((skill) => <span className={styles.chip} key={skill.label}>{skill.label}</span>) : <span className={styles.noData}>Skill akan muncul setelah ada project yang disetujui.</span>}</div></article>
         <article className={styles.infoCard} id="reflection"><h2><Sparkles size={19} /> My Reflection</h2><p className={styles.reflection}>“{model.latestStory.learningReflection}”</p><p className={styles.attribution}>— {model.firstName}</p></article>
       </section>
-      <section className={styles.footerBanner} aria-label="Next steps"><div className={styles.closingCopy}><p>What&apos;s next</p><h2>KEEP EXPLORING.<br />KEEP CREATING.</h2><span>{model.latestStory.nextSteps}</span><a className={styles.closingButton} href="#projects">Discover projects <ArrowRight size={17} /></a></div><div className={styles.closingVisual} aria-hidden="true"><i /><i /><i /><span><Rocket size={54} /></span></div></section>
+      <section className={styles.footerBannerV4} aria-label="Closing">
+        <div className={styles.closingCopyV4}>
+          <div className={styles.closingEyebrowV4}><Sparkles size={18} /> WHAT&apos;S NEXT</div>
+          <h2>KEEP EXPLORING.<br />KEEP CREATING.</h2>
+          <p>{model.latestStory.nextSteps}</p>
+          <a className={styles.closingCtaV4} href="https://clev.io" target="_blank" rel="noreferrer">Discover Clevio <ArrowRight size={17} /></a>
+        </div>
+        <div className={styles.closingVisualV4} aria-hidden="true">
+          <i className={styles.closingRingOneV4} /><i className={styles.closingRingTwoV4} /><i className={styles.closingRingThreeV4} />
+          <span className={styles.closingBlobV4}><Rocket size={72} /></span>
+        </div>
+      </section>
+      <footer className={styles.siteFooterV4}>
+        <div className={styles.footerDividerV4} />
+        <div className={styles.siteFooterRowV4}>
+          <Brand />
+          <p>CLEVER · LEVERAGE · HUMAN-CENTRIC · GREATER GOOD</p>
+          <span>PORTFOLIO EXPERIENCE · {new Date().getFullYear()}</span>
+        </div>
+      </footer>
     </main>
   </div>;
 }

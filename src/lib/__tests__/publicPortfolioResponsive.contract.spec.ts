@@ -16,7 +16,7 @@ describe('public portfolio mockup-v4 responsive contract', () => {
     expect(gallery).toContain('Featured Project');
     expect(experience).toContain('My Learning Journey');
     expect(experience).toContain('Skills I&apos;m Building');
-    expect(experience).toContain('<Rocket size={54} />');
+    expect(experience).toContain('<Rocket size={72} />');
     expect(experience).toContain('document.body.dataset.portfolioPage');
   });
 
@@ -41,6 +41,27 @@ describe('public portfolio mockup-v4 responsive contract', () => {
     expect(css).toContain('.modalShell');
     expect(css).toContain('@media(max-width:700px)');
     expect(scrollLock).toContain("setProperty('overflow-y', 'hidden', 'important')");
+  });
+
+  it('matches the v4 project story modal and closing footer structure', () => {
+    expect(gallery).toContain('modalShellV4');
+    expect(gallery).toContain('projectModalV4');
+    expect(gallery).toContain('PROJECT STORY');
+    expect(gallery).toContain('My Creation');
+    expect(gallery).toContain('StoryBlock number="01" title="What I Made"');
+    expect(gallery).toContain('StoryBlock number="02" title="What I Learned"');
+    expect(gallery).toContain('StoryBlock number="03" title="Skills Practiced"');
+    expect(gallery).not.toContain('modalShots');
+
+    expect(experience).toContain('footerBannerV4');
+    expect(experience).toContain('KEEP EXPLORING.<br />KEEP CREATING.');
+    expect(experience).toContain('<Rocket size={72} />');
+    expect(experience).toContain('siteFooterV4');
+    expect(css).toContain('.footerBannerV4');
+    expect(css).toContain('.siteFooterV4');
+    expect(css).toContain('.projectModalV4');
+    expect(css).toContain('.storyGridV4');
+    expect(css).toContain('.modalReflectionV4');
   });
 
   it('uses real block progress rather than reference-only milestones', () => {

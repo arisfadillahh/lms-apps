@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ArrowRight, Code2, ExternalLink, FolderKanban, Gamepad2, Github, Lightbulb, Play, Sparkles, Target, X } from 'lucide-react';
+import { ArrowRight, ExternalLink, FolderKanban, Gamepad2, Github, Play, Sparkles, X } from 'lucide-react';
 
 import type { PublishedPortfolioSnapshot } from '@/lib/coderPortfolio';
 import { lockDocumentScroll } from '@/lib/documentScrollLock';
@@ -65,21 +65,32 @@ function ProjectModal({ project, onClose }: { project: PublicProject; onClose: (
     snapshot.repositoryUrl && { href: snapshot.repositoryUrl, label: 'Source Code', icon: <Github size={17} /> },
     snapshot.videoUrl && { href: snapshot.videoUrl, label: 'Video Demo', icon: <Play size={17} /> },
   ].filter(Boolean) as Array<{ href: string; label: string; icon: ReactNode }>;
-  return <div className={styles.modalShell} onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-    <article ref={dialogRef} className={styles.projectModal} role="dialog" aria-modal="true" aria-labelledby="public-project-title">
-      <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Tutup detail project"><X size={20} /></button>
-      <div className={styles.modalVisual}>{snapshot.screenshots[0] ? <img src={snapshot.screenshots[0].publicUrl} alt="" /> : <Gamepad2 size={82} />}<span className={styles.projectTag}>{snapshot.projectType}</span></div>
-      <div className={styles.modalContent}><h2 id="public-project-title">{snapshot.title}</h2><p className={styles.modalLead}>{snapshot.summary}</p>
-        {snapshot.screenshots.length > 0 && <div className={styles.modalShots}>{snapshot.screenshots.map((screenshot, index) => <img key={screenshot.publicUrl + index} src={screenshot.publicUrl} alt={screenshot.altText || 'Screenshot project'} />)}</div>}
-        <p className={styles.projectDescription}>{snapshot.description}</p>
-        <div className={styles.projectStoryGrid}><Detail icon={<Target size={18} />} label="Cara menggunakan" value={snapshot.howToPlay} /><Detail icon={<Code2 size={18} />} label="Kontribusiku" value={snapshot.roleContribution} /><Detail icon={<Lightbulb size={18} />} label="Yang kupelajari" value={snapshot.learningReflection} /><Detail icon={<ArrowRight size={18} />} label="Langkah berikutnya" value={snapshot.nextSteps} /></div>
-        <div className={styles.chips}>{[...snapshot.tools, ...snapshot.skills].map((item, index) => <span className={styles.chip} key={item + index}>{item}</span>)}</div>
-        {actionLinks.length > 0 && <div className={styles.modalActions}>{actionLinks.map((link) => <a key={link.label} className={styles.primaryButton} href={link.href} target="_blank" rel="noreferrer">{link.icon}{link.label}</a>)}</div>}
+  const skills = [...snapshot.tools, ...snapshot.skills].join(' · ') || 'Skill akan tercatat setelah project direview.';
+  return <div className={styles.modalShellV4} onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <article ref={dialogRef} className={styles.projectModalV4} role="dialog" aria-modal="true" aria-labelledby="public-project-title">
+      <button type="button" className={styles.closeButtonV4} onClick={onClose} aria-label="Tutup detail project"><X size={20} /></button>
+      <div className={styles.modalVisualV4}>
+        {snapshot.screenshots[0] ? <img src={snapshot.screenshots[0].publicUrl} alt={'Tampilan project ' + snapshot.title} /> : <Gamepad2 size={82} />}
+        <i className={styles.modalVisualShadeV4} />
+        <span className={styles.modalBadgeV4}>{snapshot.tools[0] || snapshot.projectType}</span>
+        <div className={styles.modalVisualCopyV4}><span>PROJECT STORY</span><strong>{snapshot.title}</strong></div>
+      </div>
+      <div className={styles.modalContentV4}>
+        <div className={styles.modalKickerV4}>My Creation</div>
+        <h2 id="public-project-title">{snapshot.title}</h2>
+        <p className={styles.modalLeadV4}>{snapshot.summary}</p>
+        <div className={styles.storyGridV4}>
+          <StoryBlock number="01" title="What I Made" value={snapshot.description} />
+          <StoryBlock number="02" title="What I Learned" value={snapshot.learningReflection} />
+          <StoryBlock number="03" title="Skills Practiced" value={skills} />
+        </div>
+        <div className={styles.modalReflectionV4}><Sparkles size={22} /><p>“Kontribusiku: {snapshot.roleContribution} Berikutnya, {snapshot.nextSteps}”</p></div>
+        {actionLinks.length > 0 && <div className={styles.modalActionsV4}>{actionLinks.map((link) => <a key={link.label} href={link.href} target="_blank" rel="noreferrer">{link.icon}{link.label}</a>)}</div>}
       </div>
     </article>
   </div>;
 }
 
-function Detail({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
-  return <section className={styles.detailCard}><h3>{icon}{label}</h3><p>{value}</p></section>;
+function StoryBlock({ number, title, value }: { number: string; title: string; value: string }) {
+  return <section className={styles.storyBlockV4}><span>{number}</span><div><h3>{title}</h3><p>{value}</p></div></section>;
 }

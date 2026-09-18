@@ -58,6 +58,9 @@ export async function POST(_request: NextRequest, context: RouteContext) {
   let reportEligibilityTime = report.updated_at;
 
   if (klass && (klass as any).type !== 'EKSKUL') {
+    if (!report.block_id) {
+      return NextResponse.json({ error: 'Rapor reguler tidak memiliki block yang valid.' }, { status: 400 });
+    }
     const { data: classBlock, error: classBlockError } = await supabase
       .from('class_blocks')
       .select('pitching_day_date')
@@ -96,6 +99,9 @@ export async function POST(_request: NextRequest, context: RouteContext) {
   }
 
   const parentPhone = coder?.parent_contact_phone;
+  const reportLabel = report.report_period_type === 'EKSKUL_MIDTERM'
+    ? 'Rapor Tengah Semester'
+    : block?.name || klass.name;
 
   // Generate the new web view URL instead of a PDF URL
   const reportUrl = `${getAppBaseUrl()}/report/${reportId}`;
@@ -115,7 +121,7 @@ export async function POST(_request: NextRequest, context: RouteContext) {
         await notificationsDao.createNotification(
           coder.id,
           'Rapor terbaru sudah tersedia',
-          `Rapor ${block?.name || klass.name} sudah dipublikasikan. Buka menu Rapor & Portofolio untuk melihat hasilnya.`,
+          `Rapor ${reportLabel} sudah dipublikasikan. Buka menu Rapor & Portofolio untuk melihat hasilnya.`,
           'REPORT_PUBLISHED',
           {
             actionUrl: '/coder/reports',
@@ -143,7 +149,7 @@ export async function POST(_request: NextRequest, context: RouteContext) {
     sendWhatsapp: () => sendReportNotification({
       coderFullName: coder.full_name,
       className: klass.name,
-      period: block?.name || undefined,
+      period: reportLabel,
       reportUrl,
       parentPhone: parentPhone!,
     }),

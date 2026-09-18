@@ -24,7 +24,7 @@ export async function DELETE(
     // 1. Get the report to find out the coder_id, class_id, and block_id
     const { data: report, error: fetchError } = await supabase
       .from('block_reports')
-      .select('coder_id, class_id, block_id')
+      .select('coder_id, class_id, block_id, report_period_type')
       .eq('id', id)
       .single();
 
@@ -40,18 +40,20 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Delete only evaluations tied to this report's class block.
-    const { data: sessions, error: sessionsError } = await supabase
-      .from('class_lessons')
-      .select('session_id, class_blocks!inner(class_id, block_id)')
-      .eq('class_blocks.class_id', report.class_id)
-      .eq('class_blocks.block_id', report.block_id);
+    // Midterm reports are a snapshot across sessions. Deleting a draft must never delete its source evaluations.
+    const { data: sessions, error: sessionsError } = report.report_period_type === 'EKSKUL_MIDTERM' || !report.block_id
+      ? { data: [], error: null }
+      : await supabase
+        .from('class_lessons')
+        .select('session_id, class_blocks!inner(class_id, block_id)')
+        .eq('class_blocks.class_id', report.class_id)
+        .eq('class_blocks.block_id', report.block_id);
 
     if (sessionsError) {
       console.error('[Delete Report] Failed to fetch scoped sessions:', sessionsError);
       return NextResponse.json({ error: 'Failed to scope report evaluations' }, { status: 500 });
     }
-      
+
     const sessionIds = (sessions || []).map(s => s.session_id).filter(id => id !== null) as string[];
     
     // Delete lesson evaluations for this coder in these sessions

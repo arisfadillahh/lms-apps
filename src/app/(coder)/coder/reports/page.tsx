@@ -17,8 +17,9 @@ export default async function CoderReportsPage() {
       id,
       average_score,
       grade,
+      report_period_type,
       updated_at,
-      class:classes(name),
+      class:classes(name, type),
       block:blocks(name)
     `)
     .eq('coder_id', session.user.id)
@@ -78,7 +79,7 @@ export default async function CoderReportsPage() {
                       </div>
                       <div>
                         <h3 className="text-lg font-black text-clevio-navy">
-                          {(report.class as any)?.name} <span className="text-slate-400 font-semibold mx-1">|</span> {(report.block as any)?.name}
+                          {(report.class as any)?.name} <span className="text-slate-400 font-semibold mx-1">|</span> {report.report_period_type === 'EKSKUL_MIDTERM' ? 'Rapor Tengah Semester' : (report.class as any)?.type === 'EKSKUL' ? 'Rapor Akhir Semester' : (report.block as any)?.name}
                         </h3>
                         <div className="flex items-center gap-3 mt-1 flex-wrap">
                           <span className="flex items-center gap-1.5 text-sm font-bold text-slate-400">

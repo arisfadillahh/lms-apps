@@ -45,7 +45,7 @@ type ClassBlockWithRelations = {
 /**
  * AI Description Generator using openrouter
  */
-async function generateBlockReportDescriptions(
+export async function generateBlockReportDescriptions(
   coderName: string,
   className: string,
   blockName: string,
@@ -132,6 +132,135 @@ function calculateGrade(average: number): string {
   if (average >= 7.0) return 'B';
   if (average >= 5.5) return 'C';
   return 'D';
+}
+
+export type GenerateEkskulMidtermReportsInput = {
+  classId: string;
+  cutoffAt: string;
+  initiatedBy: string;
+};
+
+/**
+ * Creates one manual, class-wide midterm cycle. It deliberately uses no block,
+ * so it cannot overwrite the automatic per-block/final report workflow.
+ */
+export async function generateEkskulMidtermReports(input: GenerateEkskulMidtermReportsInput) {
+  const supabase = getSupabaseAdmin();
+  const cutoff = new Date(input.cutoffAt);
+  if (Number.isNaN(cutoff.getTime()) || cutoff.getTime() > Date.now()) {
+    throw new Error('Tanggal batas rapor tengah semester tidak valid.');
+  }
+
+  const klass = await classesDao.getClassById(input.classId);
+  if (!klass || klass.type !== 'EKSKUL') {
+    throw new Error('Rapor tengah semester hanya tersedia untuk kelas Ekskul.');
+  }
+
+  const existingCycle = await reportsDao.getEkskulMidtermCycleForClass(input.classId);
+  if (existingCycle) {
+    throw new Error('Rapor tengah semester untuk kelas ini sudah pernah dibuat.');
+  }
+
+  const [sessions, enrollments, criteria, lessonSchedule] = await Promise.all([
+    sessionsDao.listSessionsByClass(input.classId),
+    classesDao.listEnrollmentsByClass(input.classId, { includeInactive: true }),
+    reportsDao.getEvaluationCriteria(),
+    computeLessonSchedule(input.classId, klass.level_id, klass.ekskul_lesson_plan_id),
+  ]);
+
+  const includedSessions = sessions
+    .filter((session) => (
+      session.status === 'COMPLETED'
+      && new Date(session.date_time).getTime() <= cutoff.getTime()
+      && lessonSchedule.has(session.id)
+    ))
+    .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
+
+  if (includedSessions.length === 0) {
+    throw new Error('Belum ada lesson Ekskul selesai pada periode rapor tengah semester.');
+  }
+
+  const includedSessionIds = includedSessions.map((session) => session.id);
+  const { data: evaluations, error: evaluationsError } = await supabase
+    .from('lesson_evaluations')
+    .select('session_id, coder_id, criteria_id, score')
+    .in('session_id', includedSessionIds);
+  if (evaluationsError) throw new Error(`Gagal membaca nilai lesson: ${evaluationsError.message}`);
+
+  const eligibleCoderIds = new Set(
+    enrollments
+      .filter((enrollment) => isEnrollmentActiveForSession(enrollment, cutoff.toISOString()))
+      .map((enrollment) => enrollment.coder_id),
+  );
+  const coderScores: Record<string, Record<string, number[]>> = {};
+  for (const evaluation of evaluations ?? []) {
+    if (!eligibleCoderIds.has(evaluation.coder_id)) continue;
+    const byCriteria = coderScores[evaluation.coder_id] ??= {};
+    const scores = byCriteria[evaluation.criteria_id] ??= [];
+    scores.push(Number(evaluation.score));
+  }
+
+  const coderIds = Object.keys(coderScores);
+  if (coderIds.length === 0) {
+    throw new Error('Belum ada nilai lesson untuk peserta aktif pada periode ini.');
+  }
+
+  const { data: coderRows, error: coderError } = await supabase
+    .from('users')
+    .select('id, full_name')
+    .in('id', coderIds);
+  if (coderError) throw new Error(`Gagal membaca peserta rapor: ${coderError.message}`);
+  const coderNames = new Map((coderRows ?? []).map((coder) => [coder.id, coder.full_name]));
+  const criteriaNames = new Map(criteria.map((criterion) => [criterion.id, criterion.name]));
+  const lessonTitles = includedSessions
+    .map((session) => lessonSchedule.get(session.id))
+    .filter(Boolean)
+    .map((slot) => formatLessonTitle(slot!));
+  const lessonTitlesText = Array.from(new Set(lessonTitles)).join(', ') || 'Materi Ekskul';
+
+  const cycle = await reportsDao.createEkskulMidtermCycle({
+    classId: input.classId,
+    cutoffAt: cutoff.toISOString(),
+    createdBy: input.initiatedBy,
+  });
+  const coach = klass.coach_id
+    ? await supabase.from('users').select('full_name').eq('id', klass.coach_id).maybeSingle()
+    : { data: null };
+
+  let generatedCount = 0;
+  for (const coderId of coderIds) {
+    const criteriaInput = Object.entries(coderScores[coderId]).map(([criteriaId, scores]) => ({
+      criteriaId,
+      criteriaName: criteriaNames.get(criteriaId) ?? 'Kriteria Umum',
+      score: scores.reduce((sum, score) => sum + score, 0) / scores.length,
+    }));
+    const average = criteriaInput.reduce((sum, item) => sum + item.score, 0) / criteriaInput.length;
+    const report = await reportsDao.createEkskulMidtermReport({
+      cycleId: cycle.id,
+      classId: input.classId,
+      coderId,
+      averageScore: Number(average.toFixed(2)),
+      grade: calculateGrade(average),
+      coachIdSnapshot: klass.coach_id,
+      coachNameSnapshot: coach.data?.full_name ?? null,
+    });
+    const descriptions = await generateBlockReportDescriptions(
+      coderNames.get(coderId) ?? 'Coder',
+      klass.name,
+      'Rapor Tengah Semester Ekskul',
+      lessonTitlesText,
+      criteriaInput,
+    );
+    await reportsDao.upsertBlockReportDescriptions(descriptions.map((description) => ({
+      reportId: report.id,
+      criteriaId: description.criteriaId,
+      score: criteriaInput.find((item) => item.criteriaId === description.criteriaId)?.score ?? 0,
+      description: description.description,
+    })));
+    generatedCount++;
+  }
+
+  return { cycle, count: generatedCount, sessionCount: includedSessions.length };
 }
 
 async function generateDraftReportsFromClassBlocks(

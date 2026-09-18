@@ -16,6 +16,7 @@ export default async function CoachReportsIndexPage() {
     .from('block_reports')
     .select(`
       id,
+      report_period_type,
       average_score,
       grade,
       class:classes(name),
@@ -62,7 +63,7 @@ export default async function CoachReportsIndexPage() {
                 <div style={itemInfoStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <span style={pillTagStyle}>{report.class?.name || 'Unknown Class'}</span>
-                    <span style={pillLightStyle}>{report.block?.name || 'Unknown Block'}</span>
+                    <span style={pillLightStyle}>{report.report_period_type === 'EKSKUL_MIDTERM' ? 'Rapor Tengah Semester' : report.class?.type === 'EKSKUL' ? 'Rapor Akhir Semester' : report.block?.name || 'Unknown Block'}</span>
                   </div>
                   <h3 style={itemTitleStyle}>{report.coder?.full_name || 'Coder'}</h3>
                   <div style={itemMetaStyle}>

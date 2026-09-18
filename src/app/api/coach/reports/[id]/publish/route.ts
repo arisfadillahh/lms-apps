@@ -33,7 +33,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // Verify ownership
     const { data: report } = await supabase
       .from('block_reports')
-      .select('status, class_id, block_id, coder_id, class:classes(id, coach_id, lifecycle_status)')
+      .select('status, class_id, block_id, coder_id, report_period_type, class:classes(id, coach_id, lifecycle_status)')
       .eq('id', id)
       .single();
 
@@ -46,6 +46,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
        return NextResponse.json({ error: 'Class not found' }, { status: 404 });
     }
 
+    const isEkskulMidterm = report.report_period_type === 'EKSKUL_MIDTERM';
     const [
       { data: enrollmentRows, error: enrollmentError },
       { data: reflection, error: reflectionError },
@@ -56,7 +57,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         .select('*')
         .eq('class_id', (report as any).class_id)
         .eq('coder_id', (report as any).coder_id),
-      supabase
+      isEkskulMidterm
+        ? Promise.resolve({ data: { id: 'not-required' }, error: null })
+        : supabase
         .from('block_evaluations')
         .select('id')
         .eq('class_id', (report as any).class_id)
@@ -64,7 +67,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         .eq('coder_id', (report as any).coder_id)
         .limit(1)
         .maybeSingle(),
-      supabase
+      isEkskulMidterm
+        ? Promise.resolve({ data: null, error: null })
+        : supabase
         .from('class_blocks')
         .select('pitching_day_date')
         .eq('class_id', (report as any).class_id)
@@ -85,7 +90,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!eligibleEnrollment) {
       return NextResponse.json({ error: 'Coder tidak terdaftar di kelas ini pada periode rapor' }, { status: 400 });
     }
-    if (!reflection) {
+    if (!isEkskulMidterm && !reflection) {
       return NextResponse.json({ error: 'Refleksi evaluasi coder belum selesai' }, { status: 400 });
     }
     

@@ -1468,9 +1468,11 @@ export interface Database {
         Row: {
           id: string;
           class_id: string;
-          block_id: string;
+          block_id: string | null;
           coder_id: string;
           status: 'DRAFT' | 'SUBMITTED' | 'PUBLISHED' | 'SENT';
+          report_period_type: 'BLOCK' | 'EKSKUL_MIDTERM';
+          report_cycle_id: string | null;
           average_score: number | null;
           grade: string | null;
           is_ai_generated: boolean;
@@ -1484,9 +1486,11 @@ export interface Database {
         Insert: {
           id?: string;
           class_id: string;
-          block_id: string;
+          block_id?: string | null;
           coder_id: string;
           status?: 'DRAFT' | 'SUBMITTED' | 'PUBLISHED' | 'SENT';
+          report_period_type?: 'BLOCK' | 'EKSKUL_MIDTERM';
+          report_cycle_id?: string | null;
           average_score?: number | null;
           grade?: string | null;
           is_ai_generated?: boolean;
@@ -1517,6 +1521,39 @@ export interface Database {
             referencedRelation: "users";
             referencedColumns: ["id"];
           }
+        ];
+      };
+      ekskul_report_cycles: {
+        Row: {
+          id: string;
+          class_id: string;
+          report_type: 'MIDTERM';
+          cutoff_at: string;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          class_id: string;
+          report_type?: 'MIDTERM';
+          cutoff_at: string;
+          created_by: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['ekskul_report_cycles']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'ekskul_report_cycles_class_id_fkey';
+            columns: ['class_id'];
+            referencedRelation: 'classes';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'ekskul_report_cycles_created_by_fkey';
+            columns: ['created_by'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
         ];
       };
       block_report_descriptions: {

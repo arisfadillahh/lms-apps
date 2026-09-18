@@ -67,14 +67,25 @@ function ProjectModal({ project, onClose }: { project: PublicProject; onClose: (
     snapshot.videoUrl && { href: snapshot.videoUrl, label: 'Video Demo', icon: <Play size={17} /> },
   ].filter(Boolean) as Array<{ href: string; label: string; icon: ReactNode }>;
   const skills = [...snapshot.tools, ...snapshot.skills].join(' · ') || 'Skill akan tercatat setelah project direview.';
+  const projectFacts = [...new Set([snapshot.projectType, ...snapshot.tools, ...snapshot.skills])].filter(Boolean).slice(0, 6);
+  const publishedLabel = project.publishedAt
+    ? new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(project.publishedAt))
+    : null;
   return <div className={styles.modalShellV4} onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <article ref={dialogRef} className={`${styles.projectModalV4} ${modalStyles.projectModal}`} role="dialog" aria-modal="true" aria-labelledby="public-project-title">
       <button type="button" className={styles.closeButtonV4} onClick={onClose} aria-label="Tutup detail project"><X size={20} /></button>
-      <div className={`${styles.modalVisualV4} ${modalStyles.visual}`}>
-        {snapshot.screenshots[0] ? <img src={snapshot.screenshots[0].publicUrl} alt={'Tampilan project ' + snapshot.title} /> : <Gamepad2 size={82} />}
-        <i className={styles.modalVisualShadeV4} />
-        <span className={styles.modalBadgeV4}>{snapshot.tools[0] || snapshot.projectType}</span>
-        <div className={styles.modalVisualCopyV4}><span>PROJECT STORY</span><strong>{snapshot.title}</strong></div>
+      <div className={modalStyles.mediaPane}>
+        <div className={`${styles.modalVisualV4} ${modalStyles.visual}`}>
+          {snapshot.screenshots[0] ? <img src={snapshot.screenshots[0].publicUrl} alt={'Tampilan project ' + snapshot.title} /> : <Gamepad2 size={82} />}
+          <i className={styles.modalVisualShadeV4} />
+          <span className={styles.modalBadgeV4}>{snapshot.tools[0] || snapshot.projectType}</span>
+          <div className={styles.modalVisualCopyV4}><span>PROJECT STORY</span><strong>{snapshot.title}</strong></div>
+        </div>
+        <div className={modalStyles.mediaMeta}>
+          <span>PROJECT SNAPSHOT</span>
+          <div>{projectFacts.map((fact) => <b key={fact}>{fact}</b>)}</div>
+          {publishedLabel && <small>Dipublikasikan {publishedLabel}</small>}
+        </div>
       </div>
       <div className={`${styles.modalContentV4} ${modalStyles.content}`}>
         <div className={styles.modalKickerV4}>My Creation</div>

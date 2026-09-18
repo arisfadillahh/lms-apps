@@ -64,9 +64,13 @@ describe('public portfolio mockup-v4 responsive contract', () => {
     expect(css).toContain('.storyGridV4');
     expect(css).toContain('.modalReflectionV4');
     expect(gallery).toContain('modalStyles.projectModal');
+    expect(gallery).toContain('PROJECT SNAPSHOT');
+    expect(gallery).toContain('project.publishedAt');
+    expect(gallery).toContain('snapshot.projectType');
     expect(modalCss).toContain('aspect-ratio: 16 / 10');
     expect(modalCss).toContain('object-fit: contain');
     expect(modalCss).toContain('@media (max-width: 960px)');
+    expect(modalCss).toContain('height: min(700px, calc(100dvh - 44px))');
   });
 
   it('uses real block progress rather than reference-only milestones', () => {

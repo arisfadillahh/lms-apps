@@ -1,77 +1,54 @@
 'use client';
 
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
-import { ArrowUpRight, Code2, ExternalLink, Gamepad2, Github, Lightbulb, Play, Sparkles, Target, X } from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { ArrowRight, Code2, ExternalLink, FolderKanban, Gamepad2, Github, Lightbulb, Play, Sparkles, Target, X } from 'lucide-react';
 
 import type { PublishedPortfolioSnapshot } from '@/lib/coderPortfolio';
 import { lockDocumentScroll } from '@/lib/documentScrollLock';
-import motionStyles from './PublicPortfolioExperience.module.css';
+import styles from './PublicPortfolioExperience.module.css';
 
 export type PublicProject = { id: string; snapshot: PublishedPortfolioSnapshot; publishedAt: string | null };
 
-const ACCENTS = ['#9dc83b', '#00b0d7', '#c9147b', '#ff9400'];
+const ACCENTS = ['#86c5ee', '#8ac278', '#53b9df', '#ffd6ca', '#b8c5d4'];
 
 export default function PublicPortfolioGallery({ projects }: { projects: PublicProject[] }) {
   const [selected, setSelected] = useState<PublicProject | null>(null);
+  const [filter, setFilter] = useState('All');
+  const tools = ['All', ...Array.from(new Set(projects.flatMap((project) => project.snapshot.tools))).slice(0, 4)];
+  const shownProjects = filter === 'All' ? projects : projects.filter((project) => project.snapshot.tools.includes(filter));
 
   useEffect(() => {
     if (!selected) return;
     const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') setSelected(null); };
     const unlockDocumentScroll = lockDocumentScroll();
     window.addEventListener('keydown', onKeyDown);
-    return () => {
-      unlockDocumentScroll();
-      window.removeEventListener('keydown', onKeyDown);
-    };
+    return () => { unlockDocumentScroll(); window.removeEventListener('keydown', onKeyDown); };
   }, [selected]);
 
-  if (projects.length === 0) {
-    return <section id="projects" data-portfolio-reveal className="relative z-10 mx-auto max-w-6xl px-5 py-24 text-center sm:px-8"><Sparkles className="mx-auto text-clevio-green" size={42} /><h2 className="mt-4 text-3xl font-black">Karya sedang dipersiapkan</h2><p className="mt-2 font-semibold text-white/60">Project yang sudah disetujui Coach akan muncul di sini.</p></section>;
-  }
-
+  if (projects.length === 0) return <section id="projects" className={styles.emptyProjects}><Sparkles size={38} /><h2>Karya sedang dipersiapkan</h2><p>Project yang disetujui Coach akan tampil di portfolio ini.</p></section>;
   const featured = projects[0];
-
   return <>
-    <section data-portfolio-reveal className="relative z-10 mx-auto w-full max-w-6xl px-5 pt-20 sm:px-8 sm:pt-28">
-      <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-black uppercase tracking-[.18em] text-clevio-green">Featured project</p><h2 className="mt-2 text-[clamp(2rem,8vw,3.6rem)] font-black uppercase leading-[.9] tracking-[-.05em]">Karya terbaru</h2></div><p className="max-w-md text-sm font-semibold leading-relaxed text-white/60">Karya ini dipilih coder, atau otomatis memakai project terbaru yang sudah disetujui Coach.</p></div>
-      <button type="button" onClick={() => setSelected(featured)} className="group grid w-full overflow-hidden rounded-[2rem] border border-white/15 bg-white/[.06] text-left shadow-2xl transition hover:-translate-y-1 hover:border-clevio-cyan focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-clevio-cyan/60 md:grid-cols-[1.05fr_.95fr]">
-        <div className="relative min-h-64 overflow-hidden bg-[radial-gradient(circle_at_72%_26%,rgba(0,176,215,.55),transparent_26%),linear-gradient(145deg,#274a88,#0e1740)] sm:min-h-80">{featured.snapshot.screenshots[0] ? <img src={featured.snapshot.screenshots[0].publicUrl} alt="" className="absolute inset-0 size-full object-cover opacity-70 transition duration-500 group-hover:scale-105" /> : <Gamepad2 className="absolute right-8 top-8 text-white/20" size={140} />}<div className="absolute inset-0 bg-gradient-to-t from-[#0e1740]/90 via-transparent to-transparent" /><span className="absolute left-5 top-5 rounded-full bg-clevio-green px-3 py-1.5 text-[10px] font-black uppercase tracking-[.14em] text-[#0e1740]">{featured.snapshot.projectType}</span></div>
-        <div className="flex min-w-0 flex-col justify-center p-6 sm:p-9"><span className="text-xs font-black uppercase tracking-[.16em] text-clevio-cyan">Project story</span><h3 className="mt-3 break-words text-[clamp(2rem,8vw,3.8rem)] font-black leading-[.9] tracking-[-.05em]">{featured.snapshot.title}</h3><p className="mt-5 line-clamp-3 text-sm font-semibold leading-relaxed text-white/70 sm:text-base">{featured.snapshot.summary}</p><div className="mt-6 flex flex-wrap gap-2">{featured.snapshot.skills.slice(0, 4).map((skill) => <span key={skill} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-black text-white/75">{skill}</span>)}</div><span className="mt-8 inline-flex w-fit items-center gap-2 text-sm font-black text-clevio-green">Lihat cerita project <ArrowUpRight size={18} /></span></div>
+    <section className={styles.gallerySection}>
+      <div className={styles.sectionHead}><div className={styles.titleWrap}><span className={styles.sectionIcon}><Sparkles size={19} /></span><h2>Featured Project</h2></div><p>Project terbaru yang sudah disetujui Coach.</p></div>
+      <button type="button" className={styles.feature} onClick={() => setSelected(featured)} aria-label={'Lihat project ' + featured.snapshot.title}>
+        <div className={styles.featureMedia}>{featured.snapshot.screenshots[0] ? <img src={featured.snapshot.screenshots[0].publicUrl} alt="" /> : <Gamepad2 size={88} />}<span className={styles.featurePlay}><Play size={22} fill="currentColor" /></span></div>
+        <div className={styles.featureCopy}><span className={styles.projectTag}>{featured.snapshot.projectType}</span><h3>{featured.snapshot.title}</h3><p>{featured.snapshot.summary}</p><div className={styles.chips}>{featured.snapshot.skills.slice(0, 4).map((skill) => <span className={styles.chip} key={skill}>{skill}</span>)}</div><span className={styles.featureLink}>View Project <ArrowRight size={17} /></span></div>
       </button>
     </section>
-    <section id="projects" data-portfolio-reveal className="relative z-10 mx-auto w-full max-w-6xl px-5 py-24 sm:px-8 sm:py-28">
-      <div className="mb-10 grid gap-4 sm:grid-cols-[90px_1fr] sm:gap-5"><div className="pt-2 text-xs font-black tracking-[.18em] text-clevio-green">01</div><div><h2 className="m-0 max-w-full text-[clamp(2.35rem,11vw,4.4rem)] font-black uppercase leading-[.9] tracking-[-.048em] sm:text-[clamp(2.6rem,5.4vw,4.4rem)] lg:text-[clamp(3rem,6.6vw,5.1rem)]">Koleksi Karya</h2><p className="mt-5 max-w-2xl text-base font-semibold leading-relaxed text-white/65">Setiap project adalah cerita tentang ide, proses, tantangan, dan hal baru yang dipelajari.</p></div></div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{projects.map((project, index) => <ProjectCard key={project.id} project={project} index={index} onOpen={setSelected} />)}</div>
+    <section id="projects" className={styles.gallerySection}>
+      <div className={styles.sectionHead}><div><div className={styles.titleWrap}><span className={styles.sectionIcon}><FolderKanban size={19} /></span><h2>My Projects</h2></div><p>A collection of things I&apos;ve created, experimented, and learned from.</p></div><div className={styles.tabs}>{tools.map((tool) => <button type="button" key={tool} className={filter === tool ? styles.activeTab : styles.tab} onClick={() => setFilter(tool)}>{tool}</button>)}</div></div>
+      <div className={styles.projects}>{shownProjects.map((project, index) => <ProjectCard key={project.id} project={project} index={index} onOpen={setSelected} />)}</div>
+      {shownProjects.length === 0 && <p className={styles.filteredEmpty}>Belum ada project untuk tool ini.</p>}
     </section>
     {selected && <ProjectModal project={selected} onClose={() => setSelected(null)} />}
   </>;
 }
 
 function ProjectCard({ project, index, onOpen }: { project: PublicProject; index: number; onOpen: (project: PublicProject) => void }) {
-  const accent = ACCENTS[index % ACCENTS.length];
   const cover = project.snapshot.screenshots[0];
-  const style = { '--portfolio-accent': accent } as CSSProperties;
-  const handlePointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    if (event.pointerType === 'touch' || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = (event.clientX - rect.left) / Math.max(rect.width, 1) - 0.5;
-    const y = (event.clientY - rect.top) / Math.max(rect.height, 1) - 0.5;
-    event.currentTarget.style.setProperty('--project-tilt-x', `${y * -2.4}deg`);
-    event.currentTarget.style.setProperty('--project-tilt-y', `${x * 3}deg`);
-  };
-  const resetTilt = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    event.currentTarget.style.setProperty('--project-tilt-x', '0deg');
-    event.currentTarget.style.setProperty('--project-tilt-y', '0deg');
-  };
-
-  return <button type="button" onClick={() => onOpen(project)} onPointerMove={handlePointerMove} onPointerLeave={resetTilt} aria-label={`Buka cerita project ${project.snapshot.title}`} style={style} className={`${motionStyles.projectTilt} group relative aspect-[3/2] min-h-[18rem] w-full overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/[.05] text-left shadow-2xl transition duration-300 hover:border-[color:var(--portfolio-accent)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-clevio-cyan/60 sm:rounded-[2rem]`}>
-    <div className="absolute inset-0 overflow-hidden" style={{ background: `radial-gradient(circle at 72% 27%, ${accent}77, transparent 22%), linear-gradient(145deg, ${accent}55, #0f1945 68%)` }}>
-      {cover ? <img loading="lazy" decoding="async" src={cover.publicUrl} alt="" className="h-full w-full object-cover opacity-45 mix-blend-screen transition duration-500 group-hover:scale-105 group-hover:opacity-60" /> : <Gamepad2 className="absolute right-16 top-16 text-white/20" size={120} />}
-      <div className="absolute inset-0 bg-gradient-to-t from-[#0e1740] via-[#0e1740]/25 to-transparent" />
-      <span className="absolute left-6 top-4 grid size-8 place-items-center rounded-lg text-[#0e1740] shadow-xl" style={{ background: `${accent}dd` }}><Gamepad2 size={18} /></span>
-      <span className="absolute right-7 top-8 text-xs font-black tracking-[.15em] text-white/50">0{index + 1}</span>
-    </div>
-     <div className="absolute inset-x-5 bottom-5 z-10 sm:inset-x-6 sm:bottom-6"><span className="text-[10px] font-black uppercase tracking-[.15em]" style={{ color: accent }}>{project.snapshot.projectType}</span><h3 className="mt-2 line-clamp-2 break-words text-[clamp(1.6rem,7vw,2.5rem)] font-black leading-[.94] tracking-[-.04em] sm:text-[clamp(1.8rem,3.2vw,2.5rem)] lg:text-[clamp(1.8rem,2.5vw,2.2rem)]">{project.snapshot.title}</h3><p className="mt-3 line-clamp-2 max-w-xl text-sm font-semibold leading-relaxed text-white/65">{project.snapshot.summary}</p><div className="mt-5 flex items-center justify-between gap-4 border-t border-white/15 pt-4 text-xs font-black text-white/75"><span>Lihat Cerita Project</span><span className="grid size-11 shrink-0 place-items-center rounded-full bg-white text-[#0e1740] transition group-hover:rotate-12"><ArrowUpRight size={20} /></span></div></div>
+  return <button type="button" className={styles.project} onClick={() => onOpen(project)} aria-label={'Buka project ' + project.snapshot.title}>
+    <span className={styles.thumb} style={{ background: 'linear-gradient(150deg,' + ACCENTS[index % ACCENTS.length] + ',#dce8ff)' }}>{cover ? <img src={cover.publicUrl} alt="" loading="lazy" /> : <Gamepad2 size={44} />}<span><ArrowRight size={16} /></span></span>
+    <span className={styles.projectBody}><small>{project.snapshot.tools[0] || project.snapshot.projectType}</small><strong>{project.snapshot.title}</strong><em>{project.snapshot.summary}</em></span>
   </button>;
 }
 
@@ -79,28 +56,30 @@ function ProjectModal({ project, onClose }: { project: PublicProject; onClose: (
   const dialogRef = useRef<HTMLElement>(null);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
-    const dialog = dialogRef.current;
-    const focusable = () => Array.from(dialog?.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], [tabindex="0"]') || []);
-    focusable()[0]?.focus();
-    const trap = (event: KeyboardEvent) => {
-      if (event.key !== 'Tab') return;
-      const items = focusable(), first = items[0], last = items.at(-1);
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
-    };
-    dialog?.addEventListener('keydown', trap);
-    return () => { dialog?.removeEventListener('keydown', trap); previous?.focus(); };
+    dialogRef.current?.querySelector<HTMLElement>('button')?.focus();
+    return () => previous?.focus();
   }, []);
-  const accent = ACCENTS[project.snapshot.title.length % ACCENTS.length];
-  return <div className="fixed inset-0 z-[1200] grid h-[100dvh] w-screen items-end overflow-hidden bg-[#050a22]/85 p-0 backdrop-blur-xl sm:place-items-center sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-    <article ref={dialogRef} className="!max-h-[100dvh] !w-screen !max-w-none overflow-x-hidden overflow-y-auto rounded-t-[1.75rem] border border-white/15 bg-gradient-to-br from-[#172862] to-[#0e1740] text-white shadow-[0_40px_110px_rgba(0,0,0,.45)] sm:!max-h-[calc(100dvh-3rem)] sm:!w-full sm:!max-w-5xl sm:rounded-[2rem]" role="dialog" aria-modal="true" aria-labelledby="public-project-title">
-      <div className="sticky top-0 z-20 flex h-0 justify-end pr-4"><button type="button" onClick={onClose} aria-label="Tutup detail project" className="mt-4 grid size-11 shrink-0 place-items-center rounded-full border border-white/15 bg-[#0e1740]/90 backdrop-blur"><X size={20} /></button></div>
-      <header className="relative flex min-h-[200px] flex-col justify-end overflow-hidden p-5 sm:min-h-[220px] sm:p-7" style={{ background: `radial-gradient(circle at 77% 29%, ${accent}77, transparent 27%), linear-gradient(145deg, ${accent}33, #0e1740)` }}><div className="absolute -right-16 -top-28 size-96 rounded-full border-[38px] opacity-35" style={{ borderColor: accent }} /><span className="relative z-10 grid size-14 place-items-center rounded-2xl text-[#0e1740]" style={{ background: accent }}><Gamepad2 size={30} /></span><span className="relative z-10 mt-5 text-[10px] font-black uppercase tracking-[.15em]" style={{ color: accent }}>{project.snapshot.projectType}</span><h2 id="public-project-title" className="relative z-10 mt-2 max-w-3xl break-words text-[clamp(2rem,9vw,3.6rem)] font-black leading-[.92] tracking-[-.045em] sm:text-[clamp(2.35rem,4.8vw,3.8rem)] lg:text-[clamp(2.5rem,4vw,3.25rem)]">{project.snapshot.title}</h2><p className="relative z-10 mt-3 max-w-2xl font-semibold leading-relaxed text-white/65">{project.snapshot.summary}</p>{project.snapshot.playableUrl && <a href={project.snapshot.playableUrl} target="_blank" rel="noreferrer" className="relative z-10 mt-4 inline-flex min-h-12 w-fit items-center gap-2 rounded-xl bg-clevio-green px-5 font-black text-[#0e1740]"><ExternalLink size={18} /> Mainkan Project</a>}</header>
-       <div className="p-5 sm:p-9"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{project.snapshot.screenshots.map((image, index) => <div key={`${image.publicUrl}-${index}`} className="aspect-[4/3] overflow-hidden rounded-2xl bg-white/5"><img loading="lazy" decoding="async" src={image.publicUrl} alt={image.altText || `Screenshot ${index + 1}`} className="h-full w-full object-contain" /></div>)}</div><p className="mt-7 text-lg font-semibold leading-relaxed text-white/75">{project.snapshot.description}</p><div className="mt-7 grid gap-3 md:grid-cols-2"><DetailCard icon={<Target />} label="Cara bermain / menggunakan" value={project.snapshot.howToPlay} /><DetailCard icon={<Code2 />} label="Kontribusiku" value={project.snapshot.roleContribution} /><DetailCard icon={<Lightbulb />} label="Yang kupelajari" value={project.snapshot.learningReflection} /><DetailCard icon={<Target />} label="Berikutnya" value={project.snapshot.nextSteps} /></div><div className="mt-7 flex flex-wrap gap-2">{[...project.snapshot.tools, ...project.snapshot.skills].map((item, index) => <span key={`${item}-${index}`} className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-black text-blue-200">{item}</span>)}</div><div className="mt-8 flex flex-wrap gap-3">{project.snapshot.playableUrl && <a href={project.snapshot.playableUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-clevio-green px-5 font-black text-[#0e1740]"><ExternalLink size={18} /> Mainkan Project</a>}{project.snapshot.repositoryUrl && <a href={project.snapshot.repositoryUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-white/20 px-5 font-black"><Github size={18} /> Source Code</a>}{project.snapshot.videoUrl && <a href={project.snapshot.videoUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-white/20 px-5 font-black"><Play size={18} /> Video Demo</a>}</div></div>
+  const snapshot = project.snapshot;
+  const actionLinks = [
+    snapshot.playableUrl && { href: snapshot.playableUrl, label: 'Mainkan Project', icon: <ExternalLink size={17} /> },
+    snapshot.repositoryUrl && { href: snapshot.repositoryUrl, label: 'Source Code', icon: <Github size={17} /> },
+    snapshot.videoUrl && { href: snapshot.videoUrl, label: 'Video Demo', icon: <Play size={17} /> },
+  ].filter(Boolean) as Array<{ href: string; label: string; icon: ReactNode }>;
+  return <div className={styles.modalShell} onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <article ref={dialogRef} className={styles.projectModal} role="dialog" aria-modal="true" aria-labelledby="public-project-title">
+      <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Tutup detail project"><X size={20} /></button>
+      <div className={styles.modalVisual}>{snapshot.screenshots[0] ? <img src={snapshot.screenshots[0].publicUrl} alt="" /> : <Gamepad2 size={82} />}<span className={styles.projectTag}>{snapshot.projectType}</span></div>
+      <div className={styles.modalContent}><h2 id="public-project-title">{snapshot.title}</h2><p className={styles.modalLead}>{snapshot.summary}</p>
+        {snapshot.screenshots.length > 0 && <div className={styles.modalShots}>{snapshot.screenshots.map((screenshot, index) => <img key={screenshot.publicUrl + index} src={screenshot.publicUrl} alt={screenshot.altText || 'Screenshot project'} />)}</div>}
+        <p className={styles.projectDescription}>{snapshot.description}</p>
+        <div className={styles.projectStoryGrid}><Detail icon={<Target size={18} />} label="Cara menggunakan" value={snapshot.howToPlay} /><Detail icon={<Code2 size={18} />} label="Kontribusiku" value={snapshot.roleContribution} /><Detail icon={<Lightbulb size={18} />} label="Yang kupelajari" value={snapshot.learningReflection} /><Detail icon={<ArrowRight size={18} />} label="Langkah berikutnya" value={snapshot.nextSteps} /></div>
+        <div className={styles.chips}>{[...snapshot.tools, ...snapshot.skills].map((item, index) => <span className={styles.chip} key={item + index}>{item}</span>)}</div>
+        {actionLinks.length > 0 && <div className={styles.modalActions}>{actionLinks.map((link) => <a key={link.label} className={styles.primaryButton} href={link.href} target="_blank" rel="noreferrer">{link.icon}{link.label}</a>)}</div>}
+      </div>
     </article>
   </div>;
 }
 
-function DetailCard({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
-  return <section className="rounded-2xl border border-white/10 bg-white/[.04] p-5"><div className="flex items-center gap-2 text-clevio-cyan">{icon}<h3 className="text-xs font-black uppercase tracking-[.17em]">{label}</h3></div><p className="mt-3 whitespace-pre-wrap text-sm font-semibold leading-relaxed text-white/70">{value}</p></section>;
+function Detail({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return <section className={styles.detailCard}><h3>{icon}{label}</h3><p>{value}</p></section>;
 }

@@ -34,9 +34,11 @@ import makeWASocket, {
 import pino from 'pino';
 import QRCode from 'qrcode';
 import fs from 'fs';
+import path from 'path';
 
 // Constants
-const AUTH_FOLDER = 'baileys_auth_info';
+const AUTH_FOLDER = process.env.WHATSAPP_AUTH_DIR?.trim()
+    || path.join(process.cwd(), 'baileys_auth_info');
 const CLIENT_ID = process.env.WHATSAPP_CLIENT_ID || 'clevio-wa-client';
 
 // Global state (Singleton for Next.js HMR)
@@ -135,10 +137,10 @@ export async function initializeWhatsApp(): Promise<{
                 qrRetryCount++;
                 console.log(`[WhatsApp] QR Code generated (Attempt ${qrRetryCount})`);
 
-                // If we've had too many QR attempts (> 5), credentials might be corrupt
-                if (qrRetryCount > 5) {
-                    console.log('[WhatsApp] Too many QR attempts, clearing credentials...');
-                    clearCredentialsAndReset();
+                // A QR can repeat while the phone has not scanned it or a transient
+                // connection closes. Do not destroy a persisted session on that signal.
+                if (qrRetryCount === 6) {
+                    console.warn('[WhatsApp] QR still pending after multiple attempts; preserving credentials until a confirmed logout.');
                 }
             }
 

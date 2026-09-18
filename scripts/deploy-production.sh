@@ -7,6 +7,7 @@ APP_ROOT="${LMS_DEPLOY_ROOT:-/root/lms}"
 BARE_REPO="${LMS_DEPLOY_REPO:-$APP_ROOT/deploy-repo.git}"
 RELEASES_DIR="$APP_ROOT/releases"
 SHARED_DIR="$APP_ROOT/shared"
+WHATSAPP_AUTH_DIR="${WHATSAPP_AUTH_DIR:-$SHARED_DIR/baileys_auth_info}"
 CURRENT_LINK="$APP_ROOT/current"
 DEPLOY_LOG_DIR="$APP_ROOT/deploy-logs"
 LOCK_FILE="/var/lock/lms-production-deploy.lock"
@@ -15,7 +16,8 @@ SMOKE_PORT="${LMS_SMOKE_PORT:-3010}"
 KEEP_RELEASES="${LMS_KEEP_RELEASES:-5}"
 TARGET_REF="${1:-refs/remotes/origin/production}"
 
-mkdir -p "$RELEASES_DIR" "$SHARED_DIR" "$DEPLOY_LOG_DIR"
+mkdir -p "$RELEASES_DIR" "$SHARED_DIR" "$DEPLOY_LOG_DIR" "$WHATSAPP_AUTH_DIR"
+chmod 700 "$WHATSAPP_AUTH_DIR"
 
 exec 9>"$LOCK_FILE"
 if ! flock -n 9; then
@@ -141,7 +143,7 @@ start_current() {
   pm2 delete "$APP_NAME" >/dev/null 2>&1 || true
   (
     cd "$CURRENT_LINK"
-    NODE_ENV=production pm2 start npm --name "$APP_NAME" -- start
+    NODE_ENV=production WHATSAPP_AUTH_DIR="$WHATSAPP_AUTH_DIR" pm2 start npm --name "$APP_NAME" -- start
   )
   pm2 save >/dev/null
 }

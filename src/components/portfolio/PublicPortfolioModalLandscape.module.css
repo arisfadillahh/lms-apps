@@ -1,7 +1,7 @@
 .projectModal {
   width: min(1120px, calc(100vw - 44px));
   grid-template-columns: minmax(0, 1.12fr) minmax(360px, 0.88fr);
-  align-items: start;
+  align-items: stretch;
   overflow: hidden;
   padding: 24px 0 24px 24px;
   background: linear-gradient(90deg, #f4f7fc 0 58%, #fff 58%);
@@ -11,6 +11,7 @@
 .mediaPane {
   display: grid;
   min-width: 0;
+  min-height: 0;
   height: 100%;
   align-content: center;
   gap: 20px;
@@ -29,8 +30,11 @@
 }
 
 .content {
-  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: auto;
   max-height: none;
+  overflow-y: auto;
 }
 
 .mediaMeta {

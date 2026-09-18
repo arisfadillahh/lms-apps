@@ -71,6 +71,8 @@ describe('public portfolio mockup-v4 responsive contract', () => {
     expect(modalCss).toContain('object-fit: contain');
     expect(modalCss).toContain('@media (max-width: 960px)');
     expect(modalCss).toContain('height: min(700px, calc(100dvh - 44px))');
+    expect(modalCss).toContain('min-height: 0');
+    expect(modalCss).toContain('overflow-y: auto');
   });
 
   it('uses real block progress rather than reference-only milestones', () => {

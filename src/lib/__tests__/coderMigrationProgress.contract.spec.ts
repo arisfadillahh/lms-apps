@@ -41,6 +41,7 @@ describe('Coder migration progress override', () => {
 
 describe('Admin users table responsive UX', () => {
   const table = read('src/app/(admin)/admin/users/UsersTable.tsx');
+  const dropdown = read('src/components/admin/ActionDropdown.tsx');
   const editButton = read('src/app/(admin)/admin/users/EditUserButton.tsx');
   const deleteButton = read('src/app/(admin)/admin/users/DeleteUserButton.tsx');
   const css = read('src/app/globals.css');
@@ -61,6 +62,10 @@ describe('Admin users table responsive UX', () => {
     expect(css).toContain('white-space: nowrap');
     expect(css).toContain('min-height: 72px');
     expect(css).toContain('width: 48px');
+    expect(css).toContain('.dropdown-menu.admin-user-actions-menu');
+    expect(table).toContain('menuClassName="admin-user-actions-menu"');
+    expect(dropdown).toContain('createPortal(');
+    expect(dropdown).toContain('menuClassName');
     expect(editButton).toContain('admin-action-control admin-action-edit');
     expect(deleteButton).toContain('admin-action-control admin-action-delete');
     expect(editButton).toContain('Edit user');

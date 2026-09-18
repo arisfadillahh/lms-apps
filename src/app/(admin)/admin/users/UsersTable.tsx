@@ -175,7 +175,7 @@ export default function UsersTable({ users }: UsersTableProps) {
                     </span>
                   </td>
                   <td className="users-actions-cell" data-label="Aksi">
-                    <ActionDropdown>
+                    <ActionDropdown menuClassName="admin-user-actions-menu">
                       <div className="admin-action-list">
                         <div className="admin-action-item"><EditUserButton user={user} /></div>
                         <div className="admin-action-item"><ToggleActiveButton userId={user.id} initialActive={user.is_active} /></div>

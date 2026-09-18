@@ -33,9 +33,11 @@ export function getDropdownPosition(
 export default function ActionDropdown({
     children,
     label = 'Buka menu aksi',
+    menuClassName,
 }: {
     children: ReactNode;
     label?: string;
+    menuClassName?: string;
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const [position, setPosition] = useState<DropdownPosition | null>(null);
@@ -92,7 +94,7 @@ export default function ActionDropdown({
     const menu = isOpen && mounted && position ? createPortal(
         <div
             ref={menuRef}
-            className="dropdown-menu"
+            className={`dropdown-menu${menuClassName ? ` ${menuClassName}` : ''}`}
             style={{
                 position: 'fixed',
                 top: position.top,

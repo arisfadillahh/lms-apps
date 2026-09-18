@@ -13,10 +13,11 @@ async function getPublicPortfolio(slug: string) {
   const supabase = getSupabaseAdmin() as any;
   const { data: profile, error } = await supabase.from('coder_portfolio_profiles').select('coder_id, school_visible').eq('public_slug', slug).maybeSingle();
   if (error || !profile) return null;
-  const [{ data: user }, { data: enrollments }, { data: portfolios }] = await Promise.all([
+  const [{ data: user }, { data: enrollments }, { data: portfolios }, { data: learningBlocks }] = await Promise.all([
     supabase.from('users').select('full_name, school_name, school_grade').eq('id', profile.coder_id).maybeSingle(),
     supabase.from('enrollments').select('enrolled_at, classes(type, levels(name))').eq('coder_id', profile.coder_id).order('enrolled_at', { ascending: false }),
     supabase.from('coder_portfolios').select('id, published_snapshot, published_at, program_type').eq('coder_id', profile.coder_id).not('published_snapshot', 'is', null).order('published_at', { ascending: false }),
+    supabase.from('coder_block_progress').select('id, journey_order, status, completed_at, blocks(name, levels(name, order_index))').eq('coder_id', profile.coder_id),
   ]);
   if (!user) return null;
   const programTypes = [...new Set([
@@ -35,6 +36,20 @@ async function getPublicPortfolio(slug: string) {
     programTypes,
     levelName: levelName || null,
     projects: (portfolios ?? []).map((item: any) => ({ id: item.id, snapshot: item.published_snapshot as PublishedPortfolioSnapshot, publishedAt: item.published_at })) as PublicProject[],
+    learningBlocks: (learningBlocks ?? []).flatMap((item: any) => {
+      const block = Array.isArray(item.blocks) ? item.blocks[0] : item.blocks;
+      const level = Array.isArray(block?.levels) ? block.levels[0] : block?.levels;
+      if (!block?.name || !level?.name) return [];
+      return [{
+        id: item.id,
+        levelName: level.name,
+        levelOrder: Number.isFinite(level.order_index) ? level.order_index : Number.MAX_SAFE_INTEGER,
+        blockName: block.name,
+        journeyOrder: item.journey_order,
+        status: item.status,
+        completedAt: item.completed_at,
+      }];
+    }),
   };
 }
 
@@ -55,6 +70,7 @@ export default async function PublicPortfolioPage({ params }: Params) {
     levelName: data.levelName,
     programTypes: data.programTypes,
     projects: data.projects,
+    learningBlocks: data.learningBlocks,
   });
 
   return <PublicPortfolioExperience model={model} />;

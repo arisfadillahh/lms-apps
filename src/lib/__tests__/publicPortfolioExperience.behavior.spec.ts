@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 import { buildPortfolioExperienceModel, type ExperienceProject } from '@/lib/publicPortfolioExperience';
 
@@ -86,5 +88,30 @@ describe('public portfolio experience model', () => {
     expect(model.latestStory.nextSteps).toContain('Project berikutnya');
     expect(model.traits[0].detail).toBe('Program belum tercatat · Level belum tercatat');
     expect(model.traits[2].detail).toContain('Skill akan muncul');
+  });
+
+  it('uses the newest approved project as featured and keeps the personal level-block order', () => {
+    const newest = { ...project({ title: 'Karya Terbaru' }), id: 'newest', publishedAt: '2026-09-10T00:00:00Z' };
+    const older = { ...project({ title: 'Karya Lama' }), id: 'older', publishedAt: '2026-08-10T00:00:00Z' };
+    const model = buildPortfolioExperienceModel({
+      fullName: 'Alya Putri', schoolName: null, schoolVisible: false, levelName: 'Creator', programTypes: ['WEEKLY'], projects: [newest, older],
+      learningBlocks: [
+        { id: 'block-2', levelName: 'Creator', levelOrder: 2, blockName: 'Block 2', journeyOrder: 1, status: 'IN_PROGRESS', completedAt: null },
+        { id: 'block-1', levelName: 'Explorer', levelOrder: 1, blockName: 'Block 1', journeyOrder: 0, status: 'COMPLETED', completedAt: '2026-08-01T00:00:00Z' },
+      ],
+    });
+
+    expect(model.featuredProject?.id).toBe('newest');
+    expect(model.learningJourney.map((level) => level.levelName)).toEqual(['Explorer', 'Creator']);
+    expect(model.learningJourney[0]).toMatchObject({ completedCount: 1, blocks: [{ blockName: 'Block 1', status: 'COMPLETED' }] });
+  });
+
+  it('keeps public portfolio data on approved snapshots while loading personal block progress', () => {
+    const page = readFileSync(resolve(process.cwd(), 'src/app/portfolio/[slug]/page.tsx'), 'utf8');
+
+    expect(page).toContain(".not('published_snapshot', 'is', null)");
+    expect(page).toContain(".from('coder_block_progress')");
+    expect(page).toContain("blocks(name, levels(name, order_index))");
+    expect(page).not.toContain(".from('coder_portfolios').select('*')");
   });
 });

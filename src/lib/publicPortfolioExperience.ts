@@ -7,6 +7,16 @@ export type ExperienceProject = {
   publishedAt: string | null;
 };
 
+export type PortfolioLearningBlock = {
+  id: string;
+  levelName: string;
+  levelOrder: number;
+  blockName: string;
+  journeyOrder: number;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+  completedAt: string | null;
+};
+
 export type PortfolioExperienceInput = {
   fullName: string;
   schoolName: string | null;
@@ -14,6 +24,7 @@ export type PortfolioExperienceInput = {
   levelName: string | null;
   programTypes: Array<'WEEKLY' | 'EKSKUL'>;
   projects: ExperienceProject[];
+  learningBlocks?: PortfolioLearningBlock[];
   season?: string;
 };
 
@@ -37,6 +48,12 @@ export type PortfolioExperienceModel = PortfolioExperienceInput & {
     learningReflection: string;
     nextSteps: string;
   };
+  featuredProject: ExperienceProject | null;
+  learningJourney: Array<{
+    levelName: string;
+    blocks: Array<PortfolioLearningBlock>;
+    completedCount: number;
+  }>;
   traits: Array<{ label: string; detail: string }>;
   timeline: Array<{ id: string; title: string; publishedAt: string | null; program: string; reflection: string }>;
 };
@@ -48,6 +65,7 @@ function initialsFor(fullName: string): string {
 
 export function buildPortfolioExperienceModel(input: PortfolioExperienceInput): PortfolioExperienceModel {
   const projects = input.projects ?? [];
+  const learningBlocks = input.learningBlocks ?? [];
   const firstName = input.fullName.trim().split(/\s+/).filter(Boolean)[0] || 'Coder';
   const year = new Date().getFullYear();
   const skillCounts = new Map<string, number>();
@@ -85,6 +103,18 @@ export function buildPortfolioExperienceModel(input: PortfolioExperienceInput): 
   const levelLabel = input.levelName || 'Level belum tercatat';
   const focusSkill = journey[0]?.label || 'Skill yang dipraktikkan';
   const projectLabel = `${projects.length} project approved tersimpan di portfolio.`;
+  const learningJourney = [...learningBlocks]
+    .sort((left, right) => left.levelOrder - right.levelOrder || left.journeyOrder - right.journeyOrder || left.id.localeCompare(right.id))
+    .reduce<PortfolioExperienceModel['learningJourney']>((groups, block) => {
+      const current = groups.at(-1);
+      if (!current || current.levelName !== block.levelName) {
+        groups.push({ levelName: block.levelName, blocks: [block], completedCount: block.status === 'COMPLETED' ? 1 : 0 });
+      } else {
+        current.blocks.push(block);
+        if (block.status === 'COMPLETED') current.completedCount += 1;
+      }
+      return groups;
+    }, []);
 
   return {
     ...input,
@@ -108,6 +138,8 @@ export function buildPortfolioExperienceModel(input: PortfolioExperienceInput): 
       reflection: project.snapshot.learningReflection,
     })),
     latestStory,
+    featuredProject: projects[0] ?? null,
+    learningJourney,
     traits: [
       { label: 'Program & level', detail: `${programLabel} · ${levelLabel}` },
       { label: 'Karya yang dibangun', detail: projectLabel },

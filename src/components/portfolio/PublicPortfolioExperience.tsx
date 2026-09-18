@@ -6,7 +6,9 @@ import {
   ArrowDown,
   ArrowRight,
   ArrowUpRight,
+  CheckCircle2,
   ChevronRight,
+  CircleDotDashed,
   Compass,
   FolderKanban,
   Menu,
@@ -159,16 +161,11 @@ function JourneySection({ model }: { model: PortfolioExperienceModel }) {
   return <section id="journey" data-portfolio-reveal className="relative z-10 scroll-mt-24 px-5 py-16 sm:px-8 sm:py-20">
     <div className="mx-auto max-w-6xl">
       <span id="character" className="scroll-mt-24" />
-      <SectionHeader number="02" title="Perjalanan Belajarku" description={`Karya dan refleksi ${model.firstName}, diurutkan berdasarkan tanggal publikasi. Program mengikuti asal masing-masing karya.`} />
+      <SectionHeader number="02" title="Perjalanan Belajarku" description={`Level dan block yang benar-benar dilalui ${model.firstName}. Status mengikuti progress pribadi coder, bukan urutan karya contoh.`} />
       <div className="grid items-start gap-8 lg:grid-cols-[1.4fr_1fr]">
         <ol className="space-y-6 border-l border-white/20 pl-5 sm:pl-8">
-          {model.timeline.map((item) => <li key={item.id} className="relative break-words">
-            <span className="absolute -left-[1.6rem] top-1.5 size-3 rounded-full bg-clevio-green sm:-left-[2.4rem]" />
-            <p className="text-xs font-bold text-clevio-green">{item.publishedAt ? <time dateTime={item.publishedAt}>Dipublikasikan {new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' }).format(new Date(item.publishedAt))}</time> : 'Tanggal publikasi belum tercatat'} · {item.program}</p>
-            <h3 className="mt-2 text-xl font-black sm:text-2xl">{item.title}</h3>
-            <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-white/75">{item.reflection || 'Refleksi belum tercatat untuk karya ini.'}</p>
-          </li>)}
-          {model.timeline.length === 0 && <li className="text-white/65">Perjalanan akan muncul setelah karya pertama disetujui Coach.</li>}
+          {model.learningJourney.map((level) => <li key={level.levelName} className="relative break-words"><span className="absolute -left-[1.6rem] top-1.5 size-3 rounded-full bg-clevio-green sm:-left-[2.4rem]" /><p className="text-xs font-black uppercase tracking-[.16em] text-clevio-green">{level.completedCount} dari {level.blocks.length} block selesai</p><h3 className="mt-2 text-xl font-black sm:text-2xl">{level.levelName}</h3><div className="mt-4 grid gap-3 sm:grid-cols-2">{level.blocks.map((block) => { const complete = block.status === 'COMPLETED'; const active = block.status === 'IN_PROGRESS'; return <article key={block.id} className={`rounded-2xl border p-4 ${complete ? 'border-clevio-green/45 bg-clevio-green/10' : active ? 'border-clevio-cyan/45 bg-clevio-cyan/10' : 'border-white/10 bg-white/[.04]'}`}><div className="flex items-start gap-3">{complete ? <CheckCircle2 className="shrink-0 text-clevio-green" size={21} /> : <CircleDotDashed className={`shrink-0 ${active ? 'text-clevio-cyan' : 'text-white/40'}`} size={21} />}<div className="min-w-0"><p className="text-[10px] font-black uppercase tracking-[.13em] text-white/50">{complete ? 'Selesai' : active ? 'Sedang dipelajari' : 'Berikutnya'}</p><h4 className="mt-1 break-words text-sm font-black leading-snug">{block.blockName}</h4>{complete && block.completedAt && <p className="mt-2 text-xs font-semibold text-white/55">Selesai {new Intl.DateTimeFormat('id-ID', { month: 'short', year: 'numeric', timeZone: 'Asia/Jakarta' }).format(new Date(block.completedAt))}</p>}</div></div></article>; })}</div></li>)}
+          {model.learningJourney.length === 0 && <li className="text-white/65">Riwayat level dan block akan muncul setelah progress belajar coder tersedia.</li>}
         </ol>
         <aside className="rounded-3xl border border-white/10 bg-white/5 p-5 sm:p-6">
           <h3 className="text-lg font-black">Skill yang dipraktikkan</h3>

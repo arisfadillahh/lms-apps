@@ -8,6 +8,7 @@ describe('public portfolio mockup-v4 responsive contract', () => {
   const experience = read('src/components/portfolio/PublicPortfolioExperience.tsx');
   const gallery = read('src/components/portfolio/PublicPortfolioGallery.tsx');
   const css = read('src/components/portfolio/PublicPortfolioExperience.module.css');
+  const modalCss = read('src/components/portfolio/PublicPortfolioModalLandscape.module.css');
   const scrollLock = read('src/lib/documentScrollLock.ts');
 
   it('uses the v4 page hierarchy and the official Clevio logo', () => {
@@ -62,6 +63,10 @@ describe('public portfolio mockup-v4 responsive contract', () => {
     expect(css).toContain('.projectModalV4');
     expect(css).toContain('.storyGridV4');
     expect(css).toContain('.modalReflectionV4');
+    expect(gallery).toContain('modalStyles.projectModal');
+    expect(modalCss).toContain('aspect-ratio: 16 / 10');
+    expect(modalCss).toContain('object-fit: contain');
+    expect(modalCss).toContain('@media (max-width: 960px)');
   });
 
   it('uses real block progress rather than reference-only milestones', () => {

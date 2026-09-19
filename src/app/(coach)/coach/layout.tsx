@@ -6,7 +6,6 @@ import PageTransition from '@/components/PageTransition';
 import CoachDashboardHeader from '@/components/coach/CoachDashboardHeader';
 import CoachMobileNav from './CoachMobileNav';
 import { redirect } from 'next/navigation';
-import IssueReportButton from '@/components/issue-reports/IssueReportButton';
 import PushSubscriptionAccountSync from '@/components/pwa/PushSubscriptionAccountSync';
 
 export default async function CoachLayout({ children }: { children: ReactNode }) {
@@ -80,7 +79,6 @@ export default async function CoachLayout({ children }: { children: ReactNode })
         </div>
       </main>
       <CoachMobileNav />
-      <IssueReportButton role="COACH" />
     </div>
   );
 }

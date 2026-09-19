@@ -42,6 +42,26 @@
 .sidebarTrigger:hover { border-color: #b9c9e3; background: #eef4ff; }
 .sidebarTrigger:focus-visible { outline: 3px solid rgba(0, 176, 215, 0.35); outline-offset: 3px; }
 
+.sidebarTrigger[data-role='COACH'] {
+  border-color: rgba(148, 163, 184, 0.2);
+  background: rgba(30, 41, 59, 0.72);
+  color: #cbd5e1;
+}
+
+.sidebarTrigger[data-role='COACH']:hover {
+  border-color: rgba(107, 179, 255, 0.5);
+  background: rgba(51, 65, 85, 0.82);
+  color: #fff;
+}
+
+@media (max-width: 767px) {
+  .sidebarTrigger[data-role='COACH'] {
+    border-color: #dce4f2;
+    background: #f8fafc;
+    color: #22367b;
+  }
+}
+
 .cardTrigger {
   display: inline-flex;
   min-height: 46px;

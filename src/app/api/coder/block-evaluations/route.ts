@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import { getSessionOrThrow } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { generateDraftReportsForClasses } from '@/lib/services/aiReports';
 
 export async function POST(req: Request) {
   try {
@@ -83,6 +84,19 @@ export async function POST(req: Request) {
       console.error('[block-evaluations POST]', error);
       return NextResponse.json({ error: 'Gagal menyimpan evaluasi.' }, { status: 500 });
     }
+
+    after(async () => {
+      try {
+        await generateDraftReportsForClasses([classId]);
+      } catch (generationError) {
+        console.error('[CoderBlockEvaluation] Failed to reconcile report drafts', {
+          classId,
+          blockId,
+          coderId: session.user.id,
+          error: generationError instanceof Error ? generationError.message : generationError,
+        });
+      }
+    });
 
     return NextResponse.json({ id: data.id });
   } catch (e) {

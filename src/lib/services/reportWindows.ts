@@ -4,6 +4,10 @@ type RegularReportWindowBlock = {
   pitching_day_date: string | null;
 };
 
+type CoachEvaluationBlock = RegularReportWindowBlock & {
+  status: string | null;
+};
+
 const JAKARTA_OFFSET = '+07:00';
 
 function parseJakartaDateStart(dateString: string): Date {
@@ -35,4 +39,11 @@ export function isRegularReportWindowActive(
 
 export function getRegularReportWindowDays() {
   return REGULAR_REPORT_WINDOW_DAYS;
+}
+
+export function isCoachEvaluationBlockActive(
+  classBlock: CoachEvaluationBlock | null | undefined,
+  now = new Date(),
+): boolean {
+  return classBlock?.status === 'CURRENT' || isRegularReportWindowActive(classBlock, now);
 }

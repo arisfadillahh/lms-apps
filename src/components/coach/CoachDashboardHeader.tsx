@@ -7,6 +7,7 @@ import Link from 'next/link';
 import SignOutButton from '@/components/SignOutButton';
 import NotificationDropdown from '@/components/layout/NotificationDropdown';
 import CoachSearch from './CoachSearch';
+import IssueReportButton from '@/components/issue-reports/IssueReportButton';
 
 type CoachDashboardHeaderProps = {
     user: {
@@ -90,6 +91,10 @@ export default function CoachDashboardHeader({ user }: CoachDashboardHeaderProps
                                         </div>
                                         Edit Profile
                                     </Link>
+
+                                    <div className="p-1 md:hidden">
+                                        <IssueReportButton role="COACH" placement="sidebar" />
+                                    </div>
 
                                     <div className="my-1 border-t border-slate-100" />
 

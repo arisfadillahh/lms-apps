@@ -5,7 +5,7 @@ import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonS
 import { getSoftwareByBlockId } from '@/lib/dao/blockSoftwareDao';
 import { mergeCoachClassesById, pickNextCoachSession, pickRelevantCoachSessions } from '@/lib/services/coachClassSummary';
 import { filterActiveEnrollmentsForSession } from '@/lib/services/enrollmentEligibility';
-import { isRegularReportWindowActive } from '@/lib/services/reportWindows';
+import { isCoachEvaluationBlockActive, isRegularReportWindowActive } from '@/lib/services/reportWindows';
 
 type SoftwareInfo = {
   id: string;
@@ -271,8 +271,13 @@ export async function getPendingLessonEvaluationsForCoach(coachId: string): Prom
     const lessonMap = await computeLessonSchedule(klass.id, klass.level_id, klass.ekskul_lesson_plan_id);
     const activeEnrollments = (await classesDao.listEnrollmentsByClass(klass.id)).filter(e => e.status === 'ACTIVE');
     const classBlocks = klass.type === 'EKSKUL' ? [] : await classesDao.getClassBlocks(klass.id);
-    // ONLY evaluate lessons in the CURRENT active block. Do not leak to UPCOMING or COMPLETED blocks.
-    const activeBlockIds = new Set(classBlocks.filter(b => b.status === 'CURRENT').map(b => b.block_id));
+    // Keep recently completed report blocks visible until their report window closes.
+    // Otherwise moving to the next block hides unfinished Coach scores before a draft can be generated.
+    const evaluableBlockIds = new Set(
+      classBlocks
+        .filter((block) => isCoachEvaluationBlockActive(block))
+        .map((block) => block.block_id),
+    );
     const attendanceRecords = await attendanceDao.listAttendanceForSessions(
       completedSessions.map((session) => session.id),
     );
@@ -289,8 +294,8 @@ export async function getPendingLessonEvaluationsForCoach(coachId: string): Prom
       const slot = lessonMap.get(session.id);
       if (!slot) continue;
 
-      // Only evaluate lessons that belong to an active block (prevent 'bocor' from old completed blocks)
-      if (klass.type !== 'EKSKUL' && !activeBlockIds.has(slot.block.id)) continue;
+      // Exclude stale historical and future blocks, but retain a completed block during its report window.
+      if (klass.type !== 'EKSKUL' && !evaluableBlockIds.has(slot.block.id)) continue;
 
       // RULE: Only evaluate a lesson when ALL parts of that lesson are completed.
       // So if a lesson has 3 parts, we only ask for evaluation on Part 3.

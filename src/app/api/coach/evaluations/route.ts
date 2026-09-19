@@ -1,10 +1,11 @@
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { attendanceDao, sessionsDao, reportsDao, classesDao } from '@/lib/dao';
 import type { UpsertLessonEvaluationInput } from '@/lib/dao/reportsDao';
 import { filterActiveEnrollmentsForSession } from '@/lib/services/enrollmentEligibility';
 import { computeLessonSchedule } from '@/lib/services/lessonScheduler';
+import { generateDraftReportsForClasses } from '@/lib/services/aiReports';
 
 export async function POST(req: Request) {
   try {
@@ -76,6 +77,18 @@ export async function POST(req: Request) {
 
     // Save lesson evaluations
     await reportsDao.upsertLessonEvaluations(evaluationsToUpsert);
+
+    after(async () => {
+      try {
+        await generateDraftReportsForClasses([klass.id]);
+      } catch (generationError) {
+        console.error('[CoachEvaluation] Failed to reconcile report drafts', {
+          classId: klass.id,
+          sessionId,
+          error: generationError instanceof Error ? generationError.message : generationError,
+        });
+      }
+    });
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {

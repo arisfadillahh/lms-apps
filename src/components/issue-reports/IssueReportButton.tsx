@@ -2,6 +2,7 @@
 
 import { Bug, Check, ImagePlus, Send, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import styles from './IssueReportButton.module.css';
 
@@ -102,11 +103,11 @@ export default function IssueReportButton({ role, placement = 'floating' }: Prop
 
   return (
     <>
-      <button type="button" className={placement === 'sidebar' ? styles.sidebarTrigger : placement === 'card' ? styles.cardTrigger : styles.trigger} onClick={() => setOpen(true)} aria-label="Laporkan masalah LMS">
+      <button type="button" data-role={role} className={placement === 'sidebar' ? styles.sidebarTrigger : placement === 'card' ? styles.cardTrigger : styles.trigger} onClick={() => setOpen(true)} aria-label="Laporkan masalah LMS">
         <Bug size={18} /> <span className={styles.triggerLabel}>Laporkan Masalah</span>
       </button>
 
-      {open ? (
+      {open && typeof document !== 'undefined' ? createPortal(
         <div className={styles.backdrop} onMouseDown={(event) => event.target === event.currentTarget && close()}>
             <section className={styles.modal} data-coder-modal={role === 'CODER' ? 'true' : undefined} role="dialog" aria-modal="true" aria-labelledby="issue-report-title">
             {reference ? (
@@ -170,7 +171,8 @@ export default function IssueReportButton({ role, placement = 'floating' }: Prop
               </>
             )}
           </section>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </>
   );

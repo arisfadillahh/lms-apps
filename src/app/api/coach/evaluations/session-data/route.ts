@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSessionOrThrow } from '@/lib/auth';
 import { attendanceDao, sessionsDao, classesDao, reportsDao } from '@/lib/dao';
 import { filterEvaluationEnrollmentsForSession } from '@/lib/services/enrollmentEligibility';
+import { buildEvaluationScoreMap } from '@/lib/services/evaluationScores';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 
 export async function GET(req: Request) {
@@ -71,14 +72,19 @@ export async function GET(req: Request) {
       .select('id, full_name')
       .in('id', activeStudentIds);
 
-    const criteriaList = await reportsDao.getEvaluationCriteria();
+    const [criteriaList, savedEvaluations] = await Promise.all([
+      reportsDao.getEvaluationCriteria(),
+      reportsDao.getLessonEvaluationsBySession(sessionId),
+    ]);
+    const initialScores = buildEvaluationScoreMap(students || [], criteriaList, savedEvaluations);
 
     return NextResponse.json({
       sessionId,
       students: students || [],
       criteriaList,
       lessonTitle: formatLessonTitle(slot),
-      blockName: slot.block.name || 'Unknown Block'
+      blockName: slot.block.name || 'Unknown Block',
+      initialScores,
     });
   } catch (error: unknown) {
     console.error('Error fetching session data:', error);

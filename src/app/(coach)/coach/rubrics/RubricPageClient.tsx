@@ -8,6 +8,7 @@ import {
   Calendar, Users, Zap, FileText, ArrowRight, Flag, PartyPopper, 
   GraduationCap, LayoutGrid, ChevronLeft, ChevronRight, Save, X, AlertTriangle
 } from 'lucide-react';
+import type { EvaluationScoreMap } from '@/lib/services/evaluationScores';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -37,6 +38,7 @@ type EvaluationData = {
   lessonTitle: string;
   blockName: string;
   sessionId: string;
+  initialScores: EvaluationScoreMap;
 };
 
 type RubricPageClientProps = {
@@ -87,14 +89,7 @@ function EvaluationModal({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
-  const [scores, setScores] = useState<Record<string, Record<string, string>>>(() => {
-    const initial: Record<string, Record<string, string>> = {};
-    students.forEach(s => {
-      initial[s.id] = {};
-      criteriaList.forEach(c => { initial[s.id][c.id] = ''; });
-    });
-    return initial;
-  });
+  const [scores, setScores] = useState<EvaluationScoreMap>(data.initialScores);
 
   // Auto-scroll to top when student changes
   useEffect(() => {

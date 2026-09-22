@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Save, AlertTriangle, ArrowRight, ArrowLeft, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { EvaluationCriteriaRecord } from '@/lib/dao/reportsDao';
+import type { EvaluationScoreMap } from '@/lib/services/evaluationScores';
 
 type EvaluationFormClientProps = {
   sessionId: string;
@@ -12,25 +13,17 @@ type EvaluationFormClientProps = {
   criteriaList: EvaluationCriteriaRecord[];
   lessonTitle: string;
   blockName: string;
+  initialScores: EvaluationScoreMap;
 };
 
-export default function EvaluationFormClient({ sessionId, students, criteriaList, lessonTitle, blockName }: EvaluationFormClientProps) {
+export default function EvaluationFormClient({ sessionId, students, criteriaList, lessonTitle, blockName, initialScores }: EvaluationFormClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isExiting, setIsExiting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
   // state: coderId -> criteriaId -> score (string integer)
-  const [scores, setScores] = useState<Record<string, Record<string, string>>>(() => {
-    const initial: Record<string, Record<string, string>> = {};
-    students.forEach(s => {
-      initial[s.id] = {};
-      criteriaList.forEach(c => {
-        initial[s.id][c.id] = ''; // Start empty
-      });
-    });
-    return initial;
-  });
+  const [scores, setScores] = useState<EvaluationScoreMap>(initialScores);
 
   const [errorMessage, setErrorMessage] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);

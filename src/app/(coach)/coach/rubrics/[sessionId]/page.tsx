@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { getSessionOrThrow } from '@/lib/auth';
 import { attendanceDao, sessionsDao, classesDao, reportsDao } from '@/lib/dao';
 import { filterEvaluationEnrollmentsForSession } from '@/lib/services/enrollmentEligibility';
+import { buildEvaluationScoreMap } from '@/lib/services/evaluationScores';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 
 import EvaluationFormClient from './EvaluationFormClient';
@@ -47,7 +48,11 @@ export default async function CoachSessionEvaluationPage({ params }: { params: P
     .select('id, full_name')
     .in('id', activeStudentIds);
 
-  const criteriaList = await reportsDao.getEvaluationCriteria();
+  const [criteriaList, savedEvaluations] = await Promise.all([
+    reportsDao.getEvaluationCriteria(),
+    reportsDao.getLessonEvaluationsBySession(sessionId),
+  ]);
+  const initialScores = buildEvaluationScoreMap(students || [], criteriaList, savedEvaluations);
 
   return (
     <>
@@ -57,6 +62,7 @@ export default async function CoachSessionEvaluationPage({ params }: { params: P
         criteriaList={criteriaList}
         lessonTitle={formatLessonTitle(slot)}
         blockName={slot.block.name || 'Unknown Block'}
+        initialScores={initialScores}
       />
     </>
   );

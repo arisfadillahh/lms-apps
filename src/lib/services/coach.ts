@@ -4,7 +4,7 @@ import type { ClassBlockRecord } from '@/lib/dao/classesDao';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 import { getSoftwareByBlockId } from '@/lib/dao/blockSoftwareDao';
 import { mergeCoachClassesById, pickNextCoachSession, pickRelevantCoachSessions } from '@/lib/services/coachClassSummary';
-import { filterActiveEnrollmentsForSession } from '@/lib/services/enrollmentEligibility';
+import { filterEvaluationEnrollmentsForSession } from '@/lib/services/enrollmentEligibility';
 import { isCoachEvaluationBlockActive, isRegularReportWindowActive } from '@/lib/services/reportWindows';
 
 type SoftwareInfo = {
@@ -313,10 +313,15 @@ export async function getPendingLessonEvaluationsForCoach(coachId: string): Prom
 
       const evaluatedCoderIds = new Set((existingEvals || []).map(e => e.coder_id));
 
-      const relevantEnrollments = filterActiveEnrollmentsForSession(activeEnrollments, session.date_time);
+      const attendedCoderIds = attendanceBySession.get(session.id) ?? new Set<string>();
+      const sessionAttendanceRecords = attendanceRecords.filter((record) => record.session_id === session.id);
+      const relevantEnrollments = filterEvaluationEnrollmentsForSession(
+        activeEnrollments,
+        session.date_time,
+        sessionAttendanceRecords,
+      );
 
       if (relevantEnrollments.length === 0) continue;
-      const attendedCoderIds = attendanceBySession.get(session.id) ?? new Set<string>();
       const missingAttendanceCount = relevantEnrollments.filter(
         (enrollment) => !attendedCoderIds.has(enrollment.coder_id),
       ).length;

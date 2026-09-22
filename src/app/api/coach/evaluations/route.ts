@@ -3,7 +3,7 @@ import { after, NextResponse } from 'next/server';
 import { getSessionOrThrow } from '@/lib/auth';
 import { attendanceDao, sessionsDao, reportsDao, classesDao } from '@/lib/dao';
 import type { UpsertLessonEvaluationInput } from '@/lib/dao/reportsDao';
-import { filterActiveEnrollmentsForSession } from '@/lib/services/enrollmentEligibility';
+import { filterEvaluationEnrollmentsForSession } from '@/lib/services/enrollmentEligibility';
 import { computeLessonSchedule } from '@/lib/services/lessonScheduler';
 import { generateDraftReportsForClasses } from '@/lib/services/aiReports';
 
@@ -41,7 +41,12 @@ export async function POST(req: Request) {
     const activeEnrollments = (await classesDao.listEnrollmentsByClass(klass.id)).filter(
       (enrollment) => enrollment.status === 'ACTIVE',
     );
-    const eligibleEnrollments = filterActiveEnrollmentsForSession(activeEnrollments, session.date_time);
+    const attendanceRecords = await attendanceDao.listAttendanceBySession(session.id);
+    const eligibleEnrollments = filterEvaluationEnrollmentsForSession(
+      activeEnrollments,
+      session.date_time,
+      attendanceRecords,
+    );
     const activeCoderIds = new Set(eligibleEnrollments.map((enrollment) => enrollment.coder_id));
     const submittedCoderIds = Object.keys(scores as Record<string, unknown>);
     const unknownCoderIds = submittedCoderIds.filter((coderId) => !activeCoderIds.has(coderId));
@@ -49,7 +54,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Ada coder yang tidak terdaftar aktif di kelas ini.' }, { status: 400 });
     }
 
-    const attendanceRecords = await attendanceDao.listAttendanceBySession(session.id);
     const attendedCoderIds = new Set(attendanceRecords.map((record) => record.coder_id));
     const missingAttendance = submittedCoderIds.filter((coderId) => !attendedCoderIds.has(coderId));
     if (missingAttendance.length > 0) {

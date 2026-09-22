@@ -4,6 +4,7 @@ Search this file and the linked monthly log before changing related code.
 
 | Date | Reference | Area | Symptom | Monthly log |
 | --- | --- | --- | --- | --- |
+| 2026-09-22 | INTERNAL-20260922-01 | Coach lesson evaluation roster | A newly registered Coder with PRESENT attendance was missing from Solution Ideation scoring | [2026-09](./2026-09.md#internal-20260922-01-present-coder-enrolled-after-session-was-missing-from-coach-scoring) |
 | 2026-09-17 | INTERNAL-20260917-01 | Public portfolio tablet intro | Entry button was clipped on landscape tablets and hidden content rendered unnecessarily | [2026-09](./2026-09.md#internal-20260917-01-tablet-portfolio-entry-action-and-render-work) |
 | 2026-08-12 | INTERNAL-20260812-01 | Ekskul lesson editor | Editor opened another lesson's data | [2026-08](./2026-08.md#internal-20260812-01-ekskul-lesson-editor-loaded-the-wrong-record) |
 | 2026-08-12 | INTERNAL-20260812-02 | Admin users | Page failed because schema extension threw at runtime | [2026-08](./2026-08.md#internal-20260812-02-admin-users-page-schema-crash) |

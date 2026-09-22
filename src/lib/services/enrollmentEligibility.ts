@@ -20,6 +20,28 @@ export function filterActiveEnrollmentsForSession(
   return enrollments.filter((enrollment) => isEnrollmentActiveForSession(enrollment, sessionDateTime));
 }
 
+type SessionAttendanceEvidence = {
+  coder_id: string;
+  status: string;
+};
+
+export function filterEvaluationEnrollmentsForSession(
+  enrollments: EnrollmentRecord[],
+  sessionDateTime: string | null | undefined,
+  attendanceRecords: SessionAttendanceEvidence[],
+) {
+  const presentCoderIds = new Set(
+    attendanceRecords
+      .filter((record) => record.status === 'PRESENT')
+      .map((record) => record.coder_id),
+  );
+
+  return enrollments.filter((enrollment) => (
+    isEnrollmentActiveForSession(enrollment, sessionDateTime)
+    || (enrollment.status === 'ACTIVE' && presentCoderIds.has(enrollment.coder_id))
+  ));
+}
+
 export function isEnrollmentCurrentForUpcomingSession(
   enrollment: EnrollmentRecord,
   sessionDateTime: string | null | undefined,

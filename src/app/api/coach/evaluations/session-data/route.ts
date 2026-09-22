@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSessionOrThrow } from '@/lib/auth';
 import { attendanceDao, sessionsDao, classesDao, reportsDao } from '@/lib/dao';
-import { filterActiveEnrollmentsForSession } from '@/lib/services/enrollmentEligibility';
+import { filterEvaluationEnrollmentsForSession } from '@/lib/services/enrollmentEligibility';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 
 export async function GET(req: Request) {
@@ -34,15 +34,20 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Lesson slot not found' }, { status: 404 });
     }
 
-    // Only students who were already enrolled when this session happened.
+    const attendanceRecords = await attendanceDao.listAttendanceBySession(session.id);
+
+    // A PRESENT record is authoritative when a newly added Coder was backfilled into this session.
     const enrollments = await classesDao.listEnrollmentsByClass(klass.id);
-    const activeStudentIds = filterActiveEnrollmentsForSession(enrollments, session.date_time).map(e => e.coder_id);
+    const activeStudentIds = filterEvaluationEnrollmentsForSession(
+      enrollments,
+      session.date_time,
+      attendanceRecords,
+    ).map(e => e.coder_id);
 
     if (activeStudentIds.length === 0) {
       return NextResponse.json({ error: 'No active students' }, { status: 404 });
     }
 
-    const attendanceRecords = await attendanceDao.listAttendanceBySession(session.id);
     const attendedCoderIds = new Set(attendanceRecords.map((record) => record.coder_id));
     const missingAttendance = activeStudentIds.filter((coderId) => !attendedCoderIds.has(coderId));
     if (missingAttendance.length > 0) {

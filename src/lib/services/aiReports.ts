@@ -146,8 +146,8 @@ export type GenerateEkskulMidtermReportsInput = {
  */
 export async function generateEkskulMidtermReports(input: GenerateEkskulMidtermReportsInput) {
   const supabase = getSupabaseAdmin();
-  const cutoff = new Date(input.cutoffAt);
-  if (Number.isNaN(cutoff.getTime()) || cutoff.getTime() > Date.now()) {
+  const requestedCutoff = new Date(input.cutoffAt);
+  if (Number.isNaN(requestedCutoff.getTime()) || requestedCutoff.getTime() > Date.now()) {
     throw new Error('Tanggal batas rapor tengah semester tidak valid.');
   }
 
@@ -157,9 +157,7 @@ export async function generateEkskulMidtermReports(input: GenerateEkskulMidtermR
   }
 
   const existingCycle = await reportsDao.getEkskulMidtermCycleForClass(input.classId);
-  if (existingCycle) {
-    throw new Error('Rapor tengah semester untuk kelas ini sudah pernah dibuat.');
-  }
+  const cutoff = new Date(existingCycle?.cutoff_at ?? requestedCutoff.toISOString());
 
   const [sessions, enrollments, criteria, lessonSchedule] = await Promise.all([
     sessionsDao.listSessionsByClass(input.classId),
@@ -218,11 +216,20 @@ export async function generateEkskulMidtermReports(input: GenerateEkskulMidtermR
     .map((slot) => formatLessonTitle(slot!));
   const lessonTitlesText = Array.from(new Set(lessonTitles)).join(', ') || 'Materi Ekskul';
 
-  const cycle = await reportsDao.createEkskulMidtermCycle({
-    classId: input.classId,
-    cutoffAt: cutoff.toISOString(),
-    createdBy: input.initiatedBy,
-  });
+  let cycle = existingCycle;
+  if (!cycle) {
+    try {
+      cycle = await reportsDao.createEkskulMidtermCycle({
+        classId: input.classId,
+        cutoffAt: cutoff.toISOString(),
+        createdBy: input.initiatedBy,
+      });
+    } catch (error) {
+      // A second request may win the unique class/report-type race. Resume its cycle.
+      cycle = await reportsDao.getEkskulMidtermCycleForClass(input.classId);
+      if (!cycle) throw error;
+    }
+  }
   const coach = klass.coach_id
     ? await supabase.from('users').select('full_name').eq('id', klass.coach_id).maybeSingle()
     : { data: null };
@@ -235,15 +242,29 @@ export async function generateEkskulMidtermReports(input: GenerateEkskulMidtermR
       score: scores.reduce((sum, score) => sum + score, 0) / scores.length,
     }));
     const average = criteriaInput.reduce((sum, item) => sum + item.score, 0) / criteriaInput.length;
-    const report = await reportsDao.createEkskulMidtermReport({
-      cycleId: cycle.id,
-      classId: input.classId,
-      coderId,
-      averageScore: Number(average.toFixed(2)),
-      grade: calculateGrade(average),
-      coachIdSnapshot: klass.coach_id,
-      coachNameSnapshot: coach.data?.full_name ?? null,
-    });
+    let report = await reportsDao.getEkskulMidtermReport(cycle.id, coderId);
+    if (!report) {
+      try {
+        report = await reportsDao.createEkskulMidtermReport({
+          cycleId: cycle.id,
+          classId: input.classId,
+          coderId,
+          averageScore: Number(average.toFixed(2)),
+          grade: calculateGrade(average),
+          coachIdSnapshot: klass.coach_id,
+          coachNameSnapshot: coach.data?.full_name ?? null,
+        });
+      } catch (error) {
+        report = await reportsDao.getEkskulMidtermReport(cycle.id, coderId);
+        if (!report) throw error;
+      }
+    }
+
+    const existingDescriptions = await reportsDao.getBlockReportDescriptions(report.id);
+    if (existingDescriptions.length >= criteriaInput.length || report.status !== 'DRAFT') {
+      generatedCount++;
+      continue;
+    }
     const descriptions = await generateBlockReportDescriptions(
       coderNames.get(coderId) ?? 'Coder',
       klass.name,

@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { getSessionOrThrow } from '@/lib/auth';
@@ -26,15 +26,22 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Fitur ini hanya untuk kelas Ekskul.' }, { status: 400 });
   }
 
-  try {
-    const result = await generateEkskulMidtermReports({
-      classId,
-      cutoffAt: parsed.data.cutoffAt,
-      initiatedBy: session.user.id,
-    });
-    return NextResponse.json(result, { status: 201 });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Gagal membuat draf rapor tengah semester.';
-    return NextResponse.json({ error: message }, { status: 409 });
+  const cutoff = new Date(parsed.data.cutoffAt);
+  if (cutoff.getTime() > Date.now()) {
+    return NextResponse.json({ error: 'Tanggal batas rapor tidak boleh berada di masa depan.' }, { status: 400 });
   }
+
+  after(async () => {
+    try {
+      await generateEkskulMidtermReports({
+        classId,
+        cutoffAt: parsed.data.cutoffAt,
+        initiatedBy: session.user.id,
+      });
+    } catch (error) {
+      console.error('[EkskulMidtermReports] Background generation failed', { classId, error });
+    }
+  });
+
+  return NextResponse.json({ queued: true }, { status: 202 });
 }

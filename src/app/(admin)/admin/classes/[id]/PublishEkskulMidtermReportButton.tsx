@@ -25,8 +25,8 @@ export default function PublishEkskulMidtermReportButton({ classId, alreadyCreat
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error ?? 'Gagal membuat draf rapor tengah semester.');
-      setMessage(`${payload.count ?? 0} draf rapor dibuat untuk direview Coach.`);
-      router.refresh();
+      setMessage('Pembuatan draf dimulai. Halaman akan diperbarui otomatis.');
+      window.setTimeout(() => router.refresh(), 2500);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Gagal membuat draf rapor tengah semester.');
     } finally {
@@ -44,7 +44,7 @@ export default function PublishEkskulMidtermReportButton({ classId, alreadyCreat
         {isPending ? <Loader2 size={15} className="animate-spin" /> : <FilePlus2 size={15} />}
         {isPending ? 'Membuat draf...' : 'Terbitkan Rapor Tengah Semester'}
       </button>
-      {message ? <span style={{ maxWidth: 300, fontSize: '0.75rem', color: message.includes('dibuat') ? '#15803d' : '#b91c1c', textAlign: 'right' }}>{message}</span> : null}
+      {message ? <span style={{ maxWidth: 300, fontSize: '0.75rem', color: message.includes('dimulai') ? '#15803d' : '#b91c1c', textAlign: 'right' }}>{message}</span> : null}
     </div>
   );
 }

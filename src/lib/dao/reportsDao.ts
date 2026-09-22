@@ -494,6 +494,25 @@ export async function createEkskulMidtermReport(input: CreateEkskulMidtermReport
   return data;
 }
 
+export async function getEkskulMidtermReport(
+  cycleId: string,
+  coderId: string,
+): Promise<BlockReportRecord | null> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('block_reports')
+    .select('*')
+    .eq('report_cycle_id', cycleId)
+    .eq('coder_id', coderId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to load Ekskul midterm report: ${error.message}`);
+  }
+
+  return data;
+}
+
 export async function upsertBlockReport(input: UpsertBlockReportInput): Promise<BlockReportRecord> {
   const supabase = getSupabaseAdmin();
   const payload: TablesInsert<'block_reports'> = {

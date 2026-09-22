@@ -43,6 +43,7 @@ type ReportStoryExperienceProps = {
   competencies: StoryCompetency[];
   lessons: string[];
   reflections: StoryReflection[];
+  isEkskul: boolean;
 };
 
 const SCENES = [
@@ -62,6 +63,18 @@ function polygonPoints(cx: number, cy: number, radius: number, sides: number, sc
     const angle = -Math.PI / 2 + index * (Math.PI * 2 / sides);
     return `${cx + Math.cos(angle) * radius * scale},${cy + Math.sin(angle) * radius * scale}`;
   }).join(' ');
+}
+
+function splitRadarLabel(label: string, maxLength = 18) {
+  return label.split(/\s+/).reduce<string[]>((lines, word) => {
+    const lastIndex = lines.length - 1;
+    if (lastIndex >= 0 && `${lines[lastIndex]} ${word}`.length <= maxLength) {
+      lines[lastIndex] = `${lines[lastIndex]} ${word}`;
+    } else {
+      lines.push(word);
+    }
+    return lines;
+  }, []);
 }
 
 export default function ReportStoryExperience(props: ReportStoryExperienceProps) {
@@ -94,9 +107,14 @@ export default function ReportStoryExperience(props: ReportStoryExperienceProps)
   );
   const lessonGridDensity = props.lessons.length > 12 ? 'dense' : props.lessons.length > 8 ? 'compact' : 'standard';
   const visibleReflections = props.reflections.slice(0, 4);
-  const currentScene = SCENES[currentIndex];
+  const scenes = useMemo(
+    () => props.isEkskul ? SCENES.filter((scene) => scene.id !== 'reflection') : SCENES,
+    [props.isEkskul],
+  );
+  const currentScene = scenes[currentIndex];
   const isFirst = currentIndex === 0;
-  const isLast = currentIndex === SCENES.length - 1;
+  const isLast = currentIndex === scenes.length - 1;
+  const periodLabel = props.isEkskul ? 'periode ini' : 'block ini';
 
   useEffect(() => {
     setPortalReady(true);
@@ -117,8 +135,8 @@ export default function ReportStoryExperience(props: ReportStoryExperienceProps)
       void closeStory();
       return;
     }
-    setCurrentIndex((index) => Math.min(index + 1, SCENES.length - 1));
-  }, [closeStory, isLast]);
+    setCurrentIndex((index) => Math.min(index + 1, scenes.length - 1));
+  }, [closeStory, isLast, scenes.length]);
 
   const goPrevious = useCallback(() => {
     setCurrentIndex((index) => Math.max(index - 1, 0));
@@ -157,7 +175,7 @@ export default function ReportStoryExperience(props: ReportStoryExperienceProps)
       if (!isButton && (event.key === 'ArrowRight' || event.key === ' ' || event.key === 'PageDown')) goNext();
       if (event.key === 'ArrowLeft' || event.key === 'PageUp') goPrevious();
       if (event.key === 'Home') setCurrentIndex(0);
-      if (event.key === 'End') setCurrentIndex(SCENES.length - 1);
+      if (event.key === 'End') setCurrentIndex(scenes.length - 1);
       if (event.key === 'Escape') void closeStory();
     };
     const onFullscreenChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
@@ -176,7 +194,7 @@ export default function ReportStoryExperience(props: ReportStoryExperienceProps)
       window.removeEventListener('keydown', onKeyDown);
       document.removeEventListener('fullscreenchange', onFullscreenChange);
     };
-  }, [closeStory, goNext, goPrevious, isOpen]);
+  }, [closeStory, goNext, goPrevious, isOpen, scenes.length]);
 
   useEffect(() => {
     if (!isOpen || (currentScene.id !== 'recap' && currentScene.id !== 'finish')) return;
@@ -212,9 +230,9 @@ export default function ReportStoryExperience(props: ReportStoryExperienceProps)
       { name: 'Konsistensi', percentage: clampPercentage(props.score), description: '' },
       { name: 'Kreativitas', percentage: clampPercentage(props.score), description: '' },
     ];
-    const cx = 250;
+    const cx = 320;
     const cy = 250;
-    const radius = 165;
+    const radius = 150;
     const shape = items.map((item, index) => {
       const angle = -Math.PI / 2 + index * (Math.PI * 2 / items.length);
       const valueRadius = radius * item.percentage / 100;
@@ -295,8 +313,8 @@ export default function ReportStoryExperience(props: ReportStoryExperienceProps)
                   />
                 </div>
 
-                <nav className="progress" aria-label="Tahapan laporan">
-                  {SCENES.map((scene, index) => (
+                <nav className="progress" aria-label="Tahapan laporan" style={{ gridTemplateColumns: `repeat(${scenes.length}, 1fr)` }}>
+                  {scenes.map((scene, index) => (
                     <button
                       key={scene.id}
                       type="button"
@@ -323,7 +341,7 @@ export default function ReportStoryExperience(props: ReportStoryExperienceProps)
                   <div className="slide-inner intro-layout">
                     <div className="intro-copy">
                       <p className="eyebrow">{props.reportTitle} · {props.publishedDate}</p>
-                      <h1 className="display">Ini cerita <span className="accent">{firstName}</span> selama satu block.</h1>
+                      <h1 className="display">Ini cerita <span className="accent">{firstName}</span> selama {props.isEkskul ? 'semester ini' : 'satu block'}.</h1>
                       <p className="lead">Bukan cuma angka. Kita akan melihat kemampuan yang berkembang, tantangan yang berhasil dilewati, dan langkah berikutnya.</p>
                       <div className="intro-actions">
                         <button className="primary-btn" type="button" onClick={goNext}>Mulai perjalanan <ArrowRight aria-hidden="true" /></button>
@@ -356,7 +374,7 @@ export default function ReportStoryExperience(props: ReportStoryExperienceProps)
                     </div>
                     <div className="recap-copy">
                       <p className="eyebrow">Season Recap</p>
-                      <h2 className="display medium">Performa block ini: <span className="accent">{props.performanceLabel}</span></h2>
+                      <h2 className="display medium">Performa {periodLabel}: <span className="accent">{props.performanceLabel}</span></h2>
                       <p className="lead">Skor keseluruhan menunjukkan kemampuan memahami konsep dan menerapkannya ke dalam project secara konsisten.</p>
                       <blockquote>{props.performanceSummary}</blockquote>
                     </div>
@@ -366,19 +384,24 @@ export default function ReportStoryExperience(props: ReportStoryExperienceProps)
                 <article className={`slide ${currentScene.id === 'stats' ? 'active' : ''}`} aria-hidden={currentScene.id !== 'stats'}>
                   <div className="slide-inner stats-layout">
                     <div className="radar-wrap">
-                      <svg id="radarChart" viewBox="0 0 500 500" role="img" aria-label="Grafik kompetensi">
+                      <svg id="radarChart" viewBox="0 0 640 500" role="img" aria-label="Grafik kompetensi">
                         {[1, 0.8, 0.6, 0.4, 0.2].map((scale) => <polygon key={scale} className="radar-grid" points={polygonPoints(radar.cx, radar.cy, radar.radius, radar.items.length, scale)} />)}
                         {radar.items.map((item, index) => {
                           const angle = -Math.PI / 2 + index * (Math.PI * 2 / radar.items.length);
                           const valueRadius = radar.radius * item.percentage / 100;
-                          const lx = radar.cx + Math.cos(angle) * (radar.radius + 48);
-                          const ly = radar.cy + Math.sin(angle) * (radar.radius + 42);
+                          const lx = radar.cx + Math.cos(angle) * (radar.radius + 44);
+                          const ly = radar.cy + Math.sin(angle) * (radar.radius + 40);
                           const anchor = lx < radar.cx - 25 ? 'end' : lx > radar.cx + 25 ? 'start' : 'middle';
+                          const labelLines = splitRadarLabel(item.name);
                           return (
                             <g key={item.name}>
                               <line className="radar-axis" x1={radar.cx} y1={radar.cy} x2={radar.cx + Math.cos(angle) * radar.radius} y2={radar.cy + Math.sin(angle) * radar.radius} />
                               <circle className="radar-dot" cx={radar.cx + Math.cos(angle) * valueRadius} cy={radar.cy + Math.sin(angle) * valueRadius} r="7" />
-                              <text className="radar-label" x={lx} y={ly} textAnchor={anchor}>{item.name}</text>
+                              <text className="radar-label" x={lx} y={ly - ((labelLines.length - 1) * 8)} textAnchor={anchor}>
+                                {labelLines.map((line, lineIndex) => (
+                                  <tspan key={`${line}-${lineIndex}`} x={lx} dy={lineIndex === 0 ? 0 : 17}>{line}</tspan>
+                                ))}
+                              </text>
                             </g>
                           );
                         })}
@@ -406,9 +429,9 @@ export default function ReportStoryExperience(props: ReportStoryExperienceProps)
                   <div className={`slide-inner skills-board-layout ${lessonGridDensity}`}>
                     <div className="skills-board-copy">
                       <p className="eyebrow">Skills Unlocked</p>
-                      <h2 className="display medium">{props.lessons.length} materi berhasil <span className="accent">dikuasai.</span></h2>
-                      <p className="lead">Setiap materi adalah bekal baru untuk membuat karya yang lebih hidup, lebih matang, dan lebih berani.</p>
-                      <div className="unlocked">Semua materi block selesai</div>
+                      <h2 className="display medium">{props.lessons.length} {props.isEkskul ? 'lesson sudah' : 'materi berhasil'} <span className="accent">{props.isEkskul ? 'dijalani.' : 'dikuasai.'}</span></h2>
+                      <p className="lead">Setiap {props.isEkskul ? 'lesson' : 'materi'} adalah bekal baru untuk membuat karya yang lebih hidup, lebih matang, dan lebih berani.</p>
+                      <div className="unlocked">{props.isEkskul ? 'Lesson yang sudah dijalani' : 'Semua materi block selesai'}</div>
                       <div className="skills-board-callout">
                         <Sparkles aria-hidden="true" />
                         <div>
@@ -444,7 +467,7 @@ export default function ReportStoryExperience(props: ReportStoryExperienceProps)
                   </div>
                 </article>
 
-                <article className={`slide ${currentScene.id === 'reflection' ? 'active' : ''}`} aria-hidden={currentScene.id !== 'reflection'}>
+                {!props.isEkskul && <article className={`slide ${currentScene.id === 'reflection' ? 'active' : ''}`} aria-hidden={currentScene.id !== 'reflection'}>
                   <div className="slide-inner reflection-layout">
                     <div className="project-art" aria-hidden="true"><div className="project-ring" /><div className="project-cube"><span /><span /><span /></div></div>
                     <div>
@@ -458,15 +481,15 @@ export default function ReportStoryExperience(props: ReportStoryExperienceProps)
                       </div>
                     </div>
                   </div>
-                </article>
+                </article>}
 
                 <article className={`slide ${currentScene.id === 'finish' ? 'active' : ''}`} aria-hidden={currentScene.id !== 'finish'}>
                   <div className="slide-inner final-layout">
                     <div className="final-emblem" aria-hidden="true"><Sparkles /></div>
                     <p className="eyebrow">Quest Complete</p>
-                    <h2 className="display medium">{firstName} sudah menyelesaikan block ini dengan <span className="accent">luar biasa.</span></h2>
+                    <h2 className="display medium">{firstName} sudah menjalani {periodLabel} dengan <span className="accent">luar biasa.</span></h2>
                     <p className="lead">Progress terbaik bukan tentang menjadi sempurna, tetapi tentang terus mencoba, membuat, mengevaluasi, dan berkembang.</p>
-                    <div className="mini-summary"><span><strong>{animatedScore}</strong>Overall</span><span><strong>{props.grade}</strong>Grade</span><span><strong>{props.lessons.length}</strong>Materi</span></div>
+                    <div className="mini-summary"><span><strong>{animatedScore}</strong>Overall</span><span><strong>{props.grade}</strong>Grade</span><span><strong>{props.lessons.length}</strong>{props.isEkskul ? 'Lesson' : 'Materi'}</span></div>
                     <div className="final-actions">
                       <button className="primary-btn" type="button" onClick={() => void closeStory()}>Lihat laporan lengkap <ArrowRight aria-hidden="true" /></button>
                       <button className="secondary-btn" type="button" onClick={() => setCurrentIndex(0)}>Putar ulang <RotateCcw aria-hidden="true" /></button>
@@ -477,7 +500,7 @@ export default function ReportStoryExperience(props: ReportStoryExperienceProps)
 
               <footer className="bottom-nav">
                 <button className="nav-btn" type="button" onClick={goPrevious} disabled={isFirst} aria-label="Sebelumnya"><ArrowLeft aria-hidden="true" /></button>
-                <div className="nav-hint">{currentIndex + 1} / {SCENES.length} · {currentScene.label}</div>
+                <div className="nav-hint">{currentIndex + 1} / {scenes.length} · {currentScene.label}</div>
                 <button className="nav-btn" type="button" onClick={goNext} aria-label={isLast ? 'Lihat rapor lengkap' : 'Berikutnya'}><ArrowRight aria-hidden="true" /></button>
               </footer>
             </main>

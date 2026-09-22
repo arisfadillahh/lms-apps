@@ -1,4 +1,6 @@
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { sessionsDao } from '@/lib/dao';
+import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 import { notFound } from 'next/navigation';
 import {
   CalendarDays,
@@ -102,7 +104,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
     .from('block_reports')
     .select(`
       *,
-      class:classes(id, name, type, level:levels(name), coach:users!classes_coach_id_fkey(full_name)),
+      class:classes(id, name, type, level_id, ekskul_lesson_plan_id, level:levels(name), coach:users!classes_coach_id_fkey(full_name)),
       block:blocks(name),
       coder:users!block_reports_coder_id_fkey(full_name)
     `)
@@ -132,6 +134,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
   const coach = klass?.coach ? (Array.isArray(klass.coach) ? klass.coach[0] : klass.coach) : null;
   const reportCoachName = report.coach_name_snapshot || coach?.full_name || 'Clevio Coach';
   const isEkskulMidterm = report.report_period_type === 'EKSKUL_MIDTERM';
+  const isEkskulReport = klass?.type === 'EKSKUL';
 
   const [{ data: evalCriteria }, reportClassBlocksResult] = await Promise.all([
     supabase.from('evaluation_criteria').select('*').order('order_index'),
@@ -167,8 +170,9 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
   // Fetch block evaluation (reflection) submitted by the coder for this block
   let blockEvaluation: { answers: Record<string, string> } | null = null;
   let evalQuestions: { id: string; question: string }[] = [];
-  try {
-    const queryTable = (table: string) => (supabase as unknown as { from: (table: string) => LooseQueryBuilder }).from(table);
+  if (!isEkskulReport && report.block_id) {
+    try {
+      const queryTable = (table: string) => (supabase as unknown as { from: (table: string) => LooseQueryBuilder }).from(table);
 
     const { data: evalData } = await queryTable('block_evaluations')
       .select('answers')
@@ -210,8 +214,9 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
         { id: 'q5', question: 'Pesan untuk dirimu sendiri di block berikutnya:' },
       ];
     }
-  } catch {
-    // Table may not exist yet — gracefully ignore
+    } catch {
+      // Table may not exist yet — gracefully ignore
+    }
   }
 
 
@@ -226,7 +231,30 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
     };
   }) || [];
 
-  const lessonTitles = getUniqueLessonTitles(actualClassLessons?.length ? actualClassLessons : fallbackLessonTemplates || []);
+  let ekskulLessonTitles: string[] = [];
+  if (isEkskulReport && klass?.level_id) {
+    const [{ data: reportCycle }, classSessions, lessonSchedule] = await Promise.all([
+      report.report_cycle_id
+        ? supabase.from('ekskul_report_cycles').select('cutoff_at').eq('id', report.report_cycle_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      sessionsDao.listSessionsByClass(report.class_id),
+      computeLessonSchedule(report.class_id, klass.level_id, klass.ekskul_lesson_plan_id),
+    ]);
+    const cutoffAt = new Date(reportCycle?.cutoff_at ?? report.created_at).getTime();
+    ekskulLessonTitles = Array.from(new Set(
+      classSessions
+        .filter((session) => (
+          session.status === 'COMPLETED'
+          && new Date(session.date_time).getTime() <= cutoffAt
+          && lessonSchedule.has(session.id)
+        ))
+        .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime())
+        .map((session) => formatLessonTitle(lessonSchedule.get(session.id)!)),
+    ));
+  }
+  const lessonTitles = isEkskulReport
+    ? ekskulLessonTitles
+    : getUniqueLessonTitles(actualClassLessons?.length ? actualClassLessons : fallbackLessonTemplates || []);
 
   const pubDate = new Date(report.updated_at || report.created_at).toLocaleDateString('id-ID', {
     day: 'numeric', month: 'long', year: 'numeric',
@@ -353,7 +381,8 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
               performanceSummary={gradeSummary}
               competencies={storyCompetencies}
               lessons={lessonTitles}
-              reflections={reportReflections}
+              reflections={isEkskulReport ? [] : reportReflections}
+              isEkskul={isEkskulReport}
             />
             <DownloadPdfButton />
           </div>
@@ -467,7 +496,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
             </section>
           )}
 
-          {reportReflections.length > 0 && (
+          {!isEkskulReport && reportReflections.length > 0 && (
               <section className="report-section mt-12" data-purpose="reflection-qa">
                 <div className="report-section-heading mb-5 flex items-end justify-between gap-4">
                   <div>

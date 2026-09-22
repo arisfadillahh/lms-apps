@@ -232,13 +232,13 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
   }) || [];
 
   let ekskulLessonTitles: string[] = [];
-  if (isEkskulReport && klass?.level_id) {
+  if (isEkskulReport && (klass?.level_id || klass?.ekskul_lesson_plan_id)) {
     const [{ data: reportCycle }, classSessions, lessonSchedule] = await Promise.all([
       report.report_cycle_id
         ? supabase.from('ekskul_report_cycles').select('cutoff_at').eq('id', report.report_cycle_id).maybeSingle()
         : Promise.resolve({ data: null }),
       sessionsDao.listSessionsByClass(report.class_id),
-      computeLessonSchedule(report.class_id, klass.level_id, klass.ekskul_lesson_plan_id),
+      computeLessonSchedule(report.class_id, klass.level_id ?? null, klass.ekskul_lesson_plan_id),
     ]);
     const cutoffAt = new Date(reportCycle?.cutoff_at ?? report.created_at).getTime();
     ekskulLessonTitles = Array.from(new Set(

@@ -50,6 +50,8 @@ describe('Ekskul midterm report cycle', () => {
 
   it('shows completed Ekskul lessons and omits coder reflection from Ekskul reports', () => {
     expect(publicReportPage).toContain("session.status === 'COMPLETED'");
+    expect(publicReportPage).toContain("klass?.level_id || klass?.ekskul_lesson_plan_id");
+    expect(publicReportPage).toContain('klass.level_id ?? null');
     expect(publicReportPage).toContain("supabase.from('ekskul_report_cycles').select('cutoff_at')");
     expect(publicReportPage).toContain('computeLessonSchedule(report.class_id');
     expect(publicReportPage).toContain('reflections={isEkskulReport ? [] : reportReflections}');

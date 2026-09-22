@@ -29,7 +29,7 @@ export default async function CoachSessionEvaluationPage({ params }: { params: P
 
   const attendanceRecords = await attendanceDao.listAttendanceBySession(session.id);
 
-  // Include a newly registered Coder when their actual attendance was backfilled as PRESENT.
+  // Explicit attendance backfill keeps an active late-joining Coder in the historical roster.
   const enrollments = await classesDao.listEnrollmentsByClass(klass.id);
   const activeStudentIds = filterEvaluationEnrollmentsForSession(
     enrollments,

@@ -18,22 +18,32 @@ export const REPORT_STORY_LAYOUT_FIX = `
   min-width: 0 !important;
 }
 .clevio-story .stage {
-  overflow: visible;
+  min-height: 0;
+  overflow: hidden;
+}
+.clevio-story .slide {
+  min-height: 0;
+  overflow: hidden;
 }
 .clevio-story {
   overscroll-behavior: none;
   touch-action: pan-y;
 }
-.clevio-story .slide-inner {
+.clevio-story .slide-inner,
+.clevio-story .slide-inner:has(.primary-btn),
+.clevio-story .slide-inner:has(.coach-card),
+.clevio-story .slide-inner.final-layout {
+  max-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
-}
-.clevio-story .slide-inner:has(.primary-btn) {
-  overflow: visible;
+  scroll-padding-block: 24px;
+  padding-right: 12px;
+  padding-left: 12px;
 }
 .clevio-story .slide-inner:has(.coach-card) {
-  overflow: visible;
   padding-bottom: 64px;
 }
 .clevio-story .coach-layout {
@@ -50,8 +60,6 @@ export const REPORT_STORY_LAYOUT_FIX = `
   box-shadow: 0 18px 34px rgba(157, 200, 59, .28);
 }
 .clevio-story .slide-inner.final-layout {
-  max-height: none;
-  overflow: visible;
   padding-bottom: 56px;
 }
 .clevio-story .final-actions {

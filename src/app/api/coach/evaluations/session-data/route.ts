@@ -36,7 +36,7 @@ export async function GET(req: Request) {
 
     const attendanceRecords = await attendanceDao.listAttendanceBySession(session.id);
 
-    // A PRESENT record is authoritative when a newly added Coder was backfilled into this session.
+    // Any explicit attendance record is authoritative for an active late-joining Coder.
     const enrollments = await classesDao.listEnrollmentsByClass(klass.id);
     const activeStudentIds = filterEvaluationEnrollmentsForSession(
       enrollments,

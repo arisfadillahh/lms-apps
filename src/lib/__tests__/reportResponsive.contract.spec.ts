@@ -24,7 +24,11 @@ describe('report responsive layout contract', () => {
     expect(sharedLayout).toContain('@media (max-height: 860px) and (min-width: 641px)');
     expect(sharedLayout).toContain('@media (max-height: 700px) and (min-width: 641px)');
     expect(sharedLayout).toContain('font-size: clamp(38px, min(5vw, 9vh), 68px);');
-    expect(sharedLayout).toContain('max-height: calc(100dvh - 122px);');
+    expect(sharedLayout).toContain('.clevio-story .slide-inner:has(.primary-btn),');
+    expect(sharedLayout).toContain('max-height: 100%;');
+    expect(sharedLayout).toContain('scroll-padding-block: 24px;');
+    expect(sharedLayout).not.toContain('.slide-inner:has(.primary-btn) {\n  overflow: visible;');
+    expect(sharedLayout).not.toContain('.slide-inner.final-layout {\n  max-height: none;');
     expect(sharedLayout).toContain('overflow-y: auto;');
   });
 

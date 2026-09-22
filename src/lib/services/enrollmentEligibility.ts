@@ -30,15 +30,11 @@ export function filterEvaluationEnrollmentsForSession(
   sessionDateTime: string | null | undefined,
   attendanceRecords: SessionAttendanceEvidence[],
 ) {
-  const presentCoderIds = new Set(
-    attendanceRecords
-      .filter((record) => record.status === 'PRESENT')
-      .map((record) => record.coder_id),
-  );
+  const attendedCoderIds = new Set(attendanceRecords.map((record) => record.coder_id));
 
   return enrollments.filter((enrollment) => (
     isEnrollmentActiveForSession(enrollment, sessionDateTime)
-    || (enrollment.status === 'ACTIVE' && presentCoderIds.has(enrollment.coder_id))
+    || (enrollment.status === 'ACTIVE' && attendedCoderIds.has(enrollment.coder_id))
   ));
 }
 

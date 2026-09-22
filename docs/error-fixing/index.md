@@ -4,6 +4,8 @@ Search this file and the linked monthly log before changing related code.
 
 | Date | Reference | Area | Symptom | Monthly log |
 | --- | --- | --- | --- | --- |
+| 2026-09-22 | INTERNAL-20260922-04 | Interactive report responsive layout | Story content could extend outside its fixed viewport and become unreachable on short screens | [2026-09](./2026-09.md#internal-20260922-04-report-story-content-was-clipped-on-short-viewports) |
+| 2026-09-22 | INTERNAL-20260922-03 | Coach historical lesson roster | An active Al Azhar Coder with backfilled ABSENT attendance was omitted, leaving 18 of 19 Coders | [2026-09](./2026-09.md#internal-20260922-03-backfilled-absent-coder-was-missing-from-coach-scoring) |
 | 2026-09-22 | INTERNAL-20260922-02 | Ekskul midterm report generation and story | Admin received 504 while generation continued; lesson count was zero, radar labels overlapped, and Ekskul showed Weekly reflection | [2026-09](./2026-09.md#internal-20260922-02-ekskul-midterm-report-timeout-and-story-content) |
 | 2026-09-22 | INTERNAL-20260922-01 | Coach lesson evaluation roster | A newly registered Coder with PRESENT attendance was missing from Solution Ideation scoring | [2026-09](./2026-09.md#internal-20260922-01-present-coder-enrolled-after-session-was-missing-from-coach-scoring) |
 | 2026-09-17 | INTERNAL-20260917-01 | Public portfolio tablet intro | Entry button was clipped on landscape tablets and hidden content rendered unnecessarily | [2026-09](./2026-09.md#internal-20260917-01-tablet-portfolio-entry-action-and-render-work) |

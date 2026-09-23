@@ -4,6 +4,7 @@ import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonS
 import { notFound } from 'next/navigation';
 import {
   CalendarDays,
+  ClipboardList,
   CircleHelp,
   Code2,
   MessageSquare,
@@ -303,42 +304,9 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
   return (
     <div className="report-root min-h-screen bg-[#eef6fb] font-sans text-[#17306b] antialiased">
       <style>{`
-        .report-lesson-list { position: relative; list-style: none; margin: 0; padding: 0; }
-        .report-lesson-list::before {
-          position: absolute;
-          top: 18px;
-          bottom: 18px;
-          left: 15px;
-          width: 1px;
-          background: #cce6ed;
-          content: '';
-        }
-        .report-lesson-row {
-          position: relative;
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          padding: 10px 4px;
-          border-bottom: 1px solid #e1ebf0;
-        }
-        .report-lesson-row:last-child { border-bottom: 0; }
-        .report-lesson-number {
-          position: relative;
-          z-index: 1;
-          display: inline-flex;
-          width: 32px;
-          height: 32px;
-          flex: 0 0 32px;
-          align-items: center;
-          justify-content: center;
-          border: 1px solid #cfeaf0;
-          border-radius: 9px;
-          background: #f0fbfd;
-          color: #087f9a;
-          font-size: 12px;
-          font-weight: 800;
-        }
-        .report-lesson-title { min-width: 0; color: #22367b; font-size: 14px; font-weight: 700; line-height: 1.4; }
+        .report-lessons-panel { break-inside: auto; }
+        .report-lesson-card { min-width: 0; break-inside: avoid; }
+        .report-lesson-card p { overflow-wrap: anywhere; }
         @media print {
           @page { size: A4 portrait; margin: 10mm 10mm 12mm; }
           html, body {
@@ -442,17 +410,24 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
             break-after: avoid !important;
             page-break-after: avoid !important;
           }
-          .report-lesson-list { margin-top: 12px !important; }
-          .report-lesson-list::before { top: 16px !important; bottom: 16px !important; left: 12px !important; }
-          .report-lesson-row {
-            gap: 12px !important;
-            padding: 8px 4px !important;
-            border-bottom: 1px solid #e1ebf0 !important;
+          .report-lessons-panel {
+            padding: 14px !important;
+            box-shadow: none !important;
+            break-inside: auto !important;
+            page-break-inside: auto !important;
+          }
+          .report-lesson-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 8px !important;
+          }
+          .report-lesson-card {
+            min-height: 0 !important;
+            padding: 10px !important;
             break-inside: avoid !important;
             page-break-inside: avoid !important;
           }
-          .report-lesson-number { width: 28px !important; height: 28px !important; flex-basis: 28px !important; border-radius: 8px !important; font-size: 11px !important; }
-          .report-lesson-title { font-size: 12px !important; line-height: 1.35 !important; }
+          .report-lesson-card > span { width: 26px !important; height: 26px !important; min-width: 26px !important; font-size: 10px !important; }
+          .report-lesson-card p { margin-top: 8px !important; font-size: 11px !important; line-height: 1.3 !important; }
           .report-section[data-purpose="reflection-qa"] {
             break-before: auto !important;
             page-break-before: auto !important;
@@ -583,14 +558,20 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
                 </div>
                 <span className="hidden shrink-0 rounded-full border border-[#d9e6ee] bg-white px-3 py-1.5 text-xs font-bold text-[#7184a0] sm:inline-flex">{lessonTitles.length} materi</span>
               </div>
-              <ol className="report-lesson-list mt-4" aria-label={lessonSectionTitle}>
+              <div className="report-lessons-panel rounded-xl border border-[#dbe7ef] bg-white p-4 shadow-[0_8px_24px_rgba(31,63,101,0.05)] sm:p-6">
+                <div className="mb-4 flex items-center gap-3 text-[#22367b]">
+                  <ClipboardList size={20} aria-hidden="true" />
+                  <span className="text-sm font-extrabold">{lessonSectionTitle}</span>
+                </div>
+                <div className="report-lesson-grid grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
                   {lessonTitles.map((title, idx) => (
-                    <li key={`${title}-${idx}`} className="report-lesson-row">
-                      <span className="report-lesson-number" aria-hidden="true">{(idx + 1).toString().padStart(2, '0')}</span>
-                      <span className="report-lesson-title">{title}</span>
-                    </li>
+                    <div key={`${title}-${idx}`} className="report-lesson-card min-h-24 rounded-lg border border-[#dfe9f0] bg-[#f6f9fd] p-3">
+                      <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-md bg-[#22367b] px-1.5 text-xs font-black text-white">{(idx + 1).toString().padStart(2, '0')}</span>
+                      <p className="mt-3 text-sm font-extrabold leading-snug text-[#22367b]">{title}</p>
+                    </div>
                   ))}
-              </ol>
+                </div>
+              </div>
             </section>
           )}
 

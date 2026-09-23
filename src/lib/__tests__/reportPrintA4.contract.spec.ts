@@ -31,15 +31,12 @@ describe('A4 report print contract', () => {
     expect(source).not.toMatch(/\.report-section\[data-purpose="competency-feedback"\]\s*\{[^}]*break-before:\s*page/);
   });
 
-  it('prints the learning journey in the screen timeline style with intact rows', () => {
-    expect(source).toContain('<ol className="report-lesson-list mt-4"');
-    expect(source).toContain('.report-lesson-list::before');
-    expect(source).toContain('.report-lesson-row {');
+  it('prints the learning journey using the web card layout across A4 pages', () => {
+    expect(source).toContain('.report-lessons-panel {');
+    expect(source).toContain('.report-lesson-grid {');
+    expect(source).toContain('grid-template-columns: repeat(2, minmax(0, 1fr)) !important;');
+    expect(source).toContain('.report-lesson-card {');
     expect(source).toContain('page-break-inside: avoid !important;');
-    expect(source).toContain('.report-lesson-number { width: 28px !important;');
-    expect(source).toContain('.report-lesson-title { font-size: 12px !important;');
-    expect(source).toContain('grid-template-columns: 96px minmax(0, 1fr) !important;');
-    expect(source).toContain('white-space: nowrap !important;');
     expect(source).toContain('page-break-before: auto !important;');
     expect(source).toContain('page-break-after: avoid !important;');
     expect(source).toContain('.report-section[data-purpose="reflection-qa"] {');

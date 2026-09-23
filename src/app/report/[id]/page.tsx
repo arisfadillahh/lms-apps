@@ -269,10 +269,11 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
       : avgScore >= 5.5
         ? 'Developing Performance'
          : 'Needs Support';
+  const learningPeriodLabel = isEkskulReport ? 'semester' : 'block';
   const gradeSummary = avgScore >= 8.5
     ? 'Hasil belajar menunjukkan pemahaman yang kuat, kreativitas tinggi, dan perkembangan yang konsisten.'
     : avgScore >= 7.0
-      ? 'Hasil belajar menunjukkan pemahaman yang baik dan perkembangan yang positif selama block berlangsung.'
+      ? `Hasil belajar menunjukkan pemahaman yang baik dan perkembangan yang positif selama ${learningPeriodLabel} berlangsung.`
       : avgScore >= 5.5
         ? 'Kemampuan utama mulai berkembang dan akan semakin kuat dengan latihan yang konsisten.'
         : 'Coder memerlukan pendampingan lanjutan untuk memperkuat pemahaman dan rasa percaya diri.';
@@ -304,7 +305,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
     <div className="report-root min-h-screen bg-[#eef6fb] font-sans text-[#17306b] antialiased">
       <style>{`
         @media print {
-          @page { size: A4; margin: 10mm; }
+          @page { size: A4 portrait; margin: 10mm 10mm 12mm; }
           html, body { background: white !important; }
           body, .report-root {
             -webkit-print-color-adjust: exact !important;
@@ -314,6 +315,20 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
           [data-purpose="report-actions"] { display: none !important; }
           .report-root { min-height: 0 !important; background: white !important; }
           .report-page { max-width: none !important; padding: 0 !important; }
+          .report-print-header {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 18px !important;
+            margin-bottom: 8mm !important;
+            padding-bottom: 4mm !important;
+            border-bottom: 1px solid #dbe7ef !important;
+            break-after: avoid !important;
+          }
+          .report-print-header img { width: auto !important; height: 11mm !important; object-fit: contain !important; }
+          .report-print-header-copy { min-width: 0 !important; text-align: right !important; }
+          .report-print-header-copy strong { display: block !important; color: #17306b !important; font-size: 13px !important; }
+          .report-print-header-copy span { display: block !important; margin-top: 2px !important; color: #60728f !important; font-size: 9px !important; }
           .report-hero {
             grid-template-columns: minmax(0, 1fr) 285px !important;
             gap: 18px !important;
@@ -347,15 +362,38 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
           .report-section-heading { margin-bottom: 10px !important; }
           .report-section-heading h2 { font-size: 18px !important; }
           .report-competency-grid, .report-reflection-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 9px !important; }
-          .report-competency-card, .report-reflection-card, .report-lessons-panel {
+          .report-competency-card, .report-reflection-card {
             box-shadow: none !important;
             break-inside: avoid !important;
             page-break-inside: avoid !important;
           }
           .report-competency-card { padding: 12px !important; }
           .report-competency-card p { font-size: 9.5px !important; line-height: 1.4 !important; }
-          .report-lessons-panel { padding: 14px !important; }
-          .report-lesson-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 7px !important; }
+          .report-section[data-purpose="lesson-list"] {
+            break-before: page !important;
+            page-break-before: always !important;
+          }
+          .report-section[data-purpose="lesson-list"] .report-section-heading { break-after: avoid !important; }
+          .report-lessons-panel {
+            padding: 14px !important;
+            box-shadow: none !important;
+            break-inside: auto !important;
+            page-break-inside: auto !important;
+          }
+          .report-lesson-grid { display: block !important; }
+          .report-lesson-card {
+            display: grid !important;
+            grid-template-columns: 30px minmax(0, 1fr) !important;
+            align-items: center !important;
+            gap: 10px !important;
+            min-height: 0 !important;
+            margin-bottom: 7px !important;
+            padding: 9px 10px !important;
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+          .report-lesson-card:last-child { margin-bottom: 0 !important; }
+          .report-lesson-card p { margin-top: 0 !important; font-size: 10px !important; line-height: 1.35 !important; }
           .report-reflection-card { padding: 11px !important; }
           .report-reflection-card p { font-size: 9.5px !important; line-height: 1.4 !important; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -390,6 +428,13 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
       </header>
 
       <div className="report-page mx-auto max-w-[1180px] px-4 py-7 sm:px-6 sm:py-10 lg:py-12">
+        <header className="report-print-header hidden" aria-label="Identitas rapor Clevio">
+          <img src={CLEVIO_LOGO_SRC} alt="Clevio Innovator Camp" />
+          <div className="report-print-header-copy">
+            <strong>{reportTitle}</strong>
+            <span>{coder?.full_name ?? 'Coder Clevio'} · {reportContextLabel}</span>
+          </div>
+        </header>
         <header className="report-hero relative grid overflow-hidden rounded-2xl border border-[#dce8ef] bg-white p-6 shadow-[0_18px_45px_rgba(31,63,101,0.08)] md:grid-cols-[minmax(0,1fr)_360px] md:items-stretch md:gap-8 md:p-8" data-purpose="student-hero">
           <div className="pointer-events-none absolute right-0 top-0 h-full w-48 bg-[#e8f6ec] [clip-path:polygon(34%_0,100%_0,100%_58%,0_72%)]" aria-hidden="true" />
           <div className="relative z-10 flex min-w-0 flex-col justify-center py-2">
@@ -435,7 +480,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
               <div>
                 <p className="text-xs font-black uppercase text-[#00a9ce]">Kompetensi & Observasi</p>
                 <h2 className="mt-1 text-2xl font-black text-[#152c64] sm:text-3xl">Catatan perkembangan dari Coach</h2>
-                <p className="mt-1 text-sm font-medium text-[#7184a0]">Setiap area menampilkan nilai dan observasi pembelajaran selama block berlangsung.</p>
+                <p className="mt-1 text-sm font-medium text-[#7184a0]">Setiap area menampilkan nilai dan observasi pembelajaran selama {learningPeriodLabel} berlangsung.</p>
               </div>
               <span className="hidden shrink-0 rounded-full border border-[#d9e6ee] bg-white px-3 py-1.5 text-xs font-bold text-[#7184a0] sm:inline-flex">{breakdownData.length} area kompetensi</span>
             </div>
@@ -474,7 +519,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
               <div className="report-section-heading mb-5 flex items-end justify-between gap-4">
                 <div>
                   <p className="text-xs font-black uppercase text-[#00a9ce]">Materi yang Dibahas</p>
-                  <h2 className="mt-1 text-2xl font-black text-[#152c64] sm:text-3xl">Perjalanan belajar dalam block ini</h2>
+                  <h2 className="mt-1 text-2xl font-black text-[#152c64] sm:text-3xl">Perjalanan belajar dalam {learningPeriodLabel} ini</h2>
                   <p className="mt-1 text-sm font-medium text-[#7184a0]">{lessonSectionSubtitle}</p>
                 </div>
                 <span className="hidden shrink-0 rounded-full border border-[#d9e6ee] bg-white px-3 py-1.5 text-xs font-bold text-[#7184a0] sm:inline-flex">{lessonTitles.length} materi</span>
@@ -486,7 +531,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
                 </div>
                 <div className="report-lesson-grid grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
                   {lessonTitles.map((title, idx) => (
-                    <div key={`${title}-${idx}`} className="min-h-24 rounded-lg border border-[#dfe9f0] bg-[#f6f9fd] p-3">
+                    <div key={`${title}-${idx}`} className="report-lesson-card min-h-24 rounded-lg border border-[#dfe9f0] bg-[#f6f9fd] p-3">
                       <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-md bg-[#22367b] px-1.5 text-xs font-black text-white">{(idx + 1).toString().padStart(2, '0')}</span>
                       <p className="mt-3 text-sm font-extrabold leading-snug text-[#22367b]">{title}</p>
                     </div>

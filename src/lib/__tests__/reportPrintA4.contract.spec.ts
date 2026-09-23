@@ -45,6 +45,10 @@ describe('A4 report print contract', () => {
     expect(source).toContain('.report-lessons-panel {');
     expect(source).toContain('className="report-lesson-grid grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5"');
     expect(source).toContain('.report-lesson-card {');
+    expect(source).toContain('report-lesson-card flex min-h-0 items-start gap-3');
+    expect(source).toContain('min-w-0 pt-1 text-base font-bold leading-snug');
+    expect(source).toContain('shrink-0 items-center justify-center rounded-md bg-[#22367b] px-1.5 text-sm');
+    expect(source).not.toContain('report-lesson-card min-h-24');
     expect(source).toContain('page-break-inside: avoid !important;');
     expect(source).not.toContain('.report-lesson-card p { margin-top:');
     expect(source).toContain('page-break-before: auto !important;');

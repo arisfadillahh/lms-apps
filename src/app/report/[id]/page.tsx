@@ -510,9 +510,9 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
                 </div>
                 <div className="report-lesson-grid grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
                   {lessonTitles.map((title, idx) => (
-                    <div key={`${title}-${idx}`} className="report-lesson-card min-h-24 rounded-lg border border-[#dfe9f0] bg-[#f6f9fd] p-3">
-                      <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-md bg-[#22367b] px-1.5 text-xs font-black text-white">{(idx + 1).toString().padStart(2, '0')}</span>
-                      <p className="mt-3 text-sm font-extrabold leading-snug text-[#22367b]">{title}</p>
+                    <div key={`${title}-${idx}`} className="report-lesson-card flex min-h-0 items-start gap-3 rounded-lg border border-[#dfe9f0] bg-[#f6f9fd] p-3">
+                      <span className="inline-flex h-8 min-w-8 shrink-0 items-center justify-center rounded-md bg-[#22367b] px-1.5 text-sm font-black text-white">{(idx + 1).toString().padStart(2, '0')}</span>
+                      <p className="min-w-0 pt-1 text-base font-bold leading-snug text-[#22367b]">{title}</p>
                     </div>
                   ))}
                 </div>

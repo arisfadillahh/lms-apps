@@ -34,6 +34,8 @@ describe('A4 report print contract', () => {
     expect(source).toContain('width: 1180px !important;');
     expect(source).toContain('zoom: 0.609 !important;');
     expect(source).toContain('.report-page { zoom: 0.887 !important; }');
+    expect(source).toContain('grid-template-columns: minmax(0, 1fr) 360px !important;');
+    expect(source).toContain('.report-score-card { margin-top: 0 !important; }');
     expect(source).not.toContain('.report-section-heading h2 { font-size:');
     expect(source).not.toContain('.report-competency-card { padding:');
     expect(source).not.toMatch(/\.report-section\[data-purpose="competency-feedback"\]\s*\{[^}]*break-before:\s*page/);

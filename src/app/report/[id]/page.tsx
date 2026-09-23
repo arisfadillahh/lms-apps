@@ -345,7 +345,12 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
           @media print and (orientation: landscape) {
             .report-page { zoom: 0.887 !important; }
           }
-          .report-hero { break-inside: avoid !important; page-break-inside: avoid !important; }
+          .report-hero {
+            grid-template-columns: minmax(0, 1fr) 360px !important;
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+          .report-score-card { margin-top: 0 !important; }
           .report-hero-logo { display: block !important; }
           .report-competency-grid {
             display: grid !important;

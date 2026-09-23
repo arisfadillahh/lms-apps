@@ -9,11 +9,18 @@ const source = fs.readFileSync(
 );
 
 describe('A4 report print contract', () => {
-  it('prints on portrait A4 with a visible Clevio identity header', () => {
+  it('prints on portrait A4 with the Clevio logo inside the report hero', () => {
     expect(source).toContain('@page { size: A4 portrait;');
-    expect(source).toContain('className="report-print-header hidden"');
-    expect(source).toContain('src={CLEVIO_LOGO_SRC}');
+    expect(source).not.toContain('className="report-print-header hidden"');
+    expect(source).toContain('className="report-hero-logo');
     expect(source).toContain('alt="Clevio Innovator Camp"');
+  });
+
+  it('removes root overflow constraints and keeps competency cards together', () => {
+    expect(source).toContain('overflow: visible !important;');
+    expect(source).toContain('.report-root, .report-page, .report-page main {');
+    expect(source).toContain('.report-section[data-purpose="competency-feedback"] {');
+    expect(source).toContain('.report-competency-grid { break-inside: avoid !important;');
   });
 
   it('lets the material panel flow across pages without splitting a lesson card', () => {

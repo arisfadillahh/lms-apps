@@ -306,29 +306,27 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
       <style>{`
         @media print {
           @page { size: A4 portrait; margin: 10mm 10mm 12mm; }
-          html, body { background: white !important; }
+          html, body {
+            width: auto !important;
+            max-width: none !important;
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+            background: white !important;
+          }
           body, .report-root {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
           [data-purpose="report-topbar"],
           [data-purpose="report-actions"] { display: none !important; }
+          .report-root, .report-page, .report-page main {
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+          }
           .report-root { min-height: 0 !important; background: white !important; }
           .report-page { max-width: none !important; padding: 0 !important; }
-          .report-print-header {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: space-between !important;
-            gap: 18px !important;
-            margin-bottom: 8mm !important;
-            padding-bottom: 4mm !important;
-            border-bottom: 1px solid #dbe7ef !important;
-            break-after: avoid !important;
-          }
-          .report-print-header img { width: auto !important; height: 11mm !important; object-fit: contain !important; }
-          .report-print-header-copy { min-width: 0 !important; text-align: right !important; }
-          .report-print-header-copy strong { display: block !important; color: #17306b !important; font-size: 13px !important; }
-          .report-print-header-copy span { display: block !important; margin-top: 2px !important; color: #60728f !important; font-size: 9px !important; }
           .report-hero {
             grid-template-columns: minmax(0, 1fr) 285px !important;
             gap: 18px !important;
@@ -338,6 +336,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
             break-inside: avoid !important;
           }
           .report-hero h1 { font-size: 24px !important; line-height: 1.1 !important; }
+          .report-hero-logo { height: 10mm !important; margin-bottom: 5mm !important; }
           .report-score-card {
             display: grid !important;
             grid-template-columns: 92px minmax(0, 1fr) !important;
@@ -361,6 +360,13 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
           .report-section { margin-top: 22px !important; }
           .report-section-heading { margin-bottom: 10px !important; }
           .report-section-heading h2 { font-size: 18px !important; }
+          .report-section[data-purpose="competency-feedback"] {
+            margin-top: 0 !important;
+            break-before: page !important;
+            page-break-before: always !important;
+          }
+          .report-section[data-purpose="competency-feedback"] .report-section-heading,
+          .report-competency-grid { break-inside: avoid !important; page-break-inside: avoid !important; }
           .report-competency-grid, .report-reflection-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 9px !important; }
           .report-competency-card, .report-reflection-card {
             box-shadow: none !important;
@@ -428,16 +434,10 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
       </header>
 
       <div className="report-page mx-auto max-w-[1180px] px-4 py-7 sm:px-6 sm:py-10 lg:py-12">
-        <header className="report-print-header hidden" aria-label="Identitas rapor Clevio">
-          <img src={CLEVIO_LOGO_SRC} alt="Clevio Innovator Camp" />
-          <div className="report-print-header-copy">
-            <strong>{reportTitle}</strong>
-            <span>{coder?.full_name ?? 'Coder Clevio'} · {reportContextLabel}</span>
-          </div>
-        </header>
         <header className="report-hero relative grid overflow-hidden rounded-2xl border border-[#dce8ef] bg-white p-6 shadow-[0_18px_45px_rgba(31,63,101,0.08)] md:grid-cols-[minmax(0,1fr)_360px] md:items-stretch md:gap-8 md:p-8" data-purpose="student-hero">
           <div className="pointer-events-none absolute right-0 top-0 h-full w-48 bg-[#e8f6ec] [clip-path:polygon(34%_0,100%_0,100%_58%,0_72%)]" aria-hidden="true" />
           <div className="relative z-10 flex min-w-0 flex-col justify-center py-2">
+            <img src={CLEVIO_LOGO_SRC} alt="Clevio Innovator Camp" className="report-hero-logo mb-5 h-10 w-auto self-start object-contain" />
             <div className="mb-4 inline-flex w-fit items-center rounded-full bg-[#e9f5ff] px-3 py-1.5 text-xs font-extrabold text-[#1478c9]">
               + Laporan Perkembangan Coder
             </div>

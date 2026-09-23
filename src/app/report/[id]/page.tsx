@@ -344,6 +344,11 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
           }
           .report-hero { break-inside: avoid !important; page-break-inside: avoid !important; }
           .report-hero-logo { display: block !important; }
+          .report-competency-grid {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+          .report-competency-card[data-span-full="true"] { grid-column: 1 / -1 !important; }
           .report-competency-card, .report-reflection-card {
             break-inside: avoid !important;
             page-break-inside: avoid !important;
@@ -453,7 +458,11 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
                 const CompetencyIcon = COMPETENCY_ICONS[idx % COMPETENCY_ICONS.length];
                 const accent = COMPETENCY_ACCENTS[idx % COMPETENCY_ACCENTS.length];
                 return (
-                  <article key={item.name} className={`${idx === breakdownData.length - 1 && breakdownData.length % 2 === 1 ? 'md:col-span-2' : ''} report-competency-card rounded-xl border border-[#dbe7ef] bg-white p-5 shadow-[0_8px_24px_rgba(31,63,101,0.05)]`}>
+                  <article
+                    key={item.name}
+                    data-span-full={idx === breakdownData.length - 1 && breakdownData.length % 2 === 1 ? 'true' : undefined}
+                    className={`${idx === breakdownData.length - 1 && breakdownData.length % 2 === 1 ? 'md:col-span-2' : ''} report-competency-card rounded-xl border border-[#dbe7ef] bg-white p-5 shadow-[0_8px_24px_rgba(31,63,101,0.05)]`}
+                  >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex min-w-0 items-center gap-3">
                         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-white" style={{ backgroundColor: accent }}>

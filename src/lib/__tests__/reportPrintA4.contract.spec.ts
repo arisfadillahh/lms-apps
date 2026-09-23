@@ -9,7 +9,7 @@ const source = fs.readFileSync(
 );
 
 describe('A4 report print contract', () => {
-  it('prints on portrait A4 with the Clevio logo inside the report hero', () => {
+  it('prints on landscape A4 with the Clevio logo inside the report hero', () => {
     expect(source).toContain('@page { size: A4 landscape;');
     expect(source).not.toContain('className="report-print-header hidden"');
     expect(source).toContain('className="report-hero-logo');
@@ -25,6 +25,9 @@ describe('A4 report print contract', () => {
     expect(source).toContain('.report-hero-logo { display: block !important;');
     expect(source).toContain('break-inside: avoid !important;');
     expect(source).toContain('md:grid-cols-2');
+    expect(source).toContain('grid-template-columns: repeat(2, minmax(0, 1fr)) !important;');
+    expect(source).toContain('.report-competency-card[data-span-full="true"] { grid-column: 1 / -1 !important; }');
+    expect(source).toContain("data-span-full={idx === breakdownData.length - 1 && breakdownData.length % 2 === 1 ? 'true' : undefined}");
     expect(source).toContain('sm:grid-cols-2 lg:grid-cols-5');
     expect(source).toContain('width: 1180px !important;');
     expect(source).toContain('zoom: 0.887 !important;');

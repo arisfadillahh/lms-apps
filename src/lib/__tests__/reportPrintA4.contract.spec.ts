@@ -9,6 +9,21 @@ const source = fs.readFileSync(
 );
 
 describe('A4 report print contract', () => {
+  it('caps Coach-written observations so long copy cannot push the learning journey', () => {
+    const coachReviewSource = fs.readFileSync(
+      path.join(process.cwd(), 'src/app/(coach)/coach/reports/[id]/ReportReviewClient.tsx'),
+      'utf8',
+    );
+    const publishRouteSource = fs.readFileSync(
+      path.join(process.cwd(), 'src/app/api/coach/reports/[id]/publish/route.ts'),
+      'utf8',
+    );
+
+    expect(coachReviewSource).toContain('maxLength={REPORT_DESCRIPTION_MAX_LENGTH}');
+    expect(publishRouteSource).toContain('d.description.length > REPORT_DESCRIPTION_MAX_LENGTH');
+    expect(source).toContain('description: shortenReportDescription(desc?.description || \'\')');
+  });
+
   it('allows portrait or landscape A4 with the Clevio logo inside the report hero', () => {
     expect(source).toContain('@page { size: A4; margin: 10mm; }');
     expect(source).not.toContain('size: A4 landscape');

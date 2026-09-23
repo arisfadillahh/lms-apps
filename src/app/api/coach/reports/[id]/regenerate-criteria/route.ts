@@ -4,6 +4,7 @@ import OpenAI from 'openai';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { REPORT_DESCRIPTION_MAX_LENGTH, shortenReportDescription } from '@/lib/reportDescription';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -94,7 +95,7 @@ Nilai yang didapat: ${Number(score).toFixed(1)}/10
 
 Instruksi:
 - Kamu HANYA merespon dengan teks paragraf deskripsinya langsung. Jangan tambahkan basa-basi, jangan gunakan json.
-- Berikan pujian spesifik dan atau saran perbaikan yang membangun terkait kriteria tersebut, menggunakan bahasa Indonesia baku tapi ramah (seperti rapor naratif).
+- Tulis singkat, maksimal 2 kalimat dan ${REPORT_DESCRIPTION_MAX_LENGTH} karakter. Berikan pujian spesifik atau saran perbaikan yang membangun dengan bahasa Indonesia baku tapi ramah.
 - Hubungkan dengan konteks 'Materi yang sudah dipelajari' sedapat mungkin agar terkesan lebih detail dan nyambung (Misal: "Saat mempelajari [Materi], Ananda ${coderName} sangat cepat menangkap...").
 - Jangan menyebutkan angka skor secara eksplisit.
 `;
@@ -106,7 +107,7 @@ Instruksi:
       max_tokens: 300
     });
 
-    const generatedText = response.choices[0]?.message?.content?.trim() || 'Gagal membuat deskripsi.';
+    const generatedText = shortenReportDescription(response.choices[0]?.message?.content?.trim() || 'Gagal membuat deskripsi.');
 
     return NextResponse.json({ success: true, description: generatedText });
   } catch (error: any) {

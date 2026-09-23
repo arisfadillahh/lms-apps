@@ -5,6 +5,7 @@ import { createAdminNotifications } from '@/lib/dao/notificationsDao';
 import { reportsDao, classesDao } from '@/lib/dao';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { isEnrollmentActiveForSession } from '@/lib/services/enrollmentEligibility';
+import { REPORT_DESCRIPTION_MAX_LENGTH } from '@/lib/reportDescription';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -23,9 +24,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
     
     // Validate empty texts
-    const hasEmpty = descriptions.some(d => !d.description.trim());
+    const hasEmpty = descriptions.some(d => typeof d?.description !== 'string' || !d.description.trim());
     if (hasEmpty) {
        return NextResponse.json({ error: 'No description can be empty' }, { status: 400 });
+    }
+    if (descriptions.some(d => d.description.length > REPORT_DESCRIPTION_MAX_LENGTH)) {
+      return NextResponse.json({ error: `Deskripsi maksimal ${REPORT_DESCRIPTION_MAX_LENGTH} karakter.` }, { status: 400 });
     }
 
     const supabase = getSupabaseAdmin();

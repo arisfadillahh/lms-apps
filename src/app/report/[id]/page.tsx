@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { sessionsDao } from '@/lib/dao';
+import { shortenReportDescription } from '@/lib/reportDescription';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 import { notFound } from 'next/navigation';
 import {
@@ -227,7 +228,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
     return {
       name: c.name,
       average: Number((desc?.score || 0).toFixed(1)),
-      description: desc?.description || '',
+      description: shortenReportDescription(desc?.description || ''),
     };
   }) || [];
 

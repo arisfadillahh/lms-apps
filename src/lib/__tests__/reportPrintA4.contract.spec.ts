@@ -18,6 +18,7 @@ describe('A4 report print contract', () => {
 
   it('removes root overflow constraints and keeps competency cards together', () => {
     expect(source).toContain('overflow: visible !important;');
+    expect(source).toContain('position: static !important;');
     expect(source).toContain('.report-root, .report-page, .report-page main {');
     expect(source).toContain('.report-section[data-purpose="competency-feedback"] {');
     expect(source).toContain('.report-competency-grid { break-inside: avoid !important;');

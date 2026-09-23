@@ -314,6 +314,11 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
             overflow: visible !important;
             background: white !important;
           }
+          body {
+            position: static !important;
+            top: auto !important;
+            overscroll-behavior: auto !important;
+          }
           body, .report-root {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;

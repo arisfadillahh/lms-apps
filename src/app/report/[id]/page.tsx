@@ -376,19 +376,23 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
           .report-section[data-purpose="competency-feedback"] {
             margin-top: 9px !important;
           }
-          .report-competency-grid, .report-reflection-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; }
+          .report-competency-grid { display: block !important; }
+          .report-reflection-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; }
           .report-competency-card, .report-reflection-card {
             box-shadow: none !important;
             break-inside: avoid !important;
             page-break-inside: avoid !important;
           }
-          .report-competency-card { padding: 10px !important; }
-          .report-competency-card .flex.h-11 { width: 28px !important; height: 28px !important; }
-          .report-competency-card .flex.h-11 svg { width: 16px !important; height: 16px !important; }
-          .report-competency-card h3 { font-size: 13px !important; line-height: 1.2 !important; }
-          .report-competency-card strong { font-size: 18px !important; }
-          .report-competency-card > div.mt-4 { margin-top: 7px !important; }
-          .report-competency-card p { margin-top: 7px !important; font-size: 10px !important; line-height: 1.3 !important; }
+          .report-competency-card { padding: 7px 9px !important; margin-bottom: 5px !important; }
+          .report-competency-card:last-child { margin-bottom: 0 !important; }
+          .report-competency-card > div:first-child { align-items: center !important; gap: 8px !important; }
+          .report-competency-card .flex.h-11 { width: 24px !important; height: 24px !important; }
+          .report-competency-card .flex.h-11 svg { width: 14px !important; height: 14px !important; }
+          .report-competency-card h3 { font-size: 12px !important; line-height: 1.15 !important; }
+          .report-competency-card > div:first-child > strong { font-size: 16px !important; }
+          .report-competency-card > div.mt-4 { height: 4px !important; margin-top: 4px !important; }
+          .report-competency-card p { margin-top: 4px !important; font-size: 9px !important; line-height: 1.2 !important; }
+          .report-competency-card > div:first-child > div > div > span { display: none !important; }
           .report-section[data-purpose="lesson-list"] {
             break-before: auto !important;
             page-break-before: auto !important;

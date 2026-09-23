@@ -5,7 +5,6 @@ import { notFound } from 'next/navigation';
 import {
   CalendarDays,
   CircleHelp,
-  ClipboardList,
   Code2,
   MessageSquare,
   MessagesSquare,
@@ -304,6 +303,42 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
   return (
     <div className="report-root min-h-screen bg-[#eef6fb] font-sans text-[#17306b] antialiased">
       <style>{`
+        .report-lesson-list { position: relative; list-style: none; margin: 0; padding: 0; }
+        .report-lesson-list::before {
+          position: absolute;
+          top: 18px;
+          bottom: 18px;
+          left: 15px;
+          width: 1px;
+          background: #cce6ed;
+          content: '';
+        }
+        .report-lesson-row {
+          position: relative;
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 10px 4px;
+          border-bottom: 1px solid #e1ebf0;
+        }
+        .report-lesson-row:last-child { border-bottom: 0; }
+        .report-lesson-number {
+          position: relative;
+          z-index: 1;
+          display: inline-flex;
+          width: 32px;
+          height: 32px;
+          flex: 0 0 32px;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid #cfeaf0;
+          border-radius: 9px;
+          background: #f0fbfd;
+          color: #087f9a;
+          font-size: 12px;
+          font-weight: 800;
+        }
+        .report-lesson-title { min-width: 0; color: #22367b; font-size: 14px; font-weight: 700; line-height: 1.4; }
         @media print {
           @page { size: A4 portrait; margin: 10mm 10mm 12mm; }
           html, body {
@@ -342,9 +377,9 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
           }
           .report-hero > .relative.z-10 { padding-top: 0 !important; padding-bottom: 0 !important; }
           .report-hero h1 { font-size: 23px !important; line-height: 1.08 !important; }
-          .report-hero-brand { margin-bottom: 7px !important; gap: 10px !important; }
-          .report-hero-logo { height: 7mm !important; margin: 0 !important; }
-          .report-hero-brand-label { margin: 0 !important; padding: 4px 8px !important; font-size: 8px !important; }
+          .report-hero-brand { align-self: flex-start !important; justify-content: flex-start !important; margin-right: auto !important; margin-bottom: 7px !important; gap: 10px !important; }
+          .report-hero-logo { display: block !important; height: 7mm !important; margin: 0 !important; }
+          .report-hero-brand-label { align-self: flex-start !important; flex: 0 0 auto !important; margin: 0 !important; padding: 4px 8px !important; font-size: 8px !important; }
           .report-hero-context { margin-top: 5px !important; font-size: 13px !important; }
           .report-hero-meta { margin-top: 9px !important; gap: 7px !important; font-size: 10px !important; }
           .report-hero-meta > span { padding: 6px 8px !important; }
@@ -401,26 +436,17 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
             break-after: avoid !important;
             page-break-after: avoid !important;
           }
-          .report-lessons-panel {
-            padding: 14px !important;
-            box-shadow: none !important;
-            break-inside: auto !important;
-            page-break-inside: auto !important;
-          }
-          .report-lesson-grid { display: block !important; }
-          .report-lesson-card {
-            display: grid !important;
-            grid-template-columns: 30px minmax(0, 1fr) !important;
-            align-items: center !important;
-            gap: 10px !important;
-            min-height: 0 !important;
-            margin-bottom: 7px !important;
-            padding: 9px 10px !important;
+          .report-lesson-list { margin-top: 5px !important; }
+          .report-lesson-list::before { top: 12px !important; bottom: 12px !important; left: 10px !important; }
+          .report-lesson-row {
+            gap: 8px !important;
+            padding: 4px 2px !important;
+            border-bottom: 1px solid #e1ebf0 !important;
             break-inside: avoid !important;
             page-break-inside: avoid !important;
           }
-          .report-lesson-card:last-child { margin-bottom: 0 !important; }
-          .report-lesson-card p { margin-top: 0 !important; font-size: 11px !important; line-height: 1.35 !important; }
+          .report-lesson-number { width: 21px !important; height: 21px !important; flex-basis: 21px !important; border-radius: 6px !important; font-size: 9px !important; }
+          .report-lesson-title { font-size: 10.5px !important; line-height: 1.25 !important; }
           .report-section[data-purpose="reflection-qa"] {
             break-before: page !important;
             page-break-before: always !important;
@@ -463,9 +489,9 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
           <div className="pointer-events-none absolute right-0 top-0 h-full w-48 bg-[#e8f6ec] [clip-path:polygon(34%_0,100%_0,100%_58%,0_72%)]" aria-hidden="true" />
           <div className="relative z-10 flex min-w-0 flex-col justify-center py-2">
             <div className="report-hero-brand mb-4 inline-flex w-fit items-center gap-3">
-              <img src={CLEVIO_LOGO_SRC} alt="Clevio Innovator Camp" className="report-hero-logo h-10 w-auto shrink-0 object-contain" />
-              <div className="report-hero-brand-label inline-flex items-center rounded-full bg-[#e9f5ff] px-3 py-1.5 text-xs font-extrabold text-[#1478c9]">
-                + Laporan Perkembangan Coder
+              <img src={CLEVIO_LOGO_SRC} alt="Clevio Innovator Camp" className="report-hero-logo hidden h-10 w-auto shrink-0 object-contain" />
+              <div className="report-hero-brand-label inline-flex items-center rounded-full bg-[#e9f5ff] px-3 py-1.5 text-xs font-extrabold tracking-wide text-[#1478c9]">
+                Laporan Perkembangan Coder
               </div>
             </div>
             <h1 className="max-w-3xl text-3xl font-black leading-tight text-[#152c64] sm:text-4xl lg:text-5xl">{coder?.full_name}</h1>
@@ -551,20 +577,14 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
                 </div>
                 <span className="hidden shrink-0 rounded-full border border-[#d9e6ee] bg-white px-3 py-1.5 text-xs font-bold text-[#7184a0] sm:inline-flex">{lessonTitles.length} materi</span>
               </div>
-              <div className="report-lessons-panel rounded-xl border border-[#dbe7ef] bg-white p-4 shadow-[0_8px_24px_rgba(31,63,101,0.05)] sm:p-6">
-                <div className="mb-4 flex items-center gap-3 text-[#22367b]">
-                  <ClipboardList size={20} aria-hidden="true" />
-                  <span className="text-sm font-extrabold">{lessonSectionTitle}</span>
-                </div>
-                <div className="report-lesson-grid grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
+              <ol className="report-lesson-list mt-4" aria-label={lessonSectionTitle}>
                   {lessonTitles.map((title, idx) => (
-                    <div key={`${title}-${idx}`} className="report-lesson-card min-h-24 rounded-lg border border-[#dfe9f0] bg-[#f6f9fd] p-3">
-                      <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-md bg-[#22367b] px-1.5 text-xs font-black text-white">{(idx + 1).toString().padStart(2, '0')}</span>
-                      <p className="mt-3 text-sm font-extrabold leading-snug text-[#22367b]">{title}</p>
-                    </div>
+                    <li key={`${title}-${idx}`} className="report-lesson-row">
+                      <span className="report-lesson-number" aria-hidden="true">{(idx + 1).toString().padStart(2, '0')}</span>
+                      <span className="report-lesson-title">{title}</span>
+                    </li>
                   ))}
-                </div>
-              </div>
+              </ol>
             </section>
           )}
 

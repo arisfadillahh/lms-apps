@@ -13,6 +13,9 @@ describe('A4 report print contract', () => {
     expect(source).toContain('@page { size: A4 portrait;');
     expect(source).not.toContain('className="report-print-header hidden"');
     expect(source).toContain('className="report-hero-logo');
+    expect(source).toContain('className="report-hero-logo hidden');
+    expect(source).toContain('.report-hero-logo { display: block !important;');
+    expect(source).toContain('justify-content: flex-start !important;');
     expect(source).toContain('alt="Clevio Innovator Camp"');
   });
 
@@ -27,11 +30,13 @@ describe('A4 report print contract', () => {
     expect(source).not.toMatch(/\.report-section\[data-purpose="competency-feedback"\]\s*\{[^}]*break-before:\s*page/);
   });
 
-  it('lets the material panel flow across pages without splitting a lesson card', () => {
-    expect(source).toContain('.report-lessons-panel {');
-    expect(source).toContain('break-inside: auto !important;');
-    expect(source).toContain('.report-lesson-card {');
+  it('prints the learning journey as a compact vertical list with intact rows', () => {
+    expect(source).toContain('<ol className="report-lesson-list mt-4"');
+    expect(source).toContain('.report-lesson-list::before');
+    expect(source).toContain('.report-lesson-row {');
     expect(source).toContain('page-break-inside: avoid !important;');
+    expect(source).toContain('.report-lesson-number { width: 21px !important;');
+    expect(source).toContain('.report-lesson-title { font-size: 10.5px !important;');
     expect(source).toContain('grid-template-columns: 88px minmax(0, 1fr) !important;');
     expect(source).toContain('white-space: nowrap !important;');
     expect(source).toContain('page-break-before: auto !important;');

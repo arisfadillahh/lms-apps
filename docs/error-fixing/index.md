@@ -4,6 +4,7 @@ Search this file and the linked monthly log before changing related code.
 
 | Date | Reference | Area | Symptom | Monthly log |
 | --- | --- | --- | --- | --- |
+| 2026-09-23 | INTERNAL-20260923-08 | Report print orientation | Browser print orientation was locked to landscape | [2026-09](./2026-09.md#internal-20260923-08-report-print-orientation-was-locked) |
 | 2026-09-23 | INTERNAL-20260923-07 | Report competency print grid | The fifth competency did not reliably retain its full-width row in print | [2026-09](./2026-09.md#internal-20260923-07-fifth-competency-lost-full-width-in-print) |
 | 2026-09-23 | INTERNAL-20260923-06 | Report print fidelity | Print-only sizing and grid overrides made the report layout differ from the web | [2026-09](./2026-09.md#internal-20260923-06-report-print-layout-diverged-from-web) |
 | 2026-09-23 | INTERNAL-20260923-05 | Report learning journey design | The numbered timeline replaced the previous cleaner lesson card layout | [2026-09](./2026-09.md#internal-20260923-05-learning-journey-cards-restored) |

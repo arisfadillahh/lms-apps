@@ -308,7 +308,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
         .report-lesson-card { min-width: 0; break-inside: avoid; }
         .report-lesson-card p { overflow-wrap: anywhere; }
         @media print {
-          @page { size: A4 landscape; margin: 10mm; }
+          @page { size: A4; margin: 10mm; }
           html, body {
             width: auto !important;
             max-width: none !important;
@@ -340,7 +340,10 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
             max-width: none !important;
             margin-left: 0 !important;
             margin-right: 0 !important;
-            zoom: 0.887 !important;
+            zoom: 0.609 !important;
+          }
+          @media print and (orientation: landscape) {
+            .report-page { zoom: 0.887 !important; }
           }
           .report-hero { break-inside: avoid !important; page-break-inside: avoid !important; }
           .report-hero-logo { display: block !important; }

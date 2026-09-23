@@ -9,8 +9,10 @@ const source = fs.readFileSync(
 );
 
 describe('A4 report print contract', () => {
-  it('prints on landscape A4 with the Clevio logo inside the report hero', () => {
-    expect(source).toContain('@page { size: A4 landscape;');
+  it('allows portrait or landscape A4 with the Clevio logo inside the report hero', () => {
+    expect(source).toContain('@page { size: A4; margin: 10mm; }');
+    expect(source).not.toContain('size: A4 landscape');
+    expect(source).toContain('@media print and (orientation: landscape)');
     expect(source).not.toContain('className="report-print-header hidden"');
     expect(source).toContain('className="report-hero-logo');
     expect(source).toContain('className="report-hero-logo hidden');
@@ -30,7 +32,8 @@ describe('A4 report print contract', () => {
     expect(source).toContain("data-span-full={idx === breakdownData.length - 1 && breakdownData.length % 2 === 1 ? 'true' : undefined}");
     expect(source).toContain('sm:grid-cols-2 lg:grid-cols-5');
     expect(source).toContain('width: 1180px !important;');
-    expect(source).toContain('zoom: 0.887 !important;');
+    expect(source).toContain('zoom: 0.609 !important;');
+    expect(source).toContain('.report-page { zoom: 0.887 !important; }');
     expect(source).not.toContain('.report-section-heading h2 { font-size:');
     expect(source).not.toContain('.report-competency-card { padding:');
     expect(source).not.toMatch(/\.report-section\[data-purpose="competency-feedback"\]\s*\{[^}]*break-before:\s*page/);

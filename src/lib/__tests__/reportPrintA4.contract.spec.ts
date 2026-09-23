@@ -21,7 +21,8 @@ describe('A4 report print contract', () => {
     expect(source).toContain('position: static !important;');
     expect(source).toContain('.report-root, .report-page, .report-page main {');
     expect(source).toContain('.report-hero-brand');
-    expect(source).toContain('.report-competency-card { padding: 8px !important; }');
+    expect(source).toContain('.report-competency-card { padding: 10px !important; }');
+    expect(source).toContain('font-size: 10px !important; line-height: 1.3 !important;');
     expect(source).not.toMatch(/\.report-section\[data-purpose="competency-feedback"\]\s*\{[^}]*break-before:\s*page/);
   });
 

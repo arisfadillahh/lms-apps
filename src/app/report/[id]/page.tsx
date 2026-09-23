@@ -341,13 +341,13 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
             break-inside: avoid !important;
           }
           .report-hero > .relative.z-10 { padding-top: 0 !important; padding-bottom: 0 !important; }
-          .report-hero h1 { font-size: 21px !important; line-height: 1.08 !important; }
+          .report-hero h1 { font-size: 23px !important; line-height: 1.08 !important; }
           .report-hero-brand { margin-bottom: 7px !important; gap: 10px !important; }
           .report-hero-logo { height: 7mm !important; margin: 0 !important; }
           .report-hero-brand-label { margin: 0 !important; padding: 4px 8px !important; font-size: 8px !important; }
-          .report-hero-context { margin-top: 4px !important; font-size: 12px !important; }
-          .report-hero-meta { margin-top: 8px !important; gap: 6px !important; font-size: 9px !important; }
-          .report-hero-meta > span { padding: 5px 7px !important; }
+          .report-hero-context { margin-top: 5px !important; font-size: 13px !important; }
+          .report-hero-meta { margin-top: 9px !important; gap: 7px !important; font-size: 10px !important; }
+          .report-hero-meta > span { padding: 6px 8px !important; }
           .report-score-card {
             display: grid !important;
             grid-template-columns: 66px minmax(0, 1fr) !important;
@@ -370,24 +370,24 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
           }
           .report-section { margin-top: 10px !important; }
           .report-section-heading { margin-bottom: 6px !important; }
-          .report-section-heading h2 { font-size: 15px !important; line-height: 1.2 !important; }
-          .report-section-heading p { font-size: 8px !important; line-height: 1.25 !important; }
+          .report-section-heading h2 { font-size: 17px !important; line-height: 1.2 !important; }
+          .report-section-heading p { font-size: 9px !important; line-height: 1.3 !important; }
           .report-section[data-purpose="competency-feedback"] {
             margin-top: 9px !important;
           }
-          .report-competency-grid, .report-reflection-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 6px !important; }
+          .report-competency-grid, .report-reflection-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; }
           .report-competency-card, .report-reflection-card {
             box-shadow: none !important;
             break-inside: avoid !important;
             page-break-inside: avoid !important;
           }
-          .report-competency-card { padding: 8px !important; }
+          .report-competency-card { padding: 10px !important; }
           .report-competency-card .flex.h-11 { width: 28px !important; height: 28px !important; }
           .report-competency-card .flex.h-11 svg { width: 16px !important; height: 16px !important; }
-          .report-competency-card h3 { font-size: 11px !important; line-height: 1.15 !important; }
-          .report-competency-card strong { font-size: 17px !important; }
-          .report-competency-card > div.mt-4 { margin-top: 6px !important; }
-          .report-competency-card p { margin-top: 6px !important; font-size: 8px !important; line-height: 1.25 !important; }
+          .report-competency-card h3 { font-size: 13px !important; line-height: 1.2 !important; }
+          .report-competency-card strong { font-size: 18px !important; }
+          .report-competency-card > div.mt-4 { margin-top: 7px !important; }
+          .report-competency-card p { margin-top: 7px !important; font-size: 10px !important; line-height: 1.3 !important; }
           .report-section[data-purpose="lesson-list"] {
             break-before: page !important;
             page-break-before: always !important;
@@ -412,7 +412,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
             page-break-inside: avoid !important;
           }
           .report-lesson-card:last-child { margin-bottom: 0 !important; }
-          .report-lesson-card p { margin-top: 0 !important; font-size: 10px !important; line-height: 1.35 !important; }
+          .report-lesson-card p { margin-top: 0 !important; font-size: 11px !important; line-height: 1.35 !important; }
           .report-section[data-purpose="reflection-qa"] {
             break-before: page !important;
             page-break-before: always !important;

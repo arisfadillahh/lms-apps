@@ -405,6 +405,10 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
           }
           .report-lesson-card:last-child { margin-bottom: 0 !important; }
           .report-lesson-card p { margin-top: 0 !important; font-size: 10px !important; line-height: 1.35 !important; }
+          .report-section[data-purpose="reflection-qa"] {
+            break-before: page !important;
+            page-break-before: always !important;
+          }
           .report-reflection-card { padding: 11px !important; }
           .report-reflection-card p { font-size: 9.5px !important; line-height: 1.4 !important; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }

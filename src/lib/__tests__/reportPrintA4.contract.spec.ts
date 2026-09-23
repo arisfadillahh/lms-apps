@@ -30,6 +30,7 @@ describe('A4 report print contract', () => {
     expect(source).toContain('.report-lesson-card {');
     expect(source).toContain('page-break-inside: avoid !important;');
     expect(source).toContain('page-break-before: always !important;');
+    expect(source).toContain('.report-section[data-purpose="reflection-qa"] {');
   });
 
   it('uses semester terminology for Ekskul while preserving block for Weekly', () => {

@@ -308,7 +308,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
         .report-lesson-card { min-width: 0; break-inside: avoid; }
         .report-lesson-card p { overflow-wrap: anywhere; }
         @media print {
-          @page { size: A4 portrait; margin: 10mm 10mm 12mm; }
+          @page { size: A4 landscape; margin: 10mm; }
           html, body {
             width: auto !important;
             max-width: none !important;
@@ -334,7 +334,14 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
             overflow: visible !important;
           }
           .report-root { min-height: 0 !important; background: white !important; }
-          .report-page { max-width: none !important; }
+          /* Keep the same desktop breakpoint canvas as the 1920px web view. */
+          .report-page {
+            width: 1180px !important;
+            max-width: none !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            zoom: 0.887 !important;
+          }
           .report-hero { break-inside: avoid !important; page-break-inside: avoid !important; }
           .report-hero-logo { display: block !important; }
           .report-competency-card, .report-reflection-card {

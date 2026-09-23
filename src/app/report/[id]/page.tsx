@@ -334,52 +334,60 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
           .report-page { max-width: none !important; padding: 0 !important; }
           .report-hero {
             grid-template-columns: minmax(0, 1fr) 285px !important;
-            gap: 18px !important;
-            padding: 18px !important;
+            gap: 12px !important;
+            padding: 12px !important;
             border-radius: 12px !important;
             box-shadow: none !important;
             break-inside: avoid !important;
           }
-          .report-hero h1 { font-size: 24px !important; line-height: 1.1 !important; }
-          .report-hero-logo { height: 10mm !important; margin-bottom: 5mm !important; }
+          .report-hero > .relative.z-10 { padding-top: 0 !important; padding-bottom: 0 !important; }
+          .report-hero h1 { font-size: 21px !important; line-height: 1.08 !important; }
+          .report-hero-brand { margin-bottom: 7px !important; gap: 10px !important; }
+          .report-hero-logo { height: 7mm !important; margin: 0 !important; }
+          .report-hero-brand-label { margin: 0 !important; padding: 4px 8px !important; font-size: 8px !important; }
+          .report-hero-context { margin-top: 4px !important; font-size: 12px !important; }
+          .report-hero-meta { margin-top: 8px !important; gap: 6px !important; font-size: 9px !important; }
+          .report-hero-meta > span { padding: 5px 7px !important; }
           .report-score-card {
             display: grid !important;
-            grid-template-columns: 92px minmax(0, 1fr) !important;
+            grid-template-columns: 66px minmax(0, 1fr) !important;
             align-items: center !important;
-            gap: 14px !important;
-            padding: 16px !important;
-            min-height: 132px !important;
+            gap: 9px !important;
+            padding: 10px !important;
+            min-height: 90px !important;
           }
-          .report-score-card > div:first-child { width: 92px !important; height: 92px !important; }
-          .report-score-card > div:first-child strong { font-size: 28px !important; }
-          .report-score-card > div:last-child span { font-size: 9px !important; }
+          .report-score-card > div:first-child { width: 66px !important; height: 66px !important; }
+          .report-score-card > div:first-child strong { font-size: 21px !important; }
+          .report-score-card > div:last-child span { font-size: 8px !important; }
           .report-score-card > div:last-child p:first-of-type {
-            margin-top: 9px !important;
-            font-size: 16px !important;
+            margin-top: 5px !important;
+            font-size: 12px !important;
             line-height: 1.2 !important;
             overflow-wrap: anywhere !important;
           }
           .report-score-card > div:last-child p:last-of-type {
             display: none !important;
           }
-          .report-section { margin-top: 22px !important; }
-          .report-section-heading { margin-bottom: 10px !important; }
-          .report-section-heading h2 { font-size: 18px !important; }
+          .report-section { margin-top: 10px !important; }
+          .report-section-heading { margin-bottom: 6px !important; }
+          .report-section-heading h2 { font-size: 15px !important; line-height: 1.2 !important; }
+          .report-section-heading p { font-size: 8px !important; line-height: 1.25 !important; }
           .report-section[data-purpose="competency-feedback"] {
-            margin-top: 0 !important;
-            break-before: page !important;
-            page-break-before: always !important;
+            margin-top: 9px !important;
           }
-          .report-section[data-purpose="competency-feedback"] .report-section-heading,
-          .report-competency-grid { break-inside: avoid !important; page-break-inside: avoid !important; }
-          .report-competency-grid, .report-reflection-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 9px !important; }
+          .report-competency-grid, .report-reflection-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 6px !important; }
           .report-competency-card, .report-reflection-card {
             box-shadow: none !important;
             break-inside: avoid !important;
             page-break-inside: avoid !important;
           }
-          .report-competency-card { padding: 12px !important; }
-          .report-competency-card p { font-size: 9.5px !important; line-height: 1.4 !important; }
+          .report-competency-card { padding: 8px !important; }
+          .report-competency-card .flex.h-11 { width: 28px !important; height: 28px !important; }
+          .report-competency-card .flex.h-11 svg { width: 16px !important; height: 16px !important; }
+          .report-competency-card h3 { font-size: 11px !important; line-height: 1.15 !important; }
+          .report-competency-card strong { font-size: 17px !important; }
+          .report-competency-card > div.mt-4 { margin-top: 6px !important; }
+          .report-competency-card p { margin-top: 6px !important; font-size: 8px !important; line-height: 1.25 !important; }
           .report-section[data-purpose="lesson-list"] {
             break-before: page !important;
             page-break-before: always !important;
@@ -446,13 +454,15 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
         <header className="report-hero relative grid overflow-hidden rounded-2xl border border-[#dce8ef] bg-white p-6 shadow-[0_18px_45px_rgba(31,63,101,0.08)] md:grid-cols-[minmax(0,1fr)_360px] md:items-stretch md:gap-8 md:p-8" data-purpose="student-hero">
           <div className="pointer-events-none absolute right-0 top-0 h-full w-48 bg-[#e8f6ec] [clip-path:polygon(34%_0,100%_0,100%_58%,0_72%)]" aria-hidden="true" />
           <div className="relative z-10 flex min-w-0 flex-col justify-center py-2">
-            <img src={CLEVIO_LOGO_SRC} alt="Clevio Innovator Camp" className="report-hero-logo mb-5 h-10 w-auto self-start object-contain" />
-            <div className="mb-4 inline-flex w-fit items-center rounded-full bg-[#e9f5ff] px-3 py-1.5 text-xs font-extrabold text-[#1478c9]">
-              + Laporan Perkembangan Coder
+            <div className="report-hero-brand mb-4 inline-flex w-fit items-center gap-3">
+              <img src={CLEVIO_LOGO_SRC} alt="Clevio Innovator Camp" className="report-hero-logo h-10 w-auto shrink-0 object-contain" />
+              <div className="report-hero-brand-label inline-flex items-center rounded-full bg-[#e9f5ff] px-3 py-1.5 text-xs font-extrabold text-[#1478c9]">
+                + Laporan Perkembangan Coder
+              </div>
             </div>
             <h1 className="max-w-3xl text-3xl font-black leading-tight text-[#152c64] sm:text-4xl lg:text-5xl">{coder?.full_name}</h1>
-            <p className="mt-2 text-base font-extrabold text-[#22367b] sm:text-lg">{reportContextLabel}</p>
-            <div className="mt-5 flex flex-wrap gap-2.5 text-xs font-bold text-[#526886] sm:text-sm">
+            <p className="report-hero-context mt-2 text-base font-extrabold text-[#22367b] sm:text-lg">{reportContextLabel}</p>
+            <div className="report-hero-meta mt-5 flex flex-wrap gap-2.5 text-xs font-bold text-[#526886] sm:text-sm">
               <span className="inline-flex items-center gap-2 rounded-lg border border-[#dce7ef] bg-[#f8fbfd] px-3 py-2">
                 <UserRound size={15} className="text-[#00a9ce]" aria-hidden="true" />
                 Coach: {reportCoachName}

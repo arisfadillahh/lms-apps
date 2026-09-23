@@ -20,8 +20,9 @@ describe('A4 report print contract', () => {
     expect(source).toContain('overflow: visible !important;');
     expect(source).toContain('position: static !important;');
     expect(source).toContain('.report-root, .report-page, .report-page main {');
-    expect(source).toContain('.report-section[data-purpose="competency-feedback"] {');
-    expect(source).toContain('.report-competency-grid { break-inside: avoid !important;');
+    expect(source).toContain('.report-hero-brand');
+    expect(source).toContain('.report-competency-card { padding: 8px !important; }');
+    expect(source).not.toMatch(/\.report-section\[data-purpose="competency-feedback"\]\s*\{[^}]*break-before:\s*page/);
   });
 
   it('lets the material panel flow across pages without splitting a lesson card', () => {

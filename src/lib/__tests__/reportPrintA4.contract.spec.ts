@@ -31,7 +31,10 @@ describe('A4 report print contract', () => {
     expect(source).toContain('break-inside: auto !important;');
     expect(source).toContain('.report-lesson-card {');
     expect(source).toContain('page-break-inside: avoid !important;');
-    expect(source).toContain('page-break-before: always !important;');
+    expect(source).toContain('grid-template-columns: 88px minmax(0, 1fr) !important;');
+    expect(source).toContain('white-space: nowrap !important;');
+    expect(source).toContain('page-break-before: auto !important;');
+    expect(source).toContain('page-break-after: avoid !important;');
     expect(source).toContain('.report-section[data-purpose="reflection-qa"] {');
   });
 

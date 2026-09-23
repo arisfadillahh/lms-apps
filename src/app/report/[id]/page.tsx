@@ -350,14 +350,15 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
           .report-hero-meta > span { padding: 6px 8px !important; }
           .report-score-card {
             display: grid !important;
-            grid-template-columns: 66px minmax(0, 1fr) !important;
+            grid-template-columns: 88px minmax(0, 1fr) !important;
             align-items: center !important;
             gap: 9px !important;
             padding: 10px !important;
             min-height: 90px !important;
           }
-          .report-score-card > div:first-child { width: 66px !important; height: 66px !important; }
+          .report-score-card > div:first-child { width: 88px !important; height: 88px !important; }
           .report-score-card > div:first-child strong { font-size: 21px !important; }
+          .report-score-card > div:first-child span { font-size: 7px !important; line-height: 1 !important; white-space: nowrap !important; }
           .report-score-card > div:last-child span { font-size: 8px !important; }
           .report-score-card > div:last-child p:first-of-type {
             margin-top: 5px !important;
@@ -389,10 +390,13 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
           .report-competency-card > div.mt-4 { margin-top: 7px !important; }
           .report-competency-card p { margin-top: 7px !important; font-size: 10px !important; line-height: 1.3 !important; }
           .report-section[data-purpose="lesson-list"] {
-            break-before: page !important;
-            page-break-before: always !important;
+            break-before: auto !important;
+            page-break-before: auto !important;
           }
-          .report-section[data-purpose="lesson-list"] .report-section-heading { break-after: avoid !important; }
+          .report-section[data-purpose="lesson-list"] .report-section-heading {
+            break-after: avoid !important;
+            page-break-after: avoid !important;
+          }
           .report-lessons-panel {
             padding: 14px !important;
             box-shadow: none !important;

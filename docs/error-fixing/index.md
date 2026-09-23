@@ -4,6 +4,7 @@ Search this file and the linked monthly log before changing related code.
 
 | Date | Reference | Area | Symptom | Monthly log |
 | --- | --- | --- | --- | --- |
+| 2026-09-23 | INTERNAL-20260923-04 | Report print layout | Printed report felt too compressed and unlike the web layout, with reflection forced onto a mostly empty page | [2026-09](./2026-09.md#internal-20260923-04-report-print-layout-did-not-follow-web) |
 | 2026-09-23 | INTERNAL-20260923-03 | Report hero branding and learning journey | The hero repeated the Clevio logo on screen, lesson cards felt visually heavy, and the print label alignment was unstable | [2026-09](./2026-09.md#internal-20260923-03-report-hero-and-learning-journey-visual-polish) |
 | 2026-09-23 | INTERNAL-20260923-02 | Report A4 competency layout | Five competency ratings used a split two-column layout that felt crowded in print | [2026-09](./2026-09.md#internal-20260923-02-report-a4-competencies-were-split-into-columns) |
 | 2026-09-23 | INTERNAL-20260923-01 | Report A4 print layout and Ekskul copy | Material content could be clipped, the print header lacked Clevio branding, and Ekskul copy still used Weekly block terminology | [2026-09](./2026-09.md#internal-20260923-01-a4-report-materials-were-clipped-and-ekskul-copy-used-block-terminology) |

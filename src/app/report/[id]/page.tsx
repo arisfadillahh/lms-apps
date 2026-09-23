@@ -368,66 +368,72 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
           .report-root { min-height: 0 !important; background: white !important; }
           .report-page { max-width: none !important; padding: 0 !important; }
           .report-hero {
-            grid-template-columns: minmax(0, 1fr) 285px !important;
-            gap: 12px !important;
-            padding: 12px !important;
+            grid-template-columns: minmax(0, 1fr) 300px !important;
+            gap: 16px !important;
+            padding: 16px !important;
             border-radius: 12px !important;
             box-shadow: none !important;
             break-inside: avoid !important;
           }
           .report-hero > .relative.z-10 { padding-top: 0 !important; padding-bottom: 0 !important; }
-          .report-hero h1 { font-size: 23px !important; line-height: 1.08 !important; }
-          .report-hero-brand { align-self: flex-start !important; justify-content: flex-start !important; margin-right: auto !important; margin-bottom: 7px !important; gap: 10px !important; }
-          .report-hero-logo { display: block !important; height: 7mm !important; margin: 0 !important; }
-          .report-hero-brand-label { align-self: flex-start !important; flex: 0 0 auto !important; margin: 0 !important; padding: 4px 8px !important; font-size: 8px !important; }
-          .report-hero-context { margin-top: 5px !important; font-size: 13px !important; }
-          .report-hero-meta { margin-top: 9px !important; gap: 7px !important; font-size: 10px !important; }
-          .report-hero-meta > span { padding: 6px 8px !important; }
+          .report-hero h1 { font-size: 28px !important; line-height: 1.08 !important; }
+          .report-hero-brand { align-self: flex-start !important; justify-content: flex-start !important; margin-right: auto !important; margin-bottom: 10px !important; gap: 10px !important; }
+          .report-hero-logo { display: block !important; height: 8mm !important; margin: 0 !important; }
+          .report-hero-brand-label { align-self: flex-start !important; flex: 0 0 auto !important; margin: 0 !important; padding: 5px 9px !important; font-size: 9px !important; }
+          .report-hero-context { margin-top: 6px !important; font-size: 14px !important; }
+          .report-hero-meta { margin-top: 12px !important; gap: 8px !important; font-size: 10px !important; }
+          .report-hero-meta > span { padding: 7px 9px !important; }
           .report-score-card {
             display: grid !important;
-            grid-template-columns: 88px minmax(0, 1fr) !important;
+            grid-template-columns: 96px minmax(0, 1fr) !important;
             align-items: center !important;
-            gap: 9px !important;
-            padding: 10px !important;
-            min-height: 90px !important;
+            gap: 12px !important;
+            padding: 12px !important;
+            min-height: 124px !important;
           }
-          .report-score-card > div:first-child { width: 88px !important; height: 88px !important; }
-          .report-score-card > div:first-child strong { font-size: 21px !important; }
-          .report-score-card > div:first-child span { font-size: 7px !important; line-height: 1 !important; white-space: nowrap !important; }
-          .report-score-card > div:last-child span { font-size: 8px !important; }
+          .report-score-card > div:first-child { width: 96px !important; height: 96px !important; }
+          .report-score-card > div:first-child strong { font-size: 24px !important; }
+          .report-score-card > div:first-child span { font-size: 8px !important; line-height: 1 !important; white-space: nowrap !important; }
+          .report-score-card > div:last-child span { font-size: 9px !important; }
           .report-score-card > div:last-child p:first-of-type {
-            margin-top: 5px !important;
-            font-size: 12px !important;
+            margin-top: 8px !important;
+            font-size: 15px !important;
             line-height: 1.2 !important;
             overflow-wrap: anywhere !important;
           }
           .report-score-card > div:last-child p:last-of-type {
-            display: none !important;
+            display: block !important;
+            margin-top: 6px !important;
+            font-size: 9px !important;
+            line-height: 1.35 !important;
           }
-          .report-section { margin-top: 10px !important; }
-          .report-section-heading { margin-bottom: 6px !important; }
-          .report-section-heading h2 { font-size: 17px !important; line-height: 1.2 !important; }
-          .report-section-heading p { font-size: 9px !important; line-height: 1.3 !important; }
+          .report-section { margin-top: 20px !important; }
+          .report-section-heading { margin-bottom: 10px !important; }
+          .report-section-heading h2 { font-size: 21px !important; line-height: 1.2 !important; }
+          .report-section-heading p { font-size: 10px !important; line-height: 1.35 !important; }
           .report-section[data-purpose="competency-feedback"] {
-            margin-top: 9px !important;
+            margin-top: 14px !important;
           }
-          .report-competency-grid { display: block !important; }
-          .report-reflection-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; }
+          .report-competency-grid {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 9px !important;
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+          .report-reflection-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; }
           .report-competency-card, .report-reflection-card {
             box-shadow: none !important;
             break-inside: avoid !important;
             page-break-inside: avoid !important;
           }
-          .report-competency-card { padding: 7px 9px !important; margin-bottom: 5px !important; }
-          .report-competency-card:last-child { margin-bottom: 0 !important; }
-          .report-competency-card > div:first-child { align-items: center !important; gap: 8px !important; }
-          .report-competency-card .flex.h-11 { width: 24px !important; height: 24px !important; }
-          .report-competency-card .flex.h-11 svg { width: 14px !important; height: 14px !important; }
-          .report-competency-card h3 { font-size: 12px !important; line-height: 1.15 !important; }
-          .report-competency-card > div:first-child > strong { font-size: 16px !important; }
-          .report-competency-card > div.mt-4 { height: 4px !important; margin-top: 4px !important; }
-          .report-competency-card p { margin-top: 4px !important; font-size: 9px !important; line-height: 1.2 !important; }
-          .report-competency-card > div:first-child > div > div > span { display: none !important; }
+          .report-competency-card { padding: 12px !important; }
+          .report-competency-card .flex.h-11 { width: 32px !important; height: 32px !important; }
+          .report-competency-card .flex.h-11 svg { width: 18px !important; height: 18px !important; }
+          .report-competency-card h3 { font-size: 14px !important; line-height: 1.2 !important; }
+          .report-competency-card strong { font-size: 19px !important; }
+          .report-competency-card > div.mt-4 { height: 6px !important; margin-top: 9px !important; }
+          .report-competency-card p { margin-top: 9px !important; font-size: 10px !important; line-height: 1.35 !important; }
           .report-section[data-purpose="lesson-list"] {
             break-before: auto !important;
             page-break-before: auto !important;
@@ -436,23 +442,23 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
             break-after: avoid !important;
             page-break-after: avoid !important;
           }
-          .report-lesson-list { margin-top: 5px !important; }
-          .report-lesson-list::before { top: 12px !important; bottom: 12px !important; left: 10px !important; }
+          .report-lesson-list { margin-top: 12px !important; }
+          .report-lesson-list::before { top: 16px !important; bottom: 16px !important; left: 12px !important; }
           .report-lesson-row {
-            gap: 8px !important;
-            padding: 4px 2px !important;
+            gap: 12px !important;
+            padding: 8px 4px !important;
             border-bottom: 1px solid #e1ebf0 !important;
             break-inside: avoid !important;
             page-break-inside: avoid !important;
           }
-          .report-lesson-number { width: 21px !important; height: 21px !important; flex-basis: 21px !important; border-radius: 6px !important; font-size: 9px !important; }
-          .report-lesson-title { font-size: 10.5px !important; line-height: 1.25 !important; }
+          .report-lesson-number { width: 28px !important; height: 28px !important; flex-basis: 28px !important; border-radius: 8px !important; font-size: 11px !important; }
+          .report-lesson-title { font-size: 12px !important; line-height: 1.35 !important; }
           .report-section[data-purpose="reflection-qa"] {
-            break-before: page !important;
-            page-break-before: always !important;
+            break-before: auto !important;
+            page-break-before: auto !important;
           }
-          .report-reflection-card { padding: 11px !important; }
-          .report-reflection-card p { font-size: 9.5px !important; line-height: 1.4 !important; }
+          .report-reflection-card { padding: 14px !important; }
+          .report-reflection-card p { font-size: 10.5px !important; line-height: 1.4 !important; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
       `}</style>

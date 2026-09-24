@@ -57,7 +57,7 @@ export default function PortfolioForm({
   const [dirty, setDirty] = useState(false);
   const dirtyRef = useRef(false);
   const savingRef = useRef(false);
-  const progress = useRef<PortfolioSaveProgress>({ id: initial?.id, images: initial?.screenshots || [], uploadComplete: false, needsReload: false });
+  const progress = useRef<PortfolioSaveProgress>({ id: initial?.id, images: initial?.screenshots || [], uploadedFileIndexes: [], uploadComplete: false, needsReload: false });
   useEffect(() => {
     const beforeUnload = (event: BeforeUnloadEvent) => {
       if (!dirtyRef.current) return;
@@ -77,7 +77,9 @@ export default function PortfolioForm({
   }, []);
   const markDirty = () => { dirtyRef.current = true; setDirty(true); };
   const selectedClass = useMemo(() => classes.find((item) => item.id === selectedClassId), [classes, selectedClassId]);
-  const totalImages = images.length + files.length;
+  const uploadedCount = progress.current.uploadedFileIndexes.length;
+  const pendingFiles = files.filter((_, index) => !progress.current.uploadedFileIndexes.includes(index));
+  const totalImages = images.length + files.length - uploadedCount;
 
   async function removeImage(image: ExistingImage) {
     if (savingRef.current || !progress.current.id || !window.confirm('Hapus screenshot ini? Versi publik lama tetap aman sampai project disetujui ulang.')) return;
@@ -175,8 +177,17 @@ export default function PortfolioForm({
             <ImagePlus size={26} /><span className="font-black">Pilih screenshot PNG, JPEG, atau WebP</span>
             <input type="file" accept="image/png,image/jpeg,image/webp" multiple className="sr-only" onChange={(event) => {
               const next = Array.from(event.target.files || []);
+              const sameSelection = next.length === files.length && next.every((file, index) => {
+                const previous = files[index];
+                return previous && file.name === previous.name && file.size === previous.size && file.lastModified === previous.lastModified && file.type === previous.type;
+              });
               if (next.some((file) => file.size >= 1024 * 1024)) setError('Setiap screenshot harus lebih kecil dari 1 MB.');
-              else if (images.length + next.length <= 5) { setFiles(next); progress.current.uploadComplete = false; setError(''); }
+              else if (images.length + next.length - (sameSelection ? progress.current.uploadedFileIndexes.length : 0) <= 5) {
+                setFiles(next);
+                if (!sameSelection) progress.current.uploadedFileIndexes = [];
+                progress.current.uploadComplete = false;
+                setError('');
+              }
               else setError('Total screenshot maksimal 5 gambar.');
             }} />
           </span>
@@ -184,7 +195,7 @@ export default function PortfolioForm({
         <p className="mt-2 text-xs font-bold text-slate-400">Gambar pertama menjadi cover. Saat ini: {totalImages}/5.</p>
         {(images.length > 0 || files.length > 0) && <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
           {images.map((image, index) => <div key={image.id} className="relative overflow-hidden rounded-xl border-2 border-slate-100"><img src={image.public_url} alt={`Screenshot ${index + 1}`} className="aspect-video h-full w-full object-cover" /><button type="button" onClick={() => removeImage(image)} aria-label="Hapus screenshot" className="absolute right-1 top-1 rounded-lg bg-white/90 p-1.5 text-red-600 shadow"><Trash2 size={15} /></button></div>)}
-          {files.map((file, index) => <div key={`${file.name}-${index}`} className="relative flex aspect-video items-center justify-center rounded-xl bg-slate-100 p-2 text-center text-xs font-bold text-slate-500">{file.name}</div>)}
+          {pendingFiles.map((file, index) => <div key={`${file.name}-${index}`} className="relative flex aspect-video items-center justify-center rounded-xl bg-slate-100 p-2 text-center text-xs font-bold text-slate-500">{file.name}</div>)}
         </div>}
           <div className="grid gap-5 sm:grid-cols-2">
             <label className={labelClass}>Link playable / demo <span className="font-semibold text-slate-400">(opsional)</span><input name="playableUrl" defaultValue={initial?.playable_url} type="url" className={fieldClass} placeholder="https://..." /></label>

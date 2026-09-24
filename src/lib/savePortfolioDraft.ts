@@ -2,6 +2,7 @@ export type SavedPortfolioImage = { id: string; public_url: string; sort_order: 
 export type PortfolioSaveProgress = {
   id?: string;
   images: SavedPortfolioImage[];
+  uploadedFileIndexes: number[];
   uploadComplete: boolean;
   needsReload: boolean;
 };
@@ -30,18 +31,25 @@ export async function savePortfolioDraft(
     if (!progress.id) { progress.needsReload = true; throw new Error('Respons penyimpanan tidak lengkap. Periksa daftar draft.'); }
 
     if (files.length && !progress.uploadComplete) {
-      stage = 'upload'; confirmedResponse = false;
-      const data = new FormData();
-      files.forEach((file) => data.append('images', file));
-      const upload = await request(`/api/coder/portfolios/${progress.id}/screenshots`, { method: 'POST', body: data });
-      const result = await upload.json();
-      confirmedResponse = upload.status < 500;
-      if (!upload.ok) throw new Error(`${result.error || 'Screenshot gagal diunggah.'} Draft teks sudah tersimpan; coba lagi.`);
-      if (!Array.isArray(result.screenshots) || result.screenshots.length !== files.length) {
+      stage = 'upload';
+      for (const [index, file] of files.entries()) {
+        if (progress.uploadedFileIndexes.includes(index)) continue;
         confirmedResponse = false;
-        throw new Error('Respons upload tidak lengkap.');
+        const upload = await request(`/api/coder/portfolios/${progress.id}/screenshots`, {
+          method: 'POST',
+          headers: { 'Content-Type': file.type },
+          body: file,
+        });
+        const result = await upload.json();
+        confirmedResponse = upload.status < 500;
+        if (!upload.ok) throw new Error(`${result.error || 'Screenshot gagal diunggah.'} Draft teks sudah tersimpan; coba lagi.`);
+        if (!Array.isArray(result.screenshots) || result.screenshots.length !== 1) {
+          confirmedResponse = false;
+          throw new Error('Respons upload tidak lengkap.');
+        }
+        progress.images = [...progress.images, result.screenshots[0]];
+        progress.uploadedFileIndexes = [...progress.uploadedFileIndexes, index];
       }
-      progress.images = [...progress.images, ...(result.screenshots || [])];
       progress.uploadComplete = true;
     }
     if (submit) {

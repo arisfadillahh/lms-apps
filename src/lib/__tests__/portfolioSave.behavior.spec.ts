@@ -3,9 +3,11 @@ import { savePortfolioDraft, type PortfolioSaveProgress } from '@/lib/savePortfo
 import { uniquePortfolioTags } from '@/lib/portfolioTags';
 
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
-const state = (): PortfolioSaveProgress => ({ images: [], uploadComplete: false, needsReload: false });
+const state = (): PortfolioSaveProgress => ({ images: [], uploadedFileIndexes: [], uploadComplete: false, needsReload: false });
 const file = new File(['image'], 'project.png', { type: 'image/png' });
+const secondFile = new File(['second image'], 'project-2.png', { type: 'image/png' });
 const image = { id: 'image-1', public_url: 'https://example.com/project.png', sort_order: 0 };
+const secondImage = { id: 'image-2', public_url: 'https://example.com/project-2.png', sort_order: 1 };
 
 describe('portfolio save recovery', () => {
   it('saves text then media then submits; preserves returned identity', async () => {
@@ -15,7 +17,23 @@ describe('portfolio save recovery', () => {
     expect(request.mock.calls.map(([url, init]) => [url, init.method])).toEqual([
       ['/api/coder/portfolios', 'POST'], ['/api/coder/portfolios/draft-1/screenshots', 'POST'], ['/api/coder/portfolios/draft-1/submit', 'POST'],
     ]);
-    expect(progress).toEqual({ id: 'draft-1', images: [image], uploadComplete: true, needsReload: false });
+    expect(progress).toEqual({ id: 'draft-1', images: [image], uploadedFileIndexes: [0], uploadComplete: true, needsReload: false });
+    expect(request.mock.calls[1][1].body).toBe(file);
+  });
+  it('uploads each screenshot separately and resumes after a later definite rejection without duplicating prior images', async () => {
+    const progress = state();
+    const request = vi.fn()
+      .mockResolvedValueOnce(response({ id: 'draft-1' }))
+      .mockResolvedValueOnce(response({ screenshots: [image] }))
+      .mockResolvedValueOnce(response({ error: 'Upload rejected' }, 413));
+    await expect(savePortfolioDraft(progress, {}, [file, secondFile], false, request)).rejects.toThrow('Draft teks sudah tersimpan');
+    expect(progress.images).toEqual([image]);
+    expect(progress.uploadedFileIndexes).toEqual([0]);
+    request.mockResolvedValueOnce(response({ id: 'draft-1' })).mockResolvedValueOnce(response({ screenshots: [secondImage] }));
+    await savePortfolioDraft(progress, {}, [file, secondFile], false, request);
+    expect(request.mock.calls.filter(([url]) => url.endsWith('/screenshots'))).toHaveLength(3);
+    expect(progress.images).toEqual([image, secondImage]);
+    expect(progress.uploadComplete).toBe(true);
   });
   it('retries a rejected upload against the same saved draft, not a new record', async () => {
     const progress = state();

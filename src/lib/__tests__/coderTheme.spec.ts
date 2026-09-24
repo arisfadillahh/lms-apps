@@ -50,12 +50,16 @@ describe('coder theme preference', () => {
     expect(map).toContain('hidden md:block');
     expect(modal).toContain('journey-modal-title');
     expect(modal).toContain('journey-modal-body');
+    expect(modal).toContain('/logo/innovator-camp-logo-dark.png');
+    expect(modal).toContain('/logo/innovator-camp-logo-light.png');
     expect(modal).toContain('h-[100dvh]');
     expect(modal).not.toContain('body.scrollTop = body.scrollHeight');
     expect(styles).toContain("[data-coder-modal='true'] .journey-modal-title");
     expect(styles).toContain("[data-coder-modal='true'] .journey-card-current");
     expect(styles).toContain('[data-coder-modal=\'true\'] .journey-mobile-card-title');
     expect(styles).toContain('var(--journey-title)');
+    expect(styles).toContain("html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-logo-light");
+    expect(styles).toContain("html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-logo-dark");
     expect(styles).toContain('border-left: 3px dashed var(--journey-route);');
     expect(styles).toContain('.journey-path-base,');
     expect(styles).toContain('stroke-dasharray: none;');

@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
-import JourneyMap, { JourneyCourse } from './JourneyMap';
+import Image from 'next/image';
+import JourneyMap, { type JourneyCourse } from './JourneyMap';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Map, X, Sparkles } from 'lucide-react';
+import { Map, X } from 'lucide-react';
 
 // Simple CSS cloud component
 function Cloud({ className = '' }: { className?: string }) {
@@ -19,13 +20,11 @@ function Cloud({ className = '' }: { className?: string }) {
     );
 }
 
+const subscribeToNothing = () => () => {};
+
 export default function JourneyModal({ courses }: { courses: JourneyCourse[] }) {
     const [isOpen, setIsOpen] = useState(false);
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => {
-        setMounted(true);
-    }, []);
+    const mounted = useSyncExternalStore(subscribeToNothing, () => true, () => false);
 
     if (courses.length === 0) return null;
 
@@ -59,15 +58,17 @@ export default function JourneyModal({ courses }: { courses: JourneyCourse[] }) 
                             {/* ── Header ──────────────────────────────────────── */}
                             <div className="relative z-20 flex items-center justify-between px-4 py-4 md:px-10 md:py-6">
                                 <div className="flex min-w-0 items-center gap-3">
-                                    <div className="flex size-10 shrink-0 -rotate-6 items-center justify-center rounded-xl border-2 border-sky/20 bg-white shadow-lg md:size-12 md:rounded-2xl">
-                                        <Sparkles className="text-sky" size={20} />
-                                    </div>
+                                    <span className="relative h-9 w-[90px] shrink-0 md:h-11 md:w-[122px]" aria-hidden="true">
+                                        <Image src="/logo/innovator-camp-logo-dark.png" alt="" fill sizes="122px" className="journey-logo-light object-contain object-left" priority />
+                                        <Image src="/logo/innovator-camp-logo-light.png" alt="" fill sizes="122px" className="journey-logo-dark object-contain object-left" priority />
+                                    </span>
+                                    <span className="h-9 w-px shrink-0 bg-sky-200 md:h-11" aria-hidden="true" />
                                     <div className="min-w-0">
                                         <h2 className="journey-modal-title truncate text-lg font-black leading-tight tracking-tight text-sky-950 md:text-2xl">
                                             Peta Petualangan Belajar
                                         </h2>
                                         <p className="journey-modal-subtitle truncate text-[9px] font-black uppercase tracking-wider text-sky-700 md:text-xs md:tracking-widest">
-                                            Clevio Innovator Camp · {courses[0]?.levelName || 'Level Coder'}
+                                            Clevio Innovator Camp · Semua level
                                         </p>
                                     </div>
                                 </div>

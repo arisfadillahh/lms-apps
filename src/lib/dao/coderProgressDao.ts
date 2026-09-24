@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import type { CoderJourneyProgressRow } from '@/lib/coderJourney';
 import type { BlockRecord } from '@/lib/dao/blocksDao';
 import { finalizeCoderLevel } from '@/lib/dao/levelProgressionsDao';
 import { createAdminNotifications, createNotification } from '@/lib/dao/notificationsDao';
@@ -264,4 +265,48 @@ export async function getCoderJourney(coderId: string, levelId: string): Promise
     return [];
   }
   return data ?? [];
+}
+
+export async function getCoderJourneyAcrossLevels(coderId: string): Promise<CoderJourneyProgressRow[]> {
+  const supabase = getSupabaseAdmin();
+  const { data: progress, error: progressError } = await supabase
+    .from('coder_block_progress')
+    .select('level_id, block_id, journey_order, status')
+    .eq('coder_id', coderId)
+    .order('journey_order', { ascending: true });
+
+  if (progressError) {
+    console.error(`Failed to fetch coder journey across levels: ${progressError.message}`);
+    return [];
+  }
+  if (!progress?.length) return [];
+
+  const levelIds = [...new Set(progress.map((row) => row.level_id))];
+  const blockIds = [...new Set(progress.map((row) => row.block_id))];
+  const [{ data: levels, error: levelsError }, { data: blocks, error: blocksError }] = await Promise.all([
+    supabase.from('levels').select('id, name, order_index').in('id', levelIds),
+    supabase.from('blocks').select('id, name').in('id', blockIds),
+  ]);
+
+  if (levelsError || blocksError) {
+    console.error(`Failed to resolve coder journey labels: ${levelsError?.message || blocksError?.message}`);
+    return [];
+  }
+
+  const levelById = new Map((levels ?? []).map((level) => [level.id, level]));
+  const blockById = new Map((blocks ?? []).map((block) => [block.id, block]));
+  return progress.flatMap((row) => {
+    const level = levelById.get(row.level_id);
+    const block = blockById.get(row.block_id);
+    if (!level || !block) return [];
+    return [{
+      levelId: level.id,
+      levelName: level.name,
+      levelOrder: level.order_index,
+      blockId: block.id,
+      blockName: block.name,
+      journeyOrder: row.journey_order,
+      status: row.status,
+    }];
+  });
 }

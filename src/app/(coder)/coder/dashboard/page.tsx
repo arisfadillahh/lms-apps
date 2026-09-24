@@ -9,10 +9,13 @@ import { BookOpen, Bug, Flame, Pencil, ChevronRight, ListChecks, Zap, Play, Dumb
 import { getSessionOrThrow } from '@/lib/auth';
 import { normalizeClassMeetingUrl } from '@/lib/classMeetingUrl';
 import { getCoderProgress } from '@/lib/services/coder';
+import { groupCoderJourneyByLevel } from '@/lib/coderJourney';
+import { getCoderJourneyAcrossLevels } from '@/lib/dao/coderProgressDao';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { levelProgressionsDao } from '@/lib/dao';
 
 import JourneyModal from './JourneyModal';
+import type { JourneyCourse } from './JourneyMap';
 import UpcomingLessonsModal from './UpcomingLessonsModal';
 import SoftwareDetailModal from './SoftwareDetailModal';
 import BannerCarousel from '@/components/coder/BannerCarousel';
@@ -45,10 +48,11 @@ async function getBanners(): Promise<Banner[]> {
 
 export default async function CoderDashboardPage() {
   const session = await getSessionOrThrow();
-  const [progress, banners, levelProgression] = await Promise.all([
+  const [progress, banners, levelProgression, allLevelProgress] = await Promise.all([
     getCoderProgress(session.user.id),
     getBanners(),
     levelProgressionsDao.getLatestForCoder(session.user.id),
+    getCoderJourneyAcrossLevels(session.user.id),
   ]);
 
   const upcomingBlocks = progress
@@ -182,28 +186,58 @@ export default async function CoderDashboardPage() {
   // Software list
   const softwareList = upcomingBlocks.flatMap(b => b.block.software || []).slice(0, 4);
 
-  // Journey courses for the modal
-  const journeyCourses = journeyProgress.map((item) => {
-    let currentBlockProgress = 0;
-
-    const currentJourneyBlock = item.journeyBlocks.find(b => b.status === 'CURRENT');
-    if (currentJourneyBlock && item.upNext && item.upNext.blockId === currentJourneyBlock.blockId && item.upNext.lessons) {
-      const completed = item.upNext.lessons.filter((l: any) => l.status === 'COMPLETED').length;
-      const total = item.upNext.lessons.length || 1;
-      currentBlockProgress = Math.round((completed / total) * 100);
-    }
+  // Build the modal from persistent per-level progress, including completed history.
+  const levelJourneys = groupCoderJourneyByLevel(allLevelProgress);
+  const currentProgressForLevel = (item: (typeof journeyProgress)[number] | undefined) => {
+    const currentJourneyBlock = item?.journeyBlocks.find((block) => block.status === 'CURRENT');
+    if (!currentJourneyBlock || item?.upNext?.blockId !== currentJourneyBlock.blockId || !item.upNext.lessons?.length) return 0;
+    const completed = item.upNext.lessons.filter((lesson) => lesson.status === 'COMPLETED').length;
+    return Math.round((completed / item.upNext.lessons.length) * 100);
+  };
+  const journeyCourses: JourneyCourse[] = levelJourneys.map((level) => {
+    const activeLevel = journeyProgress.find((item) => item.type === 'WEEKLY' && item.levelName === level.levelName);
 
     return {
+      classId: `level-${level.levelId}`,
+      name: level.levelName,
+      levelName: level.levelName,
+      classType: 'WEEKLY' as const,
+      currentBlockProgress: currentProgressForLevel(activeLevel),
+      journeyBlocks: level.blocks.map((block, index) => ({
+        blockId: block.blockId,
+        name: block.blockName,
+        status: block.status === 'COMPLETED' ? 'COMPLETED' as const : block.status === 'IN_PROGRESS' ? 'CURRENT' as const : 'UPCOMING' as const,
+        orderIndex: block.journeyOrder ?? index,
+      })),
+      completedBlocks: level.blocks.filter((block) => block.status === 'COMPLETED').length,
+      totalBlocks: level.blocks.length,
+    };
+  });
+
+  const journeyLevelNames = new Set(levelJourneys.map((level) => level.levelName));
+  const fallbackCurrentLevels = journeyProgress
+    .filter((item) => item.type === 'WEEKLY' && typeof item.levelName === 'string' && !journeyLevelNames.has(item.levelName))
+    .map((item) => ({
       classId: item.classId,
       name: item.name,
       levelName: item.levelName,
       classType: item.type,
-      currentBlockProgress,
+      currentBlockProgress: currentProgressForLevel(item),
       journeyBlocks: item.journeyBlocks,
       completedBlocks: item.completedBlocks,
       totalBlocks: item.totalBlocks || item.journeyBlocks.length,
-    };
-  });
+    }));
+  const ekskulJourneys = journeyProgress.filter((item) => item.type === 'EKSKUL').map((item) => ({
+    classId: item.classId,
+    name: item.name,
+    levelName: item.levelName,
+    classType: item.type,
+    currentBlockProgress: 0,
+    journeyBlocks: item.journeyBlocks,
+    completedBlocks: item.completedBlocks,
+    totalBlocks: item.totalBlocks || item.journeyBlocks.length,
+  }));
+  journeyCourses.push(...fallbackCurrentLevels, ...ekskulJourneys);
 
   return (
     <>

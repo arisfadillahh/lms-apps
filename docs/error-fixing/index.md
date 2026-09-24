@@ -4,6 +4,7 @@ Search this file and the linked monthly log before changing related code.
 
 | Date | Reference | Area | Symptom | Monthly log |
 | --- | --- | --- | --- | --- |
+| 2026-09-24 | INTERNAL-20260924-02 | Coder Learning Journey modal | The modal showed only active class journeys and used a white Clevio logo that was unreadable on its light panel | [2026-09](./2026-09.md#internal-20260924-02-coder-journey-modal-all-levels-and-readable-branding) |
 | 2026-09-24 | INTERNAL-20260924-01 | Coder portfolio screenshots | Selecting multiple valid screenshots produced a 413 because the combined multipart payload exceeded the request gateway limit | [2026-09](./2026-09.md#internal-20260924-01-portfolio-screenshot-uploads-exceeded-request-size) |
 | 2026-09-23 | INTERNAL-20260923-11 | Coach report descriptions | Long narratives stretched competency cards and pushed the learning journey across print pages | [2026-09](./2026-09.md#internal-20260923-11-capped-report-observation-length) |
 | 2026-09-23 | INTERNAL-20260923-10 | Report learning journey cards | Lesson titles stacked below their numbers and cards wasted vertical space | [2026-09](./2026-09.md#internal-20260923-10-compact-report-journey-cards) |

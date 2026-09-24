@@ -7,8 +7,8 @@ type JourneyBlock = {
   blockId: string;
   name: string;
   status: 'UPCOMING' | 'CURRENT' | 'COMPLETED';
-  startDate: string;
-  endDate: string;
+  startDate?: string;
+  endDate?: string;
   orderIndex: number | null;
 };
 
@@ -100,7 +100,7 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
       {/* Phone layout: show the active step first, followed by the next milestones. */}
       <div className="journey-mobile flex min-h-0 flex-col px-4 pb-6 pt-1 md:hidden">
         <div className="journey-mobile-intro mb-5 rounded-2xl px-4 py-3 text-center">
-          <p className="journey-mobile-course-title journey-block-name text-sm font-black text-sky-950">{course.name}</p>
+          <p className="journey-mobile-course-title journey-block-name text-sm font-black text-sky-950">{course.levelName || course.name}</p>
           <p className="journey-mobile-course-description mt-1 text-[11px] font-bold leading-relaxed text-sky-800">
             Setiap langkah kecil hari ini membawamu ke petualangan hebat.
           </p>
@@ -171,12 +171,12 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
                     <h4 className="journey-mobile-card-title journey-block-name mt-2 text-base font-black leading-snug text-slate-800">{block.name}</h4>
                   </div>
 
-                  <p className="journey-mobile-card-date mt-2 flex items-center justify-center gap-1.5 text-[10px] font-bold text-slate-500">
+                  {block.startDate && block.endDate && <p className="journey-mobile-card-date mt-2 flex items-center justify-center gap-1.5 text-[10px] font-bold text-slate-500">
                     <CalendarDays size={13} />
                     {new Date(block.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
                     {' – '}
                     {new Date(block.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
-                  </p>
+                  </p>}
 
                   {isCurrent && (
                     <div className="mt-3 border-t border-slate-200 pt-3">
@@ -367,11 +367,11 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
                     </h4>
 
                     {/* Date range */}
-                    <p className="text-[10px] font-bold text-slate-400 mt-1.5">
+                    {block.startDate && block.endDate && <p className="text-[10px] font-bold text-slate-400 mt-1.5">
                       {new Date(block.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
                       {' – '}
                       {new Date(block.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
-                    </p>
+                    </p>}
 
                     {/* Progress bar — only for CURRENT block */}
                     {isCurrent && (

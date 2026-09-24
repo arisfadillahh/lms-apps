@@ -612,6 +612,18 @@ html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-scroll-hint svg
   background: linear-gradient(to bottom, var(--journey-panel-top), var(--journey-panel-bottom)) !important;
 }
 
+[data-coder-modal='true'] .journey-logo-dark {
+  display: none;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-logo-light {
+  display: none;
+}
+
+html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-logo-dark {
+  display: block;
+}
+
 [data-coder-modal='true'] .journey-modal-title,
 [data-coder-modal='true'] .journey-mobile-course-title,
 [data-coder-modal='true'] .journey-mobile-card-title {

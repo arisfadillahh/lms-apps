@@ -11,7 +11,8 @@ import {
   issueReportSchema,
 } from '@/lib/issueReports';
 import { sendWhatsAppImage, sendWhatsAppMessage } from '@/lib/services/whatsappClient';
-import { uploadIssueScreenshot } from '@/lib/storage';
+import { sendIssueReportWebhook } from '@/lib/services/issueReportWebhook';
+import { createIssueScreenshotViewUrl, uploadIssueScreenshot } from '@/lib/storage';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { consumeRateLimit } from '@/lib/rateLimit';
 import { detectAvatarImageType } from '@/lib/services/avatarUploadSecurity';
@@ -134,19 +135,63 @@ export async function POST(request: Request) {
     });
 
     after(async () => {
-      const result = screenshotBuffer && screenshotContentType
-        ? await sendWhatsAppImage({
-            phoneNumber: ISSUE_REPORT_WHATSAPP_NUMBER,
-            image: screenshotBuffer,
-            mimeType: screenshotContentType,
-            caption,
-          })
-        : await sendWhatsAppMessage(ISSUE_REPORT_WHATSAPP_NUMBER, caption);
-
-      await supabase.from('issue_reports').update({
-        whatsapp_status: result.success ? 'SENT' : 'FAILED',
-        whatsapp_error: result.error || null,
-      }).eq('id', report.id);
+      const deliveries = await Promise.allSettled([
+        (async () => {
+          let whatsappStatus: 'SENT' | 'FAILED' = 'FAILED';
+          let whatsappError: string | null = null;
+          try {
+            const result = screenshotBuffer && screenshotContentType
+              ? await sendWhatsAppImage({
+                  phoneNumber: ISSUE_REPORT_WHATSAPP_NUMBER,
+                  image: screenshotBuffer,
+                  mimeType: screenshotContentType,
+                  caption,
+                })
+              : await sendWhatsAppMessage(ISSUE_REPORT_WHATSAPP_NUMBER, caption);
+            whatsappStatus = result.success ? 'SENT' : 'FAILED';
+            whatsappError = result.error || null;
+          } catch (error) {
+            whatsappError = error instanceof Error ? error.message : String(error);
+          }
+          if (whatsappStatus === 'FAILED') console.error('[IssueReport] WhatsApp delivery failed', { reportId: report.id, error: whatsappError });
+          const { error: statusError } = await supabase.from('issue_reports').update({
+            whatsapp_status: whatsappStatus,
+            whatsapp_error: whatsappError,
+          }).eq('id', report.id);
+          if (statusError) console.error('[IssueReport] Failed to update WhatsApp status', { reportId: report.id, error: statusError.message });
+        })(),
+        (async () => {
+          let signedUrl: string | null = null;
+          if (screenshotStoragePath) {
+            try {
+              signedUrl = await createIssueScreenshotViewUrl(screenshotStoragePath);
+            } catch (error) {
+              console.error('[IssueReportWebhook] Screenshot URL failed', { reportId: report.id, error });
+            }
+          }
+          await sendIssueReportWebhook({
+            event: 'lms_report',
+            report_id: report.id,
+            title: report.title,
+            description: report.description,
+            reporter: { id: session.user.id, name: report.reporter_name, role: report.reporter_role },
+            page_url: report.page_url,
+            user_agent: userAgent,
+            viewport: { width: parsed.data.viewportWidth ?? null, height: parsed.data.viewportHeight ?? null },
+            screenshot: {
+              url: signedUrl,
+              storage_path: screenshotStoragePath,
+              note: screenshotBuffer
+                ? signedUrl ? 'Signed URL expires after 1 hour.' : 'Screenshot unavailable via URL; image sent to WhatsApp when delivery succeeds.'
+                : null,
+            },
+            timestamp: report.created_at,
+          });
+        })(),
+      ]);
+      for (const delivery of deliveries) {
+        if (delivery.status === 'rejected') console.error('[IssueReport] Background delivery failed', { reportId: report.id, error: delivery.reason });
+      }
     });
 
     return NextResponse.json({

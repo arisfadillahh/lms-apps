@@ -71,7 +71,9 @@ export default function RemoveCoderButton({ classId, coderId, disabled }: Remove
       >
         <Trash2 size={16} />
       </button>
-      {errorMessage ? <span style={{ color: '#b91c1c', fontSize: '0.65rem' }}>Error</span> : null}
+      {errorMessage ? (
+        <span style={{ color: '#b91c1c', fontSize: '0.7rem', maxWidth: '13rem' }}>{errorMessage}</span>
+      ) : null}
     </div>
   );
 }

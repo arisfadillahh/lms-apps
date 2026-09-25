@@ -86,7 +86,7 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
 
   const [sessions, enrollments, coaches, coders, allClasses] = await Promise.all([
     sessionsDao.listSessionsByClass(classIdParam),
-    classesDao.listEnrollmentsByClass(classIdParam, { includeInactive: true }),
+      classesDao.listEnrollmentsByClass(classIdParam),
     usersDao.listUsersByRole('COACH'),
     usersDao.listUsersByRole('CODER'),
     classesDao.listClasses(),

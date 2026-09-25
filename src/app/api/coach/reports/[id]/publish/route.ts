@@ -99,7 +99,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
     
     // Proper multi-coach check
-    const coachClasses = await classesDao.listClassesForCoach(sessionUser.user.id);
+    const coachClasses = await classesDao.listClassesForCoach(sessionUser.user.id, { includeArchived: true });
     const isAuthorized = coachClasses.some(c => c.id === klass.id);
     
     if (!isAuthorized) {

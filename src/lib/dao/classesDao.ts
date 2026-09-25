@@ -463,13 +463,14 @@ export async function transferCoderEnrollment(input: {
   return enrollment;
 }
 
-export async function listClassesForCoach(coachId: string): Promise<ClassRecord[]> {
+export async function listClassesForCoach(coachId: string, options: { includeArchived?: boolean } = {}): Promise<ClassRecord[]> {
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
+  let query = supabase
     .from('classes')
     .select('*')
-    .eq('coach_id', coachId)
-    .order('start_date', { ascending: true });
+    .eq('coach_id', coachId);
+  if (!options.includeArchived) query = query.is('archived_at', null);
+  const { data, error } = await query.order('start_date', { ascending: true });
 
   if (error) {
     throw new Error(`Failed to list coach classes: ${error.message}`);

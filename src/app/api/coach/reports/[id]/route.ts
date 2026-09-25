@@ -32,7 +32,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Report not found' }, { status: 404 });
     }
 
-    const coachClasses = await classesDao.listClassesForCoach(coachSession.user.id);
+    const coachClasses = await classesDao.listClassesForCoach(coachSession.user.id, { includeArchived: true });
     const substituteClasses = await classesDao.listClassesWhereCoachIsSubstitute(coachSession.user.id);
     const authorizedClassIds = new Set([...coachClasses, ...substituteClasses].map((klass) => klass.id));
 

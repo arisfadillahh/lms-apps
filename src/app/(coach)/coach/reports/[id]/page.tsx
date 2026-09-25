@@ -85,7 +85,7 @@ export default async function CoachReportReviewPage({ params }: { params: Promis
   const klass = Array.isArray(reportRecord.class) ? reportRecord.class[0] : reportRecord.class;
   if (!klass) redirect('/coach/reports');
 
-  const coachClasses = await classesDao.listClassesForCoach(coachId);
+  const coachClasses = await classesDao.listClassesForCoach(coachId, { includeArchived: true });
   const isAuthorized = coachClasses.some(c => c.id === klass.id);
   if (!isAuthorized) redirect('/coach/reports');
 

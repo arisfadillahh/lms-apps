@@ -400,17 +400,20 @@ export async function updateEnrollmentStatus(classId: string, coderId: string, s
   }
 }
 
-export async function deleteEnrollment(classId: string, coderId: string): Promise<void> {
+export async function deleteEnrollment(classId: string, coderId: string): Promise<boolean> {
   const supabase = getSupabaseAdmin();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('enrollments')
     .delete()
     .eq('class_id', classId)
-    .eq('coder_id', coderId);
+    .eq('coder_id', coderId)
+    .select('id');
 
   if (error) {
     throw new Error(`Failed to remove enrollment: ${error.message}`);
   }
+
+  return (data ?? []).length > 0;
 }
 
 export async function listClassesForCoach(coachId: string): Promise<ClassRecord[]> {

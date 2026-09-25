@@ -8,9 +8,10 @@ type RemoveCoderButtonProps = {
   classId: string;
   coderId: string;
   disabled?: boolean;
+  onRemoved?: () => void;
 };
 
-export default function RemoveCoderButton({ classId, coderId, disabled }: RemoveCoderButtonProps) {
+export default function RemoveCoderButton({ classId, coderId, disabled, onRemoved }: RemoveCoderButtonProps) {
   const router = useRouter();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -39,6 +40,7 @@ export default function RemoveCoderButton({ classId, coderId, disabled }: Remove
           setErrorMessage(payload.error ?? 'Gagal menghapus coder');
           return;
         }
+        onRemoved?.();
         router.refresh();
       } catch (error) {
         console.error('Failed to remove coder', error);
@@ -71,7 +73,9 @@ export default function RemoveCoderButton({ classId, coderId, disabled }: Remove
       >
         <Trash2 size={16} />
       </button>
-      {errorMessage ? <span style={{ color: '#b91c1c', fontSize: '0.65rem' }}>Error</span> : null}
+      {errorMessage ? (
+        <span style={{ color: '#b91c1c', fontSize: '0.7rem', maxWidth: '13rem' }}>{errorMessage}</span>
+      ) : null}
     </div>
   );
 }

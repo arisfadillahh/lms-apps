@@ -191,7 +191,10 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   }
 
   try {
-    await classesDao.deleteEnrollment(classIdParam, parsed.data.coderId);
+    const deleted = await classesDao.deleteEnrollment(classIdParam, parsed.data.coderId);
+    if (!deleted) {
+      return NextResponse.json({ error: 'Coder tidak ditemukan di kelas ini atau sudah dihapus.' }, { status: 404 });
+    }
   } catch (error: any) {
     return NextResponse.json({ error: error.message ?? 'Failed to remove enrollment' }, { status: 400 });
   }

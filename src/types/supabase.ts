@@ -340,6 +340,7 @@ export interface Database {
           parent_whatsapp_report_enabled: boolean;
           parent_whatsapp_event_enabled: boolean;
           lifecycle_status: 'ACTIVE' | 'PAUSED' | 'ENDED' | 'CANCELLED';
+          archived_at: string | null;
           start_date: string;
           end_date: string;
           created_at: string;
@@ -366,6 +367,7 @@ export interface Database {
           parent_whatsapp_report_enabled?: boolean;
           parent_whatsapp_event_enabled?: boolean;
           lifecycle_status?: 'ACTIVE' | 'PAUSED' | 'ENDED' | 'CANCELLED';
+          archived_at?: string | null;
           start_date: string;
           end_date: string;
           created_at?: string;

@@ -24,7 +24,7 @@ export default function DeleteClassButton({ classId, className }: DeleteClassBut
     }
 
     const confirmationName = window.prompt(
-      `Hapus kelas "${className}"?\n\nSemua sesi, block, enrollment, presensi, dan penilaian kelas akan terhapus permanen. Riwayat pembayaran tetap disimpan.\n\nKetik nama kelas untuk melanjutkan:`,
+      `Arsipkan kelas "${className}"?\n\nKelas tidak tampil lagi di daftar. Sesi, materi, progres, presensi, rapor, dan riwayat pembayaran tetap tersimpan.\n\nKetik nama kelas untuk melanjutkan:`,
     );
     if (confirmationName === null) {
       return;
@@ -50,7 +50,7 @@ export default function DeleteClassButton({ classId, className }: DeleteClassBut
           if (response.status === 409) {
             setIsBlockedByPayment(true);
           }
-          setErrorMessage(payload.error ?? 'Gagal menghapus kelas');
+          setErrorMessage(payload.error ?? 'Gagal mengarsipkan kelas');
           return;
         }
         router.refresh();
@@ -66,7 +66,7 @@ export default function DeleteClassButton({ classId, className }: DeleteClassBut
       <button
         type="button"
         onClick={handleDelete}
-        disabled={isPending || isBlockedByPayment}
+        disabled={isPending}
         style={{
           padding: '0.35rem 0.75rem',
           borderRadius: '0.5rem',
@@ -74,11 +74,11 @@ export default function DeleteClassButton({ classId, className }: DeleteClassBut
           background: '#fef2f2',
           color: '#b91c1c',
           fontSize: '0.8rem',
-          cursor: isPending || isBlockedByPayment ? 'not-allowed' : 'pointer',
-          opacity: isPending || isBlockedByPayment ? 0.6 : 1,
+          cursor: isPending ? 'not-allowed' : 'pointer',
+          opacity: isPending ? 0.6 : 1,
         }}
       >
-        {isPending ? 'Memproses…' : isBlockedByPayment ? 'Tidak dapat dihapus' : 'Hapus kelas'}
+        {isPending ? 'Memproses…' : 'Arsipkan kelas'}
       </button>
       {errorMessage ? (
         <div style={{ color: '#b91c1c', fontSize: 12, lineHeight: 1.4, maxWidth: 320 }}>

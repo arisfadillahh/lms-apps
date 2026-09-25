@@ -149,7 +149,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
     console.error('Failed to delete class', error);
     return NextResponse.json(
-      { error: 'Kelas gagal dihapus. Tidak ada data lain yang sengaja dihapus.' },
+      { error: 'Kelas gagal diarsipkan. Silakan coba lagi.' },
       { status: 500 },
     );
   }

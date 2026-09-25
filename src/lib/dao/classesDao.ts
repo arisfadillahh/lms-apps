@@ -137,9 +137,11 @@ export async function getClassById(id: string): Promise<ClassRecord | null> {
   return data;
 }
 
-export async function listClasses(): Promise<ClassRecord[]> {
+export async function listClasses(options: { includeArchived?: boolean } = {}): Promise<ClassRecord[]> {
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase.from('classes').select('*').order('start_date', { ascending: true });
+  let query = supabase.from('classes').select('*');
+  if (!options.includeArchived) query = query.is('archived_at', null);
+  const { data, error } = await query.order('start_date', { ascending: true });
 
   if (error) {
     throw new Error(`Failed to list classes: ${error.message}`);
@@ -273,41 +275,19 @@ export async function deleteClass(id: string): Promise<void> {
     );
   }
 
-  // Preserve billing records while releasing the only non-cascading class FK.
-  const { data: detachedPeriods, error: paymentError } = await supabase
-    .from('coder_payment_periods')
-    .update({ class_id: null } as unknown as TablesUpdate<'coder_payment_periods'>)
-    .eq('class_id', id)
-    .select('id');
-
-  if (paymentError) {
-    throw new Error(`Failed to preserve payment periods: ${paymentError.message}`);
-  }
-
-  const { data: deletedClasses, error } = await supabase
+  const { data: archivedClasses, error } = await supabase
     .from('classes')
-    .delete()
+    .update({ archived_at: new Date().toISOString() })
     .eq('id', id)
+    .in('lifecycle_status', ['ENDED', 'CANCELLED'])
+    .is('archived_at', null)
     .select('id');
 
-  if (!error && deletedClasses?.length === 1) {
+  if (error) throw new Error(`Failed to archive class: ${error.message}`);
+  if (archivedClasses?.length === 1) {
     return;
   }
-
-  const detachedPeriodIds = (detachedPeriods ?? []).map((period) => period.id);
-  let rollbackMessage = '';
-  if (detachedPeriodIds.length > 0) {
-    const { error: rollbackError } = await supabase
-      .from('coder_payment_periods')
-      .update({ class_id: id })
-      .in('id', detachedPeriodIds);
-
-    if (rollbackError) {
-      rollbackMessage = ` Payment period rollback also failed: ${rollbackError.message}`;
-    }
-  }
-
-  throw new Error(`Failed to delete class: ${error?.message ?? 'class was not deleted'}.${rollbackMessage}`);
+  throw new ClassDeletionBlockedError('Kelas harus berstatus selesai atau ditiadakan sebelum diarsipkan.');
 }
 
 export async function updateClassBlock(

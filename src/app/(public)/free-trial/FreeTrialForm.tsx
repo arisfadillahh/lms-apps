@@ -55,6 +55,7 @@ export default function FreeTrialForm() {
       studentName: '',
       studentGrade: '',
       schoolName: '',
+      domicile: '',
       parentName: '',
       phone: '',
       email: '',
@@ -150,6 +151,18 @@ export default function FreeTrialForm() {
               placeholder="Nama sekolah"
               aria-invalid={Boolean(errors.schoolName)}
               {...register('schoolName')}
+            />
+          </FormField>
+
+          <FormField id="domicile" label="Domisili (kota/kabupaten)" error={errors.domicile?.message}>
+            <Input
+              id="domicile"
+              autoComplete="address-level2"
+              placeholder="Contoh: Kota Depok"
+              maxLength={160}
+              aria-required="true"
+              aria-invalid={Boolean(errors.domicile)}
+              {...register('domicile')}
             />
           </FormField>
 

@@ -120,6 +120,7 @@ export interface Database {
           student_name: string;
           student_grade: string;
           school_name: string;
+          domicile: string | null;
           parent_name: string;
           phone: string;
           email: string;
@@ -142,6 +143,7 @@ export interface Database {
           student_name: string;
           student_grade: string;
           school_name: string;
+          domicile?: string | null;
           parent_name: string;
           phone: string;
           email: string;

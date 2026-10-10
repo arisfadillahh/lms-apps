@@ -15,6 +15,7 @@ const validSubmission = {
   studentName: 'Alya Putri',
   studentGrade: '4 SD',
   schoolName: 'SD Clevio',
+  domicile: 'Kota Depok',
   parentName: 'Budi Putra',
   phone: '0812 1202 2628',
   email: 'budi@example.com',
@@ -28,6 +29,7 @@ const notificationInput: TrialClassNotificationInput = {
   studentName: 'Alya Putri',
   studentGrade: '4 SD',
   schoolName: 'SD Clevio',
+  domicile: 'Kota Depok',
   parentName: 'Budi Putra',
   phone: '6281212022628',
   email: 'budi@example.com',
@@ -52,6 +54,21 @@ const coachAssignmentInput: TrialCoachAssignmentNotificationInput = {
 };
 
 describe('trial class validation', () => {
+  it('trims domicile and supports older submissions without the new field', () => {
+    const result = trialClassSchema.parse({ ...validSubmission, domicile: '  Kota Depok  ' });
+    expect(result.domicile).toBe('Kota Depok');
+    expect(trialClassSchema.safeParse({ ...validSubmission, domicile: undefined }).success).toBe(true);
+  });
+
+  it.each(['', ' ', 'A', 'A'.repeat(161)])('rejects invalid domicile: %s', (domicile) => {
+    const result = trialClassSchema.safeParse({ ...validSubmission, domicile });
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.flatten().fieldErrors.domicile).toBeDefined();
+  });
+
+  it('accepts the maximum domicile length', () => {
+    expect(trialClassSchema.safeParse({ ...validSubmission, domicile: 'A'.repeat(160) }).success).toBe(true);
+  });
   it('accepts a complete trial class submission', () => {
     const result = trialClassSchema.safeParse(validSubmission);
 
@@ -139,10 +156,35 @@ describe('trial class WhatsApp notifications', () => {
 
     expect(message).toContain('*Lead Free Trial Baru*');
     expect(message).toContain('*Anak:* Alya Putri');
-    expect(message).toContain('*WA:* 6281212022628');
+    expect(message).toContain('*WA:* +6281212022628');
+    expect(message).toContain('*Hubungi WA:* https://wa.me/6281212022628');
+    expect(message).toContain('*Domisili:* Kota Depok');
+    expect(message).toContain('\n\n*Data peserta*\n');
+    expect(message).toContain('\n\n*Kontak orang tua*\n');
+    expect(message).toContain('\n\n*Detail trial*\n');
+    expect(message).toContain('WIB');
     expect(message).toContain('*Jenis trial:* Online');
     expect(message).toContain('*Preferensi jadwal:* Sabtu pagi');
     expect(message).toContain('https://lms.clev.io/admin/free-trials');
+  });
+
+  it('shows explicit missing domicile and schedule values for older leads', () => {
+    const message = buildTrialClassAdminMessage({ ...notificationInput, domicile: null, notes: null });
+    expect(message).toContain('*Domisili:* Belum dicantumkan');
+    expect(message).toContain('*Preferensi jadwal:* Belum dicantumkan');
+    expect(message).not.toMatch(/undefined|null/);
+  });
+
+  it('keeps multiline form values inside their labeled detail line', () => {
+    const message = buildTrialClassAdminMessage({
+      ...notificationInput,
+      domicile: 'Depok\r\nJawa Barat',
+      notes: 'Sabtu\npagi',
+      phone: '0812 1202 2628',
+    });
+    expect(message).toContain('*Domisili:* Depok Jawa Barat');
+    expect(message).toContain('*Preferensi jadwal:* Sabtu pagi');
+    expect(message).toContain('*Hubungi WA:* https://wa.me/6281212022628');
   });
 
   it('confirms schedule follow-up to the parent', () => {

@@ -11,6 +11,8 @@ export const trialClassSchema = z.object({
   studentName: z.string().trim().min(2, 'Nama anak wajib diisi.').max(120, 'Nama anak terlalu panjang.'),
   studentGrade: z.string().trim().min(1, 'Kelas wajib diisi.').max(50, 'Kelas terlalu panjang.'),
   schoolName: z.string().trim().min(2, 'Nama sekolah wajib diisi.').max(160, 'Nama sekolah terlalu panjang.'),
+  // Omitted values remain valid for older, cached versions of the form.
+  domicile: z.string().trim().min(2, 'Domisili wajib diisi.').max(160, 'Domisili maksimal 160 karakter.').optional(),
   parentName: z.string().trim().min(2, 'Nama orang tua wajib diisi.').max(120, 'Nama orang tua terlalu panjang.'),
   phone: z
     .string()

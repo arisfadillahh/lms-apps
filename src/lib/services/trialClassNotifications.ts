@@ -9,6 +9,7 @@ export type TrialClassNotificationInput = {
   studentName: string;
   studentGrade: string;
   schoolName: string;
+  domicile?: string | null;
   parentName: string;
   phone: string;
   email: string;
@@ -62,20 +63,30 @@ export type TrialConversionNotificationInput = {
 
 export function buildTrialClassAdminMessage(input: TrialClassNotificationInput) {
   const isOffline = input.trialMode === 'OFFLINE';
+  const phone = normalizeIndonesianPhone(input.phone);
+  const notes = input.notes?.trim();
+  const detail = (value: string) => value.replace(/[\r\n]+/g, ' ').trim();
 
   return [
     '*Lead Free Trial Baru*',
     '',
-    `*Anak:* ${input.studentName}`,
-    `*Kelas:* ${input.studentGrade}`,
-    `*Sekolah:* ${input.schoolName}`,
-    `*Orang tua:* ${input.parentName}`,
-    `*WA:* ${input.phone}`,
-    `*Email:* ${input.email}`,
+    '*Data peserta*',
+    `*Anak:* ${detail(input.studentName)}`,
+    `*Kelas:* ${detail(input.studentGrade)}`,
+    `*Sekolah:* ${detail(input.schoolName)}`,
+    `*Domisili:* ${input.domicile?.trim() ? detail(input.domicile) : 'Belum dicantumkan'}`,
+    '',
+    '*Kontak orang tua*',
+    `*Orang tua:* ${detail(input.parentName)}`,
+    `*WA:* +${phone}`,
+    `*Email:* ${detail(input.email)}`,
+    `*Hubungi WA:* https://wa.me/${phone}`,
+    '',
+    '*Detail trial*',
     `*Jenis trial:* ${isOffline ? 'Offline' : 'Online'}`,
-    isOffline ? null : `*Preferensi jadwal:* ${input.notes?.trim() || 'Belum dicantumkan'}`,
-    isOffline && input.notes?.trim() ? `*Catatan:* ${input.notes.trim()}` : null,
-    `*Masuk:* ${formatSubmittedAt(input.createdAt)}`,
+    isOffline ? null : `*Preferensi jadwal:* ${notes ? detail(notes) : 'Belum dicantumkan'}`,
+    isOffline && notes ? `*Catatan:* ${detail(notes)}` : null,
+    `*Masuk:* ${formatSubmittedAt(input.createdAt)} WIB`,
     '',
     `*Dashboard:* ${FREE_TRIAL_ADMIN_URL}`,
   ].filter((line): line is string => line !== null).join('\n');

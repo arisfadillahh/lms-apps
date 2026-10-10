@@ -135,6 +135,7 @@ export default function TrialClassTable({
         item.student_name,
         item.student_grade,
         item.school_name,
+        item.domicile ?? '',
         item.parent_name,
         item.phone,
         item.email,
@@ -301,6 +302,9 @@ export default function TrialClassTable({
                       <div className="flex min-w-40 flex-col gap-1.5">
                         <strong className="font-semibold text-foreground">{item.student_name}</strong>
                         <span className="text-xs text-muted-foreground">{item.school_name}</span>
+                        <span className="max-w-64 whitespace-normal break-words text-xs text-muted-foreground">
+                          Domisili: {item.domicile || 'Belum dicantumkan'}
+                        </span>
                         <div className="flex flex-wrap gap-1">
                           <Badge variant="outline">{item.student_grade}</Badge>
                           <Badge variant={item.trial_mode === 'OFFLINE' ? 'default' : 'secondary'}>

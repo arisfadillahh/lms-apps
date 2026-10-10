@@ -18,7 +18,7 @@ export type TrialClassAdminSubmission = TrialClassSubmissionWithCoach & {
 
 export type CreateTrialClassSubmissionInput = Pick<
   TrialClassSubmission,
-  'student_name' | 'student_grade' | 'school_name' | 'parent_name' | 'phone' | 'email' | 'trial_mode' | 'notes'
+  'student_name' | 'student_grade' | 'school_name' | 'domicile' | 'parent_name' | 'phone' | 'email' | 'trial_mode' | 'notes'
 >;
 
 export async function createTrialClassSubmission(input: CreateTrialClassSubmissionInput) {

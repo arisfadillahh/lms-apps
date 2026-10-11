@@ -34,7 +34,8 @@ describe('Coder migration progress override', () => {
   it('keeps migrated materials visible after source enrollment completion without exposing future lessons', () => {
     expect(coderService).toContain('listClassesForCoder(coderId, { includeInactive: true })');
     expect(coderService).toContain('isCompletedBlock ||');
-    expect(coderService).toContain('(hasActiveEnrollment && (isCatchUpInEntryBlock || isCompletedSinceEnrollment))');
+    expect(coderService).toContain('deferred_after_class !== true');
+    expect(coderService).toContain("journeyStatusMap.get(block.block_id) !== 'PENDING'");
     expect(coderService).toContain('(!hasActiveEnrollment || (!isCurrentScheduleBlock && !isEntryBlock))');
   });
 });

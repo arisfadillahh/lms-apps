@@ -5,7 +5,6 @@ export * as materialsDao from './materialsDao';
 export * as softwareDao from './softwareDao';
 export * as sessionsDao from './sessionsDao';
 export * as coderProgressDao from './coderProgressDao';
-export * as levelProgressionsDao from './levelProgressionsDao';
 export * as coderSessionAccessDao from './coderSessionAccessDao';
 export * as blocksDao from './blocksDao';
 export * as classLessonsDao from './classLessonsDao';

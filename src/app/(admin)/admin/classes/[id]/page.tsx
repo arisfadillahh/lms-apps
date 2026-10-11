@@ -90,7 +90,6 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
     classesDao.listClasses(),
   ]);
 
-  const sessionMap = new Map(sessions.map(s => [s.id, s]));
   const classBlocks = await classesDao.getClassBlocks(classIdParam);
 
   const blockSummaries: BlockSummary[] = await Promise.all(

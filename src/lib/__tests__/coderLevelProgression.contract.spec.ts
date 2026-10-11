@@ -66,7 +66,7 @@ describe('individual Coder level progression', () => {
   });
 
   it('notifies only LMS Admin and LMS Coder with dedupe keys', () => {
-    expect(progressDao).toContain('createNotification(coderId');
+    expect(progressDao).toContain('createNotification(enrollment.coder_id');
     expect(progressDao).toContain('createAdminNotifications({');
     expect(progressDao).toContain('level-complete:${result.progressionId}');
     expect(progressDao).not.toMatch(/WhatsApp|whatsapp|coach_id|createCoach/);

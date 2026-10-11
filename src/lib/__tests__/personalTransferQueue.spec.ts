@@ -17,6 +17,9 @@ describe('personal block queue when moving classes', () => {
     expect(sql).toContain('v_entry_lesson_position');
     expect(sql).toContain("s.status = 'COMPLETED'");
     expect(sql).toContain('entry_lesson_position = CASE WHEN v_row.block_id = v_target_block_id');
+    const destinationRule = readFileSync('supabase/migrations/20261011140000_destination_class_lesson_position.sql', 'utf8');
+    expect(destinationRule).toContain('THEN v_entry_lesson_position');
+    expect(destinationRule).not.toContain('greatest(v_entry_lesson_position');
   });
 
   it('defers unfinished A until after B, C, D and E, then requires placement', () => {

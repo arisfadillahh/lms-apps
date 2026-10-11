@@ -13,6 +13,7 @@ import type { ClassLessonRecord } from '@/lib/dao/classLessonsDao';
 import type { ClassRecord } from '@/lib/dao/classesDao';
 import type { LessonTemplateRecord } from '@/lib/dao/lessonTemplatesDao';
 import type { SessionRecord } from '@/lib/dao/sessionsDao';
+import type { TablesInsert } from '@/types/supabase';
 
 type ClassBlockRow = Awaited<ReturnType<typeof classesDao.getClassBlocks>>[number];
 type BlockTemplate = Awaited<ReturnType<typeof blocksDao.listBlocksByLevel>>[number];
@@ -421,7 +422,7 @@ async function instantiateBlockFromTemplate({
     return;
   }
 
-  const createdLessonsPayload: any[] = [];
+  const createdLessonsPayload: TablesInsert<'class_lessons'>[] = [];
 
   for (const lesson of templateLessons) {
     const sessionCount = Math.max(1, lesson.estimated_meeting_count || 1);
@@ -475,7 +476,7 @@ async function syncLessonsWithTemplates(
       // This respects filtered lessons when a starting lesson was set
       const existingTemplateIds = new Set(existing.map(l => l.lesson_template_id));
 
-      const newLessonsPayload: any[] = [];
+      const newLessonsPayload: TablesInsert<'class_lessons'>[] = [];
 
       for (const lesson of templateLessons) {
         // IMPORTANT: Only sync parts for lessons that already exist in the block

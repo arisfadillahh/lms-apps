@@ -45,8 +45,8 @@ BEGIN
     IF v_count <> 5 THEN RAISE EXCEPTION 'Progress changed; review again'; END IF;
 
     UPDATE public.coder_block_progress
-      SET status = CASE WHEN journey_order = 0 THEN 'COMPLETED'
-                        WHEN journey_order = 1 THEN 'IN_PROGRESS' ELSE 'PENDING' END,
+      SET status = (CASE WHEN journey_order = 0 THEN 'COMPLETED'
+                        WHEN journey_order = 1 THEN 'IN_PROGRESS' ELSE 'PENDING' END)::public.coder_block_status_enum,
           completed_at = CASE WHEN journey_order = 0 THEN now() ELSE NULL END,
           completion_source = CASE WHEN journey_order = 0 THEN 'MANUAL' ELSE NULL END
       WHERE coder_id = v_coder AND level_id = '1b7176fc-7da3-49f5-9899-af54ab466434';

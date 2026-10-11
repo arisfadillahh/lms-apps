@@ -2,6 +2,7 @@ import { attendanceDao, classLessonsDao, classesDao, coderProgressDao, coderSess
 import { getSoftwareByBlockId } from '@/lib/dao/blockSoftwareDao';
 import { splitEkskulLessonMakeUp } from '@/lib/ekskulMakeUpInstructions';
 import { computeLessonSchedule } from '@/lib/services/lessonScheduler';
+import { isDeferredBlockOpen, nextPersonalBlock } from '@/lib/services/personalBlockQueue';
 import { buildDisplayedJourneyBlocks, mergeJourneyStatus, type PersonalJourneyStatus } from '@/lib/services/coderJourneyPolicy';
 
 export type CoderClassProgress = {
@@ -336,7 +337,7 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
       if (klass.coach_id) {
         const { data: coachData } = await supabase.from('users').select('*').eq('id', klass.coach_id).single();
         if (coachData) {
-          const cData = coachData as any;
+          const cData = coachData as typeof coachData & { avatar_url?: string | null; phone?: string | null };
           if (cData.avatar_url) {
             const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(cData.avatar_url);
             coachAvatarUrl = publicUrlData.publicUrl;
@@ -361,7 +362,7 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
       // --- EKSKUL HANDLING ---
       if (klass.type === 'EKSKUL') {
         let upNext: CoderClassProgress['upNext'] = null;
-        let totalBlocks = 1; // Ekskul counts as 1 block/plan
+        const totalBlocks = 1; // Ekskul counts as 1 block/plan
         let completedBlocks = 0; // Logic for completion? Maybe if class end date passed?
         let journeyBlocks: CoderClassProgress['journeyBlocks'] = [];
 
@@ -414,9 +415,6 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
             const nextLessonParts = nextLessonEntry
               ? splitEkskulLessonMakeUp(nextLessonEntry.lesson.summary, nextLessonEntry.lesson.make_up_instructions)
               : null;
-
-            // Calculate estimated total lessons
-            const totalLessons = plan.ekskul_lessons.length;
 
             // For Ekskul journey - use lessons as nodes instead of blocks
             // Estimate progress based on completed sessions vs total lessons
@@ -596,7 +594,16 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
 
       let upNext: CoderClassProgress['upNext'] = null;
 
-      let currentOrUpcoming =
+      const currentOrUpcoming =
+        (() => {
+          const personal = nextPersonalBlock(journey);
+          if (!personal) return null;
+          return [...blocks].filter((block) => block.block_id === personal.block_id)
+            .sort((a, b) => {
+              const score = (status: string) => status === 'CURRENT' ? 2 : status === 'UPCOMING' ? 1 : 0;
+              return score(b.status) - score(a.status) || b.start_date.localeCompare(a.start_date);
+            })[0] ?? null;
+        })() ??
         currentBlock ??
         upcomingBlock ??
         currentScheduledBlock ??
@@ -605,6 +612,8 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
         sortedBlocks.find((block) => block.status === 'UPCOMING');
 
       if (currentOrUpcoming) {
+        const personalUpNext = journey.find((row) => row.block_id === currentOrUpcoming.block_id);
+        const deferredUpNext = isDeferredBlockOpen(personalUpNext);
         const software = await getSoftwareByBlockId(currentOrUpcoming.block_id);
         const runtimeCurrentBlock = runtimeBlockById.get(currentOrUpcoming.id);
         const currentBlockDates = resolveBlockDisplayDates(currentOrUpcoming, runtimeCurrentBlock);
@@ -627,10 +636,10 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
 
           // Determine status
           let isCompleted = false;
-          let scheduledAtDates: string[] = [];
-          let completedAtDates: string[] = [];
+          const scheduledAtDates: string[] = [];
+          const completedAtDates: string[] = [];
 
-          if (sessionForLesson) {
+          if (sessionForLesson && !deferredUpNext) {
             scheduledAtDates.push(sessionForLesson.date_time);
             if (sessionForLesson.status === 'COMPLETED') {
               isCompleted = true;
@@ -640,7 +649,14 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
 
           let lessonStatus: 'COMPLETED' | 'NEXT' | 'UPCOMING' | 'LOCKED' = 'UPCOMING';
 
-          if (isCompleted) {
+          if (deferredUpNext) {
+            if ((index + 1) < (personalUpNext?.entry_lesson_position ?? 1)) {
+              lessonStatus = 'COMPLETED';
+            } else if (!hasMarkedNext) {
+              lessonStatus = 'NEXT';
+              hasMarkedNext = true;
+            }
+          } else if (isCompleted) {
             lessonStatus = 'COMPLETED';
           } else if (sessionForLesson) {
             if (!hasMarkedNext) {
@@ -675,7 +691,9 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
         upNext = {
           blockId: currentOrUpcoming.block_id ?? currentOrUpcoming.id,
           name: currentOrUpcoming.block_name ?? 'Block',
-          status: currentOrUpcoming.status as 'UPCOMING' | 'CURRENT' | 'COMPLETED',
+          status: personalUpNext?.status === 'IN_PROGRESS' ? 'CURRENT'
+            : personalUpNext?.status === 'PENDING' ? 'UPCOMING'
+            : currentOrUpcoming.status as 'UPCOMING' | 'CURRENT' | 'COMPLETED',
           startDate: currentBlockDates.startDate,
           endDate: currentBlockDates.endDate,
           estimatedSessions: (await lessonTemplatesDao.listLessonsByBlock(currentOrUpcoming.block_id))
@@ -710,8 +728,8 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
         const allLessonsList = classLessonsSorted.map((lesson, index) => {
           const sessionForLesson = lessonToSessionMap.get(lesson.id) || null;
           let isCompleted = false;
-          let scheduledAtDates: string[] = [];
-          let completedAtDates: string[] = [];
+        const scheduledAtDates: string[] = [];
+        const completedAtDates: string[] = [];
           if (sessionForLesson) {
             scheduledAtDates.push(sessionForLesson.date_time);
             if (sessionForLesson.status === 'COMPLETED') {
@@ -726,7 +744,7 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
             summary: lesson.template_summary ?? lesson.summary ?? null,
             orderIndex: lesson.order_index ?? index,
             slideUrl: lesson.template_slide_url ?? lesson.slide_url,
-            status: isCompleted ? 'COMPLETED' : 'LOCKED' as any,
+            status: isCompleted ? 'COMPLETED' as const : 'LOCKED' as const,
             completedAt: completedAtDates.length > 0 ? completedAtDates : undefined,
             scheduledAt: scheduledAtDates.length > 0 ? scheduledAtDates : undefined
           };
@@ -758,7 +776,7 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
       // from a previous block if the current block has no COMPLETED lessons.
       let lastCompletedLesson: CoderClassProgress['lastCompletedLesson'] = null;
       const currentLessons = upNext?.lessons || [];
-      const hasCompletedInCurrent = currentLessons.some((l: any) => l.status === 'COMPLETED');
+      const hasCompletedInCurrent = currentLessons.some((lesson) => lesson.status === 'COMPLETED');
       
       if (!hasCompletedInCurrent) {
         const lastCompletedEntry = [...mappedEntries]
@@ -851,8 +869,6 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
         }
 
         const sessions = await sessionsDao.listSessionsByClass(klass.id);
-        const completedSessions = sessions.filter(s => s.status === 'COMPLETED').length;
-
         // Map Ekskul Lessons to "Accessible Lessons"
         // Logic: Lesson is accessible if index < completedSessions OR if it's the current one (index == completedSessions)
         const accessibleLessons = plan.ekskul_lessons
@@ -919,6 +935,7 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
       const runtimeBlocks = buildRuntimeBlocks(blocks, mappedEntries, now);
       const journey = klass.level_id ? await coderProgressDao.getCoderJourney(coderId, klass.level_id) : [];
       const journeyStatusMap = new Map(journey.map((row) => [row.block_id, row.status]));
+      const deferredOpenBlockIds = new Set(journey.filter(isDeferredBlockOpen).map((row) => row.block_id));
 
       const enrollmentDate = enrollment ? new Date(enrollment.enrolled_at) : new Date(0); // Default to epoch if no date (shouldn't happen)
       const entryBlock = enrollment ? findEntryBlockBySchedule(runtimeBlocks, enrollmentDate) : null;
@@ -959,8 +976,11 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
               const isAccessible =
                 isCompletedBlock ||
                 isArchived ||
-                isCatchUpInEntryBlock ||
-                isCompletedSinceEnrollment;
+                (journeyStatusMap.get(block.block_id) !== 'PENDING' && (
+                  deferredOpenBlockIds.has(block.block_id) ||
+                  isCatchUpInEntryBlock ||
+                  isCompletedSinceEnrollment
+                ));
               
               return {
                 id: lesson.id,
@@ -968,7 +988,8 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
                 summary: lesson.template_summary ?? null,
                 orderIndex: lesson.order_index,
                 slideUrl: lesson.slide_url ?? null,
-                exampleUrl: (lesson as any).example_url ?? (lesson as any).coach_example_url ?? null,
+                exampleUrl: (lesson as typeof lesson & { example_url?: string | null; coach_example_url?: string | null }).example_url
+                  ?? (lesson as typeof lesson & { coach_example_url?: string | null }).coach_example_url ?? null,
                 sessionDate: sessionMapped?.date_time ?? null,
                 isAccessible,
               };
@@ -1067,7 +1088,8 @@ export async function getStoredLessonsForCoder(coderId: string): Promise<CoderSt
                   summary: lesson.template_summary ?? lesson.summary ?? null,
                   orderIndex: lesson.order_index,
                   slideUrl: lesson.template_slide_url ?? lesson.slide_url,
-                  exampleUrl: (lesson as any).example_url ?? (lesson as any).coach_example_url ?? null,
+                  exampleUrl: (lesson as typeof lesson & { example_url?: string | null; coach_example_url?: string | null }).example_url
+                    ?? (lesson as typeof lesson & { coach_example_url?: string | null }).coach_example_url ?? null,
                   sessionDate: sessionMapped.date_time,
                   isAccessible: true as const,
                 };
@@ -1146,22 +1168,31 @@ export async function getVisibleMaterialsForCoder(coderId: string) {
       const accessibleSessions = new Set<string>();
 
       if (klass.type === 'WEEKLY' && klass.level_id) {
-        const [enrollment, blocks, lessonMap] = await Promise.all([
+        const [enrollment, blocks, lessonMap, journey] = await Promise.all([
           classesDao.getEnrollment(klass.id, coderId),
           classesDao.getClassBlocks(klass.id),
           computeLessonSchedule(klass.id, klass.level_id),
+          coderProgressDao.getCoderJourney(coderId, klass.level_id),
         ]);
+        const deferredOpenBlockIds = new Set(journey.filter(isDeferredBlockOpen).map((row) => row.block_id));
+        const personalStatus = new Map(journey.map((row) => [row.block_id, row.status]));
         const mappedEntries = buildMappedSessionEntries(blocks, sessions, lessonMap);
         const runtimeBlocks = buildRuntimeBlocks(blocks, mappedEntries, new Date(nowIso));
         const enrollmentDate = enrollment ? new Date(enrollment.enrolled_at) : null;
         const entryBlock = enrollmentDate ? findEntryBlockBySchedule(runtimeBlocks, enrollmentDate) : null;
 
         for (const session of sessions) {
+          const mappedEntry = mappedEntries.find((entry) => entry.session.id === session.id);
+          if (mappedEntry && personalStatus.get(mappedEntry.classBlock.block_id) === 'PENDING') {
+            continue;
+          }
+          if (mappedEntry && deferredOpenBlockIds.has(mappedEntry.classBlock.block_id)) {
+            accessibleSessions.add(session.id);
+          }
           if (session.status !== 'COMPLETED') {
             continue;
           }
 
-          const mappedEntry = mappedEntries.find((entry) => entry.session.id === session.id);
           const happenedAfterEnrollment =
             !enrollmentDate || new Date(session.date_time).getTime() >= enrollmentDate.getTime();
           const isCatchUpInEntryBlock =
@@ -1294,6 +1325,7 @@ export async function getLessonDetailForCoder(coderId: string, lessonId: string)
   );
   const journey = klass.level_id ? await coderProgressDao.getCoderJourney(coderId, klass.level_id) : [];
   const journeyStatusMap = new Map(journey.map((row) => [row.block_id, row.status]));
+  const deferredBlockOpen = isDeferredBlockOpen(journey.find((row) => row.block_id === block.block_id));
   const blockIndexById = new Map(runtimeBlocks.map((runtimeBlock, index) => [runtimeBlock.id, index]));
   const enrollmentDate = enrollment ? new Date(enrollment.enrolled_at) : null;
   const entryBlock = enrollmentDate ? findEntryBlockBySchedule(runtimeBlocks, enrollmentDate) : null;
@@ -1303,12 +1335,13 @@ export async function getLessonDetailForCoder(coderId: string, lessonId: string)
     ? await coderSessionAccessDao.hasCoderSessionAccess(coderId, sessionGrantId)
     : false;
   const isCompletedBlock = hasCompletedBlockAccess(journeyStatusMap, block.block_id);
+  if (journeyStatusMap.get(block.block_id) === 'PENDING' && !hasSessionGrant) return null;
 
   if ((!enrollment || enrollment.status !== 'ACTIVE') && !hasSessionGrant && !isCompletedBlock) {
     return null;
   }
 
-  if (enrollment?.status === 'ACTIVE' && entryBlock && !hasSessionGrant && !isCompletedBlock) {
+  if (enrollment?.status === 'ACTIVE' && entryBlock && !hasSessionGrant && !isCompletedBlock && !deferredBlockOpen) {
     const blockIndex = blockIndexById.get(block.id);
     const entryIndex = blockIndexById.get(entryBlock.id);
     if (
@@ -1322,6 +1355,7 @@ export async function getLessonDetailForCoder(coderId: string, lessonId: string)
 
   const isAccessible = (() => {
     if (isCompletedBlock) return true;
+    if (deferredBlockOpen) return true;
     if (hasSessionGrant) return true;
     if (lesson.unlock_at && new Date(lesson.unlock_at) <= now) return true;
     if (

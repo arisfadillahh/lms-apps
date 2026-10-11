@@ -1,4 +1,4 @@
-import { blocksDao, classesDao, coderProgressDao, coderSessionAccessDao, sessionsDao } from '@/lib/dao';
+import { blocksDao, classesDao, classLessonsDao, coderProgressDao, coderSessionAccessDao, sessionsDao } from '@/lib/dao';
 import type { ClassRecord, EnrollmentRecord } from '@/lib/dao/classesDao';
 import { computeLessonSchedule } from '@/lib/services/lessonScheduler';
 
@@ -58,16 +58,20 @@ export async function initializeWeeklyEnrollmentJourney(input: {
     (firstUpcomingEntry ? lessonMap.get(firstUpcomingEntry.id)?.block.id : null) ??
     currentBlockId;
   const entryBlock =
-    classBlocks.find((block) => block.block_id === entryBlockId) ??
+    [...classBlocks].filter((block) => block.block_id === entryBlockId)
+      .sort((a, b) => (b.status === 'CURRENT' ? 1 : 0) - (a.status === 'CURRENT' ? 1 : 0)
+        || b.start_date.localeCompare(a.start_date))[0] ??
     classBlocks.find((block) => block.status === 'CURRENT') ??
     sortedClassBlocks[0] ??
     null;
 
   if (!entryBlock?.block_id) return;
+  const entryLessons = await classLessonsDao.listLessonsByClassBlock(entryBlock.id);
+  const entrySessionIds = new Set(entryLessons.map((lesson) => lesson.session_id).filter(Boolean));
   const catchUpSessionIds = sessions
     .filter((session) => session.status !== 'CANCELLED')
     .filter((session) => new Date(session.date_time).getTime() <= enrollmentTime)
-    .filter((session) => lessonMap.get(session.id)?.block.id === entryBlock.block_id)
+    .filter((session) => entrySessionIds.has(session.id))
     .map((session) => session.id);
 
   await coderSessionAccessDao.grantSessionAccesses(

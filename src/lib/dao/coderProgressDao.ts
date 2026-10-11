@@ -122,13 +122,15 @@ export type CoderJourneyRecord = {
   block_id: string;
   journey_order: number;
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+  deferred_after_class: boolean;
+  entry_lesson_position: number | null;
 };
 
 export async function getCoderJourney(coderId: string, levelId: string): Promise<CoderJourneyRecord[]> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from('coder_block_progress')
-    .select('block_id, journey_order, status')
+    .select('block_id, journey_order, status, deferred_after_class, entry_lesson_position')
     .eq('coder_id', coderId)
     .eq('level_id', levelId)
     .order('journey_order', { ascending: true });

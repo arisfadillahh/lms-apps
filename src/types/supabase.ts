@@ -587,6 +587,8 @@ export interface Database {
           status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
           completed_at: string | null;
           completion_source: 'MANUAL' | 'ASSESSMENT' | null;
+          deferred_after_class: boolean;
+          entry_lesson_position: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -599,6 +601,8 @@ export interface Database {
           status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
           completed_at?: string | null;
           completion_source?: 'MANUAL' | 'ASSESSMENT' | null;
+          deferred_after_class?: boolean;
+          entry_lesson_position?: number | null;
           created_at?: string;
           updated_at?: string;
         };

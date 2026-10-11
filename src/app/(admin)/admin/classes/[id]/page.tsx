@@ -58,10 +58,10 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
 
 
 
-  if (klass.type === 'EKSKUL' && (klass as { ekskul_lesson_plan_id?: string | null }).ekskul_lesson_plan_id) {
+  if (klass.lifecycle_status === 'ACTIVE' && klass.type === 'EKSKUL' && (klass as { ekskul_lesson_plan_id?: string | null }).ekskul_lesson_plan_id) {
     const { syncEkskulClassesForPlan } = await import('@/lib/services/ekskulLessonPlanSync');
     await syncEkskulClassesForPlan((klass as { ekskul_lesson_plan_id: string }).ekskul_lesson_plan_id);
-  } else {
+  } else if (klass.lifecycle_status === 'ACTIVE') {
     // Ensure future sessions exist (Rolling 12 sessions)
     await sessionsDao.ensureFutureSessions(classIdParam);
   }

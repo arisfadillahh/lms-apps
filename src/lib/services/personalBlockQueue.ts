@@ -12,8 +12,11 @@ export function nextPersonalBlock<T extends PersonalBlock>(journey: T[]): T | nu
     ?? null;
 }
 
-export function isDeferredBlockOpen(row: PersonalBlock | undefined): boolean {
-  return row?.status === 'IN_PROGRESS' && row.deferred_after_class === true;
+export function needsBlockPlacement(journey: PersonalBlock[]): PersonalBlock | null {
+  // ASUMSI: blok tertunda memerlukan kelas lain; posisi pelajaran asal dibawa ke transfer resmi.
+  const next = nextPersonalBlock(journey);
+  return next?.deferred_after_class && journey.every((row) => row.deferred_after_class || row.status === 'COMPLETED')
+    ? next : null;
 }
 
 export function planTransferQueue<T extends PersonalBlock>(journey: T[], targetBlockId: string, curriculumOrder: string[]) {

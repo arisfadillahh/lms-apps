@@ -68,7 +68,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     // 2. Fetch current journey to get IDs and order
     const { data: journey, error: journeyError } = await supabase
         .from('coder_block_progress')
-        .select('id, block_id, journey_order')
+        .select('id, block_id, journey_order, deferred_after_class, entry_lesson_position')
         .eq('coder_id', coderId)
         .eq('level_id', levelId)
         .order('journey_order', { ascending: true });
@@ -98,7 +98,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
         if (completedSet.has(item.block_id)) {
             newStatus = 'COMPLETED';
-        } else if (!foundInProgress) {
+        } else if (!foundInProgress && !item.deferred_after_class) {
             newStatus = 'IN_PROGRESS';
             foundInProgress = true;
         } else {
@@ -111,6 +111,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
             level_id: levelId,
             block_id: item.block_id,
             journey_order: item.journey_order,
+            deferred_after_class: item.deferred_after_class,
+            entry_lesson_position: item.entry_lesson_position,
             status: newStatus,
             completed_at: newStatus === 'COMPLETED' ? new Date().toISOString() : null,
             completion_source: newStatus === 'COMPLETED' ? 'MANUAL' as const : null,
@@ -118,18 +120,13 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         });
     }
 
-    // Perform updates
-    // Supabase upsert/update options. Since we have IDs, we can use upsert or explicit updates.
-    // Batch upsert is efficient.
-    const { error: updateError } = await supabase
-        .from('coder_block_progress')
-        .upsert(updates);
-
+    // Preserve deferred metadata while applying the whole journey in one statement.
+    const { error: updateError } = await supabase.from('coder_block_progress').upsert(updates);
     if (updateError) {
         return NextResponse.json({ error: `Failed to update progress: ${updateError.message}` }, { status: 500 });
     }
 
-    if (!foundInProgress) {
+    if (!foundInProgress && !journey.some((item) => item.deferred_after_class && !completedSet.has(item.block_id))) {
         await finalizeCoderLevel({ coderId, sourceLevelId: levelId, sourceClassId: classId });
     }
 

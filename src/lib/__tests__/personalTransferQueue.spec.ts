@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { isDeferredBlockOpen, nextPersonalBlock, planTransferQueue } from '@/lib/services/personalBlockQueue';
+import { needsBlockPlacement, nextPersonalBlock, planTransferQueue } from '@/lib/services/personalBlockQueue';
 
 const curriculum = ['A', 'B', 'C', 'D', 'E'];
 const starting = curriculum.map((block_id, journey_order) => ({
@@ -19,22 +19,49 @@ describe('personal block queue when moving classes', () => {
     expect(sql).toContain('entry_lesson_position = CASE WHEN v_row.block_id = v_target_block_id');
   });
 
-  it('defers unfinished A until after B, C, D and E, then opens A material', () => {
+  it('defers unfinished A until after B, C, D and E, then requires placement', () => {
     const queue = planTransferQueue(starting, 'B', curriculum);
     expect(queue.map((row) => row.block_id)).toEqual(['B', 'C', 'D', 'E', 'A']);
     expect(queue[0].status).toBe('IN_PROGRESS');
     expect(queue[4]).toMatchObject({ status: 'PENDING', deferred_after_class: true });
-    expect(isDeferredBlockOpen(queue[4])).toBe(false);
     const afterE = queue.map((row) => row.block_id === 'A'
-      ? { ...row, status: 'IN_PROGRESS' as const }
+      ? row
       : { ...row, status: 'COMPLETED' as const });
     expect(nextPersonalBlock(afterE)?.block_id).toBe('A');
-    expect(isDeferredBlockOpen(afterE[4])).toBe(true);
+    expect(needsBlockPlacement(afterE)?.block_id).toBe('A');
     const coder = readFileSync('src/lib/services/coder.ts', 'utf8');
-    expect(coder).toContain('deferredOpenBlockIds.has(block.block_id)');
-    expect(coder).toContain('if (deferredBlockOpen) return true');
+    expect(coder).not.toContain('deferredOpenBlockIds.has(block.block_id)');
+    expect(coder).not.toContain('if (deferredBlockOpen) return true');
+    expect(coder).toContain('if (deferredBlockWaiting ||');
     expect(coder).toContain("journeyStatusMap.get(block.block_id) !== 'PENDING'");
     expect(coder).toContain("personalStatus.get(mappedEntry.classBlock.block_id) === 'PENDING'");
+  });
+
+  it('needs block 3 placement after finishing blocks 4 and 5, with enrollment still active', () => {
+    const atC = curriculum.map((block_id, journey_order) => ({ block_id, journey_order,
+      status: block_id === 'C' ? 'IN_PROGRESS' as const
+        : ['A', 'B'].includes(block_id) ? 'COMPLETED' as const : 'PENDING' as const }));
+    const atD = planTransferQueue(atC, 'D', curriculum);
+    expect(atD.map((row) => row.block_id)).toEqual(['A', 'B', 'D', 'E', 'C']);
+    expect(needsBlockPlacement(atD)).toBeNull();
+    const afterE = atD.map((row) => row.block_id === 'C' ? row : { ...row, status: 'COMPLETED' as const });
+    expect(needsBlockPlacement(afterE)).toMatchObject({ block_id: 'C', status: 'PENDING', deferred_after_class: true });
+    const placed = planTransferQueue(afterE, 'C', curriculum);
+    expect(placed.at(-1)).toMatchObject({ block_id: 'C', status: 'IN_PROGRESS', deferred_after_class: false });
+    expect(needsBlockPlacement(placed)).toBeNull();
+    const migration = readFileSync('supabase/migrations/20261011120000_deferred_block_placement.sql', 'utf8');
+    expect(migration).toContain("status = 'NEEDS_BLOCK_PLACEMENT'");
+    expect(migration).toContain('ON CONFLICT (coder_id, level_id) WHERE status =');
+    expect(migration).toContain('ON CONFLICT (user_id, reference_key) WHERE reference_key IS NOT NULL DO NOTHING');
+    expect(migration).toContain('REFERENCING NEW TABLE AS changed_rows');
+    expect(migration).toContain("cb.status = 'CURRENT'");
+    expect(migration).toContain("SET status = 'PLACED', target_class_id = p_to_class_id");
+    expect(migration).toContain("placement.status = 'NEEDS_BLOCK_PLACEMENT'");
+    expect(migration).toContain("AND progress.deferred_after_class = true AND progress.status <> 'COMPLETED'");
+    const lifecycle = migration.split('CREATE OR REPLACE FUNCTION public.set_class_lifecycle_status(')[1]
+      .split('CREATE OR REPLACE FUNCTION public.finalize_coder_level(')[0];
+    expect(lifecycle).toContain('AND NOT EXISTS (');
+    expect(lifecycle).not.toContain("p_status = 'CANCELLED' OR");
   });
 
   it('keeps a fully completed A completed and does not finalize or deactivate during transfer', () => {

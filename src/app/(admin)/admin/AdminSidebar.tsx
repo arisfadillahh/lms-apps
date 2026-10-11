@@ -4,11 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState, type CSSProperties } from 'react';
-import {
-    Home, Users, GraduationCap, BookOpen, CalendarOff, FileText,
-    MessageCircle, Package, Image as ImageIcon, Wallet, BookMarked,
-    Megaphone, Receipt, Settings, UserCheck, ChevronRight, ChevronDown
-} from 'lucide-react';
+import { ChevronRight, ChevronDown, type LucideIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { isSuperAdmin, type AdminPermissions } from '@/lib/permissions';
 import { MENU_ITEMS, SIDEBAR_STRUCTURE } from '@/lib/adminMenu';
@@ -33,6 +29,7 @@ export default function AdminSidebar({ session }: AdminSidebarProps) {
     const canAccess = (id: string) => {
         if (id === 'dashboard') return true;
         if (isSuper) return true;
+        if (id === 'blockPlacements') return permissions?.menus?.includes('classes') ?? false;
         return permissions?.menus?.includes(id) ?? false;
     };
 
@@ -94,7 +91,7 @@ export default function AdminSidebar({ session }: AdminSidebarProps) {
 }
 
 function SidebarGroupItem({ label, icon: Icon, childrenIds, defaultExpanded, pathname }: {
-    label: string, icon: any, childrenIds: string[], defaultExpanded: boolean, pathname: string
+    label: string, icon: LucideIcon, childrenIds: string[], defaultExpanded: boolean, pathname: string
 }) {
     // Determine initial expanded state: Expanded if a child is active
     const [isExpanded, setIsExpanded] = useState(defaultExpanded);

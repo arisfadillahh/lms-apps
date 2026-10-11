@@ -14,6 +14,7 @@ export const MENU_ITEMS: Record<string, { href: string; label: string; icon: Luc
     trialAssessments: { href: '/admin/trial-assessments', label: 'Review Trial', icon: ClipboardList },
     classes: { href: '/admin/classes', label: 'Kelas', icon: GraduationCap },
     levelProgressions: { href: '/admin/level-progressions', label: 'Kenaikan Level', icon: UserRoundCheck },
+    blockPlacements: { href: '/admin/block-placements', label: 'Penempatan Blok', icon: UserRoundCheck },
     curriculum: { href: '/admin/curriculum', label: 'Kurikulum', icon: BookOpen },
     lessonReports: { href: '/admin/curriculum/reports', label: 'Laporan Lesson', icon: FileText },
     ekskul: { href: '/admin/ekskul', label: 'Ekskul Plans', icon: BookMarked },
@@ -55,7 +56,7 @@ export const SIDEBAR_STRUCTURE: (SidebarGroup | SidebarSingle)[] = [
         type: 'group',
         label: 'Akademik',
         icon: GraduationCap,
-        children: ['classes', 'levelProgressions', 'curriculum', 'lessonReports', 'ekskul', 'evaluations', 'evaluationQuestions', 'reports']
+        children: ['classes', 'blockPlacements', 'levelProgressions', 'curriculum', 'lessonReports', 'ekskul', 'evaluations', 'evaluationQuestions', 'reports']
     },
     {
         type: 'group',

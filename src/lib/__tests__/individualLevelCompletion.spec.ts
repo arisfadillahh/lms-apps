@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { buildDisplayedJourneyBlocks, mergeJourneyStatus } from '@/lib/services/coderJourneyPolicy';
 import { resolveCycleLessonProgress } from '@/lib/services/classCycleProgress';
+import { resolveCurrentBlockIndex } from '@/lib/services/blockRuntime';
 
 const source = (path: string) => readFileSync(path, 'utf8');
 
@@ -36,14 +37,36 @@ describe('Ahmad Faqih repeated Creator cycle', () => {
     expect(resolveCycleLessonProgress(lessons, sessions)).toEqual({ completedLessons: 4, totalLessons: 24, percent: 17 });
   });
 
+  it('reproduces the production sync selecting five historical blocks before the live Interactive block', () => {
+    // SELECT snapshot: five backdated class blocks created in July 2026 have
+    // lessons in 2024–Sep 2026; the new Interactive cycle has 20 future lessons.
+    const classBlocks = [
+      { id: 'old-interactive', blockId: 'interactive', hasFutureLesson: false },
+      { id: 'old-story', blockId: 'story', hasFutureLesson: false },
+      { id: 'old-app', blockId: 'app', hasFutureLesson: false },
+      { id: 'old-advanced', blockId: 'advanced', hasFutureLesson: false },
+      { id: 'old-game', blockId: 'game', hasFutureLesson: false },
+      { id: 'live-interactive', blockId: 'interactive', hasFutureLesson: true },
+      { id: 'new-story', blockId: 'story', hasFutureLesson: true },
+    ];
+    const currentIndex = resolveCurrentBlockIndex(classBlocks);
+    expect(currentIndex).toBe(5);
+    expect(classBlocks.slice(0, currentIndex).map((block) => block.id)).toContain('old-interactive');
+    expect(classBlocks[currentIndex].id).toBe('live-interactive');
+    expect(classBlocks.slice(0, currentIndex).map((block) => block.blockId)).toContain('interactive');
+  });
+
   it('separates class scheduling from personal completion and guards SQL promotion', () => {
     const scheduler = source('src/lib/services/lessonAutoAssign.ts');
     const migration = source('supabase/migrations/20261011090000_verified_individual_level_completion.sql');
     const dryRun = source('scripts/data-repair/ahmad-faqih-dry-run.cjs');
+    const apply = source('scripts/data-repair/ahmad-faqih-apply.sql');
     expect(scheduler).not.toContain('markBlockCompletedForClass(');
     expect(migration).toContain("progress.completion_source IN ('MANUAL', 'ASSESSMENT')");
     expect(migration).toContain("cb.status IN ('CURRENT', 'UPCOMING')");
     expect(migration).toContain("e.exit_reason = 'COMPLETED'");
     expect(dryRun).not.toMatch(/\.insert\(|\.update\(|\.delete\(|\.upsert\(|\.rpc\(/);
+    expect(apply).not.toMatch(/(?:UPDATE|DELETE FROM) public\.(?:enrollments|coder_level_progressions)/);
+    expect(apply).toContain('v_game_completed boolean := NULL');
   });
 });

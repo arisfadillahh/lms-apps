@@ -329,6 +329,7 @@ export interface Database {
           zoom_link: string;
           start_date: string;
           end_date: string;
+          lifecycle_status: 'ACTIVE' | 'PAUSED' | 'ENDED' | 'CANCELLED';
           created_at: string;
           updated_at: string;
         };
@@ -344,6 +345,7 @@ export interface Database {
           zoom_link: string;
           start_date: string;
           end_date: string;
+          lifecycle_status?: 'ACTIVE' | 'PAUSED' | 'ENDED' | 'CANCELLED';
           created_at?: string;
           updated_at?: string;
         };

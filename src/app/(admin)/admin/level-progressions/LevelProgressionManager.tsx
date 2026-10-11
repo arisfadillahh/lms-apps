@@ -9,6 +9,7 @@ export type ProgressionView = {
   placedAt: string | null; coderName: string; sourceLevel: string; targetLevel: string | null;
   sourceClass: string; targetClass: string | null; completedBlocks: number; totalBlocks: number;
   completedBlockNames: string[]; pendingBlockNames: string[];
+  canPlace: boolean;
   classes: Array<{ id: string; name: string; schedule: string; coach: string }>;
 };
 
@@ -66,7 +67,9 @@ export default function LevelProgressionManager({ rows }: { rows: ProgressionVie
               </div>
             </details>
           </div>
-          {row.status === 'WAITING_PLACEMENT' && <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
+          {row.status === 'WAITING_PLACEMENT' && !row.canPlace &&
+            <p className="text-sm font-semibold text-amber-700">Perlu verifikasi progres dan enrollment sumber sebelum penempatan.</p>}
+          {row.status === 'WAITING_PLACEMENT' && row.canPlace && <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
             <select className="input min-w-0 sm:min-w-72" value={selected[row.id] ?? ''} onChange={(event) => setSelected((value) => ({...value, [row.id]: event.target.value}))}>
               <option value="">Pilih kelas {row.targetLevel}</option>
               {row.classes.map((klass) => <option key={klass.id} value={klass.id}>{klass.name} · {klass.schedule} · {klass.coach}</option>)}

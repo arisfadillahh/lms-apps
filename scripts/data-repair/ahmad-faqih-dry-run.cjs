@@ -25,19 +25,20 @@ const interactiveId = '78b67a1b-fe88-4a4a-a2b6-5ad0b1e9bff2';
   }
   const enrollment = result.enrollment.find(row => row.id === expectedEnrollmentId);
   const interactive = result.progress.find(row => row.block_id === interactiveId);
-  const enrollmentReady = (enrollment?.status === 'INACTIVE' && enrollment.exit_reason === 'COMPLETED')
-    || (enrollment?.status === 'ACTIVE' && enrollment.exit_reason === null);
-  const ready = enrollmentReady
+  const enrollmentReady = enrollment?.status === 'ACTIVE'
+    && enrollment.exit_reason === null && enrollment.ended_at === null;
+  const snapshotMatches = enrollmentReady
     && result.progression.length === 1 && result.progression[0].status === 'WAITING_PLACEMENT'
     && result.progression[0].source_enrollment_id === expectedEnrollmentId
     && result.progression[0].target_class_id === null && result.progression[0].target_enrollment_id === null
     && result.progress.length === 5 && result.progress.every(row => row.status === 'COMPLETED')
     && result.class_blocks.some(row => row.block_id === interactiveId && row.status === 'CURRENT');
-  const alreadyCorrected = enrollment?.status === 'ACTIVE' && enrollment.exit_reason === null
-    && result.progression.length === 0 && interactive?.status === 'IN_PROGRESS'
-    && result.progress.filter(row => row.status === 'COMPLETED').length === 1;
-  console.log(JSON.stringify({mode: 'SELECT_ONLY_DRY_RUN', ready, alreadyCorrected,
+  const alreadyCorrected = enrollmentReady
+    && result.progression.length === 1 && result.progression[0].status === 'WAITING_PLACEMENT'
+    && interactive?.status === 'IN_PROGRESS'
+    && result.progress.every(row => row.journey_order <= 1 || row.status === 'PENDING');
+  console.log(JSON.stringify({mode: 'SELECT_ONLY_DRY_RUN', snapshotMatches, requiresAcademicDecision: true, alreadyCorrected,
     enrollment: result.enrollment, progression: result.progression, progress: result.progress,
     class: result.class, currentInteractive: result.class_blocks.filter(row => row.block_id === interactiveId && row.status === 'CURRENT'),
-    proposed: 'Keep earlier Game Development COMPLETED pending verification; set Interactive IN_PROGRESS and three later blocks PENDING; clear invalid WAITING_PLACEMENT; reactivate enrollment.'}, null, 2));
+    proposed: 'OPTION ONLY after Aris decides Game Development: keep enrollment ACTIVE and progression WAITING_PLACEMENT unchanged; set Interactive IN_PROGRESS and later blocks PENDING.'}, null, 2));
 })().catch(error => { console.error(error.message); process.exitCode = 1; });

@@ -16,30 +16,44 @@ export default async function LevelProgressionsPage() {
   const coderIds = [...new Set((progressions ?? []).map((row) => row.coder_id))];
   const levelIds = [...new Set((progressions ?? []).flatMap((row) => [row.source_level_id, row.target_level_id].filter(Boolean) as string[]))];
   const classIds = [...new Set((progressions ?? []).flatMap((row) => [row.source_class_id, row.target_class_id].filter(Boolean) as string[]))];
-  const [{ data: users }, { data: levels }, { data: namedClasses }, { data: candidates }, { data: blocks }, { data: progress }] = await Promise.all([
+  const sourceEnrollmentIds = [...new Set((progressions ?? []).map((row) => row.source_enrollment_id))];
+  const [{ data: users }, { data: levels }, { data: namedClasses }, { data: candidates }, { data: blocks }, { data: progress }, { data: sourceEnrollments }] = await Promise.all([
     coderIds.length ? supabase.from('users').select('id, full_name').in('id', coderIds) : Promise.resolve({ data: [] }),
     levelIds.length ? supabase.from('levels').select('id, name').in('id', levelIds) : Promise.resolve({ data: [] }),
-    classIds.length ? supabase.from('classes').select('id, name').in('id', classIds) : Promise.resolve({ data: [] }),
+    classIds.length ? supabase.from('classes').select('id, name, end_date, lifecycle_status').in('id', classIds) : Promise.resolve({ data: [] }),
     levelIds.length ? supabase.from('classes').select('id, name, level_id, schedule_day, schedule_time, coach_id').eq('type', 'WEEKLY').eq('lifecycle_status', 'ACTIVE').in('level_id', levelIds) : Promise.resolve({ data: [] }),
-    levelIds.length ? supabase.from('blocks').select('id, name').in('level_id', levelIds) : Promise.resolve({ data: [] }),
-    coderIds.length ? supabase.from('coder_block_progress').select('coder_id, level_id, block_id, status').in('coder_id', coderIds) : Promise.resolve({ data: [] }),
+    levelIds.length ? supabase.from('blocks').select('id, name, level_id').in('level_id', levelIds) : Promise.resolve({ data: [] }),
+    coderIds.length ? supabase.from('coder_block_progress').select('coder_id, level_id, block_id, status, completion_source').in('coder_id', coderIds) : Promise.resolve({ data: [] }),
+    sourceEnrollmentIds.length ? supabase.from('enrollments').select('id, status, exit_reason').in('id', sourceEnrollmentIds) : Promise.resolve({ data: [] }),
   ]);
   const coachIds = [...new Set((candidates ?? []).map((klass) => klass.coach_id))];
   const { data: coaches } = coachIds.length ? await supabase.from('users').select('id, full_name').in('id', coachIds) : { data: [] };
   const names = new Map((users ?? []).map((row) => [row.id, row.full_name]));
   const levelNames = new Map((levels ?? []).map((row) => [row.id, row.name]));
   const classNames = new Map((namedClasses ?? []).map((row) => [row.id, row.name]));
+  const sourceClasses = new Map((namedClasses ?? []).map((row) => [row.id, row]));
+  const sourceEnrollmentMap = new Map((sourceEnrollments ?? []).map((row) => [row.id, row]));
   const coachNames = new Map((coaches ?? []).map((row) => [row.id, row.full_name]));
   const blockNames = new Map((blocks ?? []).map((row) => [row.id, row.name]));
   const rows: ProgressionView[] = (progressions ?? []).map((row) => {
     const required = new Set((progress ?? []).filter((item) => item.coder_id === row.coder_id && item.level_id === row.source_level_id).map((item) => item.block_id));
     const completed = new Set((progress ?? []).filter((item) => item.coder_id === row.coder_id && item.level_id === row.source_level_id && item.status === 'COMPLETED').map((item) => item.block_id));
+    const requiredBlocks = (blocks ?? []).filter((block) => block.level_id === row.source_level_id);
+    const verified = new Set((progress ?? []).filter((item) => item.coder_id === row.coder_id
+      && item.level_id === row.source_level_id && item.status === 'COMPLETED'
+      && (item.completion_source === 'MANUAL' || item.completion_source === 'ASSESSMENT')).map((item) => item.block_id));
+    const sourceEnrollment = sourceEnrollmentMap.get(row.source_enrollment_id);
+    const sourceClass = sourceClasses.get(row.source_class_id);
+    const classEnded = sourceClass?.lifecycle_status === 'ENDED'
+      || Boolean(sourceClass?.end_date && sourceClass.end_date <= new Date().toISOString().slice(0, 10));
     return {
       id: row.id, status: row.status, completedAt: row.completed_at, placedAt: row.placed_at,
       coderName: names.get(row.coder_id) ?? 'Coder', sourceLevel: levelNames.get(row.source_level_id) ?? '-',
       targetLevel: row.target_level_id ? levelNames.get(row.target_level_id) ?? '-' : null,
       sourceClass: classNames.get(row.source_class_id) ?? '-', targetClass: row.target_class_id ? classNames.get(row.target_class_id) ?? '-' : null,
       completedBlocks: completed.size, totalBlocks: required.size,
+      canPlace: sourceEnrollment?.status === 'INACTIVE' && sourceEnrollment.exit_reason === 'COMPLETED'
+        && classEnded && requiredBlocks.length > 0 && verified.size === requiredBlocks.length,
       completedBlockNames: [...completed].map((blockId) => blockNames.get(blockId) ?? 'Blok lama'),
       pendingBlockNames: [...required].filter((blockId) => !completed.has(blockId)).map((blockId) => blockNames.get(blockId) ?? 'Blok lama'),
       classes: (candidates ?? []).filter((klass) => klass.level_id === row.target_level_id).map((klass) => ({

@@ -25,6 +25,25 @@ export async function POST(request: Request, context: RouteContext) {
     .from('coder_level_progressions').select('*').eq('id', id).maybeSingle();
   if (!progression) return NextResponse.json({ error: 'Data kenaikan level tidak ditemukan.' }, { status: 404 });
 
+  const [{ data: sourceEnrollment }, { data: sourceClass }, { data: requiredBlocks }, { data: verifiedProgress }] = await Promise.all([
+    supabase.from('enrollments').select('status, exit_reason').eq('id', progression.source_enrollment_id).maybeSingle(),
+    supabase.from('classes').select('end_date, lifecycle_status').eq('id', progression.source_class_id).maybeSingle(),
+    supabase.from('blocks').select('id').eq('level_id', progression.source_level_id),
+    supabase.from('coder_block_progress').select('block_id, status, completion_source')
+      .eq('coder_id', progression.coder_id).eq('level_id', progression.source_level_id),
+  ]);
+  const verifiedIds = new Set((verifiedProgress ?? [])
+    .filter((item) => item.status === 'COMPLETED'
+      && (item.completion_source === 'MANUAL' || item.completion_source === 'ASSESSMENT'))
+    .map((item) => item.block_id));
+  const classEnded = sourceClass?.lifecycle_status === 'ENDED'
+    || Boolean(sourceClass?.end_date && sourceClass.end_date <= new Date().toISOString().slice(0, 10));
+  if (sourceEnrollment?.status !== 'INACTIVE' || sourceEnrollment.exit_reason !== 'COMPLETED'
+    || !classEnded || !requiredBlocks?.length
+    || requiredBlocks.some((block) => !verifiedIds.has(block.id))) {
+    return NextResponse.json({ error: 'Progres dan enrollment sumber harus diverifikasi sebelum penempatan.' }, { status: 409 });
+  }
+
   try {
     const result = await levelProgressionsDao.placeCoder({
       progressionId: id, targetClassId: body.classId, adminId: session.user.id,

@@ -2,7 +2,7 @@
 import {
     Home, Users, GraduationCap, BookOpen, CalendarOff, FileText,
     MessageCircle, Package, Image as ImageIcon, Wallet, BookMarked,
-    Megaphone, Receipt, Settings, UserCheck, ClipboardList, MessageSquare, UserRoundPlus, Bug
+    Megaphone, Receipt, Settings, UserCheck, ClipboardList, MessageSquare, UserRoundPlus, Bug, UserRoundCheck
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -13,6 +13,7 @@ export const MENU_ITEMS: Record<string, { href: string; label: string; icon: Luc
     freeTrials: { href: '/admin/free-trials', label: 'Free Trial', icon: UserRoundPlus },
     trialAssessments: { href: '/admin/trial-assessments', label: 'Review Trial', icon: ClipboardList },
     classes: { href: '/admin/classes', label: 'Kelas', icon: GraduationCap },
+    levelProgressions: { href: '/admin/level-progressions', label: 'Kenaikan Level', icon: UserRoundCheck },
     curriculum: { href: '/admin/curriculum', label: 'Kurikulum', icon: BookOpen },
     lessonReports: { href: '/admin/curriculum/reports', label: 'Laporan Lesson', icon: FileText },
     ekskul: { href: '/admin/ekskul', label: 'Ekskul Plans', icon: BookMarked },
@@ -54,7 +55,7 @@ export const SIDEBAR_STRUCTURE: (SidebarGroup | SidebarSingle)[] = [
         type: 'group',
         label: 'Akademik',
         icon: GraduationCap,
-        children: ['classes', 'curriculum', 'lessonReports', 'ekskul', 'evaluations', 'evaluationQuestions', 'reports']
+        children: ['classes', 'levelProgressions', 'curriculum', 'lessonReports', 'ekskul', 'evaluations', 'evaluationQuestions', 'reports']
     },
     {
         type: 'group',

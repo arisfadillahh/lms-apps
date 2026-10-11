@@ -632,14 +632,10 @@ async function syncBlockStatuses(
 
   await Promise.all(updates);
 
-  const completedBlocks = blockStates
-    .filter((_, index) => index < currentIndex)
-    .map((state) => state.block);
-
-  if (completedBlocks.length > 0) {
-    await Promise.all(
-      completedBlocks.map((block) => coderProgressDao.markBlockCompletedForClass(block.class_id, block.block_id ?? null)),
-    );
+  // Class schedule state is shared by all coders. It cannot prove an individual's
+  // achievement, especially when the same curriculum block occurs in another cycle.
+  if (blockStates.length > 0 && blockStates.every(({ block }) => block.status === 'COMPLETED')) {
+    await coderProgressDao.reconcileCompletedLevelsForClass(blockStates[0].block.class_id);
   }
 }
 

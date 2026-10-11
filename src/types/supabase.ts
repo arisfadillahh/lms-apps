@@ -582,6 +582,7 @@ export interface Database {
           journey_order: number;
           status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
           completed_at: string | null;
+          completion_source: 'MANUAL' | 'ASSESSMENT' | null;
           created_at: string;
           updated_at: string;
         };
@@ -593,6 +594,7 @@ export interface Database {
           journey_order: number;
           status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
           completed_at?: string | null;
+          completion_source?: 'MANUAL' | 'ASSESSMENT' | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -618,20 +620,46 @@ export interface Database {
           },
         ];
       };
+      coder_level_progressions: {
+        Row: {
+          id: string; coder_id: string; source_level_id: string;
+          target_level_id: string | null; source_class_id: string; source_enrollment_id: string;
+          target_class_id: string | null; target_enrollment_id: string | null;
+          status: 'WAITING_PLACEMENT' | 'PLACED' | 'PROGRAM_COMPLETED';
+          completed_at: string; placed_at: string | null; placed_by: string | null;
+          created_at: string; updated_at: string;
+        };
+        Insert: {
+          id?: string; coder_id: string; source_level_id: string;
+          target_level_id?: string | null; source_class_id: string; source_enrollment_id: string;
+          target_class_id?: string | null; target_enrollment_id?: string | null;
+          status: 'WAITING_PLACEMENT' | 'PLACED' | 'PROGRAM_COMPLETED';
+          completed_at?: string; placed_at?: string | null; placed_by?: string | null;
+          created_at?: string; updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['coder_level_progressions']['Insert']>;
+        Relationships: [];
+      };
       enrollments: {
         Row: {
           id: string;
           class_id: string;
           coder_id: string;
           enrolled_at: string;
+          ended_at: string | null;
+          exit_reason: 'TRANSFERRED' | 'INACTIVE' | 'COMPLETED' | null;
           status: 'ACTIVE' | 'INACTIVE';
+          updated_at: string;
         };
         Insert: {
           id?: string;
           class_id: string;
           coder_id: string;
           enrolled_at?: string;
+          ended_at?: string | null;
+          exit_reason?: 'TRANSFERRED' | 'INACTIVE' | 'COMPLETED' | null;
           status?: 'ACTIVE' | 'INACTIVE';
+          updated_at?: string;
         };
         Update: Partial<Database['public']['Tables']['enrollments']['Insert']>;
         Relationships: [
@@ -1518,7 +1546,16 @@ export interface Database {
       };
     };
     Views: {};
-    Functions: {};
+    Functions: {
+      finalize_coder_level: {
+        Args: { p_coder_id: string; p_source_level_id: string; p_source_class_id: string };
+        Returns: Array<{ progression_id: string; progression_status: 'WAITING_PLACEMENT' | 'PLACED' | 'PROGRAM_COMPLETED'; target_level_id: string | null; created_now: boolean }>;
+      };
+      place_coder_level_progression: {
+        Args: { p_progression_id: string; p_target_class_id: string; p_admin_id: string };
+        Returns: Array<{ target_enrollment_id: string; placed_now: boolean }>;
+      };
+    };
     Enums: {
       block_report_status_enum: 'DRAFT' | 'PUBLISHED' | 'SENT';
     };

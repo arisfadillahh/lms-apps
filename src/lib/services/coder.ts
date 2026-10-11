@@ -2,6 +2,7 @@ import { attendanceDao, classLessonsDao, classesDao, coderProgressDao, coderSess
 import { getSoftwareByBlockId } from '@/lib/dao/blockSoftwareDao';
 import { splitEkskulLessonMakeUp } from '@/lib/ekskulMakeUpInstructions';
 import { computeLessonSchedule } from '@/lib/services/lessonScheduler';
+import { buildDisplayedJourneyBlocks, mergeJourneyStatus, type PersonalJourneyStatus } from '@/lib/services/coderJourneyPolicy';
 
 export type CoderClassProgress = {
   classId: string;
@@ -161,27 +162,6 @@ function buildClassLessonSessionMap(
   return result;
 }
 
-type PersonalJourneyStatus = Awaited<ReturnType<typeof coderProgressDao.getCoderJourney>>[number]['status'];
-
-function mergeJourneyStatus(
-  runtimeStatus: RuntimeBlockStatus,
-  personalStatus?: PersonalJourneyStatus,
-): RuntimeBlockStatus {
-  if (!personalStatus) {
-    return runtimeStatus;
-  }
-
-  if (personalStatus === 'COMPLETED') {
-    return 'COMPLETED';
-  }
-
-  if (personalStatus === 'IN_PROGRESS') {
-    return runtimeStatus === 'COMPLETED' ? 'COMPLETED' : 'CURRENT';
-  }
-
-  return runtimeStatus === 'CURRENT' ? 'CURRENT' : 'UPCOMING';
-}
-
 function compareBlocksByCurriculumOrder(a: WeeklyBlock, b: WeeklyBlock): number {
   if (a.block_order_index != null && b.block_order_index != null && a.block_order_index !== b.block_order_index) {
     return a.block_order_index - b.block_order_index;
@@ -193,44 +173,6 @@ function compareBlocksByCurriculumOrder(a: WeeklyBlock, b: WeeklyBlock): number 
   }
 
   return a.id.localeCompare(b.id);
-}
-
-function buildDisplayedJourneyBlocks(
-  curriculumBlocks: WeeklyBlock[],
-  journeyOrderedBlocks: WeeklyBlock[],
-  journeyStatusMap: Map<string, PersonalJourneyStatus>,
-): WeeklyBlock[] {
-  if (curriculumBlocks.length === 0) {
-    return journeyOrderedBlocks;
-  }
-
-  const currentIndex = curriculumBlocks.findIndex(
-    (block) => journeyStatusMap.get(block.block_id) === 'IN_PROGRESS',
-  );
-
-  if (currentIndex < 0) {
-    const allCompleted = curriculumBlocks.every(
-      (block) => journeyStatusMap.get(block.block_id) === 'COMPLETED',
-    );
-    return allCompleted ? curriculumBlocks : journeyOrderedBlocks;
-  }
-
-  let startIndex = currentIndex;
-  while (true) {
-    const previousIndex = (startIndex - 1 + curriculumBlocks.length) % curriculumBlocks.length;
-    if (previousIndex === currentIndex) {
-      break;
-    }
-    if (journeyStatusMap.get(curriculumBlocks[previousIndex].block_id) !== 'COMPLETED') {
-      break;
-    }
-    startIndex = previousIndex;
-  }
-
-  return [
-    ...curriculumBlocks.slice(startIndex),
-    ...curriculumBlocks.slice(0, startIndex),
-  ];
 }
 
 function hasCompletedBlockAccess(
@@ -584,7 +526,7 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
       const journeyOrderMap = new Map(journey.map(j => [j.block_id, j.journey_order]));
       const curriculumBlocks = [...blocks].sort(compareBlocksByCurriculumOrder);
 
-      const totalBlocks = blocks.length;
+      const totalBlocks = journey.length || new Set(blocks.map((block) => block.block_id)).size;
       const currentBlock =
         blocks.find((block) => block.status === 'CURRENT') ??
         currentScheduledBlock ??
@@ -620,7 +562,6 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
       const sortedBlocks = buildDisplayedJourneyBlocks(
         curriculumBlocks,
         journeyOrderedBlocks,
-        journeyStatusMap,
       );
 
       // Use the sorted index as the display order

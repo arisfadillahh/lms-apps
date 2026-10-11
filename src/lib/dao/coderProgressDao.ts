@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import type { BlockRecord } from '@/lib/dao/blocksDao';
+import { createAdminNotifications, createNotification } from '@/lib/dao/notificationsDao';
 
 type EnsureJourneyParams = {
   coderId: string;
@@ -73,117 +74,40 @@ export async function ensureJourneyForCoder({ coderId, levelId, blocks, entryBlo
   }
 }
 
-export async function markBlockCompletedForClass(classId: string, blockId: string | null): Promise<void> {
-  if (!blockId) {
-    return;
-  }
+export async function reconcileCompletedLevelsForClass(classId: string): Promise<void> {
   const supabase = getSupabaseAdmin();
+  const { data: klass, error: classError } = await supabase
+    .from('classes').select('level_id, type').eq('id', classId).maybeSingle();
+  if (classError) throw new Error(`Failed to load class: ${classError.message}`);
+  if (!klass?.level_id || klass.type !== 'WEEKLY') return;
 
-  const classQuery = await supabase.from('classes').select('level_id').eq('id', classId).maybeSingle();
-  if (classQuery.error) {
-    throw new Error(`Failed to fetch class for progress update: ${classQuery.error.message}`);
-  }
-  const levelId = classQuery.data?.level_id;
-  if (!levelId) {
-    return;
-  }
+  const { data: enrollments, error: enrollmentError } = await supabase
+    .from('enrollments').select('coder_id').eq('class_id', classId).eq('status', 'ACTIVE');
+  if (enrollmentError) throw new Error(`Failed to load enrollments: ${enrollmentError.message}`);
 
-  const enrollmentQuery = await supabase
-    .from('enrollments')
-    .select('coder_id')
-    .eq('class_id', classId)
-    .eq('status', 'ACTIVE');
-
-  if (enrollmentQuery.error) {
-    throw new Error(`Failed to list class enrollments: ${enrollmentQuery.error.message}`);
-  }
-
-  const coderIds = (enrollmentQuery.data ?? []).map((row) => row.coder_id);
-  if (coderIds.length === 0) {
-    return;
-  }
-
-  const nowIso = new Date().toISOString();
-  const progressUpdate = await supabase
-    .from('coder_block_progress')
-    .update({ status: 'COMPLETED', completed_at: nowIso })
-    .select('coder_id')
-    .in('coder_id', coderIds)
-    .eq('block_id', blockId)
-    .eq('status', 'IN_PROGRESS');
-
-  if (progressUpdate.error) {
-    throw new Error(`Failed to mark block completed: ${progressUpdate.error.message}`);
-  }
-
-  const progressedCoderIds = [...new Set((progressUpdate.data ?? []).map((row) => row.coder_id))];
-  if (progressedCoderIds.length === 0) {
-    return;
-  }
-
-  const progressQuery = await supabase
-    .from('coder_block_progress')
-    .select('id, coder_id, level_id, block_id, status, journey_order')
-    .in('coder_id', progressedCoderIds)
-    .eq('level_id', levelId)
-    .order('journey_order', { ascending: true });
-
-  if (progressQuery.error) {
-    throw new Error(`Failed to load coder progress rows: ${progressQuery.error.message}`);
-  }
-
-  const rows = progressQuery.data ?? [];
-  const activateIds: string[] = [];
-  const resetIds: string[] = [];
-  const completedCoderIds: string[] = [];
-
-  groupBy(rows, (row) => row.coder_id).forEach((entries, coderId) => {
-    const unfinished = entries.filter((entry) => entry.status !== 'COMPLETED');
-    if (unfinished.length === 0) {
-      completedCoderIds.push(coderId);
-      return;
-    }
-
-    const currentOrder =
-      entries.find((entry) => entry.block_id === blockId)?.journey_order ?? -1;
-
-    const forward = unfinished.filter((entry) => entry.journey_order > currentOrder);
-    const nextRow = (forward.length > 0 ? forward : unfinished).sort(
-      (a, b) => a.journey_order - b.journey_order,
-    )[0];
-
-    const staleInProgress = entries
-      .filter((entry) => entry.status === 'IN_PROGRESS' && entry.id !== nextRow.id)
-      .map((entry) => entry.id);
-    resetIds.push(...staleInProgress);
-    if (nextRow.status !== 'IN_PROGRESS') {
-      activateIds.push(nextRow.id);
-    }
-  });
-
-  if (resetIds.length > 0) {
-    const resetResult = await supabase.from('coder_block_progress').update({ status: 'PENDING' }).in('id', resetIds);
-    if (resetResult.error) {
-      throw new Error(`Failed to reset stale progress rows: ${resetResult.error.message}`);
-    }
-  }
-
-  if (activateIds.length > 0) {
-    const activateResult = await supabase.from('coder_block_progress').update({ status: 'IN_PROGRESS' }).in('id', activateIds);
-    if (activateResult.error) {
-      throw new Error(`Failed to activate next block: ${activateResult.error.message}`);
-    }
-  }
-
-  if (completedCoderIds.length > 0) {
-    const enrollmentUpdate = await supabase
-      .from('enrollments')
-      .update({ status: 'INACTIVE' })
-      .eq('class_id', classId)
-      .in('coder_id', completedCoderIds);
-    if (enrollmentUpdate.error) {
-      throw new Error(`Failed to deactivate completed enrollments: ${enrollmentUpdate.error.message}`);
-    }
+  // The SQL function owns the final eligibility check and performs progression
+  // and enrollment updates atomically. It ignores unverified historic progress.
+  const { finalizeCoderLevel } = await import('@/lib/dao/levelProgressionsDao');
+  for (const enrollment of enrollments ?? []) {
+    const result = await finalizeCoderLevel({
+      coderId: enrollment.coder_id,
+      sourceLevelId: klass.level_id,
+      sourceClassId: classId,
+    });
+    if (!result?.createdNow) continue;
+    const message = result.status === 'PROGRAM_COMPLETED'
+      ? 'Seluruh level program telah selesai.'
+      : 'Level selesai. Kamu sedang menunggu penempatan kelas berikutnya.';
+    await Promise.all([
+      createNotification(enrollment.coder_id, 'Kenaikan level', message, 'LEVEL_PROGRESSION'),
+      createAdminNotifications({
+        title: 'Coder menunggu penempatan level',
+        message: `Coder ${enrollment.coder_id} telah menyelesaikan level dan menunggu penempatan.`,
+        type: 'LEVEL_PROGRESSION',
+        pushUrl: '/admin/level-progressions',
+        pushTag: `level-complete:${result.progressionId}`,
+      }),
+    ]);
   }
 }
 
@@ -192,17 +116,6 @@ function computeJourneyOrder(blocks: BlockRecord[]): string[] {
     .slice()
     .sort((a, b) => a.order_index - b.order_index)
     .map((block) => block.id);
-}
-
-function groupBy<T, K>(items: T[], getKey: (item: T) => K): Map<K, T[]> {
-  return items.reduce((map, item) => {
-    const key = getKey(item);
-    if (!map.has(key)) {
-      map.set(key, []);
-    }
-    map.get(key)!.push(item);
-    return map;
-  }, new Map<K, T[]>());
 }
 
 export type CoderJourneyRecord = {

@@ -174,7 +174,7 @@ export default function ClassListClient({ initialClasses, coaches, levels }: Cla
                                 {status === 'ACTIVE' && (
                                     <div>
                                         <div className="row between" style={{ fontSize: 11, marginBottom: 6 }}>
-                                             <span className="muted">Progress kurikulum</span>
+                                             <span className="muted">Progres pelajaran kelas</span>
                                             <span style={{ fontWeight: 700 }}>{curriculumProgress}%</span>
                                         </div>
                                         <div className="bar"><span style={{ width: `${curriculumProgress}%` }} /></div>

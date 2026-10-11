@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { getSessionOrThrow } from '@/lib/auth';
 import { assertRole } from '@/lib/roles';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { finalizeCoderLevel } from '@/lib/dao/levelProgressionsDao';
 
 const bypassSchema = z.object({
     coderId: z.string().uuid(),
@@ -57,6 +58,13 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         return NextResponse.json({ error: 'Class has no level assigned' }, { status: 400 });
     }
 
+    const { data: enrollment, error: enrollmentError } = await supabase
+        .from('enrollments').select('id').eq('class_id', classId)
+        .eq('coder_id', coderId).eq('status', 'ACTIVE').maybeSingle();
+    if (enrollmentError || !enrollment) {
+        return NextResponse.json({ error: 'Coder is not active in this class' }, { status: 409 });
+    }
+
     // 2. Fetch current journey to get IDs and order
     const { data: journey, error: journeyError } = await supabase
         .from('coder_block_progress')
@@ -71,6 +79,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     if (!journey || journey.length === 0) {
         return NextResponse.json({ error: 'Coder has no journey in this level' }, { status: 404 });
+    }
+    if (completedBlockIds.some((id) => !journey.some((item) => item.block_id === id))) {
+        return NextResponse.json({ error: 'Block does not belong to this journey' }, { status: 400 });
     }
 
     // 3. Update Statues
@@ -102,6 +113,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
             journey_order: item.journey_order,
             status: newStatus,
             completed_at: newStatus === 'COMPLETED' ? new Date().toISOString() : null,
+            completion_source: newStatus === 'COMPLETED' ? 'MANUAL' as const : null,
             updated_at: new Date().toISOString()
         });
     }
@@ -115,6 +127,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     if (updateError) {
         return NextResponse.json({ error: `Failed to update progress: ${updateError.message}` }, { status: 500 });
+    }
+
+    if (!foundInProgress) {
+        await finalizeCoderLevel({ coderId, sourceLevelId: levelId, sourceClassId: classId });
     }
 
     return NextResponse.json({ success: true });

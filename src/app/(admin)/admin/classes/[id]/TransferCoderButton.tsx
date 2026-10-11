@@ -7,14 +7,16 @@ type TargetClass = { id: string; name: string; levelName: string | null };
 
 export default function TransferCoderButton(props: {
   classId: string; coderId: string; coderName: string; targetClasses: TargetClass[];
+  recommendedTargetClassId?: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [targetClassId, setTargetClassId] = useState('');
+  const [targetClassId, setTargetClassId] = useState(props.recommendedTargetClassId ?? '');
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const recommendedName = props.targetClasses.find((klass) => klass.id === props.recommendedTargetClassId)?.name;
 
   function submit() {
     if (!targetClassId || reason.trim().length < 3) return setError('Pilih kelas tujuan dan isi alasan.');
@@ -36,7 +38,8 @@ export default function TransferCoderButton(props: {
 
   return <>
     <button type="button" onClick={() => setOpen(true)} disabled={props.targetClasses.length === 0}
-      aria-label={`Pindahkan ${props.coderName}`} title="Pindahkan coder ke kelas aktif pada level sama" >Pindah kelas</button>
+      aria-label={`Pindahkan ${props.coderName}`} title="Pindahkan coder ke kelas aktif pada level sama" >
+      {recommendedName ? `Pindahkan ke kelas ${recommendedName}` : 'Pindah kelas'}</button>
     {open && <div role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}
       style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'grid', placeItems: 'center', background: 'rgba(15,23,42,.55)', padding: 16 }}>
       <div role="dialog" aria-modal="true" aria-labelledby="transfer-title" style={{ background: 'white', padding: 20, width: 'min(100%, 480px)', borderRadius: 8 }}>

@@ -14,10 +14,14 @@ describe('deferred block placement contract', () => {
     const page = readFileSync('src/app/(admin)/admin/block-placements/page.tsx', 'utf8');
     const button = readFileSync('src/app/(admin)/admin/classes/[id]/TransferCoderButton.tsx', 'utf8');
     const sql = readFileSync('supabase/migrations/20261011120000_deferred_block_placement.sql', 'utf8');
+    const recommendationSql = readFileSync('supabase/migrations/20261011130000_block_placement_recommendations.sql', 'utf8');
     expect(page).toContain(".eq('status', 'NEEDS_BLOCK_PLACEMENT')");
-    expect(page).toContain(".eq('status', 'CURRENT')");
-    expect(page).toContain("klass.level_id === row.level_id");
+    expect(page).toContain(".from('block_placement_candidates' as never)");
+    expect(recommendationSql).toContain("block.status = 'CURRENT'");
+    expect(recommendationSql).toContain('klass.level_id = placement.level_id');
+    expect(page).toContain('Rekomendasi: {placementAction(');
     expect(page).toContain('<TransferCoderButton');
+    expect(page).toContain('recommendedTargetClassId={ranked[0]?.class_id}');
     expect(button).toContain('/transfer`');
     expect(sql).toContain('PERFORM public.align_transferred_coder_journey(');
     expect(sql).not.toContain('PERFORM public.finalize_coder_level(');

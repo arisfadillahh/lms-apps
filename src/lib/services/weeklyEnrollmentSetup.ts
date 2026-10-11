@@ -5,6 +5,7 @@ import { computeLessonSchedule } from '@/lib/services/lessonScheduler';
 export async function initializeWeeklyEnrollmentJourney(input: {
   klass: ClassRecord;
   enrollment: EnrollmentRecord;
+  mode?: 'ENROLL' | 'TRANSFER';
 }) {
   const { klass, enrollment } = input;
   if (klass.type !== 'WEEKLY' || !klass.level_id) return;
@@ -40,7 +41,9 @@ export async function initializeWeeklyEnrollmentJourney(input: {
     coderId: enrollment.coder_id,
     levelId: klass.level_id,
     blocks: levelBlocks,
-    entryBlockId: currentBlockId,
+    // On transfer, the target class timeline is not evidence of the coder's
+    // personal completion. Existing progress is preserved by ensureJourney.
+    entryBlockId: input.mode === 'TRANSFER' ? levelBlocks.slice().sort((a, b) => a.order_index - b.order_index)[0]?.id : currentBlockId,
   });
 
   const enrollmentTime = new Date(enrollment.enrolled_at).getTime();

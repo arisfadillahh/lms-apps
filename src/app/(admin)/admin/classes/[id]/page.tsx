@@ -4,7 +4,6 @@ import { notFound } from 'next/navigation';
 
 import {
   attendanceDao,
-  blocksDao,
   classLessonsDao,
   classesDao,
   sessionsDao,
@@ -14,17 +13,17 @@ import {
 import type { ClassLessonRecord } from '@/lib/dao/classLessonsDao';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 
-import AssignSubstituteForm from './AssignSubstituteForm';
 import EnrollCoderForm from './EnrollCoderForm';
 import CoderJourneyOverride from './CoderJourneyOverride';
 import EkskulCompetencyEditor from './EkskulCompetencyEditor';
 import RemoveCoderButton from './RemoveCoderButton';
 import SetCoderStatusButton from './SetCoderStatusButton';
-import SessionRowActions from './SessionRowActions';
 import SessionsTable from './SessionsTable';
 import EditCoachForm from './EditCoachForm';
 import AttendanceRecapTable from './AttendanceRecapTable';
 import ChangeClassScheduleModal from './ChangeClassScheduleModal';
+import TransferCoderButton from './TransferCoderButton';
+import { isValidTransferTarget } from '@/lib/services/classTransferPolicy';
 
 type ClassBlockRow = Awaited<ReturnType<typeof classesDao.getClassBlocks>>[number];
 type BlockSummary = {
@@ -67,12 +66,15 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
     await sessionsDao.ensureFutureSessions(classIdParam);
   }
 
-  const [sessions, enrollments, coaches, coders] = await Promise.all([
+  const [sessions, enrollments, coaches, coders, allClasses] = await Promise.all([
     sessionsDao.listSessionsByClass(classIdParam),
     classesDao.listEnrollmentsByClass(classIdParam, { includeInactive: true }),
     usersDao.listUsersByRole('COACH'),
     usersDao.listUsersByRole('CODER'),
+    classesDao.listClasses(),
   ]);
+  const transferTargets = allClasses.filter((candidate) => isValidTransferTarget(klass, candidate))
+    .map((candidate) => ({ id: candidate.id, name: candidate.name, levelName: null }));
 
   const sessionMap = new Map(sessions.map(s => [s.id, s]));
   const classBlocks = await classesDao.getClassBlocks(classIdParam);
@@ -322,6 +324,8 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
                         />
                         {enrollment.status === 'ACTIVE' ? (
                           <>
+                            <TransferCoderButton classId={classIdParam} coderId={enrollment.coder_id}
+                              coderName={coderMap.get(enrollment.coder_id) ?? 'Unknown'} targetClasses={transferTargets} />
                             <SetCoderStatusButton classId={classIdParam} coderId={enrollment.coder_id} targetStatus="INACTIVE" />
                             <RemoveCoderButton classId={classIdParam} coderId={enrollment.coder_id} />
                           </>
@@ -388,7 +392,7 @@ function renderInvalidClassId(value: string) {
     <div style={{ padding: '2rem', background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', maxWidth: '600px', margin: '3rem auto', textAlign: 'center' }}>
       <h1 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '0.5rem', color: '#1e293b' }}>Kelas tidak ditemukan</h1>
       <p style={{ color: '#64748b' }}>
-        Parameter ID kelas tidak valid ("{value}"). Silakan kembali ke daftar kelas.
+        Parameter ID kelas tidak valid (&quot;{value}&quot;). Silakan kembali ke daftar kelas.
       </p>
       <Link href="/admin/classes" style={{ display: 'inline-block', marginTop: '1.5rem', color: '#3b82f6', fontWeight: 600 }}>← Kembali ke Daftar Kelas</Link>
     </div>

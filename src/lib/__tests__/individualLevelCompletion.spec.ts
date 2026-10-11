@@ -66,7 +66,7 @@ describe('Ahmad Faqih repeated Creator cycle', () => {
     expect(migration).toContain("cb.status IN ('CURRENT', 'UPCOMING')");
     expect(migration).toContain("e.exit_reason = 'COMPLETED'");
     expect(dryRun).not.toMatch(/\.insert\(|\.update\(|\.delete\(|\.upsert\(|\.rpc\(/);
-    expect(apply).not.toMatch(/(?:UPDATE|DELETE FROM) public\.(?:enrollments|coder_level_progressions)/);
-    expect(apply).toContain('v_game_completed boolean := NULL');
+    expect(apply).not.toMatch(/(?:UPDATE|DELETE FROM) public\.enrollments/);
+    expect(apply).toContain('v_cancel_stale_progression boolean := false');
   });
 });

@@ -416,6 +416,31 @@ export async function deleteEnrollment(classId: string, coderId: string): Promis
   return (data ?? []).length > 0;
 }
 
+export async function transferCoderEnrollment(input: {
+  coderId: string;
+  fromClassId: string;
+  toClassId: string;
+  effectiveAt: string;
+  reason: string;
+  adminId: string;
+}): Promise<EnrollmentRecord> {
+  const supabase = getSupabaseAdmin();
+  const transferRpc = supabase.rpc as unknown as (name: string, args: Record<string, string>) => Promise<{ error: { message: string } | null }>;
+  const { error } = await transferRpc('transfer_coder_enrollment', {
+    p_coder_id: input.coderId,
+    p_from_class_id: input.fromClassId,
+    p_to_class_id: input.toClassId,
+    p_effective_at: input.effectiveAt,
+    p_reason: input.reason,
+    p_admin_id: input.adminId,
+  });
+  if (error) throw new Error(`Failed to transfer coder: ${error.message}`);
+  const { data, error: loadError } = await supabase.from('enrollments').select('*')
+    .eq('class_id', input.toClassId).eq('coder_id', input.coderId).eq('status', 'ACTIVE').single();
+  if (loadError) throw new Error(`Transfer saved but target enrollment could not be loaded: ${loadError.message}`);
+  return data;
+}
+
 export async function listClassesForCoach(coachId: string): Promise<ClassRecord[]> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase

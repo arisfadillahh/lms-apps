@@ -330,6 +330,7 @@ export interface Database {
           start_date: string;
           end_date: string;
           lifecycle_status: 'ACTIVE' | 'PAUSED' | 'ENDED' | 'CANCELLED';
+          archived_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -346,6 +347,7 @@ export interface Database {
           start_date: string;
           end_date: string;
           lifecycle_status?: 'ACTIVE' | 'PAUSED' | 'ENDED' | 'CANCELLED';
+          archived_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -627,7 +629,7 @@ export interface Database {
           id: string; coder_id: string; source_level_id: string;
           target_level_id: string | null; source_class_id: string; source_enrollment_id: string;
           target_class_id: string | null; target_enrollment_id: string | null;
-          status: 'WAITING_PLACEMENT' | 'PLACED' | 'PROGRAM_COMPLETED';
+          status: 'WAITING_PLACEMENT' | 'PLACED' | 'PROGRAM_COMPLETED' | 'CANCELLED';
           completed_at: string; placed_at: string | null; placed_by: string | null;
           created_at: string; updated_at: string;
         };
@@ -635,7 +637,7 @@ export interface Database {
           id?: string; coder_id: string; source_level_id: string;
           target_level_id?: string | null; source_class_id: string; source_enrollment_id: string;
           target_class_id?: string | null; target_enrollment_id?: string | null;
-          status: 'WAITING_PLACEMENT' | 'PLACED' | 'PROGRAM_COMPLETED';
+          status: 'WAITING_PLACEMENT' | 'PLACED' | 'PROGRAM_COMPLETED' | 'CANCELLED';
           completed_at?: string; placed_at?: string | null; placed_by?: string | null;
           created_at?: string; updated_at?: string;
         };
@@ -1547,11 +1549,13 @@ export interface Database {
         ];
       };
     };
+    // Supabase's generated empty view map is required for relationship inference.
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     Views: {};
     Functions: {
       finalize_coder_level: {
         Args: { p_coder_id: string; p_source_level_id: string; p_source_class_id: string };
-        Returns: Array<{ progression_id: string; progression_status: 'WAITING_PLACEMENT' | 'PLACED' | 'PROGRAM_COMPLETED'; target_level_id: string | null; created_now: boolean }>;
+        Returns: Array<{ progression_id: string; progression_status: 'WAITING_PLACEMENT' | 'PLACED' | 'PROGRAM_COMPLETED' | 'CANCELLED'; target_level_id: string | null; created_now: boolean }>;
       };
       place_coder_level_progression: {
         Args: { p_progression_id: string; p_target_class_id: string; p_admin_id: string };

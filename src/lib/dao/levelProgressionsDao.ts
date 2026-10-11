@@ -54,6 +54,7 @@ export async function getLatestForCoder(coderId: string): Promise<LevelProgressi
     .from('coder_level_progressions')
     .select('*')
     .eq('coder_id', coderId)
+    .neq('status', 'CANCELLED')
     .order('completed_at', { ascending: false })
     .limit(1)
     .maybeSingle();

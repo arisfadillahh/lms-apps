@@ -5,7 +5,7 @@ import { CheckCircle2, Clock3, Search, UserRoundCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export type ProgressionView = {
-  id: string; status: 'WAITING_PLACEMENT' | 'PLACED' | 'PROGRAM_COMPLETED'; completedAt: string;
+  id: string; status: 'WAITING_PLACEMENT' | 'PLACED' | 'PROGRAM_COMPLETED' | 'CANCELLED'; completedAt: string;
   placedAt: string | null; coderName: string; sourceLevel: string; targetLevel: string | null;
   sourceClass: string; targetClass: string | null; completedBlocks: number; totalBlocks: number;
   completedBlockNames: string[]; pendingBlockNames: string[];
@@ -57,8 +57,8 @@ export default function LevelProgressionManager({ rows }: { rows: ProgressionVie
           <div className="min-w-0">
             <div className="row flex-wrap items-center gap-2"><h2 className="text-lg font-bold text-slate-950">{row.coderName}</h2><span className="badge">{row.completedBlocks}/{row.totalBlocks} blok selesai</span></div>
             <p className="mt-1 text-sm text-slate-600">{row.sourceLevel} · {row.sourceClass}</p>
-            <p className="mt-2 text-sm font-semibold text-slate-800">{row.status === 'PROGRAM_COMPLETED' ? 'Program selesai' : row.status === 'PLACED' ? `Ditempatkan ke ${row.targetClass}` : `Naik ke ${row.targetLevel}`}</p>
-            <p className="mt-1 text-xs text-slate-500">Selesai {new Date(row.completedAt).toLocaleString('id-ID')}</p>
+            <p className="mt-2 text-sm font-semibold text-slate-800">{row.status === 'CANCELLED' ? 'Kenaikan dibatalkan' : row.status === 'PROGRAM_COMPLETED' ? 'Program selesai' : row.status === 'PLACED' ? `Ditempatkan ke ${row.targetClass}` : `Naik ke ${row.targetLevel}`}</p>
+            <p className="mt-1 text-xs text-slate-500">Dicatat {new Date(row.completedAt).toLocaleString('id-ID')}</p>
             <details className="mt-3 text-sm">
               <summary className="cursor-pointer font-semibold text-blue-700">Lihat detail progres blok</summary>
               <div className="mt-2 grid gap-2 sm:grid-cols-2">

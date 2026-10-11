@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useState, type CSSProperties } from 'react';
-import type { Invoice } from '@/lib/types/invoice';
+import type { PublicInvoice } from '@/lib/publicInvoice';
 import type { PublicInvoicePaymentInstruction, PublicInvoicePaymentOption } from '@/lib/invoicePaymentMethods';
 
 interface BankInfo {
@@ -14,7 +14,7 @@ interface BankInfo {
 }
 
 interface Props {
-    invoice: Invoice;
+    invoice: PublicInvoice;
     publicToken?: string | null;
     paymentOptions: PublicInvoicePaymentOption[];
     initialPayment?: PublicInvoicePaymentInstruction | null;
@@ -537,7 +537,7 @@ export default function InvoiceView({ invoice, publicToken, paymentOptions, init
     }
 }
 
-function buildInitialPaymentInstruction(invoice: Invoice, publicToken: string | null): PaymentInstruction | null {
+function buildInitialPaymentInstruction(invoice: PublicInvoice, publicToken: string | null): PaymentInstruction | null {
     if (!invoice.payment_method || !invoice.midtrans_order_id || !invoice.midtrans_payment_details) return null;
     if (!publicToken) return null;
     const details = invoice.midtrans_payment_details;

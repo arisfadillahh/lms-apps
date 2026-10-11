@@ -4,10 +4,14 @@ import { createAdminNotifications } from '@/lib/dao/notificationsDao';
 import { createTrialClassSubmission } from '@/lib/dao/trialClassDao';
 import { sendTrialClassNotifications } from '@/lib/services/trialClassNotifications';
 import { normalizeIndonesianPhone, trialClassSchema } from '@/lib/validation/trialClass';
+import { consumeRateLimit } from '@/lib/rateLimit';
 
 export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
+  if (!await consumeRateLimit({ request, scope: 'free-trial', maxRequests: 5, windowSeconds: 60 * 60 })) {
+    return NextResponse.json({ ok: false, message: 'Terlalu banyak percobaan. Silakan coba lagi nanti.' }, { status: 429 });
+  }
   const body = await request.json().catch(() => null);
   const parsed = trialClassSchema.safeParse(body);
 
@@ -32,6 +36,7 @@ export async function POST(request: Request) {
       student_name: parsed.data.studentName,
       student_grade: parsed.data.studentGrade,
       school_name: parsed.data.schoolName,
+      domicile: parsed.data.domicile ?? null,
       parent_name: parsed.data.parentName,
       phone: normalizeIndonesianPhone(parsed.data.phone),
       email: parsed.data.email.toLowerCase(),
@@ -57,6 +62,7 @@ export async function POST(request: Request) {
         studentName: submission.student_name,
         studentGrade: submission.student_grade,
         schoolName: submission.school_name,
+        domicile: submission.domicile,
         parentName: submission.parent_name,
         phone: submission.phone,
         email: submission.email,

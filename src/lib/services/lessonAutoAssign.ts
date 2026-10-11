@@ -5,6 +5,10 @@ import { addDays } from 'date-fns';
 import { blocksDao, classLessonsDao, classesDao, coderProgressDao, lessonTemplatesDao, sessionsDao } from '@/lib/dao';
 import { buildClassLessonOrderIndex, buildClassLessonTitle } from '@/lib/dao/classLessonsDao';
 import { resolveBlockRuntimeDates, resolveBlockStatus, resolveCurrentBlockIndex, resolveNextBlockTemplateIndex } from '@/lib/services/blockRuntime';
+import {
+  resolveForwardAssignmentBlocks,
+  resolveForwardAssignmentWindow,
+} from '@/lib/services/lessonAssignmentWindow';
 import type { ClassLessonRecord } from '@/lib/dao/classLessonsDao';
 import type { ClassRecord } from '@/lib/dao/classesDao';
 import type { LessonTemplateRecord } from '@/lib/dao/lessonTemplatesDao';
@@ -55,7 +59,7 @@ export async function autoAssignLessonsForClass(
     }
   }
 
-  const { blocks, lessonsByBlock, unassignedSessions } = await ensureLessonCapacity(
+  const { blocks, lessonsByBlock, unassignedSessions, lessonQueue } = await ensureLessonCapacity(
     klass,
     sessions,
     blockTemplates,
@@ -67,7 +71,6 @@ export async function autoAssignLessonsForClass(
     return { assigned: 0 };
   }
 
-  const lessonQueue = buildLessonQueue(blocks, lessonsByBlock);
   console.log(`[AutoAssign:${mode}] Queue=${lessonQueue.length}, UnassignedSessions=${unassignedSessions.length}`);
 
   let assigned = 0;
@@ -202,6 +205,7 @@ type EnsureResult = {
   blocks: ClassBlockRow[];
   lessonsByBlock: Map<string, ClassLessonRecord[]>;
   unassignedSessions: SessionRecord[];
+  lessonQueue: ClassLessonRecord[];
 };
 
 async function ensureLessonCapacity(
@@ -212,10 +216,17 @@ async function ensureLessonCapacity(
   const blocks = await classesDao.getClassBlocks(klass.id);
   const lessonsByBlock = await loadLessons(blocks);
   const lessonTemplateCache = new Map<string, LessonTemplateRecord[]>();
-  await syncLessonsWithTemplates(blocks, lessonsByBlock, lessonTemplateCache);
+  const initialWindow = buildForwardAssignmentWindow(blocks, lessonsByBlock, sessions);
+  const orderedBlocks = blocks.slice().sort(compareBlocksByScheduleOrder);
+  const forwardBlocks = resolveForwardAssignmentBlocks(
+    orderedBlocks,
+    lessonsByBlock,
+    initialWindow.frontierLessonId,
+  );
+  await syncLessonsWithTemplates(forwardBlocks, lessonsByBlock, lessonTemplateCache);
 
-  const sessionAlreadyUsed = collectAssignedSessionIds(lessonsByBlock);
-  const unassignedSessions = sessions.filter((session) => !sessionAlreadyUsed.has(session.id));
+  let assignmentWindow = buildForwardAssignmentWindow(blocks, lessonsByBlock, sessions);
+  const unassignedSessions = assignmentWindow.unassignedSessions;
 
   if (blocks.length === 0) {
     const template = blockTemplates[0];
@@ -230,9 +241,10 @@ async function ensureLessonCapacity(
       blocks,
       lessonTemplateCache,
     });
+    assignmentWindow = buildForwardAssignmentWindow(blocks, lessonsByBlock, sessions);
   }
 
-  let lessonQueue = buildLessonQueue(blocks, lessonsByBlock);
+  let lessonQueue = assignmentWindow.lessonQueue;
 
   let templateIndex = resolveNextBlockTemplateIndex(blocks, blockTemplates);
   while (lessonQueue.length < unassignedSessions.length && blockTemplates.length > 0) {
@@ -249,7 +261,8 @@ async function ensureLessonCapacity(
       blocks,
       lessonTemplateCache,
     });
-    lessonQueue = buildLessonQueue(blocks, lessonsByBlock);
+    assignmentWindow = buildForwardAssignmentWindow(blocks, lessonsByBlock, sessions);
+    lessonQueue = assignmentWindow.lessonQueue;
   }
 
   if (!blocks.some((block) => block.status === 'UPCOMING') && blockTemplates.length > 0) {
@@ -268,19 +281,7 @@ async function ensureLessonCapacity(
     });
   }
 
-  return { blocks, lessonsByBlock, unassignedSessions };
-}
-
-function collectAssignedSessionIds(lessonsByBlock: Map<string, ClassLessonRecord[]>): Set<string> {
-  const sessionIds = new Set<string>();
-  lessonsByBlock.forEach((lessons) => {
-    lessons.forEach((lesson) => {
-      if (lesson.session_id) {
-        sessionIds.add(lesson.session_id);
-      }
-    });
-  });
-  return sessionIds;
+  return { blocks, lessonsByBlock, unassignedSessions, lessonQueue };
 }
 
 async function loadLessons(blocks: ClassBlockRow[]): Promise<Map<string, ClassLessonRecord[]>> {
@@ -295,7 +296,7 @@ async function loadLessons(blocks: ClassBlockRow[]): Promise<Map<string, ClassLe
 }
 
 
-function buildLessonQueue(
+function buildOrderedLessonList(
   blocks: ClassBlockRow[],
   lessonsByBlock: Map<string, ClassLessonRecord[]>,
 ): ClassLessonRecord[] {
@@ -305,8 +306,15 @@ function buildLessonQueue(
     .flatMap((block) => {
       const lessons = lessonsByBlock.get(block.id) ?? [];
       return lessons.slice().sort((a, b) => a.order_index - b.order_index);
-    })
-    .filter((lesson) => !lesson.session_id);
+    });
+}
+
+function buildForwardAssignmentWindow(
+  blocks: ClassBlockRow[],
+  lessonsByBlock: Map<string, ClassLessonRecord[]>,
+  sessions: SessionRecord[],
+) {
+  return resolveForwardAssignmentWindow(buildOrderedLessonList(blocks, lessonsByBlock), sessions);
 }
 
 function buildReflowLessonQueue(
@@ -588,12 +596,16 @@ async function syncBlockStatuses(
     .slice()
     .sort(compareBlocksByScheduleOrder);
 
+  const forwardLessonIds = new Set(
+    buildForwardAssignmentWindow(blocks, lessonsByBlock, sessions).lessonQueue.map((lesson) => lesson.id),
+  );
+
 
   const blockStates = sortedBlocks.map((block) => {
     const lessons = lessonsByBlock.get(block.id) ?? [];
     const hasFutureLesson = lessons.some((lesson) => {
       if (!lesson.session_id) {
-        return true;
+        return forwardLessonIds.has(lesson.id);
       }
       const session = sessionMap.get(lesson.session_id);
       if (!session) {

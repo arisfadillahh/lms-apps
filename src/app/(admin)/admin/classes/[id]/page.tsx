@@ -9,9 +9,13 @@ import {
   sessionsDao,
   usersDao,
   exkulCompetenciesDao,
+  reportsDao,
 } from '@/lib/dao';
 import type { ClassLessonRecord } from '@/lib/dao/classLessonsDao';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
+import { resolveBlockProgress } from '@/lib/services/classBlockProgress';
+import { normalizeClassMeetingUrl } from '@/lib/classMeetingUrl';
+import { isValidTransferTarget } from '@/lib/services/classTransferPolicy';
 
 import EnrollCoderForm from './EnrollCoderForm';
 import CoderJourneyOverride from './CoderJourneyOverride';
@@ -22,8 +26,10 @@ import SessionsTable from './SessionsTable';
 import EditCoachForm from './EditCoachForm';
 import AttendanceRecapTable from './AttendanceRecapTable';
 import ChangeClassScheduleModal from './ChangeClassScheduleModal';
+import EditClassLinkModal from './EditClassLinkModal';
+import ClassLifecycleControl from './ClassLifecycleControl';
 import TransferCoderButton from './TransferCoderButton';
-import { isValidTransferTarget } from '@/lib/services/classTransferPolicy';
+import PublishEkskulMidtermReportButton from './PublishEkskulMidtermReportButton';
 
 type ClassBlockRow = Awaited<ReturnType<typeof classesDao.getClassBlocks>>[number];
 type BlockSummary = {
@@ -36,6 +42,16 @@ type BlockSummary = {
 
 type PageProps = {
   params: Promise<{ id: string }>;
+};
+
+const scheduleDayLabels: Record<string, string> = {
+  MONDAY: 'Senin',
+  TUESDAY: 'Selasa',
+  WEDNESDAY: 'Rabu',
+  THURSDAY: 'Kamis',
+  FRIDAY: 'Jumat',
+  SATURDAY: 'Sabtu',
+  SUNDAY: 'Minggu',
 };
 
 export default async function AdminClassDetailPage({ params }: PageProps) {
@@ -73,8 +89,6 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
     usersDao.listUsersByRole('CODER'),
     classesDao.listClasses(),
   ]);
-  const transferTargets = allClasses.filter((candidate) => isValidTransferTarget(klass, candidate))
-    .map((candidate) => ({ id: candidate.id, name: candidate.name, levelName: null }));
 
   const sessionMap = new Map(sessions.map(s => [s.id, s]));
   const classBlocks = await classesDao.getClassBlocks(classIdParam);
@@ -82,24 +96,10 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
   const blockSummaries: BlockSummary[] = await Promise.all(
     classBlocks.map(async (block) => {
       const classLessons = await classLessonsDao.listLessonsByClassBlock(block.id);
-      const sortedLessons = classLessons.slice().sort((a, b) => a.order_index - b.order_index);
-
-      // Calculate progress: Logic "Waterfall" / "Implicit Completion"
-      // Find the last lesson that is COMPLETED. All lessons before it are considered completed.
-      let lastCompletedIndex = -1;
-
-      for (let i = 0; i < sortedLessons.length; i++) {
-        const lesson = sortedLessons[i];
-        if (lesson.session_id) {
-          const session = sessionMap.get(lesson.session_id);
-          if (session?.status === 'COMPLETED') {
-            lastCompletedIndex = i;
-          }
-        }
-      }
-
-      const completedLessons = lastCompletedIndex + 1;
-      const nextLesson = sortedLessons[lastCompletedIndex + 1];
+      const { sortedLessons, completedLessons, nextLesson } = resolveBlockProgress({
+        lessons: classLessons,
+        sessions,
+      });
 
       return {
         block,
@@ -165,8 +165,14 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
 
   const coachMap = new Map(coaches.map((coach) => [coach.id, coach.full_name]));
   const coderMap = new Map(coders.map((coder) => [coder.id, coder.full_name]));
+  const scheduleDayLabel = scheduleDayLabels[klass.schedule_day ?? ''] ?? klass.schedule_day ?? 'Belum diatur';
   const enrolledCoderIds = new Set(enrollments.map((enrollment) => enrollment.coder_id));
   const availableCoders = coders.filter((coder) => !enrolledCoderIds.has(coder.id));
+  const transferTargets = allClasses
+    .filter((candidate) => isValidTransferTarget(klass, candidate))
+    .map((candidate) => ({ id: candidate.id, name: candidate.name, levelName: null }));
+  const deliveryMode = klass.delivery_mode === 'OFFLINE' ? 'OFFLINE' : 'ONLINE';
+  const configuredClassLink = deliveryMode === 'ONLINE' ? normalizeClassMeetingUrl(klass.zoom_link) : null;
 
   const competenciesMap =
     klass.type === 'EKSKUL'
@@ -174,6 +180,9 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
       : {};
 
   const attendanceRecords = await attendanceDao.listAttendanceForSessions(sessions.map((s) => s.id));
+  const midtermReportCycle = klass.type === 'EKSKUL'
+    ? await reportsDao.getEkskulMidtermCycleForClass(classIdParam)
+    : null;
 
   return (
     <div style={pageContainerStyle}>
@@ -203,10 +212,86 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
             <span>•</span>
             Coach Utama: <strong style={{ color: '#334155' }}>{coachMap.get(klass.coach_id) ?? 'Unassigned'}</strong> <EditCoachForm classId={classIdParam} currentCoachId={klass.coach_id} coaches={coaches} />
             <span>•</span>
-            Jadwal: {klass.schedule_day}, {klass.schedule_time} WIB <ChangeClassScheduleModal classId={classIdParam} currentDay={klass.schedule_day} currentTime={klass.schedule_time} />
+            Jadwal: {scheduleDayLabel}, {klass.schedule_time ?? 'Belum diatur'} WIB
           </span>
         </div>
       </header>
+
+      <section style={scheduleCardStyle} aria-labelledby="class-lifecycle-title">
+        <div style={scheduleCardContentStyle}>
+          <p style={scheduleEyebrowStyle}>STATUS OPERASIONAL</p>
+          <h2 id="class-lifecycle-title" style={scheduleTitleStyle}>
+            {klass.lifecycle_status === 'ACTIVE' ? 'Kelas aktif' : klass.lifecycle_status === 'PAUSED' ? 'Kelas dijeda' : klass.lifecycle_status === 'ENDED' ? 'Kelas selesai' : 'Kelas ditiadakan'}
+          </h2>
+          <p style={scheduleDescriptionStyle}>Reminder WhatsApp, notifikasi PWA, dan aktivitas sesi hanya berjalan ketika kelas berstatus aktif. Menyelesaikan atau meniadakan kelas juga menutup enrollment dan sesi mendatang.</p>
+        </div>
+        <ClassLifecycleControl classId={classIdParam} currentStatus={klass.lifecycle_status} />
+      </section>
+
+      <section style={scheduleCardStyle} aria-labelledby="recurring-schedule-title">
+        <div style={scheduleCardContentStyle}>
+          <p style={scheduleEyebrowStyle}>JADWAL BERULANG</p>
+          <h2 id="recurring-schedule-title" style={scheduleTitleStyle}>Atur jadwal kelas ke depan</h2>
+          <p style={scheduleValueStyle}>{scheduleDayLabel} · {klass.schedule_time ?? 'Belum diatur'} WIB</p>
+          <p style={scheduleDescriptionStyle}>
+            Ubah hari atau jam untuk seluruh sesi mendatang yang masih terjadwal. Sesi yang sudah selesai atau diliburkan tetap aman dan tidak ikut bergeser.
+          </p>
+        </div>
+        <ChangeClassScheduleModal classId={classIdParam} currentDay={klass.schedule_day} currentTime={klass.schedule_time} />
+      </section>
+
+      <section style={scheduleCardStyle} aria-labelledby="class-link-title">
+        <div style={scheduleCardContentStyle}>
+          <p style={scheduleEyebrowStyle}>METODE & AKSES KELAS</p>
+          <h2 id="class-link-title" style={scheduleTitleStyle}>
+            {deliveryMode === 'OFFLINE' ? 'Offline / Tatap muka' : 'Online'}
+          </h2>
+          <p style={{ ...scheduleValueStyle, wordBreak: 'break-word' }}>
+            {deliveryMode === 'OFFLINE'
+              ? klass.location_name || 'Lokasi belum diatur'
+              : configuredClassLink ?? 'Link belum diatur'}
+          </p>
+          {deliveryMode === 'OFFLINE' && klass.location_address ? (
+            <p style={{ ...scheduleDescriptionStyle, marginBottom: 4 }}>{klass.location_address}</p>
+          ) : null}
+          {deliveryMode === 'OFFLINE' && klass.location_maps_url ? (
+            <a href={klass.location_maps_url} target="_blank" rel="noreferrer" style={sectionLinkStyle}>Buka Google Maps →</a>
+          ) : null}
+          <p style={scheduleDescriptionStyle}>
+            {klass.type === 'EKSKUL'
+              ? `WhatsApp orang tua — kebijakan sekolah: ${klass.parent_whatsapp_enabled ? 'Diizinkan' : 'Diblokir'}, jadwal: ${klass.parent_whatsapp_class_reminder_enabled ? 'Aktif' : 'Mati'}, absen: ${klass.parent_whatsapp_absence_enabled ? 'Aktif' : 'Mati'}, makeup: ${klass.parent_whatsapp_makeup_enabled ? 'Aktif' : 'Mati'}, rapor: ${klass.parent_whatsapp_report_enabled ? 'Aktif' : 'Mati'}, event: ${klass.parent_whatsapp_event_enabled ? 'Aktif' : 'Mati'}. PWA dan notifikasi LMS tetap aktif.`
+              : 'WhatsApp otomatis orang tua tetap aktif untuk program Weekly. PWA dan notifikasi LMS tetap aktif.'}
+          </p>
+        </div>
+        <EditClassLinkModal
+          classId={classIdParam}
+          classType={klass.type}
+          currentLink={klass.zoom_link}
+          currentDeliveryMode={deliveryMode}
+          currentLocationName={klass.location_name}
+          currentLocationAddress={klass.location_address}
+          currentLocationMapsUrl={klass.location_maps_url}
+          currentParentWhatsappEnabled={klass.parent_whatsapp_enabled}
+          currentParentWhatsappClassReminderEnabled={klass.parent_whatsapp_class_reminder_enabled}
+          currentParentWhatsappAbsenceEnabled={klass.parent_whatsapp_absence_enabled}
+          currentParentWhatsappMakeupEnabled={klass.parent_whatsapp_makeup_enabled}
+          currentParentWhatsappReportEnabled={klass.parent_whatsapp_report_enabled}
+          currentParentWhatsappEventEnabled={klass.parent_whatsapp_event_enabled}
+        />
+      </section>
+
+      {klass.type === 'EKSKUL' ? (
+        <section style={scheduleCardStyle} aria-labelledby="midterm-report-title">
+          <div style={scheduleCardContentStyle}>
+            <p style={scheduleEyebrowStyle}>RAPOR EKSKUL</p>
+            <h2 id="midterm-report-title" style={scheduleTitleStyle}>Rapor Tengah Semester</h2>
+            <p style={scheduleDescriptionStyle}>
+              Buat draf rapor dari lesson yang sudah selesai sampai hari ini. Coach mereview dan mengajukan setiap rapor, lalu Admin menerbitkannya seperti alur rapor biasa. Rapor akhir semester otomatis tetap terpisah.
+            </p>
+          </div>
+          <PublishEkskulMidtermReportButton classId={classIdParam} alreadyCreated={Boolean(midtermReportCycle)} />
+        </section>
+      ) : null}
 
       {klass.type === 'WEEKLY' ? (
         <section style={cardStyle}>
@@ -324,8 +409,12 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
                         />
                         {enrollment.status === 'ACTIVE' ? (
                           <>
-                            <TransferCoderButton classId={classIdParam} coderId={enrollment.coder_id}
-                              coderName={coderMap.get(enrollment.coder_id) ?? 'Unknown'} targetClasses={transferTargets} />
+                            <TransferCoderButton
+                              classId={classIdParam}
+                              coderId={enrollment.coder_id}
+                              coderName={coderMap.get(enrollment.coder_id) ?? 'Unknown'}
+                              targetClasses={transferTargets}
+                            />
                             <SetCoderStatusButton classId={classIdParam} coderId={enrollment.coder_id} targetStatus="INACTIVE" />
                             <RemoveCoderButton classId={classIdParam} coderId={enrollment.coder_id} />
                           </>
@@ -504,6 +593,26 @@ const cardStyle: CSSProperties = {
   width: '100%',
   overflow: 'hidden',
 };
+
+const scheduleCardStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: '1.25rem',
+  flexWrap: 'wrap',
+  padding: '1.1rem 1.25rem',
+  marginBottom: '1.25rem',
+  border: '1px solid #bfdbfe',
+  borderRadius: '14px',
+  background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 72%)',
+  boxShadow: '0 8px 24px rgba(30, 64, 175, 0.07)',
+};
+
+const scheduleCardContentStyle: CSSProperties = { flex: '1 1 320px', minWidth: 0 };
+const scheduleEyebrowStyle: CSSProperties = { margin: 0, color: '#2563eb', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.08em' };
+const scheduleTitleStyle: CSSProperties = { margin: '0.2rem 0 0', color: '#1e293b', fontSize: '1.05rem', fontWeight: 800 };
+const scheduleValueStyle: CSSProperties = { margin: '0.35rem 0 0', color: '#1e3a8a', fontSize: '1rem', fontWeight: 750 };
+const scheduleDescriptionStyle: CSSProperties = { maxWidth: '720px', margin: '0.35rem 0 0', color: '#64748b', fontSize: '0.82rem', lineHeight: 1.5 };
 
 const sectionHeaderStyle: CSSProperties = {
   display: 'flex',

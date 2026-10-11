@@ -286,6 +286,7 @@ export default function AIChatbot({ classLessonId, lessonTitle, lessonSummary, l
                                     exit={{ opacity: 0, scale: 0.95 }}
                                     transition={{ duration: 0.4, type: "spring", bounce: 0.2 }}
                                     className="fixed bg-white shadow-2xl border border-slate-200/60 rounded-2xl z-50 flex flex-col overflow-hidden"
+                                    data-coder-modal="true"
                                     style={{
                                         top: '5vh',
                                         bottom: '5vh',
@@ -303,6 +304,7 @@ export default function AIChatbot({ classLessonId, lessonTitle, lessonSummary, l
                                     exit={{ opacity: 0, y: 20, scale: 0.95 }}
                                     transition={{ duration: 0.4, type: "spring", bounce: 0.2 }}
                                     className="fixed overflow-hidden bg-white shadow-2xl border border-slate-200/60 rounded-2xl z-50 flex flex-col"
+                                    data-coder-modal="true"
                                     style={{
                                         bottom: '1.5rem',
                                         right: '2.5rem',

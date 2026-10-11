@@ -5,6 +5,7 @@ import { getSessionOrThrow } from '@/lib/auth';
 import { getTrialClassSubmission, setTrialClassTerminalStatus } from '@/lib/dao/trialClassDao';
 import { assertRole } from '@/lib/roles';
 import { deleteTrialCalendarEvent } from '@/lib/services/googleTrialCalendar';
+import { createNotification } from '@/lib/dao/notificationsDao';
 
 export const runtime = 'nodejs';
 
@@ -39,6 +40,26 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     }
 
     const updated = await setTrialClassTerminalStatus(id, parsed.data.status, parsed.data.reason);
+    if (trial.coach_id) {
+      try {
+        await createNotification(
+          trial.coach_id,
+          parsed.data.status === 'CANCELLED' ? 'Trial dibatalkan' : 'Trial tidak dilanjutkan',
+          `Trial ${trial.student_name} tidak lagi aktif. Alasan: ${parsed.data.reason}`,
+          'TRIAL_STATUS',
+          {
+            actionUrl: '/coach/dashboard',
+            category: 'TRIAL',
+            priority: 'HIGH',
+            dedupeKey: `trial-status-${id}-${parsed.data.status}`,
+            push: true,
+            pushTag: `trial-${id}`,
+          },
+        );
+      } catch (notificationError) {
+        console.error('[FreeTrial] Failed to notify Coach about terminal status', notificationError);
+      }
+    }
     return NextResponse.json({ ok: true, trial: updated });
   } catch (error) {
     console.error('[FreeTrial] Failed to update trial status', error);

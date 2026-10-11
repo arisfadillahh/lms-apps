@@ -4,7 +4,7 @@
 import ClassListClient from './ClassListClient';
 
 import { blocksDao, classLessonsDao, classesDao, levelsDao, sessionsDao, usersDao } from '@/lib/dao';
-import { pickCurrentCycleProgressBlock, resolveCycleLessonProgress } from '@/lib/services/classCycleProgress';
+import { pickCurrentCycleProgressBlock, resolveCycleLessonProgress, resolveSessionProgress } from '@/lib/services/classCycleProgress';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import AdminClassesPageWrapper from './AdminClassesPageWrapper';
 
@@ -39,6 +39,11 @@ export default async function AdminClassesPage() {
         classesDao.getClassBlocks(klass.id),
         sessionsDao.listSessionsByClass(klass.id),
       ]);
+
+      if (klass.type === 'EKSKUL') {
+        return [klass.id, resolveSessionProgress(sessions).percent] as const;
+      }
+
       const currentCycleBlock = pickCurrentCycleProgressBlock(classBlocks);
 
       if (!currentCycleBlock) {

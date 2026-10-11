@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { getSessionOrThrow } from '@/lib/auth';
-import { classLessonsDao, lessonTemplatesDao } from '@/lib/dao';
+import { blocksDao, lessonTemplatesDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
 
 type RouteContext = {
@@ -44,11 +44,11 @@ export async function POST(request: Request, context: RouteContext) {
 
   const exampleUrl = parsed.data.url || null;
 
-  await lessonTemplatesDao.updateLessonTemplate(decodedLessonId, {
+  const lesson = await lessonTemplatesDao.updateLessonTemplate(decodedLessonId, {
     exampleUrl,
     exampleStoragePath: null,
   });
-  await classLessonsDao.syncTemplateLessonExample(decodedLessonId, exampleUrl, null);
+  await publishAndSyncFutureLessons(lesson.block_id);
 
   return NextResponse.json({ url: exampleUrl });
 }
@@ -68,13 +68,19 @@ export async function DELETE(request: Request, context: RouteContext) {
     return NextResponse.json({ error: 'Lesson template not found' }, { status: 404 });
   }
 
-  await lessonTemplatesDao.updateLessonTemplate(decodedLessonId, {
+  const lesson = await lessonTemplatesDao.updateLessonTemplate(decodedLessonId, {
     exampleUrl: null,
     exampleStoragePath: null,
   });
-  await classLessonsDao.syncTemplateLessonExample(decodedLessonId, null, null);
+  await publishAndSyncFutureLessons(lesson.block_id);
 
   return NextResponse.json({ success: true });
+}
+
+async function publishAndSyncFutureLessons(blockId: string) {
+  await blocksDao.updateBlock(blockId, { isPublished: true });
+  const { syncClassesForBlockTemplate } = await import('@/lib/services/lessonRebalancer');
+  await syncClassesForBlockTemplate(blockId);
 }
 
 function isValidUuid(value: string): boolean {

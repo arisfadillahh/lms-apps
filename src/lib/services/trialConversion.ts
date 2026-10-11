@@ -1,14 +1,11 @@
-import { randomBytes } from 'crypto';
 import { addMonths, format } from 'date-fns';
 
-import { getOrCreateCCR, getInvoiceById } from '@/lib/dao/invoicesDao';
+import { getInvoiceById } from '@/lib/dao/invoicesDao';
 import {
   findAssessmentByInvoiceId,
   getAssessmentWithRelations,
   updateAssessment,
-  type TrialAssessmentWithRelations,
 } from '@/lib/dao/trialAssessmentsDao';
-import { hashPassword } from '@/lib/passwords';
 import { buildInvoicePublicUrl } from '@/lib/services/invoicePublicAccess';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import type { Invoice } from '@/lib/types/invoice';
@@ -23,71 +20,6 @@ function addDays(date: Date, days: number) {
 function buildTrialInvoiceNumber(assessmentId: string) {
   const now = new Date();
   return `TRIAL-${format(now, 'yyyyMM')}-${assessmentId.slice(0, 8).toUpperCase()}`;
-}
-
-function slugifyName(value: string) {
-  return value
-    .toLowerCase()
-    .normalize('NFKD')
-    .replace(/[^\w\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '.')
-    .slice(0, 32) || 'trial';
-}
-
-async function getOrCreateTrialCoder(assessment: TrialAssessmentWithRelations) {
-  if (assessment.coder_id) {
-    const supabase = getSupabaseAdmin();
-    const { data, error } = await supabase.from('users').select('*').eq('id', assessment.coder_id).maybeSingle();
-    if (error) throw new Error(`Gagal mengambil akun coder trial: ${error.message}`);
-    if (data) return data;
-  }
-
-  const trial = assessment.trial;
-  if (!trial) throw new Error('Data trial tidak ditemukan.');
-
-  const supabase = getSupabaseAdmin();
-  const { data: existing, error: existingError } = await supabase
-    .from('users')
-    .select('*')
-    .eq('role', 'CODER')
-    .eq('parent_contact_phone', trial.phone)
-    .ilike('full_name', trial.student_name)
-    .limit(1)
-    .maybeSingle();
-
-  if (existingError) {
-    throw new Error(`Gagal mengecek akun coder trial: ${existingError.message}`);
-  }
-  if (existing) return existing;
-
-  const usernameBase = `trial.${slugifyName(trial.student_name)}.${trial.phone.slice(-4)}`;
-  const username = `${usernameBase}.${assessment.id.slice(0, 6)}`;
-  const passwordHash = await hashPassword(randomBytes(18).toString('base64url'));
-
-  const { data, error } = await supabase
-    .from('users')
-    .insert({
-      username,
-      password_hash: passwordHash,
-      full_name: trial.student_name,
-      role: 'CODER',
-      parent_contact_phone: trial.phone,
-      parent_name: trial.parent_name,
-      parent_email: trial.email,
-      school_name: trial.school_name,
-      school_grade: trial.student_grade,
-      is_active: true,
-      notes: `Dibuat otomatis dari trial class ${trial.id}`,
-    } as any)
-    .select('*')
-    .single();
-
-  if (error) {
-    throw new Error(`Gagal membuat akun coder trial: ${error.message}`);
-  }
-
-  return data;
 }
 
 async function getDefaultPaymentPlan(paymentPlanId?: string | null) {
@@ -144,10 +76,7 @@ export async function createOrGetTrialConversionInvoice(assessmentId: string) {
   }
 
   const supabase = getSupabaseAdmin();
-  const [coder, paymentPlan] = await Promise.all([
-    getOrCreateTrialCoder(assessment),
-    getDefaultPaymentPlan(assessment.payment_plan_id),
-  ]);
+  const paymentPlan = await getDefaultPaymentPlan(assessment.payment_plan_id);
 
   const { data: pricing, error: pricingError } = await supabase
     .from('pricing')
@@ -216,7 +145,6 @@ export async function createOrGetTrialConversionInvoice(assessmentId: string) {
       if (existingInvoice) {
         await updateAssessment(assessment.id, {
           invoice_id: (existingInvoice as any).id,
-          coder_id: coder.id,
           payment_plan_id: paymentPlan.id,
           status: 'INVOICE_CREATED',
           registration_started_at: assessment.registration_started_at ?? new Date().toISOString(),
@@ -231,7 +159,8 @@ export async function createOrGetTrialConversionInvoice(assessmentId: string) {
     .from('invoice_items' as any)
     .insert({
       invoice_id: (invoice as any).id,
-      coder_id: coder.id,
+      // Do not create a coder or Weekly payment record before the invoice is paid.
+      coder_id: null,
       coder_name: assessment.trial.student_name,
       class_name: `Level ${assessment.recommended_level?.name ?? 'Weekly Class'}`,
       level_name: assessment.recommended_level?.name ?? 'Weekly Class',
@@ -248,7 +177,6 @@ export async function createOrGetTrialConversionInvoice(assessmentId: string) {
 
   await updateAssessment(assessment.id, {
     invoice_id: (invoice as any).id,
-    coder_id: coder.id,
     payment_plan_id: paymentPlan.id,
     status: 'INVOICE_CREATED',
     registration_started_at: new Date().toISOString(),
@@ -262,30 +190,41 @@ export function buildTrialInvoiceUrl(invoice: Invoice) {
   return buildInvoicePublicUrl(baseUrl, invoice);
 }
 
-export async function markTrialConversionPaidFromInvoice(invoiceId: string, paidAt: string) {
+export type TrialConversionPaidResult =
+  | { updated: false; reason: string }
+  | {
+      updated: true;
+      assessmentId: string;
+      studentName: string;
+      parentName: string;
+      parentPhone: string;
+      recommendedLevel: string;
+      invoiceNumber: string;
+      totalAmount: number;
+      requiresAdminAccountCreation: true;
+      awaitingManualClassAssignment: true;
+    };
+
+export async function markTrialConversionPaidFromInvoice(
+  invoiceId: string,
+  paidAt: string,
+): Promise<TrialConversionPaidResult> {
   const assessment = await findAssessmentByInvoiceId(invoiceId);
   if (!assessment) return { updated: false, reason: 'not_trial_conversion' };
   if (assessment.status === 'PAID' || (assessment.status === 'CONVERTED' && assessment.converted_at)) {
     return { updated: false, reason: 'already_paid' };
   }
-  if (!assessment.coder_id || !assessment.pricing_id) {
-    throw new Error('Trial conversion belum memiliki coder atau pricing lengkap.');
+  if (!assessment.pricing_id) {
+    throw new Error('Trial conversion belum memiliki pricing lengkap.');
   }
 
-  const supabase = getSupabaseAdmin();
   const [detail, invoice] = await Promise.all([
     getAssessmentWithRelations(assessment.id),
     getInvoiceById(invoiceId),
   ]);
   if (!detail?.trial) throw new Error('Data trial conversion tidak lengkap.');
   if (!invoice) throw new Error('Invoice conversion tidak ditemukan.');
-
-  const ccr = await getOrCreateCCR(detail.trial.phone, detail.trial.parent_name);
-  if (!ccr) throw new Error('Gagal membuat CCR setelah pembayaran trial.');
-
-  if (!invoice.ccr_id) {
-    await supabase.from('invoices' as any).update({ ccr_id: ccr.id }).eq('id', invoice.id);
-  }
+  if (invoice.status !== 'PAID') throw new Error('Trial conversion hanya boleh diproses setelah invoice lunas.');
 
   await updateAssessment(assessment.id, {
     status: 'PAID',
@@ -296,8 +235,13 @@ export async function markTrialConversionPaidFromInvoice(invoiceId: string, paid
   return {
     updated: true,
     assessmentId: assessment.id,
-    coderId: assessment.coder_id,
-    ccrCode: ccr.ccr_code,
+    studentName: detail.trial.student_name,
+    parentName: detail.trial.parent_name,
+    parentPhone: detail.trial.phone,
+    recommendedLevel: detail.recommended_level?.name ?? 'Belum ditentukan',
+    invoiceNumber: invoice.invoice_number,
+    totalAmount: Number(invoice.total_amount),
+    requiresAdminAccountCreation: true,
     awaitingManualClassAssignment: true,
   };
 }

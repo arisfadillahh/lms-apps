@@ -2,7 +2,7 @@
 import {
     Home, Users, GraduationCap, BookOpen, CalendarOff, FileText,
     MessageCircle, Package, Image as ImageIcon, Wallet, BookMarked,
-    Megaphone, Receipt, Settings, UserCheck, ClipboardList, MessageSquare, UserRoundPlus, Bug, UserRoundCheck
+    Megaphone, Receipt, Settings, UserCheck, ClipboardList, MessageSquare, UserRoundPlus, Bug, UserRoundCheck, PanelsTopLeft
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -16,7 +16,7 @@ export const MENU_ITEMS: Record<string, { href: string; label: string; icon: Luc
     levelProgressions: { href: '/admin/level-progressions', label: 'Kenaikan Level', icon: UserRoundCheck },
     blockPlacements: { href: '/admin/block-placements', label: 'Penempatan Blok', icon: UserRoundCheck },
     curriculum: { href: '/admin/curriculum', label: 'Kurikulum', icon: BookOpen },
-    lessonReports: { href: '/admin/curriculum/reports', label: 'Laporan Lesson', icon: FileText },
+    lessonReports: { href: '/admin/curriculum/reports', label: 'Masalah Lesson', icon: FileText },
     ekskul: { href: '/admin/ekskul', label: 'Ekskul Plans', icon: BookMarked },
     payments: { href: '/admin/payments', label: 'Paket & Tarif', icon: Wallet },
     invoices: { href: '/admin/payments/invoices', label: 'Invoice', icon: Receipt },
@@ -27,6 +27,7 @@ export const MENU_ITEMS: Record<string, { href: string; label: string; icon: Luc
     leave: { href: '/admin/leave', label: 'Izin Coach', icon: CalendarOff },
     issueReports: { href: '/admin/issue-reports', label: 'Laporan Masalah', icon: Bug },
     reports: { href: '/admin/reports', label: 'Status Rapor', icon: FileText },
+    portfolios: { href: '/admin/portfolios', label: 'Portofolio Coder', icon: PanelsTopLeft },
     evaluations: { href: '/admin/evaluations', label: 'Kompetensi Rapor', icon: ClipboardList },
     evaluationQuestions: { href: '/admin/evaluations/questions', label: 'Pertanyaan Refleksi', icon: MessageSquare },
     whatsapp: { href: '/admin/whatsapp', label: 'WhatsApp', icon: MessageCircle },
@@ -56,7 +57,7 @@ export const SIDEBAR_STRUCTURE: (SidebarGroup | SidebarSingle)[] = [
         type: 'group',
         label: 'Akademik',
         icon: GraduationCap,
-        children: ['classes', 'blockPlacements', 'levelProgressions', 'curriculum', 'lessonReports', 'ekskul', 'evaluations', 'evaluationQuestions', 'reports']
+        children: ['classes', 'blockPlacements', 'levelProgressions', 'curriculum', 'lessonReports', 'ekskul', 'evaluations', 'evaluationQuestions', 'reports', 'portfolios']
     },
     {
         type: 'group',

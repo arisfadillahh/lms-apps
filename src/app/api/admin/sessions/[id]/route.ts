@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { getSessionOrThrow } from '@/lib/auth';
 import { sessionsDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
+import { notifyClassMembersAboutSessionChange } from '@/lib/services/classMemberNotifications';
 
 type RouteParams = { id: string };
 type RouteContext = { params: RouteParams | Promise<RouteParams> };
@@ -46,6 +47,12 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         // Auto-rebalance lessons to ensure material syncs to the new date/time
         const { reassignLessonsToSessions } = await import('@/lib/services/lessonRebalancer');
         await reassignLessonsToSessions(updated.class_id);
+
+        try {
+            await notifyClassMembersAboutSessionChange(sessionId, 'RESCHEDULED');
+        } catch (notificationError) {
+            console.error('[SessionUpdate] Failed to notify class members', notificationError);
+        }
 
         revalidatePath('/admin/classes/[id]', 'page');
         revalidatePath('/admin/classes');

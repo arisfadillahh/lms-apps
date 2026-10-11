@@ -4,13 +4,18 @@ import path from 'path';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { BookOpen, Flame, Pencil, ChevronRight, ListChecks, Zap, Play, Dumbbell, Lock, Rocket, Palette, Star, Download, Map, Hand, Monitor, Brush, Gamepad2, Cat, Package, Palmtree } from 'lucide-react';
+import { BookOpen, Bug, Flame, Pencil, ChevronRight, ListChecks, Zap, Play, Dumbbell, Lock, Rocket, Palette, Star, Download, Map, MapPin, Hand, Monitor, Brush, Gamepad2, Cat, Package, Palmtree, GraduationCap } from 'lucide-react';
 
 import { getSessionOrThrow } from '@/lib/auth';
+import { normalizeClassMeetingUrl } from '@/lib/classMeetingUrl';
 import { getCoderProgress } from '@/lib/services/coder';
+import { groupCoderJourneyByLevel } from '@/lib/coderJourney';
+import { getCoderJourneyAcrossLevels } from '@/lib/dao/coderProgressDao';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { levelProgressionsDao } from '@/lib/dao';
 
 import JourneyModal from './JourneyModal';
+import type { JourneyCourse } from './JourneyMap';
 import UpcomingLessonsModal from './UpcomingLessonsModal';
 import SoftwareDetailModal from './SoftwareDetailModal';
 import BannerCarousel from '@/components/coder/BannerCarousel';
@@ -18,6 +23,8 @@ import { StaggerContainer, StaggerItem } from '../StaggerWrapper';
 import CoderHeader from './CoderHeader';
 import BlockEvaluationCard from './BlockEvaluationCard';
 import CoderFooter from '../CoderFooter';
+import IssueReportButton from '@/components/issue-reports/IssueReportButton';
+import MobilePwaOnboardingCard from '@/components/pwa/MobilePwaOnboardingCard';
 
 type Banner = {
   id: string;
@@ -41,9 +48,11 @@ async function getBanners(): Promise<Banner[]> {
 
 export default async function CoderDashboardPage() {
   const session = await getSessionOrThrow();
-  const [progress, banners] = await Promise.all([
+  const [progress, banners, levelProgression, allLevelProgress] = await Promise.all([
     getCoderProgress(session.user.id),
     getBanners(),
+    levelProgressionsDao.getLatestForCoder(session.user.id),
+    getCoderJourneyAcrossLevels(session.user.id),
   ]);
 
   const upcomingBlocks = progress
@@ -111,9 +120,11 @@ export default async function CoderDashboardPage() {
   // Check if class link is active: query today's sessions DIRECTLY from DB
   // (lesson.scheduledAt is unreliable — depends on lessonMap template matching)
   let isLinkActive = false;
-  let zoomLink = activeBlock?.schedule?.zoomLink || null;
+  let zoomLink = normalizeClassMeetingUrl(activeBlock?.schedule?.zoomLink);
+  const deliveryMode = activeBlock?.schedule?.deliveryMode === 'OFFLINE' ? 'OFFLINE' : 'ONLINE';
+  const locationMapsUrl = activeBlock?.schedule?.locationMapsUrl || null;
 
-  if (activeBlock) {
+  if (activeBlock && deliveryMode === 'ONLINE') {
     const supabase = getSupabaseAdmin();
     const nowMs = Date.now();
     const todayStart = new Date();
@@ -123,7 +134,7 @@ export default async function CoderDashboardPage() {
 
     const { data: todaySessions } = await supabase
       .from('sessions')
-      .select('date_time, status')
+      .select('date_time, status, zoom_link_snapshot')
       .eq('class_id', activeBlock.classId)
       .neq('status', 'CANCELLED')
       .gte('date_time', todayStart.toISOString())
@@ -137,6 +148,7 @@ export default async function CoderDashboardPage() {
         const windowEnd = sessionTime + 120 * msPerMinute;  // 2 hours after
         if (nowMs >= windowStart && nowMs <= windowEnd) {
           isLinkActive = true;
+          zoomLink = normalizeClassMeetingUrl(sess.zoom_link_snapshot) ?? zoomLink;
           break;
         }
       }
@@ -174,28 +186,58 @@ export default async function CoderDashboardPage() {
   // Software list
   const softwareList = upcomingBlocks.flatMap(b => b.block.software || []).slice(0, 4);
 
-  // Journey courses for the modal
-  const journeyCourses = journeyProgress.map((item) => {
-    let currentBlockProgress = 0;
-
-    const currentJourneyBlock = item.journeyBlocks.find(b => b.status === 'CURRENT');
-    if (currentJourneyBlock && item.upNext && item.upNext.blockId === currentJourneyBlock.blockId && item.upNext.lessons) {
-      const completed = item.upNext.lessons.filter((l: any) => l.status === 'COMPLETED').length;
-      const total = item.upNext.lessons.length || 1;
-      currentBlockProgress = Math.round((completed / total) * 100);
-    }
+  // Build the modal from persistent per-level progress, including completed history.
+  const levelJourneys = groupCoderJourneyByLevel(allLevelProgress);
+  const currentProgressForLevel = (item: (typeof journeyProgress)[number] | undefined) => {
+    const currentJourneyBlock = item?.journeyBlocks.find((block) => block.status === 'CURRENT');
+    if (!currentJourneyBlock || item?.upNext?.blockId !== currentJourneyBlock.blockId || !item.upNext.lessons?.length) return 0;
+    const completed = item.upNext.lessons.filter((lesson) => lesson.status === 'COMPLETED').length;
+    return Math.round((completed / item.upNext.lessons.length) * 100);
+  };
+  const journeyCourses: JourneyCourse[] = levelJourneys.map((level) => {
+    const activeLevel = journeyProgress.find((item) => item.type === 'WEEKLY' && item.levelName === level.levelName);
 
     return {
+      classId: `level-${level.levelId}`,
+      name: level.levelName,
+      levelName: level.levelName,
+      classType: 'WEEKLY' as const,
+      currentBlockProgress: currentProgressForLevel(activeLevel),
+      journeyBlocks: level.blocks.map((block, index) => ({
+        blockId: block.blockId,
+        name: block.blockName,
+        status: block.status === 'COMPLETED' ? 'COMPLETED' as const : block.status === 'IN_PROGRESS' ? 'CURRENT' as const : 'UPCOMING' as const,
+        orderIndex: block.journeyOrder ?? index,
+      })),
+      completedBlocks: level.blocks.filter((block) => block.status === 'COMPLETED').length,
+      totalBlocks: level.blocks.length,
+    };
+  });
+
+  const journeyLevelNames = new Set(levelJourneys.map((level) => level.levelName));
+  const fallbackCurrentLevels = journeyProgress
+    .filter((item) => item.type === 'WEEKLY' && typeof item.levelName === 'string' && !journeyLevelNames.has(item.levelName))
+    .map((item) => ({
       classId: item.classId,
       name: item.name,
       levelName: item.levelName,
       classType: item.type,
-      currentBlockProgress,
+      currentBlockProgress: currentProgressForLevel(item),
       journeyBlocks: item.journeyBlocks,
       completedBlocks: item.completedBlocks,
       totalBlocks: item.totalBlocks || item.journeyBlocks.length,
-    };
-  });
+    }));
+  const ekskulJourneys = journeyProgress.filter((item) => item.type === 'EKSKUL').map((item) => ({
+    classId: item.classId,
+    name: item.name,
+    levelName: item.levelName,
+    classType: item.type,
+    currentBlockProgress: 0,
+    journeyBlocks: item.journeyBlocks,
+    completedBlocks: item.completedBlocks,
+    totalBlocks: item.totalBlocks || item.journeyBlocks.length,
+  }));
+  journeyCourses.push(...fallbackCurrentLevels, ...ekskulJourneys);
 
   return (
     <>
@@ -208,6 +250,28 @@ export default async function CoderDashboardPage() {
             <BlockEvaluationCard classId={p.classId} userId={session.user.id} />
           </StaggerItem>
         ))}
+
+        <MobilePwaOnboardingCard role="CODER" />
+
+        {levelProgression && (
+          <StaggerItem className="mb-5">
+            <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950 shadow-sm sm:p-5">
+              <div className="flex items-start gap-3">
+                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-600 text-white"><GraduationCap size={21} /></span>
+                <div>
+                  <h2 className="font-black">{levelProgression.status === 'PROGRAM_COMPLETED' ? 'Program selesai' : levelProgression.status === 'WAITING_PLACEMENT' ? 'Kamu naik level!' : 'Kelas level barumu sudah siap'}</h2>
+                  <p className="mt-1 text-sm font-semibold leading-relaxed text-emerald-800">
+                    {levelProgression.status === 'PROGRAM_COMPLETED'
+                      ? 'Seluruh perjalanan belajar pada program ini sudah kamu selesaikan.'
+                      : levelProgression.status === 'WAITING_PLACEMENT'
+                        ? 'Semua blok sudah selesai. Admin sedang menyiapkan kelas berikutnya untukmu.'
+                        : 'Penempatan selesai. Jadwal dan materi berikutnya sudah tersedia di dashboard.'}
+                  </p>
+                </div>
+              </div>
+            </section>
+          </StaggerItem>
+        )}
 
         {/* ===== BANNER SECTION ===== */}
         <StaggerItem className="mb-10">
@@ -343,7 +407,27 @@ export default async function CoderDashboardPage() {
                               <div className="bg-gradient-to-r from-sky to-clevio-green h-full rounded-full transition-all duration-1000" style={{ width: `${activeProgressPct}%` }}></div>
                             </div>
                           </div>
-                          {isLinkActive && zoomLink ? (
+                          {deliveryMode === 'OFFLINE' && locationMapsUrl ? (
+                            <div className="w-full md:w-auto flex flex-col gap-2">
+                              <div className="text-left md:text-right">
+                                <p className="text-xs font-black uppercase tracking-widest text-slate-400">Lokasi kelas</p>
+                                <p className="text-sm font-black text-clevio-navy">{activeBlock?.schedule?.locationName || 'Lokasi kelas'}</p>
+                                {activeBlock?.schedule?.locationAddress ? <p className="text-xs font-bold text-slate-500 max-w-sm">{activeBlock.schedule.locationAddress}</p> : null}
+                              </div>
+                              <a
+                                href={locationMapsUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-coral text-white px-8 py-3 rounded-xl font-black text-base shadow-[0_6px_0_0_#E86E7E] hover:translate-y-1 hover:shadow-[0_2px_0_0_#E86E7E] active:translate-y-1.5 active:shadow-none transition-all"
+                              >
+                                <MapPin size={19} /> Buka Lokasi Kelas
+                              </a>
+                            </div>
+                          ) : deliveryMode === 'OFFLINE' ? (
+                            <button disabled className="w-full md:w-auto bg-slate-200 text-slate-400 px-8 py-3 rounded-xl font-black text-base">
+                              Lokasi belum diatur
+                            </button>
+                          ) : isLinkActive && zoomLink ? (
                             <a
                               href={zoomLink}
                               target="_blank"
@@ -358,10 +442,10 @@ export default async function CoderDashboardPage() {
                                 disabled
                                 className="w-full bg-slate-200 text-slate-400 px-8 py-3 rounded-xl font-black text-base transition-all pointer-events-none"
                               >
-                                Masuk Kelas
+                                {isLinkActive && !zoomLink ? 'Link belum diatur' : 'Masuk Kelas'}
                               </button>
                               <div className="absolute top-[-40px] left-1/2 -translate-x-1/2 opacity-0 group-hover/btn:opacity-100 transition-opacity bg-slate-800 text-white text-xs font-bold py-1 px-3 rounded-lg whitespace-nowrap z-50 pointer-events-none">
-                                Tombol aktif 30 menit sebelum kelas
+                                {isLinkActive && !zoomLink ? 'Admin perlu mengatur link kelas' : 'Tombol aktif 30 menit sebelum kelas'}
                                 <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
                               </div>
                             </div>
@@ -495,6 +579,19 @@ export default async function CoderDashboardPage() {
           </div>
 
         </div >
+
+        <StaggerItem className="coder-report-card mt-8 md:hidden">
+          <section className="rounded-3xl border-2 border-dashed border-pastel-pink/70 bg-white p-5 shadow-sm">
+            <div className="mb-4 flex items-start gap-3">
+              <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-pastel-pink text-coral"><Bug size={20} strokeWidth={2.5} /></span>
+              <div>
+                <h3 className="text-lg font-black text-clevio-navy">Ada kendala di LMS?</h3>
+                <p className="mt-1 text-sm font-semibold leading-relaxed text-slate-500">Kirim detailnya supaya tim Clevio bisa membantu lebih cepat.</p>
+              </div>
+            </div>
+            <IssueReportButton role="CODER" placement="card" />
+          </section>
+        </StaggerItem>
 
         <StaggerItem className="mt-auto pt-8">
           <CoderFooter />

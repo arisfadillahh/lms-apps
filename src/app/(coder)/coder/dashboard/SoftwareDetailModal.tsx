@@ -41,6 +41,7 @@ export default function SoftwareDetailModal({ software, customTrigger }: { softw
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
                             transition={{ duration: 0.2, type: 'spring', damping: 25, stiffness: 300 }}
                             style={modalStyle}
+                            data-coder-modal="true"
                             onClick={(e) => e.stopPropagation()}
                         >
                             {/* Header */}

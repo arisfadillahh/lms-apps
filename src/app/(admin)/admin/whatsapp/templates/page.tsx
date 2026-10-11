@@ -4,20 +4,23 @@ import type { CSSProperties } from 'react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { MessageCircle, Save, RefreshCw } from 'lucide-react';
+import { DEFAULT_CLASS_REMINDER_TEMPLATES, CLASS_REMINDER_TEMPLATE_VARIABLES } from '@/lib/classReminderTemplates';
 
 type Template = {
     id: string;
-    category: 'PARENT_ABSENT' | 'REPORT_SEND' | 'TRIAL_REPORT_SEND' | 'REMINDER';
+    category: string;
     template_content: string;
     variables: string[];
     updated_at: string;
 };
 
 const CATEGORIES = [
-    { key: 'PARENT_ABSENT', label: 'Notifikasi Absensi ke Orang Tua', description: 'Dikirim ketika anak tidak hadir' },
-    { key: 'REPORT_SEND', label: 'Pengiriman Rapor Weekly', description: 'Dikirim saat rapor weekly dikirim ke orang tua' },
-    { key: 'TRIAL_REPORT_SEND', label: 'Pengiriman Trial Report', description: 'Dikirim saat report trial dipublish ke orang tua' },
-    { key: 'REMINDER', label: 'Reminder Pembayaran', description: 'Pengingat jatuh tempo pembayaran' },
+    { key: 'PARENT_ABSENT', group: 'Notifikasi operasional', label: 'Notifikasi Absensi ke Orang Tua', description: 'Dikirim ketika anak tidak hadir' },
+    { key: 'REPORT_SEND', group: 'Notifikasi operasional', label: 'Pengiriman Rapor Weekly', description: 'Dikirim saat rapor weekly dikirim ke orang tua' },
+    { key: 'TRIAL_REPORT_SEND', group: 'Notifikasi operasional', label: 'Pengiriman Trial Report', description: 'Dikirim saat report trial dipublish ke orang tua' },
+    { key: 'REMINDER', group: 'Notifikasi operasional', label: 'Reminder Pembayaran', description: 'Pengingat jatuh tempo pembayaran' },
+    { key: 'CLASS_REMINDER_ONLINE', group: 'Reminder kelas', label: DEFAULT_CLASS_REMINDER_TEMPLATES.CLASS_REMINDER_ONLINE.label, description: DEFAULT_CLASS_REMINDER_TEMPLATES.CLASS_REMINDER_ONLINE.description },
+    { key: 'CLASS_REMINDER_OFFLINE', group: 'Reminder kelas', label: DEFAULT_CLASS_REMINDER_TEMPLATES.CLASS_REMINDER_OFFLINE.label, description: DEFAULT_CLASS_REMINDER_TEMPLATES.CLASS_REMINDER_OFFLINE.description },
 ] as const;
 
 const DEFAULT_TEMPLATES: Record<string, { content: string; variables: string[] }> = {
@@ -36,6 +39,14 @@ const DEFAULT_TEMPLATES: Record<string, { content: string; variables: string[] }
     REMINDER: {
         content: 'Halo Bapak/Ibu, ini adalah pengingat pembayaran untuk {nama_siswa}. Tagihan sebesar {nominal} akan jatuh tempo pada {tanggal_jatuh_tempo}. Mohon segera melakukan pembayaran. Terima kasih.',
         variables: ['nama_siswa', 'nominal', 'tanggal_jatuh_tempo'],
+    },
+    CLASS_REMINDER_ONLINE: {
+        content: DEFAULT_CLASS_REMINDER_TEMPLATES.CLASS_REMINDER_ONLINE.content,
+        variables: [...CLASS_REMINDER_TEMPLATE_VARIABLES],
+    },
+    CLASS_REMINDER_OFFLINE: {
+        content: DEFAULT_CLASS_REMINDER_TEMPLATES.CLASS_REMINDER_OFFLINE.content,
+        variables: [...CLASS_REMINDER_TEMPLATE_VARIABLES],
     },
 };
 
@@ -125,12 +136,14 @@ export default function WhatsAppTemplatesPage() {
             </header>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                {CATEGORIES.map(cat => {
+                {CATEGORIES.map((cat, index) => {
                     const template = templates.find(t => t.category === cat.key);
                     const hasChanges = editedContent[cat.key] !== (template?.template_content || DEFAULT_TEMPLATES[cat.key].content);
 
                     return (
-                        <div key={cat.key} style={cardStyle}>
+                        <div key={cat.key}>
+                            {(index === 0 || CATEGORIES[index - 1].group !== cat.group) && <h2 style={groupTitleStyle}>{cat.group}</h2>}
+                            <div style={cardStyle}>
                             <div style={{ marginBottom: '1rem' }}>
                                 <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#0f172a', marginBottom: '0.25rem' }}>
                                     {cat.label}
@@ -179,6 +192,7 @@ export default function WhatsAppTemplatesPage() {
                                     Terakhir diupdate: {new Date(template.updated_at).toLocaleString()}
                                 </p>
                             )}
+                            </div>
                         </div>
                     );
                 })}
@@ -193,6 +207,7 @@ const cardStyle: CSSProperties = {
     border: '1px solid #e5e7eb',
     padding: '1.5rem',
 };
+const groupTitleStyle: CSSProperties = { fontSize: '1rem', fontWeight: 700, color: '#334155', margin: '0 0 0.75rem' };
 
 const labelStyle: CSSProperties = {
     display: 'block',

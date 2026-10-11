@@ -5,6 +5,8 @@ import { splitEkskulLessonMakeUp } from '@/lib/ekskulMakeUpInstructions';
 import type { LessonTemplateRecord } from '@/lib/dao/lessonTemplatesDao';
 import type { SessionRecord } from '@/lib/dao/sessionsDao';
 import type { BlockRecord } from '@/lib/dao/blocksDao';
+import { resolveLessonPartNumber } from './lessonPartNumber';
+import { resolveCoachExampleUrl } from './coachLessonContent';
 
 export type LessonSlot = {
     lessonTemplate: LessonTemplateRecord;
@@ -154,25 +156,23 @@ export async function computeLessonSchedule(
                 const lessonTemplate = cl.lesson_templates as unknown as LessonTemplateRecord | null;
                 if (!lessonTemplate) continue;
 
+                const coachExampleUrl = resolveCoachExampleUrl(cl.coach_example_url, lessonTemplate.example_url);
+                const resolvedLessonTemplate = coachExampleUrl === lessonTemplate.example_url
+                    ? lessonTemplate
+                    : { ...lessonTemplate, example_url: coachExampleUrl };
+
                 const templateId = cl.lesson_template_id;
                 if (!templateId) continue;
 
                 // Calculate total parts for this lesson
                 const totalParts = lessonGroups.get(templateId)?.length || 1;
 
-                // Parse part number from title if it contains "(Part X)"
-                let partNumber = 1;
-                const partMatch = cl.title?.match(/\(Part (\d+)\)/);
-                if (partMatch) {
-                    partNumber = parseInt(partMatch[1], 10);
-                } else if (totalParts > 1) {
-                    // If no Part in title but multiple parts exist, find position
-                    const group = lessonGroups.get(templateId) || [];
-                    partNumber = group.findIndex((g) => g.id === cl.id) + 1;
-                }
+                const group = lessonGroups.get(templateId) || [];
+                const positionInGroup = group.findIndex((g) => g.id === cl.id);
+                const partNumber = resolveLessonPartNumber(cl.title, totalParts, positionInGroup);
 
                 orderedSlots.push({
-                    lessonTemplate,
+                    lessonTemplate: resolvedLessonTemplate,
                     block,
                     partNumber,
                     totalParts,

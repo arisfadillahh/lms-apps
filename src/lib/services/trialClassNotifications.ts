@@ -9,6 +9,7 @@ export type TrialClassNotificationInput = {
   studentName: string;
   studentGrade: string;
   schoolName: string;
+  domicile?: string | null;
   parentName: string;
   phone: string;
   email: string;
@@ -24,6 +25,7 @@ type DeliveryResult = {
 };
 
 export type TrialCoachAssignmentNotificationInput = {
+  trialId: string;
   coachId: string;
   coachName: string;
   coachPhone?: string | null;
@@ -49,22 +51,42 @@ export type TrialParentReportNotificationInput = {
   planDiscountPercent?: number;
 };
 
+export type TrialConversionNotificationInput = {
+  assessmentId: string;
+  studentName: string;
+  parentName: string;
+  parentPhone: string;
+  recommendedLevel: string;
+  invoiceNumber: string;
+  totalAmount: number;
+};
+
 export function buildTrialClassAdminMessage(input: TrialClassNotificationInput) {
   const isOffline = input.trialMode === 'OFFLINE';
+  const phone = normalizeIndonesianPhone(input.phone);
+  const notes = input.notes?.trim();
+  const detail = (value: string) => value.replace(/[\r\n]+/g, ' ').trim();
 
   return [
     '*Lead Free Trial Baru*',
     '',
-    `*Anak:* ${input.studentName}`,
-    `*Kelas:* ${input.studentGrade}`,
-    `*Sekolah:* ${input.schoolName}`,
-    `*Orang tua:* ${input.parentName}`,
-    `*WA:* ${input.phone}`,
-    `*Email:* ${input.email}`,
+    '*Data peserta*',
+    `*Anak:* ${detail(input.studentName)}`,
+    `*Kelas:* ${detail(input.studentGrade)}`,
+    `*Sekolah:* ${detail(input.schoolName)}`,
+    `*Domisili:* ${input.domicile?.trim() ? detail(input.domicile) : 'Belum dicantumkan'}`,
+    '',
+    '*Kontak orang tua*',
+    `*Orang tua:* ${detail(input.parentName)}`,
+    `*WA:* +${phone}`,
+    `*Email:* ${detail(input.email)}`,
+    `*Hubungi WA:* https://wa.me/${phone}`,
+    '',
+    '*Detail trial*',
     `*Jenis trial:* ${isOffline ? 'Offline' : 'Online'}`,
-    isOffline ? null : `*Preferensi jadwal:* ${input.notes?.trim() || 'Belum dicantumkan'}`,
-    isOffline && input.notes?.trim() ? `*Catatan:* ${input.notes.trim()}` : null,
-    `*Masuk:* ${formatSubmittedAt(input.createdAt)}`,
+    isOffline ? null : `*Preferensi jadwal:* ${notes ? detail(notes) : 'Belum dicantumkan'}`,
+    isOffline && notes ? `*Catatan:* ${detail(notes)}` : null,
+    `*Masuk:* ${formatSubmittedAt(input.createdAt)} WIB`,
     '',
     `*Dashboard:* ${FREE_TRIAL_ADMIN_URL}`,
   ].filter((line): line is string => line !== null).join('\n');
@@ -162,6 +184,15 @@ export async function createTrialCoachAssignmentWebsiteNotification(
       'Assignment Trial Class Baru',
       buildTrialCoachAssignmentWebsiteMessage(input),
       'SYSTEM',
+      {
+        actionUrl: `/coach/trials/${input.trialId}`,
+        category: 'TRIAL',
+        priority: 'HIGH',
+        dedupeKey: `trial-assignment-${input.trialId}-${input.scheduledAt}`,
+        push: true,
+        pushTag: `trial-assignment-${input.trialId}`,
+        pushBody: `Trial ${input.studentName} dijadwalkan ${formatScheduledAt(input.scheduledAt)}. Buka detail trial untuk persiapan.`,
+      },
     );
     return { success: true };
   } catch (error) {
@@ -247,6 +278,35 @@ export async function sendTrialParentReportWhatsAppNotification(
     'trial report parent',
     input.parentPhone,
     message,
+  );
+}
+
+export function buildTrialConversionAdminMessage(input: TrialConversionNotificationInput) {
+  return [
+    '*Trial berhasil daftar setelah pembayaran*',
+    '',
+    `*Anak:* ${input.studentName}`,
+    `*Orang tua:* ${input.parentName}`,
+    `*WA orang tua:* ${input.parentPhone}`,
+    `*Level rekomendasi:* ${input.recommendedLevel}`,
+    `*Invoice:* ${input.invoiceNumber}`,
+    `*Total dibayar:* ${formatTrialCurrency(input.totalAmount)}`,
+    '',
+    '*Catatan:* Akun LMS belum dibuat otomatis.',
+    '*Tindak lanjut Admin:* Buat akun LMS secara manual, lalu assign coder ke kelas Weekly yang sesuai dari dashboard Admin.',
+    '',
+    '*Sumber:* Trial Class',
+  ].filter((line): line is string => line !== null).join('\n');
+}
+
+export async function sendTrialConversionAdminWhatsAppNotification(
+  input: TrialConversionNotificationInput,
+): Promise<DeliveryResult> {
+  const adminGroupJid = process.env.TRIAL_CLASS_ADMIN_WA_GROUP_JID || DEFAULT_ADMIN_GROUP_JID;
+  return deliverMessage(
+    'trial conversion admin group',
+    adminGroupJid,
+    buildTrialConversionAdminMessage(input),
   );
 }
 

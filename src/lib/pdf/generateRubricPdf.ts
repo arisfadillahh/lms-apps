@@ -70,7 +70,8 @@ async function renderPdfBuffer(html: string): Promise<Buffer> {
   try {
     const page = await browser.newPage();
     const baseUrl = process.env.PDF_BASE_URL ?? 'http://localhost';
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    await page.setContent(html, { waitUntil: 'load' });
+    await page.waitForNetworkIdle({ idleTime: 500, timeout: 10_000 });
     await page.emulateMediaType('screen');
     await page.evaluate((origin) => {
       const base = document.createElement('base');

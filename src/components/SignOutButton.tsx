@@ -4,6 +4,8 @@ import { signOut } from 'next-auth/react';
 import { type CSSProperties, type MouseEvent, useState, type ReactNode, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
+import { detachPushSubscriptionFromCurrentAccount } from '@/lib/clientPushSubscription';
+
 type SignOutButtonProps = {
   label?: string;
   style?: CSSProperties;
@@ -28,6 +30,11 @@ export default function SignOutButton({ label = 'Sign out', style, icon }: SignO
 
   const handleConfirm = async () => {
     setLoading(true);
+    try {
+      await detachPushSubscriptionFromCurrentAccount();
+    } catch (error) {
+      console.warn('[Push] Failed to detach subscription during sign out', error);
+    }
     // Use window.location.origin to ensure redirect goes to the current domain/IP
     // This fixes issues where VPS redirects to localhost if NEXTAUTH_URL is misconfigured
     const callbackUrl = `${window.location.origin}/login`;

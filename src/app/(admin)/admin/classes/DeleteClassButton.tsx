@@ -12,6 +12,7 @@ type DeleteClassButtonProps = {
 export default function DeleteClassButton({ classId, className }: DeleteClassButtonProps) {
   const router = useRouter();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isBlockedByPayment, setIsBlockedByPayment] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const handleDelete = (event: MouseEvent<HTMLButtonElement>) => {
@@ -23,7 +24,7 @@ export default function DeleteClassButton({ classId, className }: DeleteClassBut
     }
 
     const confirmationName = window.prompt(
-      `Hapus kelas "${className}"?\n\nSemua sesi, block, enrollment, presensi, dan penilaian kelas akan terhapus permanen. Riwayat pembayaran tetap disimpan.\n\nKetik nama kelas untuk melanjutkan:`,
+      `Arsipkan kelas "${className}"?\n\nKelas tidak tampil lagi di daftar. Sesi, materi, progres, presensi, rapor, dan riwayat pembayaran tetap tersimpan.\n\nKetik nama kelas untuk melanjutkan:`,
     );
     if (confirmationName === null) {
       return;
@@ -34,6 +35,7 @@ export default function DeleteClassButton({ classId, className }: DeleteClassBut
     }
 
     setErrorMessage(null);
+    setIsBlockedByPayment(false);
     startTransition(async () => {
       try {
         const response = await fetch(`/api/admin/classes/${classId}`, {
@@ -45,7 +47,10 @@ export default function DeleteClassButton({ classId, className }: DeleteClassBut
         });
         if (!response.ok) {
           const payload = await response.json().catch(() => ({}));
-          setErrorMessage(payload.error ?? 'Gagal menghapus kelas');
+          if (response.status === 409) {
+            setIsBlockedByPayment(true);
+          }
+          setErrorMessage(payload.error ?? 'Gagal mengarsipkan kelas');
           return;
         }
         router.refresh();
@@ -73,9 +78,18 @@ export default function DeleteClassButton({ classId, className }: DeleteClassBut
           opacity: isPending ? 0.6 : 1,
         }}
       >
-        {isPending ? 'Menghapus…' : 'Delete'}
+        {isPending ? 'Memproses…' : 'Arsipkan kelas'}
       </button>
-      {errorMessage ? <span style={{ color: '#b91c1c', fontSize: 12 }}>{errorMessage}</span> : null}
+      {errorMessage ? (
+        <div style={{ color: '#b91c1c', fontSize: 12, lineHeight: 1.4, maxWidth: 320 }}>
+          <div>{errorMessage}</div>
+          {isBlockedByPayment ? (
+            <a href="/admin/payments/coders" style={{ display: 'inline-block', marginTop: 4, color: '#1d4ed8', textDecoration: 'underline' }}>
+              Buka Pembayaran Coder untuk menyelesaikan periode ini
+            </a>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -71,6 +71,15 @@ describe('trial class management contract', () => {
     expect(route).toContain('setTrialClassTerminalStatus');
   });
 
+  it('restricts trial deletion to admins and protects completed assessments', () => {
+    const route = readSource('src/app/api/admin/free-trials/[id]/route.ts');
+
+    expect(route).toContain('export async function DELETE');
+    expect(route).toContain("await assertRole(session, 'ADMIN')");
+    expect(route).toContain('deleteTrialForAdmin');
+    expect(route).toContain('TrialDeletionError');
+  });
+
   it('removes the email action and exposes assign, cancel, failed, and Meet controls', () => {
     const table = readSource('src/app/(admin)/admin/free-trials/TrialClassTable.tsx');
 
@@ -81,9 +90,25 @@ describe('trial class management contract', () => {
     expect(table).toContain('Buka Meet');
     expect(table).toContain('Alasan wajib dicatat');
     expect(table).toContain("item.status === 'SCHEDULED'");
+    expect(table).toContain('Hapus trial');
+    expect(table).toContain("method: 'DELETE'");
+    expect(table).toContain('window.confirm');
   });
 
-  it('shows only the signed-in coach upcoming scheduled trials on the coach dashboard', () => {
+  it('shows trial outcome analytics and only counts paid conversions as registered', () => {
+    const freeTrialsPage = readSource('src/app/(admin)/admin/free-trials/page.tsx');
+    const assessmentsPage = readSource('src/app/(admin)/admin/trial-assessments/page.tsx');
+    const lifecycle = readSource('src/lib/services/trialLifecycle.ts');
+
+    expect(freeTrialsPage).toContain('deriveTrialOutcome');
+    expect(freeTrialsPage).toContain('COMPLETED_REGISTERED');
+    expect(tableSource()).toContain('TRIAL_OUTCOME_LABELS');
+    expect(lifecycle).toContain("if (invoiceStatus === 'PAID')");
+    expect(assessmentsPage).toContain("item.invoice?.status === 'PAID'");
+    expect(assessmentsPage).toContain('Sudah bayar / daftar');
+  });
+
+  it('shows the signed-in coach scheduled trials until assessment completion', () => {
     const dao = readSource('src/lib/dao/trialClassDao.ts');
     const dashboard = readSource('src/app/(coach)/coach/dashboard/page.tsx');
     const schedule = readSource('src/app/(coach)/coach/dashboard/TrialClassSchedule.tsx');
@@ -91,6 +116,8 @@ describe('trial class management contract', () => {
     expect(dao).toContain(".eq('coach_id', coachId)");
     expect(dao).toContain(".eq('status', 'SCHEDULED')");
     expect(dao).toContain(".not('scheduled_at', 'is', null)");
+    expect(dao).not.toContain(".gte('scheduled_at', now.toISOString())");
+    expect(dao).toContain('.limit(100)');
     expect(dao).toContain(".select('*, trial_assessments(status)')");
     expect(dao).toContain('Array.isArray(assessment)');
     expect(dao).toContain("assessmentStatus !== 'DRAFT'");
@@ -148,12 +175,21 @@ describe('trial class management contract', () => {
     expect(approveRoute).not.toContain('recommendedClassId');
     expect(approveRoute).not.toContain('estimatedStartDate');
     expect(approveRoute).toContain('recommended_class_id: null');
-    expect(parentReport).toContain('Lanjutkan ke level');
+    expect(parentReport).toContain('Level rekomendasi: ${recommendedLevel}');
     expect(parentReport).not.toContain('recommendedClass');
     expect(conversion).toContain('!assessment.recommended_level_id');
     expect(conversion).not.toContain('!assessment.recommended_class_id');
     expect(conversion).not.toContain(".from('enrollments')");
+    expect(conversion).toContain('coder_id: null');
+    expect(conversion).not.toContain('getOrCreateTrialCoder');
+    expect(conversion).not.toContain(".from('coder_payment_periods' as any)");
+    expect(conversion).toContain('Trial conversion hanya boleh diproses setelah invoice lunas.');
     expect(conversion).toContain("status: 'PAID'");
+    expect(conversion).toContain('requiresAdminAccountCreation: true');
     expect(conversion).toContain('awaitingManualClassAssignment: true');
   });
 });
+
+function tableSource() {
+  return readSource('src/app/(admin)/admin/free-trials/TrialClassTable.tsx');
+}

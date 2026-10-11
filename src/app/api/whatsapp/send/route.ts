@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendWhatsAppDocument, sendWhatsAppMessage } from '@/lib/services/whatsappClient';
+import { validateBearerToken } from '@/lib/apiTokenAuth';
 
 export async function POST(request: NextRequest) {
     try {
         // Simple authentication using Bearer token or API Key
-        const authHeader = request.headers.get('authorization');
         const apiKey = process.env.API_Whatsapp?.trim();
         const coreApiKey = process.env.LMS_CORE_API_TOKEN?.trim();
-
-        if (!apiKey && !coreApiKey) {
+        const tokenResult = validateBearerToken(request, [apiKey, coreApiKey]);
+        if (tokenResult === 'UNCONFIGURED') {
             console.error('[WA API] Missing API_Whatsapp env var');
             return NextResponse.json(
                 { error: 'WhatsApp API key is not configured' },
@@ -16,10 +16,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Remove 'Bearer ' prefix if it exists
-        const token = authHeader?.replace(/^Bearer\s+/i, '').trim();
-
-        if (token !== apiKey && token !== coreApiKey) {
+        if (tokenResult === 'INVALID') {
             return NextResponse.json(
                 { error: 'Unauthorized. Please provide a valid API key in the Authorization header' },
                 { status: 401 }

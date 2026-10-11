@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { evalSessionId, totalQuestions } = await req.json();
+  const { evalSessionId } = await req.json();
   if (!evalSessionId) {
     return NextResponse.json({ error: 'Missing evalSessionId' }, { status: 400 });
   }
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
 
   const { data: evalSession, error: fetchError } = await (supabase as any)
     .from('block_evaluation_sessions')
-    .select('current_question_index, status')
+    .select('current_question_index,status,class_id,created_by,template_id')
     .eq('id', evalSessionId)
     .single();
 
@@ -25,8 +25,27 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Session not found' }, { status: 404 });
   }
 
+  const { data: classRecord } = await supabase.from('classes')
+    .select('coach_id')
+    .eq('id', evalSession.class_id)
+    .maybeSingle();
+  if (evalSession.created_by !== session.user.id && classRecord?.coach_id !== session.user.id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  let totalQuestions = 5;
+  if (evalSession.template_id) {
+    const { data: template } = await supabase.from('block_evaluation_templates')
+      .select('questions')
+      .eq('id', evalSession.template_id)
+      .maybeSingle();
+    if (Array.isArray(template?.questions) && template.questions.length > 0) {
+      totalQuestions = Math.min(template.questions.length, 100);
+    }
+  }
+
   const nextIndex = evalSession.current_question_index + 1;
-  const isCompleted = totalQuestions && nextIndex >= totalQuestions;
+  const isCompleted = nextIndex >= totalQuestions;
 
   const { error: updateError } = await (supabase as any)
     .from('block_evaluation_sessions')

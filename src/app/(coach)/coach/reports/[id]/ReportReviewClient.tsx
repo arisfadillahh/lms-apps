@@ -2,8 +2,8 @@
 
 import { useState, useTransition, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Sparkles, ArchiveRestore, Loader2, Send, ChevronDown, ClipboardCheck } from 'lucide-react';
+import { Sparkles, ArchiveRestore, Loader2, Send, ChevronDown } from 'lucide-react';
+import { REPORT_DESCRIPTION_MAX_LENGTH, shortenReportDescription } from '@/lib/reportDescription';
 
 export type ReportDescriptionItem = {
   criteriaId: string;
@@ -97,11 +97,13 @@ function AutoTextarea({
   onChange,
   disabled,
   placeholder,
+  maxLength,
 }: {
   value: string;
   onChange: (v: string) => void;
   disabled?: boolean;
   placeholder?: string;
+  maxLength: number;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
 
@@ -121,6 +123,7 @@ function AutoTextarea({
       rows={3}
       disabled={disabled}
       placeholder={placeholder}
+      maxLength={maxLength}
       onChange={(e) => { onChange(e.target.value); resize(); }}
       onInput={resize}
       className="w-full p-5 bg-[#fafafa] border-2 border-slate-100 rounded-xl focus:outline-none focus:border-indigo-400 transition-all text-slate-700 leading-relaxed resize-none text-sm disabled:opacity-60 overflow-hidden"
@@ -140,7 +143,6 @@ type Props = {
   averageScore: number | null;
   status: string;
   evaluationAnswers: { question: string; answer: string }[];
-  assessmentHref?: string | null;
 };
 
 export default function ReportReviewClient({
@@ -154,10 +156,12 @@ export default function ReportReviewClient({
   averageScore,
   status,
   evaluationAnswers,
-  assessmentHref,
 }: Props) {
   const router = useRouter();
-  const [descriptions, setDescriptions] = useState(initialDescriptions);
+  const [descriptions, setDescriptions] = useState(() => initialDescriptions.map(item => ({
+    ...item,
+    description: shortenReportDescription(item.description),
+  })));
   const [isPending, startTransition] = useTransition();
   const [errorMsg, setErrorMsg] = useState('');
   const [generatingId, setGeneratingId] = useState<string | null>(null);
@@ -191,7 +195,9 @@ export default function ReportReviewClient({
         throw new Error(data.error || 'Gagal me-regenerate deskripsi.');
       }
       const { description } = await res.json();
-      setDescriptions(prev => prev.map(p => p.criteriaId === criteriaId ? { ...p, description } : p));
+      setDescriptions(prev => prev.map(p => p.criteriaId === criteriaId
+        ? { ...p, description: shortenReportDescription(description) }
+        : p));
     } catch (err: unknown) {
       setErrorMsg(getErrorMessage(err));
     } finally {
@@ -246,11 +252,11 @@ export default function ReportReviewClient({
   };
 
   return (
-    <div className="flex h-screen overflow-hidden font-sans antialiased text-slate-900">
+    <div className="coach-report-review-shell -mx-4 flex min-h-screen flex-col overflow-x-hidden font-sans antialiased text-slate-900 md:-mx-8 lg:h-screen lg:flex-row lg:overflow-hidden">
 
       {/* ── LEFT PANEL ── */}
-      <aside className="w-full lg:w-[38%] bg-white border-r border-slate-200 flex flex-col sticky top-0 h-auto lg:h-full overflow-y-auto">
-        <div className="flex flex-col items-center justify-between h-full p-8 space-y-7">
+      <aside className="relative flex h-auto w-full flex-col overflow-y-visible border-b border-slate-200 bg-white lg:sticky lg:top-0 lg:h-full lg:w-[38%] lg:overflow-y-auto lg:border-b-0 lg:border-r">
+        <div className="flex h-full flex-col items-center justify-between space-y-7 p-4 sm:p-6 lg:p-8">
 
           {/* Identity */}
           <div className="text-center w-full">
@@ -339,7 +345,7 @@ export default function ReportReviewClient({
       </aside>
 
       {/* ── RIGHT PANEL ── */}
-      <section className="w-full lg:w-[62%] bg-slate-50 flex flex-col overflow-hidden min-h-0">
+      <section className="flex min-h-0 w-full flex-col overflow-visible bg-slate-50 lg:w-[62%] lg:overflow-hidden">
 
         {/* Sticky header with Publish button */}
         <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shrink-0">
@@ -352,19 +358,7 @@ export default function ReportReviewClient({
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            {assessmentHref && (
-              <Link
-                href={assessmentHref}
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-blue-700"
-              >
-                <ClipboardCheck size={15} />
-                <span className="hidden sm:inline">Buka Penilaian</span>
-                <span className="sm:hidden">Nilai</span>
-              </Link>
-            )}
-            <span className="text-xs font-medium text-slate-400 hidden sm:block">Autosave: On</span>
-          </div>
+          <span className="text-xs font-medium text-slate-400 hidden sm:block">Autosave: On</span>
         </header>
 
         {/* Error banner */}
@@ -464,10 +458,11 @@ export default function ReportReviewClient({
                           }
                           disabled={isPending || isDeleting || isGenerating}
                           placeholder="Tulis narasi performa di sini..."
+                          maxLength={REPORT_DESCRIPTION_MAX_LENGTH}
                         />
 
                         <div className="absolute bottom-3 right-5 text-[10px] font-bold text-slate-300 uppercase pointer-events-none">
-                          {desc.description.length} kar
+                          {desc.description.length}/{REPORT_DESCRIPTION_MAX_LENGTH} karakter
                         </div>
                       </div>
                     </div>

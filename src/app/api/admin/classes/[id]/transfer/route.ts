@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
+
 import { getSessionOrThrow } from '@/lib/auth';
-import { classesDao, usersDao } from '@/lib/dao';
+import { classesDao, notificationsDao, usersDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
-import { isValidTransferTarget } from '@/lib/services/classTransferPolicy';
 import { initializeWeeklyEnrollmentJourney } from '@/lib/services/weeklyEnrollmentSetup';
+import { isValidTransferTarget } from '@/lib/services/classTransferPolicy';
 import { transferCoderSchema } from '@/lib/validation/admin';
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -14,7 +15,9 @@ export async function POST(request: Request, context: RouteContext) {
     await assertRole(session, 'ADMIN');
     const { id: fromClassId } = await context.params;
     const parsed = transferCoderSchema.safeParse(await request.json());
-    if (!parsed.success) return NextResponse.json({ error: 'Data perpindahan belum lengkap', details: parsed.error.flatten() }, { status: 400 });
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Data perpindahan belum lengkap', details: parsed.error.flatten() }, { status: 400 });
+    }
 
     const [coder, fromClass, toClass] = await Promise.all([
       usersDao.getUserById(parsed.data.coderId),
@@ -28,17 +31,44 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     const enrollment = await classesDao.transferCoderEnrollment({
-      coderId: coder.id, fromClassId, toClassId: toClass.id,
-      effectiveAt: parsed.data.effectiveAt, reason: parsed.data.reason, adminId: session.user.id,
+      coderId: coder.id,
+      fromClassId,
+      toClassId: toClass.id,
+      effectiveAt: parsed.data.effectiveAt,
+      reason: parsed.data.reason,
+      adminId: session.user.id,
     });
-    let warning: string | null = null;
+
+    let setupWarning: string | null = null;
     try {
       await initializeWeeklyEnrollmentJourney({ klass: toClass, enrollment, mode: 'TRANSFER' });
     } catch (error) {
-      console.error('[EnrollmentTransfer] Journey setup failed after transfer', error);
-      warning = 'Perpindahan tersimpan, tetapi akses materi perlu diperiksa.';
+      console.error('[EnrollmentTransfer] Target journey setup failed after transfer', error);
+      setupWarning = 'Perpindahan tersimpan, tetapi sinkronisasi journey perlu diperiksa.';
     }
-    return NextResponse.json({ success: true, enrollment, warning });
+
+    const notificationTargets = [
+      { id: fromClass.coach_id, message: `${coder.full_name} dipindahkan dari ${fromClass.name} ke ${toClass.name}.` },
+      { id: toClass.coach_id, message: `${coder.full_name} kini terdaftar di ${toClass.name} setelah pindah dari ${fromClass.name}.` },
+      { id: coder.id, message: `Kelas aktif Anda berubah dari ${fromClass.name} ke ${toClass.name}.` },
+    ].filter((target, index, all) => target.id && all.findIndex((entry) => entry.id === target.id) === index);
+
+    await Promise.allSettled(notificationTargets.map((target) => notificationsDao.createNotification(
+      target.id,
+      'Perpindahan kelas',
+      target.message,
+      'CLASS_TRANSFER',
+      {
+        actionUrl: target.id === coder.id ? '/coder/dashboard' : '/coach/dashboard',
+        category: 'SCHEDULE',
+        priority: 'HIGH',
+        dedupeKey: `class-transfer-${fromClassId}-${toClass.id}-${coder.id}`,
+        push: true,
+        pushTag: `class-transfer-${coder.id}`,
+      },
+    )));
+
+    return NextResponse.json({ success: true, enrollment, warning: setupWarning });
   } catch (error) {
     console.error('[EnrollmentTransfer] Failed', error);
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Gagal memindahkan coder' }, { status: 400 });

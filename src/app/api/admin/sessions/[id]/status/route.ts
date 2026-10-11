@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { getSessionOrThrow } from '@/lib/auth';
 import { classLessonsDao, sessionsDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
+import { notifyClassMembersAboutSessionChange } from '@/lib/services/classMemberNotifications';
 
 type RouteParams = { id: string };
 type RouteContext = { params: RouteParams | Promise<RouteParams> };
@@ -55,6 +56,11 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     if (parsed.data.status === 'CANCELLED') {
       await classLessonsDao.unassignLessonsFromSessions([sessionId]);
+      try {
+        await notifyClassMembersAboutSessionChange(sessionId, 'CANCELLED');
+      } catch (notificationError) {
+        console.error('[SessionStatus] Failed to notify class members', notificationError);
+      }
     }
 
     const { autoAssignLessonsForClass, syncBlockStatusesForClass } = await import('@/lib/services/lessonAutoAssign');

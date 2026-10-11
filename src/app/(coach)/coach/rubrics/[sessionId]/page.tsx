@@ -1,8 +1,9 @@
 import { redirect } from 'next/navigation';
 
 import { getSessionOrThrow } from '@/lib/auth';
-import { sessionsDao, classesDao, reportsDao } from '@/lib/dao';
-import { filterActiveEnrollmentsForSession } from '@/lib/services/enrollmentEligibility';
+import { attendanceDao, sessionsDao, classesDao, reportsDao } from '@/lib/dao';
+import { filterEvaluationEnrollmentsForSession } from '@/lib/services/enrollmentEligibility';
+import { buildEvaluationScoreMap } from '@/lib/services/evaluationScores';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 
 import EvaluationFormClient from './EvaluationFormClient';
@@ -27,9 +28,15 @@ export default async function CoachSessionEvaluationPage({ params }: { params: P
   const slot = lessonMap.get(sessionId);
   if (!slot) redirect('/coach/rubrics');
 
-  // We only evaluate students who were already enrolled when this session happened.
+  const attendanceRecords = await attendanceDao.listAttendanceBySession(session.id);
+
+  // Explicit attendance backfill keeps an active late-joining Coder in the historical roster.
   const enrollments = await classesDao.listEnrollmentsByClass(klass.id);
-  const activeStudentIds = filterActiveEnrollmentsForSession(enrollments, session.date_time).map(e => e.coder_id);
+  const activeStudentIds = filterEvaluationEnrollmentsForSession(
+    enrollments,
+    session.date_time,
+    attendanceRecords,
+  ).map(e => e.coder_id);
 
   if (activeStudentIds.length === 0) {
     redirect('/coach/rubrics');
@@ -41,18 +48,11 @@ export default async function CoachSessionEvaluationPage({ params }: { params: P
     .select('id, full_name')
     .in('id', activeStudentIds);
 
-  const criteriaList = await reportsDao.getEvaluationCriteria();
-
-  const { data: savedEvaluations } = await (await import('@/lib/supabaseServer')).getSupabaseAdmin()
-    .from('lesson_evaluations')
-    .select('coder_id, criteria_id, score')
-    .eq('session_id', sessionId);
-
-  const initialScores = (savedEvaluations ?? []).reduce<Record<string, Record<string, string>>>((result, evaluation) => {
-    if (!result[evaluation.coder_id]) result[evaluation.coder_id] = {};
-    result[evaluation.coder_id][evaluation.criteria_id] = String(evaluation.score);
-    return result;
-  }, {});
+  const [criteriaList, savedEvaluations] = await Promise.all([
+    reportsDao.getEvaluationCriteria(),
+    reportsDao.getLessonEvaluationsBySession(sessionId),
+  ]);
+  const initialScores = buildEvaluationScoreMap(students || [], criteriaList, savedEvaluations);
 
   return (
     <>

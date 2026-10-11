@@ -4,8 +4,9 @@ import { usersDao } from '@/lib/dao';
 import CoachSidebar from './CoachSidebar';
 import PageTransition from '@/components/PageTransition';
 import CoachDashboardHeader from '@/components/coach/CoachDashboardHeader';
+import CoachMobileNav from './CoachMobileNav';
 import { redirect } from 'next/navigation';
-import IssueReportButton from '@/components/issue-reports/IssueReportButton';
+import PushSubscriptionAccountSync from '@/components/pwa/PushSubscriptionAccountSync';
 
 export default async function CoachLayout({ children }: { children: ReactNode }) {
   const session = await getServerAuthSession();
@@ -32,6 +33,7 @@ export default async function CoachLayout({ children }: { children: ReactNode })
 
   return (
       <div className="coach-app-shell min-h-screen flex antialiased bg-[#f1f5f9] text-[#0f172a] font-sans">
+        <PushSubscriptionAccountSync userId={user.id} />
         {/* Google Fonts: Material Symbols + Plus Jakarta Sans */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
@@ -65,18 +67,18 @@ export default async function CoachLayout({ children }: { children: ReactNode })
       </div>
 
       {/* Main content */}
-      <main className="coach-main flex-1 flex flex-col min-h-screen md:ml-[260px] flex-grow px-8 pb-8">
+      <main className="coach-main min-w-0 flex-1 flex flex-col min-h-screen md:ml-[260px]">
         <CoachDashboardHeader user={{
             id: user.id,
             fullName: user.full_name,
             role: user.role,
             avatarPath: user.avatar_path
         }} />
-        <div className="flex-1">
+        <div className="flex-1 px-4 pb-24 md:px-8 md:pb-8">
           <PageTransition>{children}</PageTransition>
         </div>
       </main>
-      <IssueReportButton role="COACH" />
+      <CoachMobileNav />
     </div>
   );
 }

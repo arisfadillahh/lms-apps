@@ -39,6 +39,17 @@ describe('class-scoped lesson extension contract', () => {
     expect(migration).toContain('v_assignment_index := v_assignment_index + 1');
   });
 
+  it('uses the first next-lesson session as the extension boundary', () => {
+    const migration = readSource('supabase/migrations/20260822090000_lesson_extension_boundary.sql');
+
+    expect(migration).toContain('v_next_lesson_session_id');
+    expect(migration).toContain('from public.attendance');
+    expect(migration).toContain("v_next_lesson_session_status = 'COMPLETED'");
+    expect(migration).toContain('v_next_lesson_session_at <= now()');
+    expect(migration).toContain('pertemuan pertama lesson berikutnya');
+    expect(migration).not.toContain('completed_session.status = \'COMPLETED\'');
+  });
+
   it('allows only the assigned coach on the current final lesson part', () => {
     const route = readSource('src/app/api/coach/lessons/extend/route.ts');
 

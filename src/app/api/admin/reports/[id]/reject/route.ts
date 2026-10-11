@@ -82,7 +82,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         <p>Silakan perbaiki dan submit ulang rapor tersebut melalui portal Coach. Terima kasih!</p>
       `.trim();
 
-      await notificationsDao.createNotification(coachId, title, message, 'REVISION_REQUIRED');
+      await notificationsDao.createNotification(coachId, title, message, 'REVISION_REQUIRED', {
+        actionUrl: `/coach/reports/${reportId}`,
+        category: 'REPORT',
+        priority: 'HIGH',
+        dedupeKey: `report-revision-${reportId}-${Date.now()}`,
+        push: true,
+        pushTag: `report-revision-${reportId}`,
+        pushBody: `Rapor ${coderName} di ${className} perlu direvisi. Buka catatan Admin di LMS.`,
+      });
     }
 
     return NextResponse.json({ success: true, message: 'Rapor telah dikembalikan ke Coach untuk direvisi.' });
@@ -91,5 +99,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: error.message || 'Internal error' }, { status: 500 });
   }
 }
-
 

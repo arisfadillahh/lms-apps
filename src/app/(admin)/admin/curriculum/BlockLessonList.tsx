@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { Archive, CheckSquare, List, Pencil, RotateCcw, Square, Table } from 'lucide-react';
 // import * as Checkbox from '@radix-ui/react-checkbox'; // Not installed
@@ -37,6 +37,13 @@ export default function BlockLessonList({ blockId, lessons }: BlockLessonListPro
     .filter((lesson) => lesson.is_archived)
     .sort((a, b) => (b.archived_at ?? '').localeCompare(a.archived_at ?? ''));
   const sortedLessons = [...activeLessons].sort((a, b) => a.order_index - b.order_index);
+
+  useEffect(() => {
+    const targetLessonId = new URLSearchParams(window.location.search).get('editLesson');
+    if (targetLessonId && activeLessons.some((lesson) => lesson.id === targetLessonId)) {
+      setEditingLessonId(targetLessonId);
+    }
+  }, [lessons]);
 
   const toggleSelectAll = () => {
     if (selectedLessonIds.size === sortedLessons.length) {
@@ -124,7 +131,7 @@ export default function BlockLessonList({ blockId, lessons }: BlockLessonListPro
       ) : (
         <>
           {/* Original Table View */}
-          <div style={tableContainerStyle}>
+          <div className="weekly-lesson-desktop" style={tableContainerStyle}>
             <table style={tableStyle}>
               <thead>
                 <tr>
@@ -163,7 +170,7 @@ export default function BlockLessonList({ blockId, lessons }: BlockLessonListPro
                   sortedLessons.map((lesson, lessonIndex) => {
                     const isSelected = selectedLessonIds.has(lesson.id);
                     return (
-                      <tr key={lesson.id} style={trStyle}>
+                      <tr key={lesson.id} id={`lesson-${lesson.id}`} style={trStyle}>
                         <td style={tdStyle}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <button
@@ -241,6 +248,70 @@ export default function BlockLessonList({ blockId, lessons }: BlockLessonListPro
                 )}
               </tbody>
             </table>
+          </div>
+
+          <div className="weekly-lesson-mobile-list">
+            {sortedLessons.length === 0 ? (
+              <div className="weekly-lesson-mobile-empty">Belum ada lesson.</div>
+            ) : (
+              sortedLessons.map((lesson, lessonIndex) => {
+                const isSelected = selectedLessonIds.has(lesson.id);
+
+                return (
+                  <article
+                    key={lesson.id}
+                    id={`lesson-mobile-${lesson.id}`}
+                    className={`weekly-lesson-mobile-card${isSelected ? ' is-selected' : ''}`}
+                  >
+                    <div className="weekly-lesson-mobile-head">
+                      <button
+                        type="button"
+                        onClick={() => toggleSelect(lesson.id)}
+                        className="weekly-lesson-mobile-select"
+                        aria-label={`${isSelected ? 'Batalkan pilihan' : 'Pilih'} ${lesson.title}`}
+                      >
+                        {isSelected ? <CheckSquare size={21} /> : <Square size={21} />}
+                      </button>
+                      <span className="weekly-lesson-mobile-number">Lesson {lessonIndex + 1}</span>
+                      <span className="weekly-lesson-mobile-session">
+                        {lesson.estimated_meeting_count ? `${lesson.estimated_meeting_count} sesi` : 'Belum diatur'}
+                      </span>
+                    </div>
+
+                    <div className="weekly-lesson-mobile-content">
+                      <h4>{lesson.title}</h4>
+                      {lesson.summary ? <p>{lesson.summary}</p> : <p className="is-empty">Belum ada ringkasan.</p>}
+                    </div>
+
+                    <div className="weekly-lesson-mobile-links">
+                      {lesson.slide_url ? (
+                        <a href={lesson.slide_url} target="_blank" rel="noreferrer">Buka slide</a>
+                      ) : (
+                        <span>Slide belum ada</span>
+                      )}
+                      {lesson.example_url ? (
+                        <a href={lesson.example_url} target="_blank" rel="noreferrer">Buka contoh project</a>
+                      ) : (
+                        <span>Contoh project belum ada</span>
+                      )}
+                    </div>
+
+                    <div className="weekly-lesson-mobile-actions">
+                      <button
+                        type="button"
+                        onClick={() => setEditingLessonId(lesson.id)}
+                        className="weekly-lesson-mobile-edit"
+                        aria-label={`Edit lesson ${lesson.title}`}
+                      >
+                        <Pencil size={17} />
+                        <span>Edit</span>
+                      </button>
+                      <DeleteLessonButton lessonId={lesson.id} lessonTitle={lesson.title} />
+                    </div>
+                  </article>
+                );
+              })
+            )}
           </div>
 
           {showArchived && archivedLessons.length > 0 && (

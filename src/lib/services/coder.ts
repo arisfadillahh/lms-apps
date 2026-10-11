@@ -3,6 +3,8 @@ import { getSoftwareByBlockId } from '@/lib/dao/blockSoftwareDao';
 import { splitEkskulLessonMakeUp } from '@/lib/ekskulMakeUpInstructions';
 import { computeLessonSchedule } from '@/lib/services/lessonScheduler';
 import { nextPersonalBlock } from '@/lib/services/personalBlockQueue';
+import { isEkskulLessonAccessible } from '@/lib/services/coderLessonAccess';
+export { isEkskulLessonAccessible } from '@/lib/services/coderLessonAccess';
 import { buildDisplayedJourneyBlocks, mergeJourneyStatus, type PersonalJourneyStatus } from '@/lib/services/coderJourneyPolicy';
 
 export type CoderClassProgress = {
@@ -49,6 +51,10 @@ export type CoderClassProgress = {
     days: string[];
     timeInfo: string | null;
     zoomLink?: string | null;
+    deliveryMode: 'ONLINE' | 'OFFLINE';
+    locationName?: string | null;
+    locationAddress?: string | null;
+    locationMapsUrl?: string | null;
   } | null;
   completedBlocks: number;
   totalBlocks: number | null;
@@ -482,7 +488,11 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
           schedule: {
             days: scheduleDays,
             timeInfo: timeInfo,
-            zoomLink: klass.zoom_link || null
+            zoomLink: klass.zoom_link || null,
+            deliveryMode: klass.delivery_mode === 'OFFLINE' ? 'OFFLINE' : 'ONLINE',
+            locationName: klass.location_name,
+            locationAddress: klass.location_address,
+            locationMapsUrl: klass.location_maps_url,
           },
           completedBlocks,
           totalBlocks,
@@ -800,7 +810,11 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
         schedule: {
           days: scheduleDays,
           timeInfo: timeInfo,
-          zoomLink: klass.zoom_link || null
+          zoomLink: klass.zoom_link || null,
+          deliveryMode: klass.delivery_mode === 'OFFLINE' ? 'OFFLINE' : 'ONLINE',
+          locationName: klass.location_name,
+          locationAddress: klass.location_address,
+          locationMapsUrl: klass.location_maps_url,
         },
         completedBlocks,
         totalBlocks,
@@ -838,15 +852,24 @@ export type CoderLessonOverview = {
 
 export async function getAccessibleLessonsForCoder(coderId: string): Promise<CoderLessonOverview[]> {
   const [classes, grantedSessionIds] = await Promise.all([
-    classesDao.listClassesForCoder(coderId),
+    // Completed migration blocks remain part of the Coder's learning history even
+    // after level progression closes the source enrollment.
+    classesDao.listClassesForCoder(coderId, { includeInactive: true }),
     coderSessionAccessDao.listGrantedSessionIdsByCoder(coderId),
   ]);
   const now = new Date();
 
-  return Promise.all(
+  const classEntries: Array<CoderLessonOverview | null> = await Promise.all(
     classes.map(async (klass) => {
+      const coderEnrollment = await classesDao.getEnrollment(klass.id, coderId);
+      const hasActiveEnrollment = coderEnrollment?.status === 'ACTIVE';
+
       // --- EKSKUL HANDLING ---
       if (klass.type === 'EKSKUL') {
+        if (!hasActiveEnrollment) {
+          return null;
+        }
+
         if (!klass.ekskul_lesson_plan_id) {
           return {
             classId: klass.id,
@@ -865,6 +888,9 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
         }
 
         const sessions = await sessionsDao.listSessionsByClass(klass.id);
+        const completedEkskulSessions = sessions
+          .filter(s => s.status === 'COMPLETED')
+          .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
         // Map Ekskul Lessons to "Accessible Lessons"
         // Logic: Lesson is accessible if index < completedSessions OR if it's the current one (index == completedSessions)
         const accessibleLessons = plan.ekskul_lessons
@@ -875,15 +901,10 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
             // We assume 1-to-1 mapping based on order
             // This is an estimation for Ekskul as they don't link directly in DB usually
 
-            // Completed sessions
-            const sortedSessions = sessions
-              .filter(s => s.status === 'COMPLETED')
-              .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
-
             let sessionDate: string | null = null;
-            if (index < sortedSessions.length) {
-              sessionDate = sortedSessions[index].date_time;
-            } else if (index === sortedSessions.length) {
+            if (index < completedEkskulSessions.length) {
+              sessionDate = completedEkskulSessions[index].date_time;
+            } else if (index === completedEkskulSessions.length) {
               // Check if there is a current/upcoming session
               const nextSession = sessions
                 .filter(s => new Date(s.date_time) >= now && s.status !== 'COMPLETED' && s.status !== 'CANCELLED')
@@ -900,7 +921,7 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
               slideUrl: lesson.slide_url ?? null,
               exampleUrl: lesson.example_url ?? null,
               sessionDate,
-              isAccessible: true,
+              isAccessible: isEkskulLessonAccessible(index, completedEkskulSessions.length),
             };
           });
 
@@ -919,10 +940,9 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
       }
 
       // --- WEEKLY HANDLING ---
-      const [blocks, sessions, enrollment] = await Promise.all([
+      const [blocks, sessions] = await Promise.all([
         classesDao.getClassBlocks(klass.id),
         sessionsDao.listSessionsByClass(klass.id),
-        classesDao.getEnrollment(klass.id, coderId),
       ]);
 
       const lessonMap = klass.level_id ? await computeLessonSchedule(klass.id, klass.level_id) : new Map();
@@ -932,8 +952,8 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
       const journey = klass.level_id ? await coderProgressDao.getCoderJourney(coderId, klass.level_id) : [];
       const journeyStatusMap = new Map(journey.map((row) => [row.block_id, row.status]));
 
-      const enrollmentDate = enrollment ? new Date(enrollment.enrolled_at) : new Date(0); // Default to epoch if no date (shouldn't happen)
-      const entryBlock = enrollment ? findEntryBlockBySchedule(runtimeBlocks, enrollmentDate) : null;
+      const enrollmentDate = coderEnrollment ? new Date(coderEnrollment.enrolled_at) : new Date(0); // Default to epoch if no date (shouldn't happen)
+      const entryBlock = coderEnrollment ? findEntryBlockBySchedule(runtimeBlocks, enrollmentDate) : null;
       const activeBlock =
         blocks.find((block) => block.status === 'CURRENT') ??
         blocks.find((block) => block.status === 'UPCOMING') ??
@@ -991,7 +1011,10 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
           const isCurrentScheduleBlock = activeBlock?.id === block.id;
           const isEntryBlock = entryBlock?.id === block.id;
 
-          if (!hasAccessibleLesson && !isCurrentScheduleBlock && !isEntryBlock) {
+          if (
+            !hasAccessibleLesson &&
+            (!hasActiveEnrollment || (!isCurrentScheduleBlock && !isEntryBlock))
+          ) {
             return null;
           }
 
@@ -1013,6 +1036,8 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
       };
     }),
   );
+
+  return classEntries.filter((entry): entry is CoderLessonOverview => entry !== null && entry.blocks.length > 0);
 }
 
 export async function getStoredLessonsForCoder(coderId: string): Promise<CoderStoredLessonOverview[]> {
@@ -1250,12 +1275,6 @@ export async function getLessonDetailForCoder(coderId: string, lessonId: string)
 
     if (!activeEkskulClass) return null;
 
-    // Check access - similar to list logic
-    // If it's Ekskul, we might just allow access to everything if enrolled?
-    // Or follow the "session completed" logic?
-    // For now, let's allow access if enrolled, to fix the 404. 
-    // User said "Materi yang sudah dipelajari".
-
     // Calculate session date mapping
     const plan = await import('@/lib/dao/ekskulPlansDao').then(m => m.getEkskulPlanWithDetails(planId));
     let sessionDate: string | null = null;
@@ -1265,16 +1284,24 @@ export async function getLessonDetailForCoder(coderId: string, lessonId: string)
       const sortedLessons = plan.ekskul_lessons.sort((a, b) => a.order_index - b.order_index);
       const lessonIndex = sortedLessons.findIndex(l => l.id === lessonId);
 
-      if (lessonIndex !== -1) {
+        if (lessonIndex !== -1) {
         const sessions = await sessionsDao.listSessionsByClass(activeEkskulClass.id);
-        const sortedSessions = sessions
-          .filter(s => s.status !== 'CANCELLED') // Should we exclude cancelled? Probably yes.
+        const completedEkskulSessions = sessions
+          .filter(s => s.status === 'COMPLETED')
           .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
 
-        if (lessonIndex < sortedSessions.length) {
-          sessionDate = sortedSessions[lessonIndex].date_time;
+        if (!isEkskulLessonAccessible(lessonIndex, completedEkskulSessions.length)) {
+          return null;
         }
+
+        if (lessonIndex < completedEkskulSessions.length) {
+          sessionDate = completedEkskulSessions[lessonIndex].date_time;
+        }
+      } else {
+        return null;
       }
+    } else {
+      return null;
     }
 
     const lessonParts = splitEkskulLessonMakeUp(ekskulLesson.summary, ekskulLesson.make_up_instructions);

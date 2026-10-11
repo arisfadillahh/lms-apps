@@ -2,12 +2,13 @@
 
 import { Bug, Check, ImagePlus, Send, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import styles from './IssueReportButton.module.css';
 
-type Props = { role: 'ADMIN' | 'COACH' | 'CODER' };
+type Props = { role: 'ADMIN' | 'COACH' | 'CODER'; placement?: 'floating' | 'sidebar' | 'card' };
 
-export default function IssueReportButton({ role }: Props) {
+export default function IssueReportButton({ role, placement = 'floating' }: Props) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -102,13 +103,13 @@ export default function IssueReportButton({ role }: Props) {
 
   return (
     <>
-      <button type="button" className={styles.trigger} onClick={() => setOpen(true)} aria-label="Laporkan masalah LMS">
+      <button type="button" data-role={role} className={placement === 'sidebar' ? styles.sidebarTrigger : placement === 'card' ? styles.cardTrigger : styles.trigger} onClick={() => setOpen(true)} aria-label="Laporkan masalah LMS">
         <Bug size={18} /> <span className={styles.triggerLabel}>Laporkan Masalah</span>
       </button>
 
-      {open ? (
+      {open && typeof document !== 'undefined' ? createPortal(
         <div className={styles.backdrop} onMouseDown={(event) => event.target === event.currentTarget && close()}>
-          <section className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="issue-report-title">
+            <section className={styles.modal} data-coder-modal={role === 'CODER' ? 'true' : undefined} role="dialog" aria-modal="true" aria-labelledby="issue-report-title">
             {reference ? (
               <div className={styles.success}>
                 <div className={styles.successIcon}><Check size={30} /></div>
@@ -170,7 +171,8 @@ export default function IssueReportButton({ role }: Props) {
               </>
             )}
           </section>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </>
   );

@@ -58,6 +58,7 @@ type MenuId =
   | 'freeTrials'
   | 'trialAssessments'
   | 'classes'
+  | 'levelProgressions'
   | 'curriculum'
   | 'lessonReports'
   | 'ekskul'
@@ -111,7 +112,8 @@ const MENU: MenuItem[] = [
   { id: 'trialAssessments', href: '/admin/trial-assessments', label: 'Review Trial', icon: ClipboardList },
   { id: 'classes', href: '/admin/classes', label: 'Kelas', icon: GraduationCap },
   { id: 'curriculum', href: '/admin/curriculum', label: 'Kurikulum', icon: BookOpen },
-  { id: 'lessonReports', href: '/admin/curriculum/reports', label: 'Laporan Lesson', icon: FileText },
+  { id: 'lessonReports', href: '/admin/curriculum/reports', label: 'Masalah Lesson', icon: FileText },
+  { id: 'levelProgressions', href: '/admin/level-progressions', label: 'Kenaikan Level', icon: GraduationCap },
   { id: 'ekskul', href: '/admin/ekskul', label: 'Ekskul Plans', icon: BookMarked },
   { id: 'evaluations', href: '/admin/evaluations', label: 'Kompetensi Rapor', icon: ClipboardList },
   { id: 'evaluationQuestions', href: '/admin/evaluations/questions', label: 'Pertanyaan Refleksi', icon: MessageSquare },
@@ -133,7 +135,7 @@ const MENU_SECTIONS: Array<{ label: string | null; items: MenuId[] }> = [
   { label: null, items: ['dashboard'] },
   {
     label: 'Akademik',
-    items: ['users', 'freeTrials', 'trialAssessments', 'classes', 'curriculum', 'ekskul', 'lessonReports', 'evaluations', 'evaluationQuestions', 'reports'],
+    items: ['users', 'freeTrials', 'trialAssessments', 'classes', 'levelProgressions', 'curriculum', 'ekskul', 'lessonReports', 'evaluations', 'evaluationQuestions', 'reports'],
   },
   { label: 'Keuangan', items: ['payments', 'invoices', 'ccr', 'ccrlist'] },
   { label: 'Komunikasi', items: ['whatsapp', 'broadcast'] },
@@ -146,6 +148,7 @@ const SECTION_TABS = {
     { href: '/admin/free-trials', label: 'Free Trial', menus: ['freeTrials'] },
     { href: '/admin/trial-assessments', label: 'Review Trial', menus: ['trialAssessments'] },
     { href: '/admin/classes', label: 'Kelas', menus: ['classes'] },
+    { href: '/admin/level-progressions', label: 'Kenaikan Level', menus: ['levelProgressions'] },
     { href: '/admin/curriculum', label: 'Kurikulum', menus: ['curriculum'] },
     { href: '/admin/ekskul', label: 'Ekskul', menus: ['ekskul'] },
     { href: '/admin/evaluations', label: 'Rapor', menus: ['evaluations'] },
@@ -172,6 +175,13 @@ const SECTION_TABS = {
 } satisfies Record<string, RouteTab[]>;
 
 const ROUTE_META: Array<{ match: string; meta: RouteMeta }> = [
+  {
+    match: '/admin/level-progressions',
+    meta: {
+      key: 'level-progressions', section: 'Akademik', title: 'Kenaikan Level',
+      description: 'Kelola Coder yang selesai level dan penempatannya ke kelas berikutnya.', tabs: SECTION_TABS.academic,
+    },
+  },
   {
     match: '/admin/trial-assessments',
     meta: {
@@ -307,7 +317,7 @@ const ROUTE_META: Array<{ match: string; meta: RouteMeta }> = [
     meta: {
       key: 'curriculum-reports',
       section: 'Akademik',
-      title: 'Laporan Lesson',
+      title: 'Masalah Lesson',
       description: 'Lacak issue lesson, histori materi, dan tindak lanjut kualitas pembelajaran.',
       tabs: SECTION_TABS.academic,
     },

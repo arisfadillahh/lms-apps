@@ -76,7 +76,15 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
           existing.coach_id,
           'Update Pengajuan Izin',
           `Pengajuan izin Anda untuk kelas terkait telah ${statusText}.`,
-          'SYSTEM'
+          'SYSTEM',
+          {
+            actionUrl: '/coach/leave',
+            category: 'SCHEDULE',
+            priority: 'HIGH',
+            dedupeKey: `leave-${existing.id}-${parsed.data.status}`,
+            push: true,
+            pushTag: `leave-${existing.id}`,
+          },
         );
       }
     } catch (error) {

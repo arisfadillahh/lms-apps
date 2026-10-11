@@ -19,7 +19,8 @@ describe('coach rubric attendance gate contract', () => {
     expect(pendingEvaluationSource).toContain('missingAttendanceCount: number');
     expect(pendingEvaluationSource).toContain('canEvaluate: boolean');
     expect(pendingEvaluationSource).toContain('attendanceDao.listAttendanceForSessions(');
-    expect(pendingEvaluationSource).toContain('filterActiveEnrollmentsForSession(activeEnrollments, session.date_time)');
+    expect(pendingEvaluationSource).toContain('filterEvaluationEnrollmentsForSession(');
+    expect(pendingEvaluationSource).toContain('sessionAttendanceRecords');
     expect(pendingEvaluationSource).toContain('canEvaluate: missingAttendanceCount === 0');
     expect(pendingEvaluationSource).not.toContain(
       "klass.type === 'EKSKUL' &&\n        !relevantEnrollments.every",
@@ -35,5 +36,18 @@ describe('coach rubric attendance gate contract', () => {
     );
     expect(source).toContain('disabled={!item.canEvaluate || isLoading}');
     expect(source).toContain("'Presensi Belum Lengkap'");
+  });
+
+  it('uses attendance-backed eligibility across every Coach lesson evaluation entry point', () => {
+    const sources = [
+      'src/app/(coach)/coach/rubrics/[sessionId]/page.tsx',
+      'src/app/api/coach/evaluations/session-data/route.ts',
+      'src/app/api/coach/evaluations/route.ts',
+    ].map(readSource);
+
+    sources.forEach((source) => {
+      expect(source).toContain('filterEvaluationEnrollmentsForSession(');
+      expect(source).toContain('attendanceDao.listAttendanceBySession(session.id)');
+    });
   });
 });

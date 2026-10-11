@@ -2,7 +2,9 @@ import Link from 'next/link';
 import { getSessionOrThrow } from '@/lib/auth';
 import { attendanceDao, classesDao, sessionsDao, usersDao } from '@/lib/dao';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
+import { canExtendBeforeNextLessonSession } from '@/lib/services/lessonExtensionBoundary';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { hasSessionStarted } from '@/lib/sessionTiming';
 
 import AttendanceWrapper from './AttendanceWrapper';
 import type { AttendanceStatus } from './AttendanceList';
@@ -95,15 +97,30 @@ export default async function SessionAttendancePage({ params }: PageProps) {
   const slideTitle = currentLessonSlot ? formatLessonTitle(currentLessonSlot) : null;
   const lessonSummary = currentLessonSlot?.lessonTemplate.summary ?? 'Tidak ada ringkasan materi.';
   const isEkskulClass = classRecord.type === 'EKSKUL';
-  const hasLaterCompletedSession = classSessions.some((item) => (
-    item.status === 'COMPLETED'
-    && new Date(item.date_time).getTime() > new Date(sessionRecord.date_time).getTime()
-  ));
+  const orderedSessions = classSessions
+    .filter((item) => item.status !== 'CANCELLED')
+    .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
+  const nextLessonSession = currentLessonSlot
+    ? orderedSessions
+      .slice(Math.max(0, orderedSessions.findIndex((item) => item.id === sessionRecord.id) + 1))
+      .map((item) => ({ item, slot: lessonScheduleMap.get(item.id) }))
+      .find((candidate) => candidate.slot && candidate.slot.globalIndex > currentLessonSlot.globalIndex)
+    : undefined;
+  const nextLessonAttendanceCount = nextLessonSession
+    ? (attendanceBySession.get(nextLessonSession.item.id)?.size ?? 0)
+    : 0;
+  const canExtendBeforeNextLesson = nextLessonSession
+    ? canExtendBeforeNextLessonSession({
+      dateTime: nextLessonSession.item.date_time,
+      status: nextLessonSession.item.status,
+      hasAttendance: nextLessonAttendanceCount > 0,
+    })
+    : true;
   const canExtendLesson = Boolean(
     !isEkskulClass
     && currentLessonSlot?.classLessonId
     && currentLessonSlot.partNumber === currentLessonSlot.totalParts
-    && !hasLaterCompletedSession
+    && canExtendBeforeNextLesson
   );
 
   // Compute attendance stats
@@ -233,6 +250,7 @@ export default async function SessionAttendancePage({ params }: PageProps) {
   }
 
   const sessionStart = new Date(sessionRecord.date_time);
+  const canMarkAttendance = hasSessionStarted(sessionRecord.date_time);
   const sessionEnd = new Date(sessionStart.getTime() + 90 * 60000);
   const formattedDate = sessionStart.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
   const formattedTime = `${sessionStart.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} - ${sessionEnd.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`;
@@ -348,7 +366,8 @@ export default async function SessionAttendancePage({ params }: PageProps) {
         <AttendanceWrapper
           sessionId={sessionRecord.id}
           attendees={attendees}
-          canComplete={sessionRecord.status === 'SCHEDULED'}
+          canMarkAttendance={canMarkAttendance}
+          canComplete={sessionRecord.status === 'SCHEDULED' && canMarkAttendance}
           slideUrl={slideUrl}
           slideTitle={slideTitle}
           isLastSessionOfBlock={isLastSessionOfBlock}

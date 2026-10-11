@@ -20,7 +20,7 @@ export default function UploadTutorialModal() {
 
             {showModal && (
                 <div style={modalOverlayStyle} onClick={() => setShowModal(false)}>
-                    <div style={modalContentStyle} onClick={(e) => e.stopPropagation()}>
+                    <div style={modalContentStyle} data-coder-modal="true" onClick={(e) => e.stopPropagation()}>
                         <div style={modalHeaderStyle}>
                             <h3 style={modalTitleStyle}>Cara Upload Karya ke Google Drive</h3>
                             <button

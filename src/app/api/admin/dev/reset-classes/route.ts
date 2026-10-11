@@ -218,6 +218,9 @@ async function fetchUserIds(usernames: string[], role: 'COACH' | 'CODER'): Promi
 }
 
 export async function POST() {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
   const session = await getSessionOrThrow();
   await assertRole(session, 'ADMIN');
 
@@ -252,6 +255,7 @@ export async function POST() {
       scheduleDay: spec.scheduleDay,
       scheduleTime: spec.scheduleTime,
       zoomLink: spec.zoomLink,
+      deliveryMode: 'ONLINE',
       startDate,
       endDate,
     });

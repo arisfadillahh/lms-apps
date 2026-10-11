@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { buildClassLessonOrderIndex, buildClassLessonTitle } from '@/lib/dao/classLessonsDao';
+import { hasClassReachedTemplate, type LessonSessionSnapshot } from '@/lib/lessonTemplateSyncPolicy';
 
 /**
  * Re-assigns lessons to valid sessions for a specific class - GLOBAL SCOPE.
@@ -149,10 +150,37 @@ export async function syncClassLessonsStructure(classId: string): Promise<void> 
             existingMap.get(l.lesson_template_id)?.push(l);
         });
 
+        const sessionIds = (existingLessons ?? [])
+            .map((lesson) => lesson.session_id)
+            .filter((sessionId): sessionId is string => Boolean(sessionId));
+        const sessionsById = new Map<string, LessonSessionSnapshot>();
+
+        if (sessionIds.length > 0) {
+            const { data: linkedSessions, error: sessionError } = await supabase
+                .from('sessions')
+                .select('id, date_time, status')
+                .in('id', sessionIds);
+
+            if (sessionError) {
+                throw new Error(`Failed to inspect lesson session history: ${sessionError.message}`);
+            }
+
+            for (const session of linkedSessions ?? []) {
+                sessionsById.set(session.id, session as LessonSessionSnapshot);
+            }
+        }
+
         // 4. Compare and Fix
         for (const template of templates) {
             const templateCount = Math.max(1, template.estimated_meeting_count || 1);
             const currentLessons = (existingMap.get(template.id) || []).slice().sort((a, b) => a.order_index - b.order_index);
+
+            // A class keeps the lesson version it started with. Later global edits
+            // must not add/remove parts or rewrite completed history.
+            if (hasClassReachedTemplate(template.order_index, existingLessons ?? [], sessionsById)) {
+                continue;
+            }
+
             const extensionCount = currentLessons.filter((lesson) => lesson.is_extended === true).length;
             const targetCount = templateCount + extensionCount;
             let activeLessons = currentLessons;
@@ -177,7 +205,15 @@ export async function syncClassLessonsStructure(classId: string): Promise<void> 
                     });
                 }
                 if (newPayloads.length > 0) {
-                    await supabase.from('class_lessons').insert(newPayloads);
+                    const { data: inserted, error: insertError } = await supabase
+                        .from('class_lessons')
+                        .insert(newPayloads)
+                        .select('*');
+                    if (insertError) {
+                        throw new Error(`Failed to expand future lesson parts: ${insertError.message}`);
+                    }
+                    activeLessons = [...currentLessons, ...(inserted ?? [])]
+                        .sort((a, b) => a.order_index - b.order_index);
                 }
             }
 
@@ -196,8 +232,8 @@ export async function syncClassLessonsStructure(classId: string): Promise<void> 
             }
 
             // C. Rename params if duration changed from 1 to >1
-            if (currentLessons.length === 1 && targetCount > 1) {
-                const first = currentLessons[0];
+            if (activeLessons.length >= 1 && targetCount > 1) {
+                const first = activeLessons[0];
                 if (!first.title.includes('(Part 1)')) {
                     await supabase.from('class_lessons')
                         .update({ title: buildClassLessonTitle(template.title, targetCount, 1) })
@@ -205,7 +241,7 @@ export async function syncClassLessonsStructure(classId: string): Promise<void> 
                 }
             }
 
-            // D. Sync Metadata (Order, Title, Summary, Slides) for ALL existing lessons
+            // D. Sync metadata only while this lesson has not started.
             for (let i = 0; i < activeLessons.length; i++) {
                 const lesson = activeLessons[i];
                 const partNum = i + 1;
@@ -236,7 +272,7 @@ export async function syncClassLessonsStructure(classId: string): Promise<void> 
 }
 
 /**
- * Propagates curriculum changes to all ACTIVE classes using this block.
+ * Propagates curriculum changes only to lessons that have not started.
  * Call this when a Lesson Template is created, updated, or deleted.
  */
 export async function syncClassesForBlockTemplate(blockTemplateId: string): Promise<void> {

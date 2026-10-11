@@ -1,4 +1,5 @@
 import * as lessonTemplatesDao from '@/lib/dao/lessonTemplatesDao';
+import * as blocksDao from '@/lib/dao/blocksDao';
 import { shouldPreserveArchivedClassLesson } from '@/lib/services/lessonArchivePolicy';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
@@ -108,6 +109,7 @@ export async function archiveLessonSafely(lessonId: string): Promise<{
 
 export async function restoreLessonSafely(lessonId: string) {
   const lesson = await lessonTemplatesDao.restoreLessonTemplate(lessonId);
+  await blocksDao.updateBlock(lesson.block_id, { isPublished: true });
   const { syncClassesForBlockTemplate } = await import('@/lib/services/lessonRebalancer');
   await syncClassesForBlockTemplate(lesson.block_id);
   return lesson;

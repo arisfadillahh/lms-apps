@@ -4,8 +4,8 @@ import type { ClassBlockRecord } from '@/lib/dao/classesDao';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 import { getSoftwareByBlockId } from '@/lib/dao/blockSoftwareDao';
 import { mergeCoachClassesById, pickNextCoachSession, pickRelevantCoachSessions } from '@/lib/services/coachClassSummary';
-import { filterActiveEnrollmentsForSession } from '@/lib/services/enrollmentEligibility';
-import { isRegularReportWindowActive } from '@/lib/services/reportWindows';
+import { filterEvaluationEnrollmentsForSession } from '@/lib/services/enrollmentEligibility';
+import { isCoachEvaluationBlockActive, isRegularReportWindowActive } from '@/lib/services/reportWindows';
 
 type SoftwareInfo = {
   id: string;
@@ -271,8 +271,13 @@ export async function getPendingLessonEvaluationsForCoach(coachId: string): Prom
     const lessonMap = await computeLessonSchedule(klass.id, klass.level_id, klass.ekskul_lesson_plan_id);
     const activeEnrollments = (await classesDao.listEnrollmentsByClass(klass.id)).filter(e => e.status === 'ACTIVE');
     const classBlocks = klass.type === 'EKSKUL' ? [] : await classesDao.getClassBlocks(klass.id);
-    // ONLY evaluate lessons in the CURRENT active block. Do not leak to UPCOMING or COMPLETED blocks.
-    const activeBlockIds = new Set(classBlocks.filter(b => b.status === 'CURRENT').map(b => b.block_id));
+    // Keep recently completed report blocks visible until their report window closes.
+    // Otherwise moving to the next block hides unfinished Coach scores before a draft can be generated.
+    const evaluableBlockIds = new Set(
+      classBlocks
+        .filter((block) => isCoachEvaluationBlockActive(block))
+        .map((block) => block.block_id),
+    );
     const attendanceRecords = await attendanceDao.listAttendanceForSessions(
       completedSessions.map((session) => session.id),
     );
@@ -289,8 +294,8 @@ export async function getPendingLessonEvaluationsForCoach(coachId: string): Prom
       const slot = lessonMap.get(session.id);
       if (!slot) continue;
 
-      // Only evaluate lessons that belong to an active block (prevent 'bocor' from old completed blocks)
-      if (klass.type !== 'EKSKUL' && !activeBlockIds.has(slot.block.id)) continue;
+      // Exclude stale historical and future blocks, but retain a completed block during its report window.
+      if (klass.type !== 'EKSKUL' && !evaluableBlockIds.has(slot.block.id)) continue;
 
       // RULE: Only evaluate a lesson when ALL parts of that lesson are completed.
       // So if a lesson has 3 parts, we only ask for evaluation on Part 3.
@@ -308,10 +313,15 @@ export async function getPendingLessonEvaluationsForCoach(coachId: string): Prom
 
       const evaluatedCoderIds = new Set((existingEvals || []).map(e => e.coder_id));
 
-      const relevantEnrollments = filterActiveEnrollmentsForSession(activeEnrollments, session.date_time);
+      const attendedCoderIds = attendanceBySession.get(session.id) ?? new Set<string>();
+      const sessionAttendanceRecords = attendanceRecords.filter((record) => record.session_id === session.id);
+      const relevantEnrollments = filterEvaluationEnrollmentsForSession(
+        activeEnrollments,
+        session.date_time,
+        sessionAttendanceRecords,
+      );
 
       if (relevantEnrollments.length === 0) continue;
-      const attendedCoderIds = attendanceBySession.get(session.id) ?? new Set<string>();
       const missingAttendanceCount = relevantEnrollments.filter(
         (enrollment) => !attendedCoderIds.has(enrollment.coder_id),
       ).length;
@@ -361,8 +371,9 @@ export type DraftReportInfo = {
   coderName: string;
   classId: string;
   className: string;
-  blockId: string;
+  blockId: string | null;
   blockName: string;
+  reportPeriodType: 'BLOCK' | 'EKSKUL_MIDTERM';
   createdAt: string;
   averageScore?: number;
 };
@@ -382,6 +393,7 @@ export async function getDraftReportsForCoach(coachId: string): Promise<DraftRep
       coder_id,
       class_id,
       block_id,
+      report_period_type,
       created_at,
       average_score,
       classes:class_id(name, type),
@@ -434,7 +446,8 @@ export async function getDraftReportsForCoach(coachId: string): Promise<DraftRep
       classId: row.class_id,
       className: klass?.name ?? 'Class',
       blockId: row.block_id,
-      blockName: block?.name ?? 'Block',
+      blockName: row.report_period_type === 'EKSKUL_MIDTERM' ? 'Rapor Tengah Semester' : block?.name ?? 'Block',
+      reportPeriodType: row.report_period_type === 'EKSKUL_MIDTERM' ? 'EKSKUL_MIDTERM' : 'BLOCK',
       createdAt: row.created_at,
       averageScore: row.average_score ? Number(row.average_score) : undefined,
     };

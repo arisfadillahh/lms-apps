@@ -4,6 +4,8 @@ import { getSessionOrThrow } from '@/lib/auth';
 import { createAdminNotifications } from '@/lib/dao/notificationsDao';
 import { reportsDao, classesDao } from '@/lib/dao';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { isEnrollmentActiveForSession } from '@/lib/services/enrollmentEligibility';
+import { REPORT_DESCRIPTION_MAX_LENGTH } from '@/lib/reportDescription';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -22,9 +24,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
     
     // Validate empty texts
-    const hasEmpty = descriptions.some(d => !d.description.trim());
+    const hasEmpty = descriptions.some(d => typeof d?.description !== 'string' || !d.description.trim());
     if (hasEmpty) {
        return NextResponse.json({ error: 'No description can be empty' }, { status: 400 });
+    }
+    if (descriptions.some(d => d.description.length > REPORT_DESCRIPTION_MAX_LENGTH)) {
+      return NextResponse.json({ error: `Deskripsi maksimal ${REPORT_DESCRIPTION_MAX_LENGTH} karakter.` }, { status: 400 });
     }
 
     const supabase = getSupabaseAdmin();
@@ -32,7 +37,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // Verify ownership
     const { data: report } = await supabase
       .from('block_reports')
-      .select('status, class:classes(id, coach_id)')
+      .select('status, class_id, block_id, coder_id, report_period_type, class:classes(id, coach_id, lifecycle_status)')
       .eq('id', id)
       .single();
 
@@ -44,9 +49,57 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!klass) {
        return NextResponse.json({ error: 'Class not found' }, { status: 404 });
     }
+
+    const isEkskulMidterm = report.report_period_type === 'EKSKUL_MIDTERM';
+    const [
+      { data: enrollmentRows, error: enrollmentError },
+      { data: reflection, error: reflectionError },
+      { data: reportBlock, error: reportBlockError },
+    ] = await Promise.all([
+      supabase
+        .from('enrollments')
+        .select('*')
+        .eq('class_id', (report as any).class_id)
+        .eq('coder_id', (report as any).coder_id),
+      isEkskulMidterm
+        ? Promise.resolve({ data: { id: 'not-required' }, error: null })
+        : supabase
+        .from('block_evaluations')
+        .select('id')
+        .eq('class_id', (report as any).class_id)
+        .eq('block_id', (report as any).block_id)
+        .eq('coder_id', (report as any).coder_id)
+        .limit(1)
+        .maybeSingle(),
+      isEkskulMidterm
+        ? Promise.resolve({ data: null, error: null })
+        : supabase
+        .from('class_blocks')
+        .select('pitching_day_date')
+        .eq('class_id', (report as any).class_id)
+        .eq('block_id', (report as any).block_id)
+        .order('start_date', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    if (enrollmentError || reflectionError || reportBlockError) {
+      throw new Error(enrollmentError?.message || reflectionError?.message || reportBlockError?.message || 'Gagal memvalidasi rapor');
+    }
+    const eligibilityTime = reportBlock?.pitching_day_date
+      ? reportBlock.pitching_day_date + 'T23:59:59+07:00'
+      : new Date().toISOString();
+    const eligibleEnrollment = (enrollmentRows ?? []).some((enrollment) =>
+      isEnrollmentActiveForSession(enrollment, eligibilityTime),
+    );
+    if (!eligibleEnrollment) {
+      return NextResponse.json({ error: 'Coder tidak terdaftar di kelas ini pada periode rapor' }, { status: 400 });
+    }
+    if (!isEkskulMidterm && !reflection) {
+      return NextResponse.json({ error: 'Refleksi evaluasi coder belum selesai' }, { status: 400 });
+    }
     
     // Proper multi-coach check
-    const coachClasses = await classesDao.listClassesForCoach(sessionUser.user.id);
+    const coachClasses = await classesDao.listClassesForCoach(sessionUser.user.id, { includeArchived: true });
     const isAuthorized = coachClasses.some(c => c.id === klass.id);
     
     if (!isAuthorized) {
@@ -69,7 +122,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     // 2. Change status to SUBMITTED
     await reportsDao.updateBlockReport(id, {
-      status: 'SUBMITTED'
+      status: 'SUBMITTED',
+      coach_id_snapshot: sessionUser.user.id,
+      coach_name_snapshot: sessionUser.user.fullName || sessionUser.user.username,
     });
 
     try {

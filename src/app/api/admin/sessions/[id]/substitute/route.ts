@@ -5,6 +5,7 @@ import { getSessionOrThrow } from '@/lib/auth';
 import { sessionsDao, usersDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
 import { assignSubstituteSchema } from '@/lib/validation/admin';
+import { notifySubstituteCoach } from '@/lib/services/classMemberNotifications';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -37,5 +38,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
   }
 
   await sessionsDao.assignSubstituteCoach(params.id, substituteCoachId ?? null);
+  if (substituteCoachId) {
+    try {
+      await notifySubstituteCoach(params.id, substituteCoachId);
+    } catch (notificationError) {
+      console.error('[SubstituteCoach] Failed to notify substitute Coach', notificationError);
+    }
+  }
   return NextResponse.json({ success: true });
 }

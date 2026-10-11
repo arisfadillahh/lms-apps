@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server';
-import { z } from 'zod';
-
 import { getSessionOrThrow } from '@/lib/auth';
 import { createAdminNotifications } from '@/lib/dao/notificationsDao';
 import { getTrialClassSubmission } from '@/lib/dao/trialClassDao';
@@ -11,30 +9,10 @@ import {
   isCompleteTrialRubric,
   type TrialRubric,
 } from '@/lib/services/trialAssessmentContent';
-import { TRIAL_AVAILABILITY_DAY_OPTIONS, TRIAL_AVAILABILITY_TIME_OPTIONS } from '@/lib/services/trialAvailability';
+import { trialAssessmentSubmissionSchema } from '@/lib/services/trialAssessmentSubmission';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
 export const runtime = 'nodejs';
-
-const rubricValue = z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]);
-const availabilityDay = z.enum(TRIAL_AVAILABILITY_DAY_OPTIONS.map((option) => option.value) as [string, ...string[]]);
-const availabilityTime = z.enum(TRIAL_AVAILABILITY_TIME_OPTIONS.map((option) => option.value) as [string, ...string[]]);
-const submitAssessmentSchema = z.object({
-  rubric: z.object({
-    engagement_curiosity: rubricValue,
-    logic_problem_solving: rubricValue,
-    creativity_idea_development: rubricValue,
-    independence_learning_confidence: rubricValue,
-    communication_following_instructions: rubricValue,
-  }),
-  quickObservations: z.array(z.string().trim().min(2).max(120)).min(1).max(3),
-  personalizedObservation: z.string().trim().min(20).max(800),
-  internalNotes: z.string().trim().max(1200).nullable().optional(),
-  recommendedLevelId: z.string().uuid(),
-  recommendationTags: z.array(z.string().trim().min(2).max(140)).max(6).default([]),
-  availableDays: z.array(availabilityDay).min(1).max(7),
-  availableTimeSlots: z.array(availabilityTime).min(1).max(6),
-});
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
@@ -42,8 +20,12 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     await assertRole(session, 'COACH');
 
     const { id } = await context.params;
-    const parsed = submitAssessmentSchema.safeParse(await request.json().catch(() => null));
+    const parsed = trialAssessmentSubmissionSchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) {
+      console.warn(
+        '[TrialAssessment] Submission validation failed',
+        parsed.error.issues.map((issue) => ({ path: issue.path.join('.'), code: issue.code })),
+      );
       return NextResponse.json({ error: 'Data assessment belum lengkap atau tidak valid.' }, { status: 400 });
     }
 

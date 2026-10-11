@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { CheckSquare, ExternalLink, Square, Table } from 'lucide-react';
 
 import { splitEkskulLessonMakeUp } from '@/lib/ekskulMakeUpInstructions';
@@ -35,6 +35,12 @@ export default function EkskulLessonList({ planId, lessons }: Props) {
 
     const sorted = [...lessons].sort((a, b) => a.order_index - b.order_index);
     const isAllSelected = sorted.length > 0 && selectedIds.size === sorted.length;
+
+    useEffect(() => {
+        const targetLessonId = new URLSearchParams(window.location.search).get('editLesson');
+        const targetLesson = lessons.find((lesson) => lesson.id === targetLessonId);
+        if (targetLesson) setEditingLesson(targetLesson);
+    }, [lessons]);
 
     const toggleSelectAll = () => {
         if (selectedIds.size === sorted.length) setSelectedIds(new Set());
@@ -109,7 +115,7 @@ export default function EkskulLessonList({ planId, lessons }: Props) {
                                 const isSelected = selectedIds.has(lesson.id);
                                 const lessonParts = splitEkskulLessonMakeUp(lesson.summary, lesson.make_up_instructions);
                                 return (
-                                    <tr key={lesson.id} style={isSelected ? selectedTrStyle : trStyle}>
+                                    <tr key={lesson.id} id={`lesson-${lesson.id}`} style={isSelected ? selectedTrStyle : trStyle}>
                                         <td style={tdStyle}>
                                             <div style={{ display: 'flex', justifyContent: 'center' }}>
                                                 <button type="button" onClick={() => toggleSelect(lesson.id)} style={checkboxBtnStyle}>
@@ -171,7 +177,7 @@ export default function EkskulLessonList({ planId, lessons }: Props) {
                         const lessonParts = splitEkskulLessonMakeUp(lesson.summary, lesson.make_up_instructions);
 
                         return (
-                            <article key={lesson.id} className={`ekskul-lesson-mobile-card${isSelected ? ' is-selected' : ''}`}>
+                            <article key={lesson.id} id={`lesson-mobile-${lesson.id}`} className={`ekskul-lesson-mobile-card${isSelected ? ' is-selected' : ''}`}>
                                 <div className="ekskul-lesson-mobile-head">
                                     <button
                                         type="button"

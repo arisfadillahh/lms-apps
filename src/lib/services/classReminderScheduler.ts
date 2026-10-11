@@ -2,6 +2,19 @@ import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { getInvoiceSettings } from '@/lib/dao/invoicesDao';
 import { sendClassReminder } from '@/lib/services/whatsappClient';
 import { buildClassReminderIdempotencyKey } from '@/lib/services/reminderIdempotency';
+import {
+    isCoachSessionReminderEligible,
+    sendCoderDayBeforeReminders,
+    sendOneHourSessionReminders,
+} from '@/lib/services/roleSessionReminders';
+import { filterParentWhatsappReminderSessions } from '@/lib/classReminderEligibility';
+import { renderClassReminderMessage, type ClassDeliveryDetails } from '@/lib/classDelivery';
+import { getClassReminderTemplateCategory, resolveClassReminderTemplate, type ClassReminderTemplateCategory } from '@/lib/classReminderTemplates';
+import {
+    isClassActiveForOperationalMessages,
+    isEnrollmentCurrentForUpcomingSession,
+} from '@/lib/services/enrollmentEligibility';
+import type { EnrollmentRecord } from '@/lib/dao/classesDao';
 
 /**
  * Check and Send Class Reminders for "Today"
@@ -25,12 +38,21 @@ export async function checkAndSendClassReminders(): Promise<{
         return { success: true, sent: 0, message: 'Feature disabled', skippedReason: 'DISABLED' };
     }
 
+    const now = new Date();
+
+    // This job may run more than once per hour. Dedupe keys keep the one-hour
+    // Coach/Coder push actionable without stacking duplicate alerts.
+    try {
+        await sendOneHourSessionReminders(now);
+    } catch (roleReminderError) {
+        console.error('[Scheduler] Failed to send one-hour role reminders:', roleReminderError);
+    }
+
     // 2. Check Time Logic
     // Format: "HH:mm" (e.g., "09:00")
     const targetTime = settings.class_reminder_time || '09:00';
 
     // Use Indonesia time (WIB) for calculations
-    const now = new Date();
     const formatter = new Intl.DateTimeFormat('id-ID', {
         timeZone: 'Asia/Jakarta',
         year: 'numeric',
@@ -82,7 +104,7 @@ export async function checkAndSendClassReminders(): Promise<{
 
     if (logs && logs.length > 0) {
         logs.forEach((log: any) => {
-            if (log.payload?.type === 'CLASS_REMINDER' && log.payload?.parent_phone) {
+            if (log.payload?.type === 'CLASS_REMINDER' && log.payload?.parent_phone && !log.payload?.idempotency_key) {
                 sentParentPhones.add(log.payload.parent_phone);
             }
             if (log.payload?.type === 'CLASS_REMINDER' && log.payload?.idempotency_key) {
@@ -105,7 +127,7 @@ export async function checkAndSendClassReminders(): Promise<{
     // Query sessions with classes first
     const { data: rawSessions, error: sessionError } = await supabase
         .from('sessions')
-        .select('id, date_time, class_id, classes(id, name, zoom_link)')
+        .select('id, date_time, class_id, classes(id, name, zoom_link, type, delivery_mode, location_name, location_address, location_maps_url, parent_whatsapp_enabled, parent_whatsapp_class_reminder_enabled, lifecycle_status)')
         .eq('status', 'SCHEDULED' as any)
         .gte('date_time', startFilter)
         .lte('date_time', endFilter);
@@ -120,31 +142,100 @@ export async function checkAndSendClassReminders(): Promise<{
         return { success: true, sent: 0, message: 'No sessions tomorrow', skippedReason: 'NO_SESSIONS' };
     }
 
-    // Fetch enrollments for classes
-    const classIds = [...new Set(rawSessions.map(s => s.class_id).filter(Boolean))];
+    type RawReminderSession = {
+        id: string;
+        date_time: string;
+        class_id: string;
+        classes: ({
+            id: string;
+            name: string;
+            zoom_link: string | null;
+            type: 'WEEKLY' | 'EKSKUL';
+            delivery_mode: 'ONLINE' | 'OFFLINE';
+            location_name: string | null;
+            location_address: string | null;
+            location_maps_url: string | null;
+            parent_whatsapp_enabled: boolean;
+            parent_whatsapp_class_reminder_enabled: boolean;
+            lifecycle_status: 'ACTIVE' | 'PAUSED' | 'ENDED' | 'CANCELLED';
+        } & ClassDeliveryDetails) | Array<({
+            id: string;
+            name: string;
+            zoom_link: string | null;
+            type: 'WEEKLY' | 'EKSKUL';
+            delivery_mode: 'ONLINE' | 'OFFLINE';
+            location_name: string | null;
+            location_address: string | null;
+            location_maps_url: string | null;
+            parent_whatsapp_enabled: boolean;
+            parent_whatsapp_class_reminder_enabled: boolean;
+            lifecycle_status: 'ACTIVE' | 'PAUSED' | 'ENDED' | 'CANCELLED';
+        } & ClassDeliveryDetails)> | null;
+    };
+    const allSessions = ((rawSessions ?? []) as RawReminderSession[]).filter((session) => {
+        const klass = Array.isArray(session.classes) ? session.classes[0] : session.classes;
+        return isClassActiveForOperationalMessages(klass?.lifecycle_status);
+    });
+    if (allSessions.length === 0) {
+        return { success: true, sent: 0, message: 'No active classes tomorrow', skippedReason: 'NO_ACTIVE_CLASSES' };
+    }
 
-    const { data: enrollments } = await supabase
-        .from('enrollments')
-        .select('coder_id, class_id, users(id, full_name, parent_name, parent_contact_phone)')
-        .in('class_id', classIds)
-        .eq('status', 'ACTIVE');
+    try {
+        await sendCoderDayBeforeReminders(allSessions as any, tomorrowStr);
+    } catch (coderReminderError) {
+        console.error('[Scheduler] Failed to send H-1 Coder reminders:', coderReminderError);
+    }
+
+    const classIds = [...new Set(allSessions.map(s => s.class_id).filter(Boolean))];
+    const { data: configuredReminderTemplates, error: reminderTemplateError } = await (supabase as any)
+        .from('whatsapp_templates')
+        .select('category, template_content')
+        .in('category', ['CLASS_REMINDER_ONLINE', 'CLASS_REMINDER_OFFLINE']);
+    if (reminderTemplateError) {
+        // A pre-migration database may not know the new categories yet. The
+        // resolver below still provides a safe default (and preserves the old
+        // Online template) until the additive migration is applied.
+        console.warn('[Scheduler] Failed to load class reminder templates:', reminderTemplateError.message);
+    }
+    const reminderTemplates = ((configuredReminderTemplates ?? []) as Array<{ category: ClassReminderTemplateCategory; template_content: string }>)
+        .reduce<Partial<Record<ClassReminderTemplateCategory, string>>>((acc, row) => {
+            acc[row.category] = row.template_content;
+            return acc;
+        }, {});
+    const parentWhatsappSessions = filterParentWhatsappReminderSessions(allSessions, 'CLASS_REMINDER');
+    const parentWhatsappClassIds = [...new Set(parentWhatsappSessions.map(s => s.class_id).filter(Boolean))];
+    const enrollmentResult = parentWhatsappClassIds.length > 0
+        ? await supabase
+            .from('enrollments')
+            .select('*, users(id, full_name, parent_name, parent_contact_phone, is_active)')
+            .in('class_id', parentWhatsappClassIds)
+            .eq('status', 'ACTIVE')
+        : { data: [], error: null };
+    const enrollments = enrollmentResult.data ?? [];
 
     console.log(`[Scheduler] Enrollments found for tomorrow:`, {
         total: enrollments?.length || 0
     });
 
     // Map sessions to their enrolled students
-    const sessions = rawSessions.flatMap(s => {
+    const sessions = parentWhatsappSessions.flatMap(s => {
         const classEnrollments = enrollments?.filter(e => e.class_id === s.class_id) || [];
         const classData = Array.isArray(s.classes) ? s.classes[0] : s.classes;
 
         // Create one "session" entry per enrolled student
-        return classEnrollments.map(enrollment => ({
+        return classEnrollments
+          .filter((enrollment) => {
+              const coder = Array.isArray(enrollment.users) ? enrollment.users[0] : enrollment.users;
+               return coder?.is_active === true
+                && isEnrollmentCurrentForUpcomingSession(enrollment as unknown as EnrollmentRecord, s.date_time);
+          })
+          .map(enrollment => ({
             id: s.id,
             date_time: s.date_time,
             coder: Array.isArray(enrollment.users) ? enrollment.users[0] : enrollment.users,
+            coderId: enrollment.coder_id,
             class: classData
-        }));
+          }));
     });
 
     console.log(`[Scheduler] Enriched sessions (H-1):`, {
@@ -162,8 +253,12 @@ export async function checkAndSendClassReminders(): Promise<{
         parentName: string;
         students: string[];
         time: string;
-        zoomLink: string;
+        klass: ClassDeliveryDetails;
         idempotencyKey: string;
+        phone: string;
+        sessionId: string;
+        classId: string;
+        coderIds: string[];
     }>();
 
     for (const session of sessions) {
@@ -172,42 +267,59 @@ export async function checkAndSendClassReminders(): Promise<{
 
         if (!phone) continue;
 
-        // SKIP if this parent already received a reminder today
-        const idempotencyKey = buildClassReminderIdempotencyKey(tomorrowStr, phone);
-        if (sentParentPhones.has(phone) || sentReminderKeys.has(idempotencyKey)) {
+        // Skip duplicates for this parent and delivery mode. A parent with
+        // both Online and Offline classes receives one correctly formatted
+        // message per mode instead of mixing access details.
+        const classData = Array.isArray(session.class) ? session.class[0] : session.class;
+        const templateCategory = getClassReminderTemplateCategory(classData);
+        const legacyIdempotencyKey = buildClassReminderIdempotencyKey(tomorrowStr, phone);
+        const idempotencyKey = `${legacyIdempotencyKey}:${templateCategory}:${classData?.id ?? session.id}`;
+        if (sentParentPhones.has(phone) || sentReminderKeys.has(idempotencyKey) || sentReminderKeys.has(legacyIdempotencyKey)) {
             continue;
         }
 
-        if (!reminders.has(phone)) {
+        const reminderKey = `${phone}:${templateCategory}:${classData?.id ?? session.id}`;
+        if (!reminders.has(reminderKey)) {
             const time = new Date(session.date_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-            reminders.set(phone, {
+            reminders.set(reminderKey, {
                 parentName: coder.parent_name || 'Ayah/Bunda',
                 students: [],
                 time: time,
-                zoomLink: (session.class as any)?.zoom_link || '-',
+                klass: (classData as any) ?? {},
                 idempotencyKey,
+                phone,
+                sessionId: session.id,
+                classId: classData?.id ?? '',
+                coderIds: [],
             });
         }
 
-        const entry = reminders.get(phone)!;
+        const entry = reminders.get(reminderKey)!;
         if (!entry.students.includes(coder.full_name)) {
             entry.students.push(coder.full_name);
         }
+        if (!entry.coderIds.includes(session.coderId)) entry.coderIds.push(session.coderId);
     }
 
     // 6. Send Messages to Parents
     let sentCount = 0;
-    const template = settings.class_reminder_message_template || '';
+    for (const [, data] of reminders) {
+        const validStudents = await revalidateParentReminderRecipients({
+            sessionId: data.sessionId,
+            classId: data.classId,
+            coderIds: data.coderIds,
+            phone: data.phone,
+        });
+        if (validStudents.length === 0) continue;
+        const msg = renderClassReminderMessage({
+            template: resolveClassReminderTemplate(data.klass, reminderTemplates, settings.class_reminder_message_template),
+            parentName: data.parentName,
+            studentNames: validStudents,
+            time: data.time,
+            klass: data.klass,
+        });
 
-    for (const [phone, data] of reminders) {
-        // Simple template replacement
-        const msg = template
-            .replace('{parent_name}', data.parentName)
-            .replace('{student_name}', data.students.join(', '))
-            .replace('{time}', data.time)
-            .replace('{zoom_link}', data.zoomLink);
-
-        const response = await sendClassReminder(phone, msg, data.students.join(', '), 'CLASS_REMINDER', data.idempotencyKey);
+        const response = await sendClassReminder(data.phone, msg, validStudents.join(', '), 'CLASS_REMINDER', data.idempotencyKey);
         if (!response.skipped) {
             sentCount++;
         }
@@ -235,7 +347,7 @@ export async function checkAndSendClassReminders(): Promise<{
             // Group sessions by coach to send one summarized notification
             const coachSchedules = new Map<string, string[]>(); // coach_id -> array of descriptions
             
-            for (const session of rawSessions) {
+            for (const session of allSessions) {
                 const cls = coachesClasses.find(c => c.id === session.class_id);
                 if (cls && cls.coach_id) {
                     const time = new Date(session.date_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
@@ -255,16 +367,37 @@ export async function checkAndSendClassReminders(): Promise<{
             const coaches = await getUsersByIds(uniqueCoachIds);
             
             for (const coach of coaches) {
-                const wantsNotif = (coach as any).notif_session_reminder === true; // Note: defaults to false per migration
-                
+                const wantsNotif = (coach as any).is_active === true
+                    && (coach as any).notif_session_reminder === true;
+
                 if (wantsNotif) {
+                    const coachClassIds = new Set(
+                        coachesClasses
+                            .filter((klass) => klass.coach_id === coach.id)
+                            .map((klass) => klass.id),
+                    );
+                    const coachSessions = allSessions.filter((session) => coachClassIds.has(session.class_id));
+                    const remainsEligible = (await Promise.all(
+                        coachSessions.map((session) =>
+                            isCoachSessionReminderEligible(session.id, session.class_id, coach.id),
+                        ),
+                    )).some(Boolean);
+                    if (!remainsEligible) continue;
+
                     const scheduleList = coachSchedules.get(coach.id)?.join('\n') || '';
                     const message = `Anda memiliki ${coachSchedules.get(coach.id)?.length} sesi kelas besok:\n${scheduleList}\n\nMohon persiapkan materi dan hadir tepat waktu.`;
                     const title = 'Pengingat Sesi';
                     const type = 'SYSTEM';
 
                     if (!await hasMatchingNotificationToday(coach.id, title, message, type)) {
-                        await createNotification(coach.id, title, message, type);
+                        await createNotification(coach.id, title, message, type, {
+                            actionUrl: '/coach/dashboard',
+                            category: 'SCHEDULE',
+                            priority: 'NORMAL',
+                            dedupeKey: `coach-classes-${tomorrowStr}-h1`,
+                            push: true,
+                            pushTag: `coach-classes-${tomorrowStr}-h1`,
+                        });
                     }
                 }
             }
@@ -274,4 +407,43 @@ export async function checkAndSendClassReminders(): Promise<{
     }
 
     return { success: true, sent: sentCount, message: 'Reminders sent' };
+}
+
+async function revalidateParentReminderRecipients(input: {
+    sessionId: string;
+    classId: string;
+    coderIds: string[];
+    phone: string;
+}) {
+    const supabase = getSupabaseAdmin();
+    const [{ data: session }, { data: enrollments }] = await Promise.all([
+        supabase
+            .from('sessions')
+            .select('id, date_time, classes(lifecycle_status)')
+            .eq('id', input.sessionId)
+            .eq('class_id', input.classId)
+            .eq('status', 'SCHEDULED')
+            .maybeSingle(),
+        supabase
+            .from('enrollments')
+            .select('*, users!enrollments_coder_id_fkey(id, full_name, parent_contact_phone, is_active)')
+            .eq('class_id', input.classId)
+            .in('coder_id', input.coderIds)
+            .eq('status', 'ACTIVE'),
+    ]);
+    const klass = session
+        ? (Array.isArray(session.classes) ? session.classes[0] : session.classes)
+        : null;
+    if (!session || !isClassActiveForOperationalMessages(klass?.lifecycle_status)) return [];
+
+    return (enrollments ?? []).flatMap((enrollment) => {
+        const coder = Array.isArray(enrollment.users) ? enrollment.users[0] : enrollment.users;
+        if (
+            !coder
+             || coder.is_active !== true
+            || coder.parent_contact_phone !== input.phone
+            || !isEnrollmentCurrentForUpcomingSession(enrollment as unknown as EnrollmentRecord, session.date_time)
+        ) return [];
+        return [coder.full_name];
+    });
 }

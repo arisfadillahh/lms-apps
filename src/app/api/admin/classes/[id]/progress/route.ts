@@ -4,6 +4,7 @@ import type { NextRequest } from 'next/server';
 import { getSessionOrThrow } from '@/lib/auth';
 import { assertRole } from '@/lib/roles';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { canAccessMenu } from '@/lib/permissions';
 
 type RouteContext = {
     params: Promise<{ id: string }>;
@@ -21,6 +22,9 @@ export { PATCH } from './bypass/route';
 export async function GET(request: NextRequest, context: RouteContext) {
     const session = await getSessionOrThrow();
     await assertRole(session, 'ADMIN');
+    if (!canAccessMenu(session.user.username, session.user.adminPermissions ?? null, 'classes')) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const { searchParams } = new URL(request.url);
     const coderId = searchParams.get('coderId');

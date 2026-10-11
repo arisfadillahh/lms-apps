@@ -23,3 +23,4 @@ export * as lessonAutoAssign from '../services/lessonAutoAssign';
 // Newly added
 export * as ekskulPlansDao from './ekskulPlansDao';
 export * as notificationsDao from './notificationsDao';
+export * as levelProgressionsDao from './levelProgressionsDao';

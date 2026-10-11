@@ -1,8 +1,7 @@
 import { notFound } from 'next/navigation';
 
-import { getSessionOrThrow } from '@/lib/auth';
+import { getServerAuthSession } from '@/lib/auth';
 import { getAssessmentByPublicToken } from '@/lib/dao/trialAssessmentsDao';
-import { assertRole } from '@/lib/roles';
 import { buildTrialParentReportContent, parseTrialRubric, type TrialParentReportContent } from '@/lib/services/trialAssessmentContent';
 import { buildInvoicePublicUrl } from '@/lib/services/invoicePublicAccess';
 
@@ -46,12 +45,12 @@ export default async function TrialReportPage({
 }) {
   const { token } = await params;
   const { preview } = await searchParams;
-  const assessment = await getAssessmentByPublicToken(token);
   const isAdminPreview = preview === '1';
   if (isAdminPreview) {
-    const session = await getSessionOrThrow();
-    await assertRole(session, 'ADMIN');
+    const session = await getServerAuthSession();
+    if (!session || session.user.role !== 'ADMIN') notFound();
   }
+  const assessment = await getAssessmentByPublicToken(token);
   if (!assessment || !assessment.trial || !(VISIBLE_STATUSES.has(assessment.status) || (isAdminPreview && PREVIEW_STATUSES.has(assessment.status)))) {
     notFound();
   }

@@ -34,9 +34,11 @@ import makeWASocket, {
 import pino from 'pino';
 import QRCode from 'qrcode';
 import fs from 'fs';
+import path from 'path';
 
 // Constants
-const AUTH_FOLDER = 'baileys_auth_info';
+const AUTH_FOLDER = process.env.WHATSAPP_AUTH_DIR?.trim()
+    || path.join(process.cwd(), 'baileys_auth_info');
 const CLIENT_ID = process.env.WHATSAPP_CLIENT_ID || 'clevio-wa-client';
 
 // Global state (Singleton for Next.js HMR)
@@ -135,10 +137,10 @@ export async function initializeWhatsApp(): Promise<{
                 qrRetryCount++;
                 console.log(`[WhatsApp] QR Code generated (Attempt ${qrRetryCount})`);
 
-                // If we've had too many QR attempts (> 5), credentials might be corrupt
-                if (qrRetryCount > 5) {
-                    console.log('[WhatsApp] Too many QR attempts, clearing credentials...');
-                    clearCredentialsAndReset();
+                // A QR can repeat while the phone has not scanned it or a transient
+                // connection closes. Do not destroy a persisted session on that signal.
+                if (qrRetryCount === 6) {
+                    console.warn('[WhatsApp] QR still pending after multiple attempts; preserving credentials until a confirmed logout.');
                 }
             }
 
@@ -156,13 +158,11 @@ export async function initializeWhatsApp(): Promise<{
                 isConnecting = false;
                 globalForWA.isConnecting = false;
 
-                // Clear on STRICT auth issues only
-                // 401: Unauthorized, 403: Forbidden, DisconnectReason.loggedOut
-                // Note: 515 is "Stream Errored" which is common and should NOT clear creds
+                // Authentication status is an alert, never authorization to erase the
+                // persistent session. Only an explicit Admin reset may delete it.
                 const authIssues = [DisconnectReason.loggedOut, 401, 403];
                 if (authIssues.includes(statusCode) && Date.now() >= suppressAuthAlertUntil) {
-                    console.log('[WhatsApp] Fatal Auth issue detected, clearing credentials');
-                    clearCredentialsAndReset();
+                    console.warn('[WhatsApp] Authentication issue detected; preserving credentials for manual Admin recovery.');
                     await notifyAdminsWhatsAppLogout(statusCode);
                 }
 
@@ -202,33 +202,6 @@ export async function initializeWhatsApp(): Promise<{
             error: `Failed to initialize: ${String(error)}`
         };
     }
-}
-
-/**
- * Clear credentials and reset all state for fresh QR
- */
-function clearCredentialsAndReset() {
-    try {
-        if (fs.existsSync(AUTH_FOLDER)) {
-            fs.rmSync(AUTH_FOLDER, { recursive: true, force: true });
-            console.log('[WhatsApp] Auth folder deleted');
-        }
-    } catch (e) {
-        console.error('[WhatsApp] Failed to delete auth folder:', e);
-    }
-
-    if (sock) {
-        try {
-            sock.end(undefined);
-        } catch (e) { }
-    }
-
-    sock = null;
-    globalForWA.sock = null;
-    isConnected = false;
-    connectedPhone = null;
-    currentQRCode = null;
-    qrRetryCount = 0;
 }
 
 /**

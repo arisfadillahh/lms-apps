@@ -1,7 +1,51 @@
-const CACHE_NAME = 'clevio-lms-shell-v2';
+const CACHE_NAME = 'clevio-lms-shell-v5';
+const OFFLINE_URL = '/offline.html';
+const ACTIVE_USER_CACHE = 'clevio-active-user';
+const ACTIVE_USER_KEY = '/__clevio_active_user__';
 
-self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll([
+        OFFLINE_URL,
+        '/logo/innovator-camp-logo-dark.png',
+        '/pwa-icon-192.png',
+        '/pwa-icon-full-192.png',
+      ]))
+      .catch(() => undefined)
+  );
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => Promise.all(
+      keys
+        .filter((key) => key !== CACHE_NAME && key !== ACTIVE_USER_CACHE)
+        .map((key) => caches.delete(key))
+    )).then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  if (event.request.mode !== 'navigate') return;
+
+  event.respondWith(
+    fetch(event.request).catch(() => caches.match(OFFLINE_URL))
+  );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type !== 'SET_ACTIVE_USER') return;
+  event.waitUntil((async () => {
+    const cache = await caches.open(ACTIVE_USER_CACHE);
+    if (!event.data.userId) {
+      await cache.delete(ACTIVE_USER_KEY);
+      return;
+    }
+    await cache.put(ACTIVE_USER_KEY, new Response(String(event.data.userId)));
+  })());
+});
 
 self.addEventListener('push', (event) => {
   let payload = {};
@@ -15,7 +59,15 @@ self.addEventListener('push', (event) => {
     tag: payload.tag || 'clevio-lms-notification',
     renotify: true,
   };
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil((async () => {
+    if (payload.recipientUserId) {
+      const cache = await caches.open(ACTIVE_USER_CACHE);
+      const activeUserResponse = await cache.match(ACTIVE_USER_KEY);
+      const activeUserId = activeUserResponse ? await activeUserResponse.text() : null;
+      if (!activeUserId || activeUserId !== String(payload.recipientUserId)) return;
+    }
+    await self.registration.showNotification(title, options);
+  })());
 });
 
 self.addEventListener('notificationclick', (event) => {

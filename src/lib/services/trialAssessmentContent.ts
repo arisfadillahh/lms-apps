@@ -193,7 +193,7 @@ export function buildTrialParentReportContent(input: {
   const strengths = potential
     .filter((item) => item.status === 'Menonjol' || item.status === 'Berkembang Baik')
     .slice(0, 3)
-    .map((item) => `${item.name}: ${item.status}`);
+    .map((item) => item.name);
 
   const fallbackStrengths = input.quickObservations.slice(0, 3);
   const growthOpportunities = potential
@@ -206,7 +206,12 @@ export function buildTrialParentReportContent(input: {
     potential,
     triedToday: input.triedToday?.length
       ? input.triedToday
-      : ['Basic Logic', 'Instruksi bertahap', 'Interaksi sederhana', 'Mini Project Trial'],
+      : [
+          'Basic Logic: Mengenal cara berpikir logis melalui tantangan sederhana.',
+          'Instruksi bertahap: Mengikuti instruksi secara bertahap untuk memahami hubungan antara perintah dan hasil.',
+          'Interaksi sederhana: Mencoba interaksi dasar dan melihat bagaimana pilihan menghasilkan respons.',
+          'Mini Project Trial: Menggabungkan beberapa langkah menjadi karya kecil sesuai arahan Coach.',
+        ],
     strengths: strengths.length ? strengths : fallbackStrengths,
     growthOpportunities: growthOpportunities.length
       ? growthOpportunities

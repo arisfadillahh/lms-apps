@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { BookOpen, CheckCircle2, ChevronRight, Download, FileText, Lightbulb, Lock, Sparkles, Video } from 'lucide-react';
 
 import { StaggerContainer, StaggerItem } from '../StaggerWrapper';
+import { normalizeHttpUrl } from '@/lib/safeUrl';
 
 export type MaterialsLesson = {
   id: string;
@@ -274,12 +275,14 @@ export default function MaterialsBlockTabs({
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {materialsByClass.map((entry) =>
-                entry.materials.map((material) => (
+                entry.materials.map((material) => {
+                  const safeFileUrl = material.file_url ? normalizeHttpUrl(material.file_url) : null;
+                  return (
                   <div key={material.id} className="bg-white rounded-3xl border-2 border-slate-50 shadow-sm p-6 flex flex-col justify-between gap-4 hover:shadow-md transition-shadow">
                     <div>
                       <div className="flex justify-between items-start mb-2">
                         <span className="text-[10px] font-black text-sky uppercase tracking-widest">{entry.name}</span>
-                        {material.file_url && <Download size={16} className="text-slate-300" />}
+                        {safeFileUrl && <Download size={16} className="text-slate-300" />}
                       </div>
                       <h3 className="text-lg font-black text-clevio-navy mb-1">{material.title}</h3>
                       {material.description && <p className="text-sm font-bold text-slate-400">{material.description}</p>}
@@ -290,13 +293,14 @@ export default function MaterialsBlockTabs({
                         </div>
                       )}
                     </div>
-                    {material.file_url && (
-                      <a href={material.file_url} target="_blank" rel="noreferrer" className="flex items-center justify-center w-full py-3 bg-pastel-blue text-sky font-black text-sm rounded-2xl hover:bg-sky hover:text-white transition-colors no-underline">
+                    {safeFileUrl && (
+                      <a href={safeFileUrl} target="_blank" rel="noreferrer" className="flex items-center justify-center w-full py-3 bg-pastel-blue text-sky font-black text-sm rounded-2xl hover:bg-sky hover:text-white transition-colors no-underline">
                         Buka File
                       </a>
                     )}
                   </div>
-                ))
+                  );
+                })
               )}
             </div>
           )}

@@ -4,7 +4,7 @@ import type { CSSProperties } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { GraduationCap, X } from 'lucide-react';
+import { GraduationCap, MapPin, MessageCircle, Wifi, X } from 'lucide-react';
 
 import type { LevelRecord } from '@/lib/dao/levelsDao';
 import type { UserRecord } from '@/lib/dao/usersDao';
@@ -12,10 +12,12 @@ import type { BlockRecord } from '@/lib/dao/blocksDao';
 import { createClassSchema } from '@/lib/validation/admin';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
+import { DEFAULT_CLASS_LOCATION } from '@/lib/classDelivery';
 
 const formSchema = createClassSchema;
 
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = z.input<typeof formSchema>;
+type ParsedFormValues = z.output<typeof formSchema>;
 
 type CoachOption = Pick<UserRecord, 'id' | 'full_name' | 'is_active'>;
 
@@ -51,12 +53,23 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
     formState: { errors, isSubmitting },
     reset,
     setValue,
-  } = useForm<FormValues>({
+  } = useForm<FormValues, unknown, ParsedFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       type: 'WEEKLY',
       scheduleDay: 'MONDAY',
       scheduleTime: '16:00',
+      deliveryMode: 'ONLINE',
+      zoomLink: '',
+      locationName: DEFAULT_CLASS_LOCATION.name,
+      locationAddress: DEFAULT_CLASS_LOCATION.address,
+      locationMapsUrl: DEFAULT_CLASS_LOCATION.mapsUrl,
+      parentWhatsappEnabled: false,
+      parentWhatsappClassReminderEnabled: false,
+      parentWhatsappAbsenceEnabled: false,
+      parentWhatsappMakeupEnabled: false,
+      parentWhatsappReportEnabled: false,
+      parentWhatsappEventEnabled: false,
       initialBlockId: '',
       initialLessonId: '',
       ekskulLessonPlanId: '',
@@ -65,9 +78,11 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
   });
 
   const selectedType = watch('type');
+  const selectedDeliveryMode = watch('deliveryMode');
   const selectedLevelId = watch('levelId');
   const selectedBlockId = watch('initialBlockId');
   const selectedEkskulPlanId = watch('ekskulLessonPlanId');
+  const parentWhatsappEnabled = watch('parentWhatsappEnabled');
 
   const availableBlocks = useMemo(() => {
     if (selectedType !== 'WEEKLY' || !selectedLevelId) {
@@ -133,7 +148,18 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
     setValue('initialLessonId', '' as any);
   }, [selectedLevelId, selectedType, setValue]);
 
-  const onSubmit = async (values: FormValues) => {
+  useEffect(() => {
+    if (selectedType !== 'EKSKUL') {
+      setValue('parentWhatsappEnabled', false);
+      setValue('parentWhatsappClassReminderEnabled', false);
+      setValue('parentWhatsappAbsenceEnabled', false);
+      setValue('parentWhatsappMakeupEnabled', false);
+      setValue('parentWhatsappReportEnabled', false);
+      setValue('parentWhatsappEventEnabled', false);
+    }
+  }, [selectedType, setValue]);
+
+  const onSubmit = async (values: ParsedFormValues) => {
     setErrorMessage(null);
     setSuccessMessage(null);
 
@@ -157,7 +183,21 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
       }
 
       setSuccessMessage('Kelas berhasil dibuat');
-      reset({ ...values, name: '', zoomLink: '', startDate: '', initialBlockId: '', initialLessonId: '', ekskulInitialLessonId: '' });
+      reset({
+        ...values,
+        name: '',
+        zoomLink: '',
+        startDate: '',
+        initialBlockId: '',
+        initialLessonId: '',
+        ekskulInitialLessonId: '',
+        parentWhatsappEnabled: false,
+        parentWhatsappClassReminderEnabled: false,
+        parentWhatsappAbsenceEnabled: false,
+        parentWhatsappMakeupEnabled: false,
+        parentWhatsappReportEnabled: false,
+        parentWhatsappEventEnabled: false,
+      });
       setAvailableLessons([]);
       setAvailableEkskulLessons([]);
       router.refresh();
@@ -401,10 +441,74 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
             </div>
 
             <div style={fieldStyle}>
-              <label style={labelStyle}>Link Zoom</label>
-              <input style={{ ...inputStyle, color: '#3b82f6' }} type="url" placeholder="https://zoom.us/..." {...register('zoomLink')} />
-              {errors.zoomLink ? <span style={errorStyle}>{errors.zoomLink.message}</span> : null}
+              <label style={labelStyle}>Metode Kelas</label>
+              <select style={inputStyle} {...register('deliveryMode')}>
+                <option value="ONLINE">Online</option>
+                <option value="OFFLINE">Offline / Tatap muka</option>
+              </select>
+              <span style={helpStyle}>
+                {selectedDeliveryMode === 'OFFLINE'
+                  ? 'Coder akan melihat alamat dan tombol Google Maps.'
+                  : 'Coder akan melihat tombol masuk kelas saat waktunya tiba.'}
+              </span>
             </div>
+
+            {selectedDeliveryMode === 'ONLINE' ? (
+              <div style={fieldStyle}>
+                <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: 6 }}><Wifi size={15} /> Link Kelas Online</label>
+                <input style={{ ...inputStyle, color: '#3b82f6' }} type="url" placeholder="https://zoom.us/..." {...register('zoomLink')} />
+                {errors.zoomLink ? <span style={errorStyle}>{errors.zoomLink.message}</span> : null}
+              </div>
+            ) : (
+              <>
+                <div style={fieldStyle}>
+                  <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: 6 }}><MapPin size={15} /> Nama Tempat</label>
+                  <input style={inputStyle} type="text" {...register('locationName')} />
+                  {errors.locationName ? <span style={errorStyle}>{errors.locationName.message}</span> : null}
+                </div>
+                <div style={{ ...fieldStyle, gridColumn: '1 / -1' }}>
+                  <label style={labelStyle}>Alamat Kelas</label>
+                  <textarea style={{ ...inputStyle, minHeight: 76, resize: 'vertical' }} {...register('locationAddress')} />
+                  {errors.locationAddress ? <span style={errorStyle}>{errors.locationAddress.message}</span> : null}
+                </div>
+                <div style={{ ...fieldStyle, gridColumn: '1 / -1' }}>
+                  <label style={labelStyle}>Link Google Maps</label>
+                  <input style={{ ...inputStyle, color: '#3b82f6' }} type="url" {...register('locationMapsUrl')} />
+                  {errors.locationMapsUrl ? <span style={errorStyle}>{errors.locationMapsUrl.message}</span> : null}
+                </div>
+              </>
+            )}
+
+            {selectedType === 'EKSKUL' ? (
+              <fieldset style={whatsappSettingsStyle}>
+                <legend style={whatsappLegendStyle}><MessageCircle size={20} color="#2563eb" /> WhatsApp otomatis ke orang tua</legend>
+                <span style={helpStyle}>Kebijakan sekolah adalah pengaman utama. PWA dan notifikasi LMS tetap aktif apa pun pengaturan WhatsApp-nya.</span>
+                <label style={notificationToggleStyle}>
+                  <input type="checkbox" {...register('parentWhatsappEnabled')} style={checkboxStyle} />
+                  <span><strong style={toggleTitleStyle}>Sekolah mengizinkan WhatsApp orang tua</strong><span style={helpStyle}>Jika mati, seluruh pesan WhatsApp orang tua dari kelas ini diblokir.</span></span>
+                </label>
+                <label style={notificationToggleStyle}>
+                  <input type="checkbox" {...register('parentWhatsappClassReminderEnabled')} disabled={!parentWhatsappEnabled} style={checkboxStyle} />
+                  <span><strong style={toggleTitleStyle}>Pengingat jadwal kelas</strong><span style={helpStyle}>Pesan H-1 berisi waktu dan akses/lokasi kelas.</span></span>
+                </label>
+                <label style={notificationToggleStyle}>
+                  <input type="checkbox" {...register('parentWhatsappAbsenceEnabled')} disabled={!parentWhatsappEnabled} style={checkboxStyle} />
+                  <span><strong style={toggleTitleStyle}>Notifikasi tidak hadir</strong><span style={helpStyle}>Pesan ketika Coder dicatat Absent atau Excused.</span></span>
+                </label>
+                <label style={notificationToggleStyle}>
+                  <input type="checkbox" {...register('parentWhatsappMakeupEnabled')} disabled={!parentWhatsappEnabled} style={checkboxStyle} />
+                  <span><strong style={toggleTitleStyle}>Reminder tugas makeup</strong><span style={helpStyle}>Pengingat H-3 dan H-1 sebelum tenggat tugas susulan.</span></span>
+                </label>
+                <label style={notificationToggleStyle}>
+                  <input type="checkbox" {...register('parentWhatsappReportEnabled')} disabled={!parentWhatsappEnabled} style={checkboxStyle} />
+                  <span><strong style={toggleTitleStyle}>Kirim rapor</strong><span style={helpStyle}>WhatsApp saat Admin memublikasikan rapor. Rapor dan PWA tetap terbit jika pilihan ini mati.</span></span>
+                </label>
+                <label style={notificationToggleStyle}>
+                  <input type="checkbox" {...register('parentWhatsappEventEnabled')} disabled={!parentWhatsappEnabled} style={checkboxStyle} />
+                  <span><strong style={toggleTitleStyle}>Event & festival</strong><span style={helpStyle}>Reminder broadcast event yang menargetkan kelas ini.</span></span>
+                </label>
+              </fieldset>
+            ) : null}
 
             <div style={fieldStyle}>
               <label style={labelStyle}>Tanggal Mulai</label>
@@ -494,3 +598,26 @@ const errorStyle: CSSProperties = {
   marginTop: '0.25rem',
   marginLeft: '0.25rem'
 };
+
+const helpStyle: CSSProperties = {
+  color: '#64748b',
+  fontSize: '0.78rem',
+  lineHeight: 1.45,
+};
+
+const toggleCardStyle: CSSProperties = {
+  gridColumn: '1 / -1',
+  display: 'flex',
+  alignItems: 'flex-start',
+  gap: '0.75rem',
+  padding: '1rem',
+  border: '1px solid #bfdbfe',
+  borderRadius: '12px',
+  background: '#eff6ff',
+  cursor: 'pointer',
+};
+const whatsappSettingsStyle: CSSProperties = { ...toggleCardStyle, display: 'grid', cursor: 'default' };
+const whatsappLegendStyle: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 4px', color: '#1e293b', fontSize: 14, fontWeight: 700 };
+const notificationToggleStyle: CSSProperties = { display: 'flex', alignItems: 'flex-start', gap: 10, paddingTop: 10, cursor: 'pointer' };
+const checkboxStyle: CSSProperties = { width: 18, height: 18, flex: '0 0 18px', accentColor: '#2563eb' };
+const toggleTitleStyle: CSSProperties = { display: 'block', color: '#1e293b', fontSize: 13 };

@@ -7,6 +7,7 @@ type ReportLessonButtonProps = {
     lessonId: string;
     lessonTitle: string;
     coachId: string;
+    lessonSource?: 'WEEKLY' | 'EKSKUL';
 };
 
 const REPORT_TYPES = [
@@ -17,7 +18,7 @@ const REPORT_TYPES = [
     { value: 'OTHER', label: 'Lainnya' },
 ];
 
-export default function ReportLessonButton({ lessonId, lessonTitle, coachId }: ReportLessonButtonProps) {
+export default function ReportLessonButton({ lessonId, lessonTitle, coachId, lessonSource = 'WEEKLY' }: ReportLessonButtonProps) {
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
@@ -44,11 +45,11 @@ export default function ReportLessonButton({ lessonId, lessonTitle, coachId }: R
                 const res = await fetch('/api/coach/lesson-reports', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ lessonTemplateId: lessonId, reportType, description: description.trim() }),
+                    body: JSON.stringify({ lessonTemplateId: lessonId, lessonSource, reportType, description: description.trim() }),
                 });
                 if (!res.ok) {
                     const data = await res.json().catch(() => ({}));
-                    setError(data.error || 'Gagal mengirim laporan');
+                    setError(data.error || 'Gagal mengirim masalah lesson');
                     return;
                 }
                 setSuccess(true);
@@ -67,7 +68,7 @@ export default function ReportLessonButton({ lessonId, lessonTitle, coachId }: R
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-rose-400/40 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-semibold transition-all text-sm"
             >
                 <span className="material-symbols-outlined text-xl">flag</span>
-                Laporkan Masalah
+                Laporkan Masalah Lesson
             </button>
 
             {/* Modal */}
@@ -77,13 +78,13 @@ export default function ReportLessonButton({ lessonId, lessonTitle, coachId }: R
                     onClick={handleClose}
                 >
                     <div
-                        className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-slate-200"
+                    className="flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Modal Header */}
                         <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900">Laporkan Masalah</h3>
+                                <h3 className="text-lg font-bold text-slate-900">Laporkan Masalah Lesson</h3>
                                 <p className="text-xs text-slate-500 mt-0.5 truncate max-w-xs">{lessonTitle}</p>
                             </div>
                             <button
@@ -95,12 +96,12 @@ export default function ReportLessonButton({ lessonId, lessonTitle, coachId }: R
                         </div>
 
                         {/* Modal Body */}
-                        <div className="p-6 space-y-5">
+                        <div className="overflow-y-auto p-6 space-y-5">
                             {success ? (
                                 <div className="flex flex-col items-center justify-center py-6 text-center gap-3">
                                     <span className="material-symbols-outlined text-5xl text-emerald-500">check_circle</span>
-                                    <p className="font-bold text-slate-800">Laporan Terkirim!</p>
-                                    <p className="text-sm text-slate-500">Admin akan segera meninjau laporan Anda.</p>
+                                    <p className="font-bold text-slate-800">Masalah Lesson Terkirim!</p>
+                                    <p className="text-sm text-slate-500">Admin akan segera meninjau masalah tersebut.</p>
                                 </div>
                             ) : (
                                 <>
@@ -111,7 +112,8 @@ export default function ReportLessonButton({ lessonId, lessonTitle, coachId }: R
                                             <select
                                                 value={reportType}
                                                 onChange={(e) => setReportType(e.target.value)}
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-slate-400 focus:border-slate-400 appearance-none text-slate-700 pr-10"
+                                                className="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-3 pr-10 text-sm text-slate-900 caret-slate-900 focus:border-slate-500 focus:ring-2 focus:ring-slate-300"
+                                                style={{ color: '#0f172a', backgroundColor: '#ffffff', WebkitTextFillColor: '#0f172a' }}
                                             >
                                                 <option value="">Pilih jenis masalah...</option>
                                                 {REPORT_TYPES.map((t) => (
@@ -132,7 +134,8 @@ export default function ReportLessonButton({ lessonId, lessonTitle, coachId }: R
                                             onChange={(e) => setDescription(e.target.value)}
                                             placeholder="Jelaskan masalah yang Anda temukan secara detail..."
                                             rows={4}
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-slate-400 placeholder-slate-400 resize-none"
+                                            className="w-full resize-none rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 caret-slate-900 placeholder:text-slate-500 focus:border-slate-500 focus:ring-2 focus:ring-slate-300"
+                                            style={{ color: '#0f172a', backgroundColor: '#ffffff', WebkitTextFillColor: '#0f172a' }}
                                         />
                                     </div>
 
@@ -166,7 +169,7 @@ export default function ReportLessonButton({ lessonId, lessonTitle, coachId }: R
                                                     </svg>
                                                     Mengirim...
                                                 </>
-                                            ) : 'Kirim Laporan'}
+                                            ) : 'Kirim Masalah Lesson'}
                                         </button>
                                     </div>
                                 </>

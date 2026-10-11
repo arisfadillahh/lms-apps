@@ -3,13 +3,14 @@ import { z } from 'zod';
 
 import { getSessionOrThrow } from '@/lib/auth';
 import { makeUpTasksDao } from '@/lib/dao';
+import { httpUrlSchema } from '@/lib/safeUrl';
 
 const uploadSchema = z.object({
   files: z
     .array(
       z.object({
         name: z.string().min(1),
-        url: z.string().url(),
+        url: httpUrlSchema,
         type: z.string().optional(),
       }),
     )

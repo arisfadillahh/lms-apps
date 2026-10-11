@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { getSessionOrThrow } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { StaggerContainer, StaggerItem } from '../StaggerWrapper';
+import PortfolioTabs from '@/components/portfolio/PortfolioTabs';
 
 export default async function CoderReportsPage() {
   const session = await getSessionOrThrow();
@@ -16,8 +17,9 @@ export default async function CoderReportsPage() {
       id,
       average_score,
       grade,
+      report_period_type,
       updated_at,
-      class:classes(name),
+      class:classes(name, type),
       block:blocks(name)
     `)
     .eq('coder_id', session.user.id)
@@ -32,12 +34,16 @@ export default async function CoderReportsPage() {
       <StaggerItem>
         <header>
           <h1 className="text-3xl font-black text-clevio-navy tracking-tight mb-1 flex items-center gap-3">
-            <FileText className="text-clevio-green" size={28} /> Rapor Clevio
+            <FileText className="text-clevio-green" size={28} /> Rapor & Portofolio
           </h1>
           <p className="text-sm font-bold text-slate-400">
             Lihat perkembangan dan hasil belajar kamu di setiap Block.
           </p>
         </header>
+      </StaggerItem>
+
+      <StaggerItem>
+        <PortfolioTabs active="reports" />
       </StaggerItem>
 
       {/* Reports Section */}
@@ -73,7 +79,7 @@ export default async function CoderReportsPage() {
                       </div>
                       <div>
                         <h3 className="text-lg font-black text-clevio-navy">
-                          {(report.class as any)?.name} <span className="text-slate-400 font-semibold mx-1">|</span> {(report.block as any)?.name}
+                          {(report.class as any)?.name} <span className="text-slate-400 font-semibold mx-1">|</span> {report.report_period_type === 'EKSKUL_MIDTERM' ? 'Rapor Tengah Semester' : (report.class as any)?.type === 'EKSKUL' ? 'Rapor Akhir Semester' : (report.block as any)?.name}
                         </h3>
                         <div className="flex items-center gap-3 mt-1 flex-wrap">
                           <span className="flex items-center gap-1.5 text-sm font-bold text-slate-400">

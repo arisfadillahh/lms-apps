@@ -38,6 +38,16 @@ export type CreateClassInput = {
   scheduleDay: string;
   scheduleTime: string;
   zoomLink: string;
+  deliveryMode: ClassRecord['delivery_mode'];
+  locationName?: string | null;
+  locationAddress?: string | null;
+  locationMapsUrl?: string | null;
+  parentWhatsappEnabled?: boolean;
+  parentWhatsappClassReminderEnabled?: boolean;
+  parentWhatsappAbsenceEnabled?: boolean;
+  parentWhatsappMakeupEnabled?: boolean;
+  parentWhatsappReportEnabled?: boolean;
+  parentWhatsappEventEnabled?: boolean;
   startDate: string;
   endDate?: string;
 };
@@ -53,6 +63,16 @@ export async function createClass(input: CreateClassInput): Promise<ClassRecord>
     schedule_day: input.scheduleDay,
     schedule_time: input.scheduleTime,
     zoom_link: input.zoomLink,
+    delivery_mode: input.deliveryMode,
+    location_name: input.locationName ?? null,
+    location_address: input.locationAddress ?? null,
+    location_maps_url: input.locationMapsUrl ?? null,
+    parent_whatsapp_enabled: input.type === 'EKSKUL' && input.parentWhatsappEnabled === true,
+    parent_whatsapp_class_reminder_enabled: input.type === 'EKSKUL' && input.parentWhatsappClassReminderEnabled === true,
+    parent_whatsapp_absence_enabled: input.type === 'EKSKUL' && input.parentWhatsappAbsenceEnabled === true,
+    parent_whatsapp_makeup_enabled: input.type === 'EKSKUL' && input.parentWhatsappMakeupEnabled === true,
+    parent_whatsapp_report_enabled: input.type === 'EKSKUL' && input.parentWhatsappReportEnabled === true,
+    parent_whatsapp_event_enabled: input.type === 'EKSKUL' && input.parentWhatsappEventEnabled === true,
     start_date: input.startDate,
     end_date: input.endDate ?? input.startDate,
   };
@@ -82,6 +102,16 @@ export async function updateClass(id: string, updates: Partial<Omit<CreateClassI
   if (updates.scheduleDay !== undefined) payload.schedule_day = updates.scheduleDay;
   if (updates.scheduleTime !== undefined) payload.schedule_time = updates.scheduleTime;
   if (updates.zoomLink !== undefined) payload.zoom_link = updates.zoomLink;
+  if (updates.deliveryMode !== undefined) payload.delivery_mode = updates.deliveryMode;
+  if (updates.locationName !== undefined) payload.location_name = updates.locationName;
+  if (updates.locationAddress !== undefined) payload.location_address = updates.locationAddress;
+  if (updates.locationMapsUrl !== undefined) payload.location_maps_url = updates.locationMapsUrl;
+  if (updates.parentWhatsappEnabled !== undefined) payload.parent_whatsapp_enabled = updates.parentWhatsappEnabled;
+  if (updates.parentWhatsappClassReminderEnabled !== undefined) payload.parent_whatsapp_class_reminder_enabled = updates.parentWhatsappClassReminderEnabled;
+  if (updates.parentWhatsappAbsenceEnabled !== undefined) payload.parent_whatsapp_absence_enabled = updates.parentWhatsappAbsenceEnabled;
+  if (updates.parentWhatsappMakeupEnabled !== undefined) payload.parent_whatsapp_makeup_enabled = updates.parentWhatsappMakeupEnabled;
+  if (updates.parentWhatsappReportEnabled !== undefined) payload.parent_whatsapp_report_enabled = updates.parentWhatsappReportEnabled;
+  if (updates.parentWhatsappEventEnabled !== undefined) payload.parent_whatsapp_event_enabled = updates.parentWhatsappEventEnabled;
   if (updates.startDate !== undefined) payload.start_date = updates.startDate;
   if (updates.endDate !== undefined) payload.end_date = updates.endDate;
 
@@ -107,9 +137,11 @@ export async function getClassById(id: string): Promise<ClassRecord | null> {
   return data;
 }
 
-export async function listClasses(): Promise<ClassRecord[]> {
+export async function listClasses(options: { includeArchived?: boolean } = {}): Promise<ClassRecord[]> {
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase.from('classes').select('*').order('start_date', { ascending: true });
+  let query = supabase.from('classes').select('*');
+  if (!options.includeArchived) query = query.is('archived_at', null);
+  const { data, error } = await query.order('start_date', { ascending: true });
 
   if (error) {
     throw new Error(`Failed to list classes: ${error.message}`);
@@ -243,41 +275,19 @@ export async function deleteClass(id: string): Promise<void> {
     );
   }
 
-  // Preserve billing records while releasing the only non-cascading class FK.
-  const { data: detachedPeriods, error: paymentError } = await supabase
-    .from('coder_payment_periods')
-    .update({ class_id: null } as unknown as TablesUpdate<'coder_payment_periods'>)
-    .eq('class_id', id)
-    .select('id');
-
-  if (paymentError) {
-    throw new Error(`Failed to preserve payment periods: ${paymentError.message}`);
-  }
-
-  const { data: deletedClasses, error } = await supabase
+  const { data: archivedClasses, error } = await supabase
     .from('classes')
-    .delete()
+    .update({ archived_at: new Date().toISOString() })
     .eq('id', id)
+    .in('lifecycle_status', ['ENDED', 'CANCELLED'])
+    .is('archived_at', null)
     .select('id');
 
-  if (!error && deletedClasses?.length === 1) {
+  if (error) throw new Error(`Failed to archive class: ${error.message}`);
+  if (archivedClasses?.length === 1) {
     return;
   }
-
-  const detachedPeriodIds = (detachedPeriods ?? []).map((period) => period.id);
-  let rollbackMessage = '';
-  if (detachedPeriodIds.length > 0) {
-    const { error: rollbackError } = await supabase
-      .from('coder_payment_periods')
-      .update({ class_id: id })
-      .in('id', detachedPeriodIds);
-
-    if (rollbackError) {
-      rollbackMessage = ` Payment period rollback also failed: ${rollbackError.message}`;
-    }
-  }
-
-  throw new Error(`Failed to delete class: ${error?.message ?? 'class was not deleted'}.${rollbackMessage}`);
+  throw new ClassDeletionBlockedError('Kelas harus berstatus selesai atau ditiadakan sebelum diarsipkan.');
 }
 
 export async function updateClassBlock(
@@ -389,9 +399,15 @@ export async function listEnrollmentsByClass(classId: string, options: ListEnrol
 
 export async function updateEnrollmentStatus(classId: string, coderId: string, status: EnrollmentRecord['status']): Promise<void> {
   const supabase = getSupabaseAdmin();
+  const now = new Date().toISOString();
   const { error } = await supabase
     .from('enrollments')
-    .update({ status })
+    .update({
+      status,
+      ended_at: status === 'INACTIVE' ? now : null,
+      exit_reason: status === 'INACTIVE' ? 'INACTIVE' : null,
+      updated_at: now,
+    })
     .eq('class_id', classId)
     .eq('coder_id', coderId);
 
@@ -402,9 +418,10 @@ export async function updateEnrollmentStatus(classId: string, coderId: string, s
 
 export async function deleteEnrollment(classId: string, coderId: string): Promise<boolean> {
   const supabase = getSupabaseAdmin();
+  const now = new Date().toISOString();
   const { data, error } = await supabase
     .from('enrollments')
-    .delete()
+    .update({ status: 'INACTIVE', ended_at: now, exit_reason: 'INACTIVE', updated_at: now })
     .eq('class_id', classId)
     .eq('coder_id', coderId)
     .select('id');
@@ -441,13 +458,14 @@ export async function transferCoderEnrollment(input: {
   return data;
 }
 
-export async function listClassesForCoach(coachId: string): Promise<ClassRecord[]> {
+export async function listClassesForCoach(coachId: string, options: { includeArchived?: boolean } = {}): Promise<ClassRecord[]> {
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
+  let query = supabase
     .from('classes')
     .select('*')
-    .eq('coach_id', coachId)
-    .order('start_date', { ascending: true });
+    .eq('coach_id', coachId);
+  if (!options.includeArchived) query = query.is('archived_at', null);
+  const { data, error } = await query.order('start_date', { ascending: true });
 
   if (error) {
     throw new Error(`Failed to list coach classes: ${error.message}`);

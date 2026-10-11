@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -9,6 +11,21 @@ import {
 } from '@/lib/issueReports';
 
 describe('issue report helpers', () => {
+  it('keeps the Coder issue report action in the sidebar', () => {
+    const sidebar = readFileSync(resolve(process.cwd(), 'src/app/(coder)/coder/CoderSidebar.tsx'), 'utf8');
+    const layout = readFileSync(resolve(process.cwd(), 'src/app/(coder)/coder/layout.tsx'), 'utf8');
+    const dashboard = readFileSync(resolve(process.cwd(), 'src/app/(coder)/coder/dashboard/page.tsx'), 'utf8');
+    const styles = readFileSync(resolve(process.cwd(), 'src/components/issue-reports/IssueReportButton.module.css'), 'utf8');
+
+    expect(sidebar).toContain('placement="sidebar"');
+    expect(sidebar).not.toContain('coder-mobile-report');
+    expect(dashboard).toContain('placement="card"');
+    expect(dashboard).toContain('md:hidden');
+    expect(layout).not.toContain('<IssueReportButton role="CODER" />');
+    expect(styles).toContain('.cardTrigger');
+    expect(styles).toContain('.sidebarTrigger');
+  });
+
   it('creates a short stable reference', () => {
     expect(formatIssueReportReference('a1b2c3d4-1111-2222-3333-444455556666')).toBe('BUG-A1B2C3D4');
   });
@@ -22,6 +39,30 @@ describe('issue report helpers', () => {
   it('validates the public report fields', () => {
     expect(issueReportSchema.safeParse({ title: 'Error nilai', description: 'Tombol simpan tidak merespons.' }).success).toBe(true);
     expect(issueReportSchema.safeParse({ title: 'Err', description: 'Pendek' }).success).toBe(false);
+  });
+
+  it('keeps the error page link optional when a report is submitted', () => {
+    const result = issueReportSchema.safeParse({
+      title: 'Simpan presensi tertutup navigasi',
+      description: 'Tombol simpan presensi tertutup bottom navigation di mobile.',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.pageUrl).toBe('');
+    }
+
+    const message = buildIssueReportWhatsAppMessage({
+      id: 'a1b2c3d4-1111-2222-3333-444455556666',
+      reporterName: 'Coach Test',
+      reporterRole: 'COACH',
+      title: 'Simpan presensi tertutup navigasi',
+      description: 'Tombol simpan presensi tertutup bottom navigation di mobile.',
+      createdAt: '2026-08-12T03:00:00.000Z',
+      hasScreenshot: false,
+    });
+
+    expect(message).not.toContain('Halaman:');
   });
 
   it('requires a resolution summary before closing', () => {

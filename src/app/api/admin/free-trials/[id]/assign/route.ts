@@ -80,6 +80,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       });
 
       const notificationInput: TrialCoachAssignmentNotificationInput = {
+        trialId: updated.id,
         coachId: coach.id,
         coachName: coach.full_name,
         coachPhone: coach.parent_contact_phone,

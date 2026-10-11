@@ -7,7 +7,14 @@ import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
 const templateSchema = z.object({
     id: z.string().uuid().optional(),
-    category: z.enum(['PARENT_ABSENT', 'REPORT_SEND', 'TRIAL_REPORT_SEND', 'REMINDER']),
+    category: z.enum([
+        'PARENT_ABSENT',
+        'REPORT_SEND',
+        'TRIAL_REPORT_SEND',
+        'REMINDER',
+        'CLASS_REMINDER_ONLINE',
+        'CLASS_REMINDER_OFFLINE',
+    ]),
     templateContent: z.string().min(1),
     variables: z.array(z.string()).optional(),
 });

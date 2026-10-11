@@ -7,6 +7,7 @@ import { blocksDao, classesDao, lessonTemplatesDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
 import { createClassSchema } from '@/lib/validation/admin';
 import { autoPlanWeeklyClass } from '@/lib/services/classAutoPlanner';
+import { normalizeClassMeetingUrl } from '@/lib/classMeetingUrl';
 
 const DEFAULT_CLASS_DURATION_WEEKS = 12;
 
@@ -82,6 +83,15 @@ export async function POST(request: NextRequest) {
   }
 
   const input = parsed.data;
+  const zoomLink = input.deliveryMode === 'ONLINE'
+    ? normalizeClassMeetingUrl(input.zoomLink)
+    : '';
+  if (input.deliveryMode === 'ONLINE' && !zoomLink) {
+    return NextResponse.json(
+      { error: 'Gunakan link Google Meet, Zoom, atau ruang kelas online yang valid.' },
+      { status: 400 },
+    );
+  }
   const start = new Date(input.startDate);
   if (Number.isNaN(start.getTime())) {
     return NextResponse.json({ error: 'Invalid start date' }, { status: 400 });
@@ -163,7 +173,17 @@ export async function POST(request: NextRequest) {
     coachId: input.coachId,
     scheduleDay: input.scheduleDay,
     scheduleTime: input.scheduleTime,
-    zoomLink: input.zoomLink,
+    zoomLink: zoomLink ?? '',
+    deliveryMode: input.deliveryMode,
+    locationName: input.deliveryMode === 'OFFLINE' ? input.locationName ?? null : null,
+    locationAddress: input.deliveryMode === 'OFFLINE' ? input.locationAddress ?? null : null,
+    locationMapsUrl: input.deliveryMode === 'OFFLINE' ? input.locationMapsUrl ?? null : null,
+    parentWhatsappEnabled: input.type === 'EKSKUL' && input.parentWhatsappEnabled,
+    parentWhatsappClassReminderEnabled: input.type === 'EKSKUL' && input.parentWhatsappClassReminderEnabled,
+    parentWhatsappAbsenceEnabled: input.type === 'EKSKUL' && input.parentWhatsappAbsenceEnabled,
+    parentWhatsappMakeupEnabled: input.type === 'EKSKUL' && input.parentWhatsappMakeupEnabled,
+    parentWhatsappReportEnabled: input.type === 'EKSKUL' && input.parentWhatsappReportEnabled,
+    parentWhatsappEventEnabled: input.type === 'EKSKUL' && input.parentWhatsappEventEnabled,
     startDate: input.startDate,
     endDate,
   });
@@ -182,7 +202,15 @@ export async function POST(request: NextRequest) {
         input.coachId,
         'Kelas Baru',
         `Anda telah ditugaskan untuk mengajar kelas: ${created.name}`,
-        'SYSTEM' // Keeping type SYSTEM to ensure it displays everywhere normally
+        'SYSTEM',
+        {
+          actionUrl: `/coach/classes/${created.id}`,
+          category: 'SCHEDULE',
+          priority: 'HIGH',
+          dedupeKey: `class-assignment-${created.id}-${input.coachId}`,
+          push: true,
+          pushTag: `class-assignment-${created.id}`,
+        },
       );
     }
   } catch (error) {

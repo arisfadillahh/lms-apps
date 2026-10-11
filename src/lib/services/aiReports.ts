@@ -13,6 +13,7 @@ import {
   hasVisibleOrGeneratableDraft,
 } from '@/lib/services/aiReportGuards';
 import { getRegularReportWindowDays, isRegularReportWindowActive } from '@/lib/services/reportWindows';
+import { isEnrollmentActiveForSession } from '@/lib/services/enrollmentEligibility';
 
 const EKSKUL_REVIEW_LEVEL_NAME = 'Ekskul';
 const EKSKUL_REPORT_GENERATION_CONCURRENCY = 4;
@@ -23,14 +24,28 @@ type ClassBlockWithRelations = {
   block_id: string;
   start_date: string;
   pitching_day_date: string | null;
-  classes: { id: string; name: string; level_id: string | null } | { id: string; name: string; level_id: string | null }[] | null;
+  classes: {
+    id: string;
+    name: string;
+    level_id: string | null;
+    coach_id: string | null;
+    lifecycle_status: 'ACTIVE' | 'PAUSED' | 'ENDED' | 'CANCELLED';
+    coach: { id: string; full_name: string } | { id: string; full_name: string }[] | null;
+  } | Array<{
+    id: string;
+    name: string;
+    level_id: string | null;
+    coach_id: string | null;
+    lifecycle_status: 'ACTIVE' | 'PAUSED' | 'ENDED' | 'CANCELLED';
+    coach: { id: string; full_name: string } | { id: string; full_name: string }[] | null;
+  }> | null;
   blocks: { id: string; name: string | null } | { id: string; name: string | null }[] | null;
 };
 
 /**
  * AI Description Generator using openrouter
  */
-async function generateBlockReportDescriptions(
+export async function generateBlockReportDescriptions(
   coderName: string,
   className: string,
   blockName: string,
@@ -119,6 +134,156 @@ function calculateGrade(average: number): string {
   return 'D';
 }
 
+export type GenerateEkskulMidtermReportsInput = {
+  classId: string;
+  cutoffAt: string;
+  initiatedBy: string;
+};
+
+/**
+ * Creates one manual, class-wide midterm cycle. It deliberately uses no block,
+ * so it cannot overwrite the automatic per-block/final report workflow.
+ */
+export async function generateEkskulMidtermReports(input: GenerateEkskulMidtermReportsInput) {
+  const supabase = getSupabaseAdmin();
+  const requestedCutoff = new Date(input.cutoffAt);
+  if (Number.isNaN(requestedCutoff.getTime()) || requestedCutoff.getTime() > Date.now()) {
+    throw new Error('Tanggal batas rapor tengah semester tidak valid.');
+  }
+
+  const klass = await classesDao.getClassById(input.classId);
+  if (!klass || klass.type !== 'EKSKUL') {
+    throw new Error('Rapor tengah semester hanya tersedia untuk kelas Ekskul.');
+  }
+
+  const existingCycle = await reportsDao.getEkskulMidtermCycleForClass(input.classId);
+  const cutoff = new Date(existingCycle?.cutoff_at ?? requestedCutoff.toISOString());
+
+  const [sessions, enrollments, criteria, lessonSchedule] = await Promise.all([
+    sessionsDao.listSessionsByClass(input.classId),
+    classesDao.listEnrollmentsByClass(input.classId, { includeInactive: true }),
+    reportsDao.getEvaluationCriteria(),
+    computeLessonSchedule(input.classId, klass.level_id, klass.ekskul_lesson_plan_id),
+  ]);
+
+  const includedSessions = sessions
+    .filter((session) => (
+      session.status === 'COMPLETED'
+      && new Date(session.date_time).getTime() <= cutoff.getTime()
+      && lessonSchedule.has(session.id)
+    ))
+    .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
+
+  if (includedSessions.length === 0) {
+    throw new Error('Belum ada lesson Ekskul selesai pada periode rapor tengah semester.');
+  }
+
+  const includedSessionIds = includedSessions.map((session) => session.id);
+  const { data: evaluations, error: evaluationsError } = await supabase
+    .from('lesson_evaluations')
+    .select('session_id, coder_id, criteria_id, score')
+    .in('session_id', includedSessionIds);
+  if (evaluationsError) throw new Error(`Gagal membaca nilai lesson: ${evaluationsError.message}`);
+
+  const eligibleCoderIds = new Set(
+    enrollments
+      .filter((enrollment) => isEnrollmentActiveForSession(enrollment, cutoff.toISOString()))
+      .map((enrollment) => enrollment.coder_id),
+  );
+  const coderScores: Record<string, Record<string, number[]>> = {};
+  for (const evaluation of evaluations ?? []) {
+    if (!eligibleCoderIds.has(evaluation.coder_id)) continue;
+    const byCriteria = coderScores[evaluation.coder_id] ??= {};
+    const scores = byCriteria[evaluation.criteria_id] ??= [];
+    scores.push(Number(evaluation.score));
+  }
+
+  const coderIds = Object.keys(coderScores);
+  if (coderIds.length === 0) {
+    throw new Error('Belum ada nilai lesson untuk peserta aktif pada periode ini.');
+  }
+
+  const { data: coderRows, error: coderError } = await supabase
+    .from('users')
+    .select('id, full_name')
+    .in('id', coderIds);
+  if (coderError) throw new Error(`Gagal membaca peserta rapor: ${coderError.message}`);
+  const coderNames = new Map((coderRows ?? []).map((coder) => [coder.id, coder.full_name]));
+  const criteriaNames = new Map(criteria.map((criterion) => [criterion.id, criterion.name]));
+  const lessonTitles = includedSessions
+    .map((session) => lessonSchedule.get(session.id))
+    .filter(Boolean)
+    .map((slot) => formatLessonTitle(slot!));
+  const lessonTitlesText = Array.from(new Set(lessonTitles)).join(', ') || 'Materi Ekskul';
+
+  let cycle = existingCycle;
+  if (!cycle) {
+    try {
+      cycle = await reportsDao.createEkskulMidtermCycle({
+        classId: input.classId,
+        cutoffAt: cutoff.toISOString(),
+        createdBy: input.initiatedBy,
+      });
+    } catch (error) {
+      // A second request may win the unique class/report-type race. Resume its cycle.
+      cycle = await reportsDao.getEkskulMidtermCycleForClass(input.classId);
+      if (!cycle) throw error;
+    }
+  }
+  const coach = klass.coach_id
+    ? await supabase.from('users').select('full_name').eq('id', klass.coach_id).maybeSingle()
+    : { data: null };
+
+  let generatedCount = 0;
+  for (const coderId of coderIds) {
+    const criteriaInput = Object.entries(coderScores[coderId]).map(([criteriaId, scores]) => ({
+      criteriaId,
+      criteriaName: criteriaNames.get(criteriaId) ?? 'Kriteria Umum',
+      score: scores.reduce((sum, score) => sum + score, 0) / scores.length,
+    }));
+    const average = criteriaInput.reduce((sum, item) => sum + item.score, 0) / criteriaInput.length;
+    let report = await reportsDao.getEkskulMidtermReport(cycle.id, coderId);
+    if (!report) {
+      try {
+        report = await reportsDao.createEkskulMidtermReport({
+          cycleId: cycle.id,
+          classId: input.classId,
+          coderId,
+          averageScore: Number(average.toFixed(2)),
+          grade: calculateGrade(average),
+          coachIdSnapshot: klass.coach_id,
+          coachNameSnapshot: coach.data?.full_name ?? null,
+        });
+      } catch (error) {
+        report = await reportsDao.getEkskulMidtermReport(cycle.id, coderId);
+        if (!report) throw error;
+      }
+    }
+
+    const existingDescriptions = await reportsDao.getBlockReportDescriptions(report.id);
+    if (existingDescriptions.length >= criteriaInput.length || report.status !== 'DRAFT') {
+      generatedCount++;
+      continue;
+    }
+    const descriptions = await generateBlockReportDescriptions(
+      coderNames.get(coderId) ?? 'Coder',
+      klass.name,
+      'Rapor Tengah Semester Ekskul',
+      lessonTitlesText,
+      criteriaInput,
+    );
+    await reportsDao.upsertBlockReportDescriptions(descriptions.map((description) => ({
+      reportId: report.id,
+      criteriaId: description.criteriaId,
+      score: criteriaInput.find((item) => item.criteriaId === description.criteriaId)?.score ?? 0,
+      description: description.description,
+    })));
+    generatedCount++;
+  }
+
+  return { cycle, count: generatedCount, sessionCount: includedSessions.length };
+}
+
 async function generateDraftReportsFromClassBlocks(
   classBlocks: ClassBlockWithRelations[],
   logPrefix: string,
@@ -200,6 +365,30 @@ async function generateDraftReportsFromClassBlocks(
       continue;
     }
 
+    const evaluatedCoderIds = [...new Set(evaluations.map((evaluation) => evaluation.coder_id))];
+    const [{ data: enrollmentRows, error: enrollmentError }, { data: completedReflections, error: reflectionError }] = await Promise.all([
+      supabase
+        .from('enrollments')
+        .select('*')
+        .eq('class_id', classId)
+        .in('coder_id', evaluatedCoderIds),
+      supabase
+        .from('block_evaluations')
+        .select('coder_id')
+        .eq('class_id', classId)
+        .eq('block_id', blockId)
+        .in('coder_id', evaluatedCoderIds),
+    ]);
+    if (enrollmentError) throw new Error(`Failed to validate report enrollments: ${enrollmentError.message}`);
+    if (reflectionError) throw new Error(`Failed to validate coder reflections: ${reflectionError.message}`);
+
+    const eligibleCoderIds = new Set(
+      (enrollmentRows ?? [])
+        .filter((enrollment) => isEnrollmentActiveForSession(enrollment, lastBlockSession.date_time))
+        .map((enrollment) => enrollment.coder_id),
+    );
+    const reflectedCoderIds = new Set((completedReflections ?? []).map((reflection) => reflection.coder_id));
+
     const coderScores: Record<string, Record<string, number[]>> = {};
 
     for (const ev of evaluations) {
@@ -219,6 +408,10 @@ async function generateDraftReportsFromClassBlocks(
     }
 
     for (const coderId of Object.keys(coderScores)) {
+      if (!eligibleCoderIds.has(coderId) || !reflectedCoderIds.has(coderId)) {
+        console.log(`[${logPrefix}] Skipping Coder ${coderId} in block ${blockId}: enrollment period or coder reflection is incomplete.`);
+        continue;
+      }
       const existingReport = await reportsDao.getBlockReport(classId, blockId, coderId);
       const skipReason = getAiReportGenerationSkipReason(existingReport);
       if (skipReason) {
@@ -261,6 +454,8 @@ async function generateDraftReportsFromClassBlocks(
         averageScore: Number(globalAverage.toFixed(2)),
         grade: finalGrade,
         isAiGenerated: true,
+        coachIdSnapshot: klass.coach_id,
+        coachNameSnapshot: (Array.isArray(klass.coach) ? klass.coach[0] : klass.coach)?.full_name ?? null,
       });
 
       const descPayload = aiDescriptions.map(d => ({
@@ -635,7 +830,7 @@ export async function generateDraftReportsTask() {
   // it's mapped per class. We scan recent ones.
   const { data: classBlocks, error: blocksError } = await supabase
     .from('class_blocks')
-    .select('id, class_id, block_id, start_date, pitching_day_date, classes!inner(id, name, level_id), blocks!inner(id, name)')
+    .select('id, class_id, block_id, start_date, pitching_day_date, classes!inner(id, name, level_id, coach_id, lifecycle_status, coach:users!classes_coach_id_fkey(id, full_name)), blocks!inner(id, name)')
     .order('start_date', { ascending: false })
     .limit(100);
 
@@ -662,7 +857,7 @@ export async function generateDraftReportsForClasses(classIds: string[]): Promis
 
   const { data: classBlocks, error: blocksError } = await supabase
     .from('class_blocks')
-    .select('id, class_id, block_id, start_date, pitching_day_date, classes!inner(id, name, level_id), blocks!inner(id, name)')
+    .select('id, class_id, block_id, start_date, pitching_day_date, classes!inner(id, name, level_id, coach_id, lifecycle_status, coach:users!classes_coach_id_fkey(id, full_name)), blocks!inner(id, name)')
     .in('class_id', normalizedClassIds)
     .order('start_date', { ascending: false });
 

@@ -48,6 +48,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
   if (!klass) {
     return NextResponse.json({ error: 'Class not found' }, { status: 404 });
   }
+  if (klass.lifecycle_status !== 'ACTIVE') {
+    return NextResponse.json({ error: 'Coder hanya dapat ditambahkan ke kelas yang aktif' }, { status: 400 });
+  }
   if (klass.type === 'WEEKLY') {
     if (!klass.level_id) {
       return NextResponse.json({ error: 'Class level missing' }, { status: 400 });
@@ -191,9 +194,9 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   }
 
   try {
-    const deleted = await classesDao.deleteEnrollment(classIdParam, parsed.data.coderId);
-    if (!deleted) {
-      return NextResponse.json({ error: 'Coder tidak ditemukan di kelas ini atau sudah dihapus.' }, { status: 404 });
+    const removed = await classesDao.deleteEnrollment(classIdParam, parsed.data.coderId);
+    if (!removed) {
+      return NextResponse.json({ error: 'Coder tidak ditemukan sebagai peserta aktif di kelas ini.' }, { status: 404 });
     }
   } catch (error: any) {
     return NextResponse.json({ error: error.message ?? 'Failed to remove enrollment' }, { status: 400 });
@@ -229,6 +232,13 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   const coder = await usersDao.getUserById(parsed.data.coderId);
   if (!coder || coder.role !== 'CODER') {
     return NextResponse.json({ error: 'Coder not found' }, { status: 404 });
+  }
+
+  if (parsed.data.status === 'ACTIVE') {
+    const klass = await classesDao.getClassById(classIdParam);
+    if (!klass || klass.lifecycle_status !== 'ACTIVE') {
+      return NextResponse.json({ error: 'Enrollment hanya dapat diaktifkan pada kelas yang aktif' }, { status: 400 });
+    }
   }
 
   try {

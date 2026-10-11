@@ -21,7 +21,10 @@ export async function PATCH(
         const params = await props.params;
         const id = params.id;
         const body = await request.json();
-        const { ccr_code, parent_name } = body;
+        const ccr_code = typeof body.ccr_code === 'string'
+            ? body.ccr_code.trim().toUpperCase()
+            : body.ccr_code;
+        const { parent_name } = body;
 
         if (!ccr_code) {
             return NextResponse.json({ error: 'ccr_code is required' }, { status: 400 });

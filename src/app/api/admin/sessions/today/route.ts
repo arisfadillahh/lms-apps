@@ -42,7 +42,7 @@ export async function GET() {
         // Fetch sessions with classes
         const { data: rawSessions, error } = await supabase
             .from('sessions')
-            .select('id, date_time, class_id, classes(id, name, zoom_link)')
+            .select('id, date_time, class_id, classes(id, name, zoom_link, delivery_mode, location_name, location_address, location_maps_url)')
             .gte('date_time', startFilter)
             .lte('date_time', endFilter);
 
@@ -77,7 +77,12 @@ export async function GET() {
                     student_name: userData?.full_name || 'Unknown',
                     parent_name: userData?.parent_name || 'Ayah/Bunda',
                     time: timeStr,
-                    zoom_link: classData?.zoom_link || '-'
+                    class_name: classData?.name || '-',
+                    delivery_mode: classData?.delivery_mode || 'ONLINE',
+                    zoom_link: classData?.zoom_link || '-',
+                    location_name: classData?.location_name || '',
+                    location_address: classData?.location_address || '',
+                    location_maps_url: classData?.location_maps_url || '',
                 };
             });
         });

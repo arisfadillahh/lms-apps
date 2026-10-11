@@ -3,7 +3,6 @@
 import { useState, useTransition, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getSupabaseBrowser } from '@/lib/supabaseBrowser';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
@@ -47,7 +46,6 @@ export default function BlockEvaluationClient({
   evalSessionId
 }: Props) {
   const router = useRouter();
-  const supabase = getSupabaseBrowser();
   const [isPending, startTransition] = useTransition();
   const [questions] = useState<any[]>(initialQuestions);
   const [answers, setAnswers] = useState<Record<string, string>>(() => {
@@ -83,31 +81,20 @@ export default function BlockEvaluationClient({
   }, [answers, currentStep]);
 
 
-  // Realtime sync with Coach
   useEffect(() => {
     if (!evalSessionId) return;
+    let cancelled = false;
 
-    // Fetch initial status in case we joined late
-    const fetchInitial = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await (supabase as any)
-        .from('block_evaluation_sessions')
-        .select('current_question_index, status')
-        .eq('id', evalSessionId)
-        .single();
-        
-      if (error) console.error('fetchInitial eval session err:', error);
-      
-      const { data: pastAnswers } = await (supabase as any)
-        .from('block_evaluation_answers')
-        .select('question_index, answer')
-        .eq('eval_session_id', evalSessionId)
-        .eq('coder_id', user.id);
+    const fetchStatus = async (hydrateAnswers: boolean) => {
+      const response = await fetch(`/api/coder/block-evaluations?evalSessionId=${encodeURIComponent(evalSessionId)}`, { cache: 'no-store' });
+      if (!response.ok) return;
+      const payload = await response.json();
+      if (cancelled) return;
+      const data = payload.evalSession;
+      const pastAnswers = hydrateAnswers ? payload.pastAnswers : [];
 
       let maxAnsweredIndex = -2;
-      if (pastAnswers) {
+      if (hydrateAnswers && pastAnswers) {
         const tempAnswers: Record<string, string> = {};
         pastAnswers.forEach((row: any) => {
           if (row.question_index !== -1) {
@@ -151,17 +138,13 @@ export default function BlockEvaluationClient({
          setCurrentStep(-1);
       }
     };
-    fetchInitial();
-
-    // Poll for coach's current question every 3 seconds
-    // (Supabase realtime requires table replication to be enabled;
-    //  polling is the safe fallback to ensure coder always sees updates)
-    const pollInterval = setInterval(async () => {
-      const { data: pollData } = await (supabase as any)
-        .from('block_evaluation_sessions')
-        .select('current_question_index, status')
-        .eq('id', evalSessionId)
-        .single();
+    fetchStatus(true);
+    const pollInterval = window.setInterval(async () => {
+      const response = await fetch(`/api/coder/block-evaluations?evalSessionId=${encodeURIComponent(evalSessionId)}`, { cache: 'no-store' });
+      if (!response.ok) return;
+      const payload = await response.json();
+      if (cancelled) return;
+      const pollData = payload.evalSession;
       if (pollData) {
         if (pollData.status === 'completed') {
           setCoachStep(questions.length);
@@ -171,27 +154,11 @@ export default function BlockEvaluationClient({
       }
     }, 3000);
 
-    // Also try realtime subscription as a bonus (works when replication is enabled)
-    const channel = supabase
-      .channel(`eval_sessions_${evalSessionId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'block_evaluation_sessions', filter: `id=eq.${evalSessionId}` },
-        (payload) => {
-          const newDoc = payload.new as any;
-          if (newDoc) {
-            if (newDoc.status === 'completed') setCoachStep(questions.length);
-            else if (newDoc.current_question_index !== undefined) setCoachStep(newDoc.current_question_index);
-          }
-        }
-      )
-      .subscribe();
-
     return () => {
-      clearInterval(pollInterval);
-      supabase.removeChannel(channel);
+      cancelled = true;
+      window.clearInterval(pollInterval);
     };
-  }, [evalSessionId, supabase]);
+  }, [evalSessionId, questions]);
 
   // Automatically advance Coder if Coach moves to next question while Coder is waiting.
   useEffect(() => {

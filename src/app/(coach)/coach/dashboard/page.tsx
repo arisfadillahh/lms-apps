@@ -8,9 +8,11 @@ import CalendarModal from '@/components/coach/CalendarModal';
 import WeeklyScheduleClient from './WeeklyScheduleClient';
 import HeroCountdownClient from './HeroCountdownClient';
 import CoachDraftReportsAlert from './CoachDraftReportsAlert';
+import CoachPortfolioReviewAlert from './CoachPortfolioReviewAlert';
 import TrialClassSchedule from './TrialClassSchedule';
 import { StaggerContainer, StaggerItem } from '@/components/animations/StaggerContainer';
 import { listActionableTrialClassesForCoach } from '@/lib/dao/trialClassDao';
+import MobilePwaOnboardingCard from '@/components/pwa/MobilePwaOnboardingCard';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -78,6 +80,8 @@ export default async function CoachDashboardPage() {
                 <div className="flex flex-col lg:flex-row gap-6 md:gap-8">
                     <div className="flex-grow w-full lg:max-w-[calc(100%-360px)]">
                         <CoachDraftReportsAlert coachId={session.user.id} />
+                        <CoachPortfolioReviewAlert coachId={session.user.id} />
+                        <MobilePwaOnboardingCard role="COACH" />
                         <StaggerItem className="mb-8">
                             <section>
                                 <div className="bg-gradient-to-r from-[#0f172a] to-[#1e3a5f] rounded-3xl p-6 md:p-8 text-white shadow-2xl relative overflow-hidden group border border-white/5">

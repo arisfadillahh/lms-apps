@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { getSessionOrThrow } from '@/lib/auth';
-import { classLessonsDao, lessonTemplatesDao } from '@/lib/dao';
+import { blocksDao, lessonTemplatesDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
 import { updateLessonTemplateSchema } from '@/lib/validation/admin';
 import { normalizeSlideUrl } from '@/lib/slides';
@@ -87,24 +87,10 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const lesson = await lessonTemplatesDao.updateLessonTemplate(lessonId, updates);
 
-    if (requiresStructureSync && lesson.block_id) {
-      // Propagate changes (especially duration/title) to active classes
+    if ((requiresStructureSync || hasContentUpdate) && lesson.block_id) {
+      await blocksDao.updateBlock(lesson.block_id, { isPublished: true });
       const { syncClassesForBlockTemplate } = await import('@/lib/services/lessonRebalancer');
       await syncClassesForBlockTemplate(lesson.block_id);
-    } else if (hasContentUpdate) {
-      await classLessonsDao.syncTemplateLessonContent(lessonId, {
-        title: Object.prototype.hasOwnProperty.call(updates, 'title') ? lesson.title : undefined,
-        summary: Object.prototype.hasOwnProperty.call(updates, 'summary') ? lesson.summary ?? null : undefined,
-        makeUpInstructions: Object.prototype.hasOwnProperty.call(updates, 'makeUpInstructions')
-          ? lesson.make_up_instructions ?? null
-          : undefined,
-        slideUrl: Object.prototype.hasOwnProperty.call(updates, 'slideUrl') ? lesson.slide_url ?? null : undefined,
-        exampleUrl: Object.prototype.hasOwnProperty.call(updates, 'exampleUrl') ? lesson.example_url ?? null : undefined,
-        exampleStoragePath: Object.prototype.hasOwnProperty.call(updates, 'exampleStoragePath')
-          ? lesson.example_storage_path ?? null
-          : undefined,
-        estimatedMeetingCount: lesson.estimated_meeting_count ?? null,
-      });
     }
 
     return NextResponse.json({ lesson });

@@ -44,7 +44,7 @@ export default function ClassDetailTrigger({ classInfo, customTrigger }: ClassDe
     const modalContent = (
         <AnimatePresence>
             {isOpen && (
-                <motion.div
+                        <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -56,7 +56,8 @@ export default function ClassDetailTrigger({ classInfo, customTrigger }: ClassDe
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.95, opacity: 0, y: 20 }}
                         transition={{ duration: 0.2, type: 'spring', damping: 25, stiffness: 300 }}
-                        className="bg-white w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-[2rem] shadow-2xl flex flex-col relative"
+                            className="bg-white w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-[2rem] shadow-2xl flex flex-col relative"
+                            data-coder-modal="true"
                         onClick={e => e.stopPropagation()}
                     >
                         {/* Modal Header */}

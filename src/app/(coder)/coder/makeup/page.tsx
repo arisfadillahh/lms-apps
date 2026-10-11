@@ -44,8 +44,8 @@ export default async function CoderMakeUpPage() {
     });
   };
 
-  return (
-    <StaggerContainer className="flex-1 p-8 overflow-y-auto space-y-8">
+    return (
+      <StaggerContainer className="coder-makeup-page flex-1 p-8 overflow-y-auto space-y-8">
       {/* Header */}
       <StaggerItem>
         <header className="flex justify-between items-center">
@@ -92,7 +92,7 @@ export default async function CoderMakeUpPage() {
                       <div className="space-y-4">
                         <div className="flex items-center gap-3 flex-wrap">
                           <h2 className="text-xl font-black text-clevio-navy">{className}</h2>
-                          <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black border ${statusInfo.colorClass}`}>
+                          <div className={`coder-makeup-status coder-makeup-status-${task.status.toLowerCase()} inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black border ${statusInfo.colorClass}`}>
                             {statusInfo.icon}
                             {statusInfo.label}
                           </div>
@@ -111,13 +111,13 @@ export default async function CoderMakeUpPage() {
                         </div>
 
                         {task.instructions && (
-                          <div className="p-4 bg-pastel-yellow rounded-2xl border border-sunshine/20 text-sm font-bold text-amber-700 leading-relaxed flex gap-2">
+                          <div className="coder-makeup-instruction p-4 bg-pastel-yellow rounded-2xl border border-sunshine/20 text-sm font-bold text-amber-700 leading-relaxed flex gap-2">
                             <ClipboardList size={16} className="flex-shrink-0 mt-0.5" /> <span><strong>Instruksi:</strong> {task.instructions}</span>
                           </div>
                         )}
 
                         {task.feedback && (
-                          <div className="p-4 bg-pastel-green rounded-2xl border border-clevio-green/20 text-sm font-bold text-green-700 leading-relaxed flex gap-2">
+                          <div className="coder-makeup-feedback p-4 bg-pastel-green rounded-2xl border border-clevio-green/20 text-sm font-bold text-green-700 leading-relaxed flex gap-2">
                             <MessageSquare size={16} className="flex-shrink-0 mt-0.5" /> <span><strong>Feedback Coach:</strong> {task.feedback}</span>
                           </div>
                         )}

@@ -18,6 +18,7 @@ export interface Database {
           password_hash: string;
           full_name: string;
           role: Role;
+          coder_program: 'WEEKLY' | 'EKSKUL' | null;
           parent_contact_phone: string | null;
           is_active: boolean;
           created_at: string;
@@ -42,6 +43,7 @@ export interface Database {
           password_hash: string;
           full_name: string;
           role: Role;
+          coder_program?: 'WEEKLY' | 'EKSKUL' | null;
           parent_contact_phone?: string | null;
           is_active?: boolean;
           created_at?: string;
@@ -118,6 +120,7 @@ export interface Database {
           student_name: string;
           student_grade: string;
           school_name: string;
+          domicile: string | null;
           parent_name: string;
           phone: string;
           email: string;
@@ -140,6 +143,7 @@ export interface Database {
           student_name: string;
           student_grade: string;
           school_name: string;
+          domicile?: string | null;
           parent_name: string;
           phone: string;
           email: string;
@@ -327,10 +331,20 @@ export interface Database {
           schedule_day: string;
           schedule_time: string;
           zoom_link: string;
-          start_date: string;
-          end_date: string;
+          delivery_mode: 'ONLINE' | 'OFFLINE';
+          location_name: string | null;
+          location_address: string | null;
+          location_maps_url: string | null;
+          parent_whatsapp_enabled: boolean;
+          parent_whatsapp_class_reminder_enabled: boolean;
+          parent_whatsapp_absence_enabled: boolean;
+          parent_whatsapp_makeup_enabled: boolean;
+          parent_whatsapp_report_enabled: boolean;
+          parent_whatsapp_event_enabled: boolean;
           lifecycle_status: 'ACTIVE' | 'PAUSED' | 'ENDED' | 'CANCELLED';
           archived_at: string | null;
+          start_date: string;
+          end_date: string;
           created_at: string;
           updated_at: string;
         };
@@ -344,10 +358,20 @@ export interface Database {
           schedule_day: string;
           schedule_time: string;
           zoom_link: string;
-          start_date: string;
-          end_date: string;
+          delivery_mode?: 'ONLINE' | 'OFFLINE';
+          location_name?: string | null;
+          location_address?: string | null;
+          location_maps_url?: string | null;
+          parent_whatsapp_enabled?: boolean;
+          parent_whatsapp_class_reminder_enabled?: boolean;
+          parent_whatsapp_absence_enabled?: boolean;
+          parent_whatsapp_makeup_enabled?: boolean;
+          parent_whatsapp_report_enabled?: boolean;
+          parent_whatsapp_event_enabled?: boolean;
           lifecycle_status?: 'ACTIVE' | 'PAUSED' | 'ENDED' | 'CANCELLED';
           archived_at?: string | null;
+          start_date: string;
+          end_date: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -541,6 +565,59 @@ export interface Database {
           },
         ];
       };
+      class_change_audit_logs: {
+        Row: {
+          id: string;
+          class_id: string;
+          actor_user_id: string | null;
+          event_type: 'RECURRING_SCHEDULE_UPDATED' | 'LESSON_REASSIGNED' | 'HISTORY_RECONSTRUCTED';
+          session_id: string | null;
+          class_lesson_id: string | null;
+          before_state: Json;
+          after_state: Json;
+          context: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          class_id: string;
+          actor_user_id?: string | null;
+          event_type: 'RECURRING_SCHEDULE_UPDATED' | 'LESSON_REASSIGNED' | 'HISTORY_RECONSTRUCTED';
+          session_id?: string | null;
+          class_lesson_id?: string | null;
+          before_state?: Json;
+          after_state?: Json;
+          context?: string | null;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: 'class_change_audit_logs_class_id_fkey';
+            columns: ['class_id'];
+            referencedRelation: 'classes';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'class_change_audit_logs_actor_user_id_fkey';
+            columns: ['actor_user_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'class_change_audit_logs_session_id_fkey';
+            columns: ['session_id'];
+            referencedRelation: 'sessions';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'class_change_audit_logs_class_lesson_id_fkey';
+            columns: ['class_lesson_id'];
+            referencedRelation: 'class_lessons';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       lesson_extensions: {
         Row: {
           id: string;
@@ -630,20 +707,36 @@ export interface Database {
       };
       coder_level_progressions: {
         Row: {
-          id: string; coder_id: string; source_level_id: string;
-          target_level_id: string | null; source_class_id: string; source_enrollment_id: string;
-          target_class_id: string | null; target_enrollment_id: string | null;
+          id: string;
+          coder_id: string;
+          source_level_id: string;
+          target_level_id: string | null;
+          source_class_id: string;
+          source_enrollment_id: string;
+          target_class_id: string | null;
+          target_enrollment_id: string | null;
           status: 'WAITING_PLACEMENT' | 'PLACED' | 'PROGRAM_COMPLETED' | 'CANCELLED';
-          completed_at: string; placed_at: string | null; placed_by: string | null;
-          created_at: string; updated_at: string;
+          completed_at: string;
+          placed_at: string | null;
+          placed_by: string | null;
+          created_at: string;
+          updated_at: string;
         };
         Insert: {
-          id?: string; coder_id: string; source_level_id: string;
-          target_level_id?: string | null; source_class_id: string; source_enrollment_id: string;
-          target_class_id?: string | null; target_enrollment_id?: string | null;
+          id?: string;
+          coder_id: string;
+          source_level_id: string;
+          target_level_id?: string | null;
+          source_class_id: string;
+          source_enrollment_id: string;
+          target_class_id?: string | null;
+          target_enrollment_id?: string | null;
           status: 'WAITING_PLACEMENT' | 'PLACED' | 'PROGRAM_COMPLETED' | 'CANCELLED';
-          completed_at?: string; placed_at?: string | null; placed_by?: string | null;
-          created_at?: string; updated_at?: string;
+          completed_at?: string;
+          placed_at?: string | null;
+          placed_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Update: Partial<Database['public']['Tables']['coder_level_progressions']['Insert']>;
         Relationships: [];
@@ -684,6 +777,56 @@ export interface Database {
             referencedColumns: ['id'];
           },
         ];
+      };
+      enrollment_transfers: {
+        Row: {
+          id: string;
+          coder_id: string;
+          from_class_id: string;
+          to_class_id: string;
+          source_enrollment_id: string | null;
+          target_enrollment_id: string | null;
+          effective_at: string;
+          reason: string;
+          transferred_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          coder_id: string;
+          from_class_id: string;
+          to_class_id: string;
+          source_enrollment_id?: string | null;
+          target_enrollment_id?: string | null;
+          effective_at: string;
+          reason: string;
+          transferred_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['enrollment_transfers']['Insert']>;
+        Relationships: [];
+      };
+      class_lifecycle_changes: {
+        Row: {
+          id: string;
+          class_id: string;
+          previous_status: string;
+          new_status: string;
+          changed_by: string | null;
+          cancelled_session_count: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          class_id: string;
+          previous_status: string;
+          new_status: string;
+          changed_by?: string | null;
+          cancelled_session_count?: number;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['class_lifecycle_changes']['Insert']>;
+        Relationships: [];
       };
       attendance: {
         Row: {
@@ -1335,12 +1478,16 @@ export interface Database {
         Row: {
           id: string;
           class_id: string;
-          block_id: string;
+          block_id: string | null;
           coder_id: string;
           status: 'DRAFT' | 'SUBMITTED' | 'PUBLISHED' | 'SENT';
+          report_period_type: 'BLOCK' | 'EKSKUL_MIDTERM';
+          report_cycle_id: string | null;
           average_score: number | null;
           grade: string | null;
           is_ai_generated: boolean;
+          coach_id_snapshot: string | null;
+          coach_name_snapshot: string | null;
           sent_via_whatsapp: boolean;
           sent_at: string | null;
           created_at: string;
@@ -1349,12 +1496,16 @@ export interface Database {
         Insert: {
           id?: string;
           class_id: string;
-          block_id: string;
+          block_id?: string | null;
           coder_id: string;
           status?: 'DRAFT' | 'SUBMITTED' | 'PUBLISHED' | 'SENT';
+          report_period_type?: 'BLOCK' | 'EKSKUL_MIDTERM';
+          report_cycle_id?: string | null;
           average_score?: number | null;
           grade?: string | null;
           is_ai_generated?: boolean;
+          coach_id_snapshot?: string | null;
+          coach_name_snapshot?: string | null;
           sent_via_whatsapp?: boolean;
           sent_at?: string | null;
           created_at?: string;
@@ -1380,6 +1531,39 @@ export interface Database {
             referencedRelation: "users";
             referencedColumns: ["id"];
           }
+        ];
+      };
+      ekskul_report_cycles: {
+        Row: {
+          id: string;
+          class_id: string;
+          report_type: 'MIDTERM';
+          cutoff_at: string;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          class_id: string;
+          report_type?: 'MIDTERM';
+          cutoff_at: string;
+          created_by: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['ekskul_report_cycles']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'ekskul_report_cycles_class_id_fkey';
+            columns: ['class_id'];
+            referencedRelation: 'classes';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'ekskul_report_cycles_created_by_fkey';
+            columns: ['created_by'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
         ];
       };
       block_report_descriptions: {

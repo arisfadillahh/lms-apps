@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react';
 import type { ClassLessonRecord } from '@/lib/dao/classLessonsDao';
 import type { LessonTemplateRecord } from '@/lib/dao/lessonTemplatesDao';
 import { normalizeSlideUrl } from '@/lib/slides';
+import { resolveCoachExampleUrl } from '@/lib/services/coachLessonContent';
 
 type LessonPlanItemProps = {
   lesson: ClassLessonRecord;
@@ -22,6 +23,7 @@ export default function LessonPlanItem({ lesson, template, highlight }: LessonPl
   const summary = lesson.summary ?? template?.summary ?? null;
   const estimatedMeetingCount = template?.estimated_meeting_count ?? null;
   const makeUpInstructions = lesson.make_up_instructions ?? template?.make_up_instructions ?? null;
+  const exampleUrl = resolveCoachExampleUrl(lesson.coach_example_url, template?.example_url);
 
   return (
     <>
@@ -99,8 +101,8 @@ export default function LessonPlanItem({ lesson, template, highlight }: LessonPl
 
               <section style={detailSectionStyle}>
                 <h4 style={detailHeadingStyle}>Contoh Game</h4>
-                {lesson.coach_example_url ? (
-                  <a href={lesson.coach_example_url} target="_blank" rel="noreferrer" style={linkStyle}>
+                {exampleUrl ? (
+                  <a href={exampleUrl} target="_blank" rel="noreferrer" style={linkStyle}>
                     🎮 Buka contoh game yang disiapkan admin
                   </a>
                 ) : (

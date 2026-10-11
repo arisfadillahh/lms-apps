@@ -28,14 +28,17 @@ describe('admin material reflow contract', () => {
     expect(serviceSource).toContain('buildReflowLessonQueue(blocks, lessonsByBlock, classLessonId, futureSessionIds)');
   });
 
-  it('does not run a full class lesson rebuild for slide-only lesson edits', () => {
+  it('routes every lesson edit through snapshot-aware future synchronization', () => {
     const routeSource = readSource('src/app/api/admin/curriculum/lessons/[id]/route.ts');
+    const rebalancerSource = readSource('src/lib/services/lessonRebalancer.ts');
+    const classLessonsSource = readSource('src/lib/dao/classLessonsDao.ts');
 
     expect(routeSource).toContain('const requiresStructureSync =');
     expect(routeSource).toContain("Object.prototype.hasOwnProperty.call(updates, 'orderIndex')");
     expect(routeSource).toContain("Object.prototype.hasOwnProperty.call(updates, 'estimatedMeetingCount')");
-    expect(routeSource).toContain('await classLessonsDao.syncTemplateLessonContent(lessonId');
-    expect(routeSource).toContain('} else if (hasContentUpdate) {');
-    expect(routeSource).not.toContain('await classLessonsDao.syncTemplateLessonSlide(lessonId');
+    expect(routeSource).toContain('if ((requiresStructureSync || hasContentUpdate) && lesson.block_id)');
+    expect(routeSource).toContain('await blocksDao.updateBlock(lesson.block_id, { isPublished: true })');
+    expect(rebalancerSource).toContain('hasClassReachedTemplate(template.order_index');
+    expect(classLessonsSource).not.toContain('Override with template values (live reference)');
   });
 });

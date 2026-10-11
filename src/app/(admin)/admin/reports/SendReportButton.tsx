@@ -18,8 +18,17 @@ export default function SendReportButton({ reportId, disabled }: SendReportButto
       const response = await fetch(`/api/admin/reports/${reportId}/send-whatsapp`, { method: 'POST' });
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}));
-        window.alert(payload.error ?? 'Failed to trigger WhatsApp send');
+        window.alert(payload.error ?? 'Gagal memublikasikan rapor');
         return;
+      }
+      const payload = await response.json().catch(() => ({}));
+      const whatsappStatus = payload.whatsapp?.status;
+      if (whatsappStatus === 'SKIPPED_POLICY') {
+        window.alert('Rapor berhasil dipublikasikan dan notifikasi LMS terkirim. WhatsApp dilewati sesuai pengaturan kelas.');
+      } else if (whatsappStatus === 'SKIPPED_NO_PHONE') {
+        window.alert('Rapor berhasil dipublikasikan dan notifikasi LMS terkirim. WhatsApp dilewati karena nomor orang tua belum tersedia.');
+      } else if (whatsappStatus === 'FAILED') {
+        window.alert(`Rapor berhasil dipublikasikan, tetapi WhatsApp gagal: ${payload.whatsapp?.warning || 'layanan tidak tersedia'}`);
       }
       router.refresh();
     });
@@ -46,7 +55,7 @@ export default function SendReportButton({ reportId, disabled }: SendReportButto
         transition: 'all 0.2s',
       }}
     >
-      <Send size={15} /> {isPending ? 'Mengirim…' : 'Publish & Kirim WA'}
+      <Send size={15} /> {isPending ? 'Memublikasikan…' : 'Publikasikan Rapor'}
     </button>
   );
 }

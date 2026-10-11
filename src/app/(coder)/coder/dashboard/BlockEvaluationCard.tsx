@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getSupabaseBrowser } from '@/lib/supabaseBrowser';
-import { GraduationCap, Sparkles, ChevronRight } from 'lucide-react';
+import { GraduationCap, Sparkles, ChevronRight, PanelsTopLeft } from 'lucide-react';
+import {
+  resolveCoderEvaluationDashboardMode,
+  type CoderEvaluationDashboardMode,
+} from '@/lib/coderEvaluationDashboard';
 
 type BlockEvaluationCardProps = {
   classId: string;
@@ -15,26 +18,12 @@ type ActiveEvaluationSession = {
   block_id: string;
   session_id: string | null;
   status: 'in_progress' | 'completed' | string;
-};
-
-type ActiveEvaluationSessionFilter = {
-  eq(column: string, value: string): ActiveEvaluationSessionFilter;
-  in(column: string, values: string[]): ActiveEvaluationSessionFilter;
-  order(column: string, options: { ascending: boolean }): ActiveEvaluationSessionFilter;
-  limit(count: number): {
-    maybeSingle(): Promise<{ data: ActiveEvaluationSession | null }>;
-  };
-};
-
-type ActiveEvaluationSessionClient = {
-  from(table: 'block_evaluation_sessions'): {
-    select(columns: string): ActiveEvaluationSessionFilter;
-  };
+  created_at: string;
 };
 
 export default function BlockEvaluationCard({ classId, userId }: BlockEvaluationCardProps) {
   const [activeSession, setActiveSession] = useState<ActiveEvaluationSession | null>(null);
-  const supabase = getSupabaseBrowser();
+  const [mode, setMode] = useState<CoderEvaluationDashboardMode>('HIDDEN');
 
   useEffect(() => {
     if (!classId) return;
@@ -43,15 +32,10 @@ export default function BlockEvaluationCard({ classId, userId }: BlockEvaluation
     const fetchActiveEval = async () => {
       if (!userId) return;
 
-      const evaluationSessionClient = supabase as unknown as ActiveEvaluationSessionClient;
-      const { data } = await evaluationSessionClient
-        .from('block_evaluation_sessions')
-        .select('id, block_id, session_id, status')
-        .eq('class_id', classId)
-        .in('status', ['in_progress', 'completed'])
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const activeResponse = await fetch(`/api/coder/block-evaluations?mode=active&classId=${encodeURIComponent(classId)}`, { cache: 'no-store' });
+      if (!activeResponse.ok) return;
+      const activePayload = await activeResponse.json();
+      const data = activePayload.activeSession as ActiveEvaluationSession | null;
 
       if (data?.session_id) {
         // Use the API endpoint since direct Supabase queries might be blocked by RLS
@@ -60,57 +44,76 @@ export default function BlockEvaluationCard({ classId, userId }: BlockEvaluation
           blockId: data.block_id,
           sessionId: data.session_id,
         });
-        const res = await fetch(`/api/coder/block-evaluations?${params.toString()}`);
         let alreadySubmitted = false;
-        
-        if (res.ok) {
-           const json = await res.json();
-           alreadySubmitted = json.submitted;
+        let checkedAt = new Date();
+
+        try {
+          const res = await fetch(`/api/coder/block-evaluations?${params.toString()}`);
+          if (res.ok) {
+            const json = await res.json();
+            alreadySubmitted = json.submitted;
+            const serverTime = Date.parse(json.serverTime);
+            if (Number.isFinite(serverTime)) checkedAt = new Date(serverTime);
+          }
+        } catch {
+          // Keep the evaluation action available when its status check is temporarily unavailable.
         }
 
-        if (alreadySubmitted) {
-          // Already completed — don't show the card anymore
-          setActiveSession(null);
-        } else {
+        if (!alreadySubmitted) {
+          setMode('EVALUATION');
           setActiveSession(data);
+          return;
         }
+
+        const recentMode = resolveCoderEvaluationDashboardMode({
+          status: data.status,
+          createdAt: data.created_at,
+          now: checkedAt,
+          evaluationSubmitted: true,
+          portfolioStarted: false,
+        });
+
+        if (recentMode !== 'PORTFOLIO') {
+          setMode('HIDDEN');
+          setActiveSession(null);
+          return;
+        }
+
+        let alreadyStartedPortfolio = false;
+        try {
+          const portfolioResponse = await fetch(`/api/coder/portfolios?evaluationSessionId=${data.id}`);
+          const portfolioBody = portfolioResponse.ok ? await portfolioResponse.json() : { portfolios: [] };
+          alreadyStartedPortfolio = (portfolioBody.portfolios || []).some(
+            (portfolio: { evaluation_session_id?: string | null }) => portfolio.evaluation_session_id === data.id,
+          );
+        } catch {
+          // A temporary portfolio API failure must not affect the completed evaluation state.
+        }
+
+        const nextMode = resolveCoderEvaluationDashboardMode({
+          status: data.status,
+          createdAt: data.created_at,
+          now: checkedAt,
+          evaluationSubmitted: true,
+          portfolioStarted: alreadyStartedPortfolio,
+        });
+        setMode(nextMode);
+        setActiveSession(nextMode === 'HIDDEN' ? null : data);
       } else {
+        setMode('HIDDEN');
         setActiveSession(null);
       }
     };
 
     fetchActiveEval();
-
-    // Subscribe to changes
-    const channel = supabase
-      .channel(`eval_sessions_${classId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'block_evaluation_sessions',
-          filter: `class_id=eq.${classId}`
-        },
-        (payload) => {
-          const nextSession = payload.new as Partial<ActiveEvaluationSession> | null;
-          if (nextSession && (nextSession.status === 'in_progress' || nextSession.status === 'completed')) {
-            // Re-fetch to ensure we check 'alreadySubmitted' before showing it
-            fetchActiveEval();
-          } else {
-            setActiveSession(null);
-          }
-        }
-      )
-      .subscribe();
+    const timer = window.setInterval(fetchActiveEval, 5000);
 
     return () => {
-      supabase.removeChannel(channel);
+      window.clearInterval(timer);
     };
-  }, [classId, userId, supabase]);
+  }, [classId, userId]);
 
-  // Remove unused import if we don't need it (supabase is still used. Wait, supabase is used for realtime channel)
-  if (!activeSession) return null;
+  if (!activeSession || mode === 'HIDDEN') return null;
 
   return (
     <div className="relative bg-gradient-to-br from-violet-600 to-indigo-700 rounded-3xl p-6 mb-6 overflow-hidden shadow-xl shadow-violet-500/20 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -133,20 +136,36 @@ export default function BlockEvaluationCard({ classId, userId }: BlockEvaluation
             <Sparkles className="text-yellow-300 animate-pulse" size={14} />
           </div>
           <h4 className="text-white font-black text-lg leading-tight mb-1">
-            {activeSession.status === 'completed' ? 'Evaluasi Telah Tersedia!' : 'Coach Telah Membuka Sesi Evaluasi!'}
+            {mode === 'PORTFOLIO'
+              ? 'Refleksi selesai, waktunya simpan karya!'
+              : activeSession.status === 'completed'
+                ? 'Evaluasi Telah Tersedia!'
+                : 'Coach Telah Membuka Sesi Evaluasi!'}
           </h4>
           <p className="text-violet-200 text-sm font-medium leading-snug">
-            {activeSession.status === 'completed' ? 'Yuk selesaikan evaluasi ini secara mandiri.' : 'Yuk masuk sekarang. Coach sedang menunggumu di ruangan evaluasi.'}
+            {mode === 'PORTFOLIO'
+              ? 'Buat portofolio dari project di block ini. Kamu juga bisa melanjutkannya nanti dari menu Rapor & Portofolio.'
+              : activeSession.status === 'completed'
+                ? 'Selesaikan refleksimu terlebih dahulu sebelum mengisi portofolio.'
+                : 'Coach sedang memandu refleksi. Selesaikan evaluasimu terlebih dahulu.'}
           </p>
         </div>
 
         {/* CTA */}
-        <Link
-          href={`/coder/evaluation/${classId}/${activeSession.block_id}/${activeSession.session_id}?evalSessionId=${activeSession.id}`}
-          className="shrink-0 w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-white text-violet-700 font-black rounded-2xl hover:bg-violet-50 transition-all shadow-lg active:scale-95 animate-bounce"
-        >
-          Masuk Evaluasi <ChevronRight size={18} />
-        </Link>
+        <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto">
+          {mode === 'EVALUATION' && <Link
+            href={`/coder/evaluation/${classId}/${activeSession.block_id}/${activeSession.session_id}?evalSessionId=${activeSession.id}`}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 font-black text-violet-700 shadow-lg transition-all hover:bg-violet-50 active:scale-95 sm:w-auto"
+          >
+            Masuk Evaluasi <ChevronRight size={18} />
+          </Link>}
+          {mode === 'PORTFOLIO' && <Link
+            href={`/coder/reports/portfolio/new?classId=${classId}&blockId=${activeSession.block_id}&evaluationSessionId=${activeSession.id}`}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-lime-300 px-6 py-3 font-black text-violet-950 shadow-lg transition-all hover:bg-lime-200 active:scale-95 sm:w-auto"
+          >
+            <PanelsTopLeft size={18} /> Isi Portofolio
+          </Link>}
+        </div>
       </div>
     </div>
   );

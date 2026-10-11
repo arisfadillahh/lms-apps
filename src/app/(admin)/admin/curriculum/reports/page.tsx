@@ -8,6 +8,19 @@ import KanbanBoard from './KanbanBoard';
 
 export const dynamic = 'force-dynamic';
 
+const EKSKUL_LESSON_TITLE = /^\[Ekskul lesson: ([^\]]+)\]\s*/;
+
+function getEmbeddedEkskulLesson(report: { description?: string | null }) {
+  const match = report.description?.match(EKSKUL_LESSON_TITLE);
+  if (!match) return null;
+
+  return {
+    id: '',
+    title: match[1],
+    block_id: '',
+  };
+}
+
 export default async function LessonReportsPage() {
   const session = await getSessionOrThrow();
   await assertRole(session, 'ADMIN');
@@ -49,7 +62,14 @@ export default async function LessonReportsPage() {
         block = blockData;
       }
 
-      return { ...report, coach, lesson, block };
+      const embeddedEkskulLesson = getEmbeddedEkskulLesson(report);
+      return {
+        ...report,
+        description: report.description?.replace(EKSKUL_LESSON_TITLE, '').trim() ?? '',
+        coach,
+        lesson: lesson ?? embeddedEkskulLesson,
+        block,
+      };
     })
   );
 
@@ -60,7 +80,7 @@ export default async function LessonReportsPage() {
   return (
     <div className="col gap-4">
       <PageHead
-        title="Laporan Lesson"
+        title="Masalah Lesson"
         desc="Laporan dari coach tentang masalah pada materi lesson — bug, konten usang, atau kesulitan siswa."
         actions={
           <Link href="/admin/curriculum" className="btn btn-ghost btn-sm">
@@ -73,7 +93,7 @@ export default async function LessonReportsPage() {
       <div className="grid grid-4">
         <div className="stat">
           <div className="stat-icon"><AlertCircle size={16} /></div>
-          <div className="stat-label">Total Laporan</div>
+          <div className="stat-label">Total Masalah</div>
           <div className="stat-value">{enrichedReports.length}</div>
         </div>
         <div className="stat">

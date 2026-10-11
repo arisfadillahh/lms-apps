@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { getOrCreateShortLink } from '@/lib/services/shortLinks';
+import { validateBearerToken } from '@/lib/apiTokenAuth';
 
 const createShortLinkSchema = z.object({
     target_url: z.string().url(),
@@ -45,14 +46,7 @@ export async function POST(request: NextRequest) {
 }
 
 function assertCoreApiToken(request: NextRequest) {
-    const expectedToken = process.env.LMS_CORE_API_TOKEN?.trim();
-    if (!expectedToken) return null;
-
-    const authorization = request.headers.get('authorization') || '';
-    const actualToken = authorization.replace(/^Bearer\s+/i, '').trim();
-    if (actualToken !== expectedToken) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    return null;
+    const result = validateBearerToken(request, [process.env.LMS_CORE_API_TOKEN]);
+    if (result === 'UNCONFIGURED') return NextResponse.json({ error: 'Integration token is not configured' }, { status: 503 });
+    return result === 'INVALID' ? NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) : null;
 }

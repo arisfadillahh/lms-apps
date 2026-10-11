@@ -2,26 +2,20 @@ import { redirect } from 'next/navigation';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { getSessionOrThrow } from '@/lib/auth';
 import ReportReviewClient from './ReportReviewClient';
-import { classesDao, sessionsDao } from '@/lib/dao';
+import { classesDao } from '@/lib/dao';
 import { readdir } from 'fs/promises';
 import { buildAvatarPublicPath, getAvatarUploadDir, resolveAvatarPublicUrl } from '@/lib/services/avatarStorage';
-import { computeLessonSchedule } from '@/lib/services/lessonScheduler';
 
-type ReportClass = {
-  id: string;
-  name: string;
-  coach_id: string | null;
-  type: string | null;
-  level_id: string | null;
-  ekskul_lesson_plan_id: string | null;
-};
+type ReportClass = { id: string; name: string; coach_id: string | null };
 type ReportBlock = { name: string | null };
 type ReportCoder = { id: string | null; full_name: string | null };
 type ReportRecord = {
   id: string;
+  class_id: string;
   status: string;
   coder_id: string | null;
   block_id: string | null;
+  report_period_type?: 'BLOCK' | 'EKSKUL_MIDTERM';
   grade: string | null;
   average_score: number | null;
   class: ReportClass | ReportClass[] | null;
@@ -78,7 +72,7 @@ export default async function CoachReportReviewPage({ params }: { params: Promis
     .from('block_reports')
     .select(`
       *,
-      class:classes(id, name, coach_id, type, level_id, ekskul_lesson_plan_id),
+      class:classes(id, name, coach_id),
       block:blocks(name),
       coder:users!block_reports_coder_id_fkey(full_name, id)
     `)
@@ -91,7 +85,7 @@ export default async function CoachReportReviewPage({ params }: { params: Promis
   const klass = Array.isArray(reportRecord.class) ? reportRecord.class[0] : reportRecord.class;
   if (!klass) redirect('/coach/reports');
 
-  const coachClasses = await classesDao.listClassesForCoach(coachId);
+  const coachClasses = await classesDao.listClassesForCoach(coachId, { includeArchived: true });
   const isAuthorized = coachClasses.some(c => c.id === klass.id);
   if (!isAuthorized) redirect('/coach/reports');
 
@@ -111,37 +105,6 @@ export default async function CoachReportReviewPage({ params }: { params: Promis
     };
   });
 
-  // A block report aggregates evaluations from multiple completed sessions. Link
-  // to the most recent source session so Coach can jump back to the scoring form.
-  let assessmentSessionId: string | null = null;
-  if (reportRecord.coder_id && reportRecord.block_id) {
-    try {
-      const [lessonMap, classSessions] = await Promise.all([
-        computeLessonSchedule(klass.id, klass.level_id, klass.ekskul_lesson_plan_id),
-        sessionsDao.listSessionsByClass(klass.id),
-      ]);
-
-      const candidateSessions = classSessions
-        .filter((candidate) => (
-          candidate.status === 'COMPLETED'
-          && lessonMap.get(candidate.id)?.block.id === reportRecord.block_id
-        ))
-        .sort((a, b) => new Date(b.date_time).getTime() - new Date(a.date_time).getTime());
-
-      if (candidateSessions.length > 0) {
-        const { data: evaluatedSessions } = await supabase
-          .from('lesson_evaluations')
-          .select('session_id')
-          .eq('coder_id', reportRecord.coder_id)
-          .in('session_id', candidateSessions.map((candidate) => candidate.id));
-        const evaluatedSessionIds = new Set((evaluatedSessions ?? []).map((row) => row.session_id));
-        assessmentSessionId = candidateSessions.find((candidate) => evaluatedSessionIds.has(candidate.id))?.id ?? null;
-      }
-    } catch {
-      // The report remains usable if historical session mapping is unavailable.
-    }
-  }
-
   // Fetch coder's evaluasi block (refleksi) answers
   type EvalAnswer = { question: string; answer: string };
   let evaluationAnswers: EvalAnswer[] = [];
@@ -151,6 +114,7 @@ export default async function CoachReportReviewPage({ params }: { params: Promis
     const { data: evalData } = await queryTable('block_evaluations')
       .select('answers')
       .eq('coder_id', coderId)
+      .eq('class_id', reportRecord.class_id)
       .eq('block_id', reportRecord.block_id)
       .maybeSingle();
 
@@ -239,12 +203,11 @@ export default async function CoachReportReviewPage({ params }: { params: Promis
         coderName={coderName}
         coderAvatarUrl={coderAvatarUrl}
         className={klass.name}
-        blockName={block?.name ?? ''}
+        blockName={reportRecord.report_period_type === 'EKSKUL_MIDTERM' ? 'Rapor Tengah Semester Ekskul' : block?.name ?? ''}
         grade={reportRecord.grade}
         averageScore={reportRecord.average_score}
         status={reportRecord.status}
         evaluationAnswers={evaluationAnswers}
-        assessmentHref={assessmentSessionId ? `/coach/rubrics/${assessmentSessionId}` : null}
       />
     </div>
   );

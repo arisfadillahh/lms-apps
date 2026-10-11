@@ -3,12 +3,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
+import IssueReportButton from '@/components/issue-reports/IssueReportButton';
 
 const NAV_LINKS = [
     { href: '/coach/dashboard', label: 'Dashboard', icon: 'grid_view' },
     { href: '/coach/rubrics', label: 'Rubrik & Penilaian', icon: 'analytics' },
     { href: '/coach/makeup', label: 'Tugas Susulan', icon: 'history_edu' },
     { href: '/coach/leave', label: 'Pengajuan Izin', icon: 'mail_lock' },
+    { href: '/coach/portfolios', label: 'Review Portofolio', icon: 'photo_library' },
 ];
 
 export default function CoachSidebar() {
@@ -40,7 +42,7 @@ export default function CoachSidebar() {
                     </h2>
                 </div>
 
-                <nav className="flex-grow px-4 space-y-1.5 mt-4">
+                <nav className="flex-grow overflow-y-auto px-4 space-y-1.5 mt-4">
                     {NAV_LINKS.map((link) => {
                         const isActive = pathname.startsWith(link.href);
 
@@ -62,6 +64,10 @@ export default function CoachSidebar() {
                         );
                     })}
                 </nav>
+
+                <div className="coach-sidebar-report border-t border-slate-800 px-4 py-4">
+                    <IssueReportButton role="COACH" placement="sidebar" />
+                </div>
             </aside>
         </>
     );

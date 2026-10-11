@@ -44,7 +44,7 @@ describe('class deletion safety contract', () => {
     );
   });
 
-  it('preserves payment history and rolls back detached periods on failure', () => {
+  it('archives closed classes while retaining their linked history', () => {
     const source = readSource('src/lib/dao/classesDao.ts');
     const deleteSource = source.slice(
       source.indexOf('export async function deleteClass(id: string)'),
@@ -54,12 +54,10 @@ describe('class deletion safety contract', () => {
     expect(deleteSource).toContain("ClassDeletionBlockedError");
     expect(deleteSource).toContain(".eq('status', 'ACTIVE')");
     expect(deleteSource).toContain("period.status === 'ACTIVE'");
-    expect(deleteSource).toContain(".update({ class_id: null }");
-    expect(deleteSource).not.toContain(".from('coder_payment_periods' as any)");
-    expect(deleteSource).not.toMatch(
-      /\.from\('coder_payment_periods'\)\s*\.delete\(\)/,
-    );
-    expect(deleteSource).toContain(".update({ class_id: id })");
-    expect(deleteSource).toContain("deletedClasses?.length === 1");
+    expect(deleteSource).toContain('.update({ archived_at: new Date().toISOString() })');
+    expect(deleteSource).toContain(".in('lifecycle_status', ['ENDED', 'CANCELLED'])");
+    expect(deleteSource).not.toContain('.delete()');
+    expect(deleteSource).not.toContain('class_id: null');
+    expect(deleteSource).toContain("archivedClasses?.length === 1");
   });
 });

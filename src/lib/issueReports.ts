@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { normalizeSafePageReference } from '@/lib/safeUrl';
 
 export const ISSUE_REPORT_WHATSAPP_NUMBER = process.env.ISSUE_REPORT_WHATSAPP_NUMBER || '6281212022628';
 export const ISSUE_SCREENSHOT_MAX_BYTES = 5 * 1024 * 1024;
@@ -7,7 +8,15 @@ export type IssueReporterRole = 'ADMIN' | 'COACH' | 'CODER';
 export const issueReportSchema = z.object({
   title: z.string().trim().min(5, 'Judul minimal 5 karakter').max(120, 'Judul maksimal 120 karakter'),
   description: z.string().trim().min(10, 'Deskripsi minimal 10 karakter').max(3000, 'Deskripsi maksimal 3000 karakter'),
-  pageUrl: z.string().trim().max(1000).optional().default(''),
+  pageUrl: z.string().trim().max(1000).optional().default('').transform((value, context) => {
+    if (!value) return '';
+    const normalized = normalizeSafePageReference(value);
+    if (!normalized) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Halaman harus berupa path LMS atau URL http(s)' });
+      return z.NEVER;
+    }
+    return normalized;
+  }),
   viewportWidth: z.coerce.number().int().positive().max(10000).optional(),
   viewportHeight: z.coerce.number().int().positive().max(10000).optional(),
 });

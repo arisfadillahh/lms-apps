@@ -1,9 +1,12 @@
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { sessionsDao } from '@/lib/dao';
+import { shortenReportDescription } from '@/lib/reportDescription';
+import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 import { notFound } from 'next/navigation';
 import {
   CalendarDays,
-  CircleHelp,
   ClipboardList,
+  CircleHelp,
   Code2,
   MessageSquare,
   MessagesSquare,
@@ -102,7 +105,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
     .from('block_reports')
     .select(`
       *,
-      class:classes(id, name, type, level:levels(name), coach:users!classes_coach_id_fkey(full_name)),
+      class:classes(id, name, type, level_id, ekskul_lesson_plan_id, level:levels(name), coach:users!classes_coach_id_fkey(full_name)),
       block:blocks(name),
       coder:users!block_reports_coder_id_fkey(full_name)
     `)
@@ -130,17 +133,23 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
   const block = Array.isArray(report.block) ? report.block[0] : report.block;
   const coder = Array.isArray(report.coder) ? report.coder[0] : report.coder;
   const coach = klass?.coach ? (Array.isArray(klass.coach) ? klass.coach[0] : klass.coach) : null;
+  const reportCoachName = report.coach_name_snapshot || coach?.full_name || 'Clevio Coach';
+  const isEkskulMidterm = report.report_period_type === 'EKSKUL_MIDTERM';
+  const isEkskulReport = klass?.type === 'EKSKUL';
 
-  const [{ data: evalCriteria }, { data: reportClassBlocks }] = await Promise.all([
+  const [{ data: evalCriteria }, reportClassBlocksResult] = await Promise.all([
     supabase.from('evaluation_criteria').select('*').order('order_index'),
-    supabase
+    report.block_id
+      ? supabase
       .from('class_blocks')
       .select('id, start_date')
       .eq('class_id', report.class_id)
       .eq('block_id', report.block_id)
       .order('start_date', { ascending: false })
-      .limit(1),
+      .limit(1)
+      : Promise.resolve({ data: [] }),
   ]);
+  const reportClassBlocks = reportClassBlocksResult.data;
 
   const reportClassBlockId = reportClassBlocks?.[0]?.id ?? null;
   const { data: actualClassLessons } = reportClassBlockId
@@ -150,7 +159,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
         .eq('class_block_id', reportClassBlockId)
         .order('order_index')
     : { data: null };
-  const { data: fallbackLessonTemplates } = !actualClassLessons || actualClassLessons.length === 0
+  const { data: fallbackLessonTemplates } = report.block_id && (!actualClassLessons || actualClassLessons.length === 0)
     ? await supabase
         .from('lesson_templates')
         .select('title, order_index')
@@ -162,12 +171,14 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
   // Fetch block evaluation (reflection) submitted by the coder for this block
   let blockEvaluation: { answers: Record<string, string> } | null = null;
   let evalQuestions: { id: string; question: string }[] = [];
-  try {
-    const queryTable = (table: string) => (supabase as unknown as { from: (table: string) => LooseQueryBuilder }).from(table);
+  if (!isEkskulReport && report.block_id) {
+    try {
+      const queryTable = (table: string) => (supabase as unknown as { from: (table: string) => LooseQueryBuilder }).from(table);
 
     const { data: evalData } = await queryTable('block_evaluations')
       .select('answers')
       .eq('coder_id', report.coder_id)
+      .eq('class_id', report.class_id)
       .eq('block_id', report.block_id)
       .maybeSingle();
     const answers = isRecord(evalData) ? toStringMap(evalData.answers) : null;
@@ -204,8 +215,9 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
         { id: 'q5', question: 'Pesan untuk dirimu sendiri di block berikutnya:' },
       ];
     }
-  } catch {
-    // Table may not exist yet — gracefully ignore
+    } catch {
+      // Table may not exist yet — gracefully ignore
+    }
   }
 
 
@@ -216,11 +228,34 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
     return {
       name: c.name,
       average: Number((desc?.score || 0).toFixed(1)),
-      description: desc?.description || '',
+      description: shortenReportDescription(desc?.description || ''),
     };
   }) || [];
 
-  const lessonTitles = getUniqueLessonTitles(actualClassLessons?.length ? actualClassLessons : fallbackLessonTemplates || []);
+  let ekskulLessonTitles: string[] = [];
+  if (isEkskulReport && (klass?.level_id || klass?.ekskul_lesson_plan_id)) {
+    const [{ data: reportCycle }, classSessions, lessonSchedule] = await Promise.all([
+      report.report_cycle_id
+        ? supabase.from('ekskul_report_cycles').select('cutoff_at').eq('id', report.report_cycle_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      sessionsDao.listSessionsByClass(report.class_id),
+      computeLessonSchedule(report.class_id, klass.level_id ?? null, klass.ekskul_lesson_plan_id),
+    ]);
+    const cutoffAt = new Date(reportCycle?.cutoff_at ?? report.created_at).getTime();
+    ekskulLessonTitles = Array.from(new Set(
+      classSessions
+        .filter((session) => (
+          session.status === 'COMPLETED'
+          && new Date(session.date_time).getTime() <= cutoffAt
+          && lessonSchedule.has(session.id)
+        ))
+        .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime())
+        .map((session) => formatLessonTitle(lessonSchedule.get(session.id)!)),
+    ));
+  }
+  const lessonTitles = isEkskulReport
+    ? ekskulLessonTitles
+    : getUniqueLessonTitles(actualClassLessons?.length ? actualClassLessons : fallbackLessonTemplates || []);
 
   const pubDate = new Date(report.updated_at || report.created_at).toLocaleDateString('id-ID', {
     day: 'numeric', month: 'long', year: 'numeric',
@@ -235,15 +270,16 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
       : avgScore >= 5.5
         ? 'Developing Performance'
          : 'Needs Support';
+  const learningPeriodLabel = isEkskulReport ? 'semester' : 'block';
   const gradeSummary = avgScore >= 8.5
     ? 'Hasil belajar menunjukkan pemahaman yang kuat, kreativitas tinggi, dan perkembangan yang konsisten.'
     : avgScore >= 7.0
-      ? 'Hasil belajar menunjukkan pemahaman yang baik dan perkembangan yang positif selama block berlangsung.'
+      ? `Hasil belajar menunjukkan pemahaman yang baik dan perkembangan yang positif selama ${learningPeriodLabel} berlangsung.`
       : avgScore >= 5.5
         ? 'Kemampuan utama mulai berkembang dan akan semakin kuat dengan latihan yang konsisten.'
         : 'Coder memerlukan pendampingan lanjutan untuk memperkuat pemahaman dan rasa percaya diri.';
-  const reportTitle = klass?.type === 'EKSKUL' ? 'Performance Report' : 'Block Performance Report';
-  const reportContextLabel = klass?.type === 'EKSKUL' ? 'Ekskul' : `${klass?.name ?? ''} - ${block?.name ?? ''}`;
+  const reportTitle = isEkskulMidterm ? 'Rapor Tengah Semester' : klass?.type === 'EKSKUL' ? 'Rapor Akhir Semester' : 'Block Performance Report';
+  const reportContextLabel = isEkskulMidterm ? `${klass?.name ?? 'Ekskul'} - Tengah Semester` : klass?.type === 'EKSKUL' ? 'Ekskul' : `${klass?.name ?? ''} - ${block?.name ?? ''}`;
   const lessonSectionTitle = klass?.type === 'EKSKUL' ? 'Materi Ekskul' : 'Materi yang Dibahas';
   const lessonSectionSubtitle = 'Daftar materi yang menjadi konteks penilaian laporan ini.';
   const scorePercentage = Math.max(0, Math.min(100, Math.round(avgScore * 10)));
@@ -269,61 +305,77 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
   return (
     <div className="report-root min-h-screen bg-[#eef6fb] font-sans text-[#17306b] antialiased">
       <style>{`
+        .report-lessons-panel { break-inside: auto; }
+        .report-lesson-card { min-width: 0; break-inside: avoid; }
+        .report-lesson-card p { overflow-wrap: anywhere; }
         @media print {
           @page { size: A4; margin: 10mm; }
-          html, body { background: white !important; }
+          html, body {
+            width: auto !important;
+            max-width: none !important;
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+            background: white !important;
+          }
+          body {
+            position: static !important;
+            top: auto !important;
+            overscroll-behavior: auto !important;
+          }
           body, .report-root {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
           [data-purpose="report-topbar"],
           [data-purpose="report-actions"] { display: none !important; }
+          .report-root, .report-page, .report-page main {
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+          }
           .report-root { min-height: 0 !important; background: white !important; }
-          .report-page { max-width: none !important; padding: 0 !important; }
+          /* Keep the same desktop breakpoint canvas as the 1920px web view. */
+          .report-page {
+            width: 1180px !important;
+            max-width: none !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            zoom: 0.609 !important;
+          }
+          @media print and (orientation: landscape) {
+            .report-page { zoom: 0.887 !important; }
+          }
           .report-hero {
-            grid-template-columns: minmax(0, 1fr) 285px !important;
-            gap: 18px !important;
-            padding: 18px !important;
-            border-radius: 12px !important;
-            box-shadow: none !important;
-            break-inside: avoid !important;
-          }
-          .report-hero h1 { font-size: 24px !important; line-height: 1.1 !important; }
-          .report-score-card {
-            display: grid !important;
-            grid-template-columns: 92px minmax(0, 1fr) !important;
-            align-items: center !important;
-            gap: 14px !important;
-            padding: 16px !important;
-            min-height: 132px !important;
-          }
-          .report-score-card > div:first-child { width: 92px !important; height: 92px !important; }
-          .report-score-card > div:first-child strong { font-size: 28px !important; }
-          .report-score-card > div:last-child span { font-size: 9px !important; }
-          .report-score-card > div:last-child p:first-of-type {
-            margin-top: 9px !important;
-            font-size: 16px !important;
-            line-height: 1.2 !important;
-            overflow-wrap: anywhere !important;
-          }
-          .report-score-card > div:last-child p:last-of-type {
-            display: none !important;
-          }
-          .report-section { margin-top: 22px !important; }
-          .report-section-heading { margin-bottom: 10px !important; }
-          .report-section-heading h2 { font-size: 18px !important; }
-          .report-competency-grid, .report-reflection-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 9px !important; }
-          .report-competency-card, .report-reflection-card, .report-lessons-panel {
-            box-shadow: none !important;
+            grid-template-columns: minmax(0, 1fr) 360px !important;
             break-inside: avoid !important;
             page-break-inside: avoid !important;
           }
-          .report-competency-card { padding: 12px !important; }
-          .report-competency-card p { font-size: 9.5px !important; line-height: 1.4 !important; }
-          .report-lessons-panel { padding: 14px !important; }
-          .report-lesson-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 7px !important; }
-          .report-reflection-card { padding: 11px !important; }
-          .report-reflection-card p { font-size: 9.5px !important; line-height: 1.4 !important; }
+          .report-score-card { margin-top: 0 !important; }
+          .report-hero-logo { display: block !important; }
+          .report-competency-grid {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+          .report-competency-card[data-span-full="true"] { grid-column: 1 / -1 !important; }
+          .report-competency-card, .report-reflection-card {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+          .report-section[data-purpose="lesson-list"] {
+            break-before: auto !important;
+            page-break-before: auto !important;
+          }
+          .report-section[data-purpose="lesson-list"] .report-section-heading {
+            break-after: avoid !important;
+            page-break-after: avoid !important;
+          }
+          .report-lessons-panel { break-inside: auto !important; page-break-inside: auto !important; }
+          .report-lesson-card { break-inside: avoid !important; page-break-inside: avoid !important; }
+          .report-section[data-purpose="reflection-qa"] {
+            break-before: auto !important;
+            page-break-before: auto !important;
+          }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
       `}</style>
@@ -339,7 +391,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
               studentName={coder?.full_name ?? 'Coder Clevio'}
               reportTitle={reportTitle}
               contextLabel={reportContextLabel}
-              coachName={coach?.full_name ?? 'Clevio Coach'}
+              coachName={reportCoachName}
               publishedDate={pubDate}
               score={scorePercentage}
               grade={grade}
@@ -347,7 +399,8 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
               performanceSummary={gradeSummary}
               competencies={storyCompetencies}
               lessons={lessonTitles}
-              reflections={reportReflections}
+              reflections={isEkskulReport ? [] : reportReflections}
+              isEkskul={isEkskulReport}
             />
             <DownloadPdfButton />
           </div>
@@ -358,15 +411,18 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
         <header className="report-hero relative grid overflow-hidden rounded-2xl border border-[#dce8ef] bg-white p-6 shadow-[0_18px_45px_rgba(31,63,101,0.08)] md:grid-cols-[minmax(0,1fr)_360px] md:items-stretch md:gap-8 md:p-8" data-purpose="student-hero">
           <div className="pointer-events-none absolute right-0 top-0 h-full w-48 bg-[#e8f6ec] [clip-path:polygon(34%_0,100%_0,100%_58%,0_72%)]" aria-hidden="true" />
           <div className="relative z-10 flex min-w-0 flex-col justify-center py-2">
-            <div className="mb-4 inline-flex w-fit items-center rounded-full bg-[#e9f5ff] px-3 py-1.5 text-xs font-extrabold text-[#1478c9]">
-              + Laporan Perkembangan Coder
+            <div className="report-hero-brand mb-4 inline-flex w-fit items-center gap-3">
+              <img src={CLEVIO_LOGO_SRC} alt="Clevio Innovator Camp" className="report-hero-logo hidden h-10 w-auto shrink-0 object-contain" />
+              <div className="report-hero-brand-label inline-flex items-center rounded-full bg-[#e9f5ff] px-3 py-1.5 text-xs font-extrabold tracking-wide text-[#1478c9]">
+                Laporan Perkembangan Coder
+              </div>
             </div>
             <h1 className="max-w-3xl text-3xl font-black leading-tight text-[#152c64] sm:text-4xl lg:text-5xl">{coder?.full_name}</h1>
-            <p className="mt-2 text-base font-extrabold text-[#22367b] sm:text-lg">{reportContextLabel}</p>
-            <div className="mt-5 flex flex-wrap gap-2.5 text-xs font-bold text-[#526886] sm:text-sm">
+            <p className="report-hero-context mt-2 text-base font-extrabold text-[#22367b] sm:text-lg">{reportContextLabel}</p>
+            <div className="report-hero-meta mt-5 flex flex-wrap gap-2.5 text-xs font-bold text-[#526886] sm:text-sm">
               <span className="inline-flex items-center gap-2 rounded-lg border border-[#dce7ef] bg-[#f8fbfd] px-3 py-2">
                 <UserRound size={15} className="text-[#00a9ce]" aria-hidden="true" />
-                Coach: {coach?.full_name ?? 'Clevio Coach'}
+                Coach: {reportCoachName}
               </span>
               <span className="inline-flex items-center gap-2 rounded-lg border border-[#dce7ef] bg-[#f8fbfd] px-3 py-2">
                 <CalendarDays size={15} className="text-[#ff7b6b]" aria-hidden="true" />
@@ -400,7 +456,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
               <div>
                 <p className="text-xs font-black uppercase text-[#00a9ce]">Kompetensi & Observasi</p>
                 <h2 className="mt-1 text-2xl font-black text-[#152c64] sm:text-3xl">Catatan perkembangan dari Coach</h2>
-                <p className="mt-1 text-sm font-medium text-[#7184a0]">Setiap area menampilkan nilai dan observasi pembelajaran selama block berlangsung.</p>
+                <p className="mt-1 text-sm font-medium text-[#7184a0]">Setiap area menampilkan nilai dan observasi pembelajaran selama {learningPeriodLabel} berlangsung.</p>
               </div>
               <span className="hidden shrink-0 rounded-full border border-[#d9e6ee] bg-white px-3 py-1.5 text-xs font-bold text-[#7184a0] sm:inline-flex">{breakdownData.length} area kompetensi</span>
             </div>
@@ -411,7 +467,11 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
                 const CompetencyIcon = COMPETENCY_ICONS[idx % COMPETENCY_ICONS.length];
                 const accent = COMPETENCY_ACCENTS[idx % COMPETENCY_ACCENTS.length];
                 return (
-                  <article key={item.name} className={`${idx === breakdownData.length - 1 && breakdownData.length % 2 === 1 ? 'md:col-span-2' : ''} report-competency-card rounded-xl border border-[#dbe7ef] bg-white p-5 shadow-[0_8px_24px_rgba(31,63,101,0.05)]`}>
+                  <article
+                    key={item.name}
+                    data-span-full={idx === breakdownData.length - 1 && breakdownData.length % 2 === 1 ? 'true' : undefined}
+                    className={`${idx === breakdownData.length - 1 && breakdownData.length % 2 === 1 ? 'md:col-span-2' : ''} report-competency-card rounded-xl border border-[#dbe7ef] bg-white p-5 shadow-[0_8px_24px_rgba(31,63,101,0.05)]`}
+                  >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex min-w-0 items-center gap-3">
                         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-white" style={{ backgroundColor: accent }}>
@@ -439,7 +499,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
               <div className="report-section-heading mb-5 flex items-end justify-between gap-4">
                 <div>
                   <p className="text-xs font-black uppercase text-[#00a9ce]">Materi yang Dibahas</p>
-                  <h2 className="mt-1 text-2xl font-black text-[#152c64] sm:text-3xl">Perjalanan belajar dalam block ini</h2>
+                  <h2 className="mt-1 text-2xl font-black text-[#152c64] sm:text-3xl">Perjalanan belajar dalam {learningPeriodLabel} ini</h2>
                   <p className="mt-1 text-sm font-medium text-[#7184a0]">{lessonSectionSubtitle}</p>
                 </div>
                 <span className="hidden shrink-0 rounded-full border border-[#d9e6ee] bg-white px-3 py-1.5 text-xs font-bold text-[#7184a0] sm:inline-flex">{lessonTitles.length} materi</span>
@@ -451,9 +511,9 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
                 </div>
                 <div className="report-lesson-grid grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
                   {lessonTitles.map((title, idx) => (
-                    <div key={`${title}-${idx}`} className="min-h-24 rounded-lg border border-[#dfe9f0] bg-[#f6f9fd] p-3">
-                      <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-md bg-[#22367b] px-1.5 text-xs font-black text-white">{(idx + 1).toString().padStart(2, '0')}</span>
-                      <p className="mt-3 text-sm font-extrabold leading-snug text-[#22367b]">{title}</p>
+                    <div key={`${title}-${idx}`} className="report-lesson-card flex min-h-0 items-start gap-3 rounded-lg border border-[#dfe9f0] bg-[#f6f9fd] p-3">
+                      <span className="inline-flex h-8 min-w-8 shrink-0 items-center justify-center rounded-md bg-[#22367b] px-1.5 text-sm font-black text-white">{(idx + 1).toString().padStart(2, '0')}</span>
+                      <p className="min-w-0 pt-1 text-base font-bold leading-snug text-[#22367b]">{title}</p>
                     </div>
                   ))}
                 </div>
@@ -461,7 +521,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
             </section>
           )}
 
-          {reportReflections.length > 0 && (
+          {!isEkskulReport && reportReflections.length > 0 && (
               <section className="report-section mt-12" data-purpose="reflection-qa">
                 <div className="report-section-heading mb-5 flex items-end justify-between gap-4">
                   <div>
@@ -500,7 +560,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
             studentName={coder?.full_name ?? 'Coder Clevio'}
             reportTitle={reportTitle}
             contextLabel={reportContextLabel}
-            coachName={coach?.full_name ?? 'Clevio Coach'}
+            coachName={reportCoachName}
             publishedDate={pubDate}
             score={scorePercentage}
             grade={grade}

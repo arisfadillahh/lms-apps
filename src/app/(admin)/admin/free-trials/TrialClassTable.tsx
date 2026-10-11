@@ -6,8 +6,8 @@ import {
   Check,
   CircleX,
   Copy,
-  MessageCircle,
   Search,
+  Trash2,
   Video,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -30,10 +30,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { OFFLINE_TRIAL_ADDRESS, OFFLINE_TRIAL_SCHEDULE } from '@/lib/validation/trialClass';
+import ActionDropdown from '@/components/admin/ActionDropdown';
+import {
+  deriveTrialOutcome,
+  TRIAL_OUTCOME_LABELS,
+  TRIAL_OUTCOME_STYLES,
+  type TrialOutcomeStatus,
+} from '@/lib/services/trialLifecycle';
 import type { Database } from '@/types/supabase';
 
 type TrialClassSubmission = Database['public']['Tables']['trial_class_submissions']['Row'] & {
   coach: { id: string; full_name: string; username: string } | null;
+  trial_assessments?: {
+    status: string;
+    invoice?: { status: string } | null;
+  } | Array<{
+    status: string;
+    invoice?: { status: string } | null;
+  }> | null;
 };
 type CoachOption = { id: string; name: string };
 type TerminalStatus = 'CANCELLED' | 'FAILED';
@@ -101,6 +115,18 @@ export default function TrialClassTable({
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  function getTrialOutcome(item: TrialClassSubmission): TrialOutcomeStatus {
+    const assessment = Array.isArray(item.trial_assessments)
+      ? item.trial_assessments[0]
+      : item.trial_assessments;
+
+    return deriveTrialOutcome({
+      scheduleStatus: item.status,
+      assessmentStatus: assessment?.status,
+      invoiceStatus: assessment?.invoice?.status,
+    });
+  }
+
   const normalizedQuery = query.trim().toLowerCase();
   const filtered = useMemo(() => {
     if (!normalizedQuery) return submissions;
@@ -109,6 +135,7 @@ export default function TrialClassTable({
         item.student_name,
         item.student_grade,
         item.school_name,
+        item.domicile ?? '',
         item.parent_name,
         item.phone,
         item.email,
@@ -116,6 +143,7 @@ export default function TrialClassTable({
         item.notes ?? '',
         item.coach?.full_name ?? '',
         STATUS_LABELS[item.status],
+        TRIAL_OUTCOME_LABELS[getTrialOutcome(item)],
       ].some((value) => value.toLowerCase().includes(normalizedQuery)),
     );
   }, [normalizedQuery, submissions]);
@@ -193,6 +221,25 @@ export default function TrialClassTable({
     });
   }
 
+  function deleteTrial(item: TrialClassSubmission) {
+    if (!window.confirm(`Hapus data trial ${item.student_name}? Tindakan ini tidak dapat dibatalkan.`)) return;
+
+    startTransition(async () => {
+      try {
+        setError(null);
+        const response = await fetch(`/api/admin/free-trials/${item.id}`, { method: 'DELETE' });
+        const payload = await response.json().catch(() => null) as { error?: string } | null;
+        if (!response.ok) {
+          setError(payload?.error || 'Gagal menghapus trial.');
+          return;
+        }
+        router.refresh();
+      } catch {
+        setError('Koneksi terputus. Silakan coba lagi.');
+      }
+    });
+  }
+
   async function copyMeetLink(item: TrialClassSubmission) {
     if (!item.google_meet_url) return;
     await navigator.clipboard.writeText(item.google_meet_url);
@@ -221,6 +268,7 @@ export default function TrialClassTable({
               />
             </div>
           </div>
+          {error ? <p role="alert" className="mt-3 text-sm text-red-600">{error}</p> : null}
         </CardHeader>
         <CardContent className="overflow-x-auto px-0">
           <Table>
@@ -232,7 +280,7 @@ export default function TrialClassTable({
                 <TableHead>Status</TableHead>
                 <TableHead className="min-w-64">Jadwal & coach</TableHead>
                 <TableHead className="min-w-56">Catatan</TableHead>
-                <TableHead className="pr-6 text-right">Aksi</TableHead>
+                <TableHead className="w-16 pr-6 text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -244,6 +292,7 @@ export default function TrialClassTable({
                 </TableRow>
               ) : filtered.map((item) => {
                 const isTerminal = item.status === 'CANCELLED' || item.status === 'FAILED';
+                const outcome = getTrialOutcome(item);
                 return (
                   <TableRow key={item.id}>
                     <TableCell className="whitespace-nowrap pl-6 text-xs text-muted-foreground">
@@ -253,6 +302,9 @@ export default function TrialClassTable({
                       <div className="flex min-w-40 flex-col gap-1.5">
                         <strong className="font-semibold text-foreground">{item.student_name}</strong>
                         <span className="text-xs text-muted-foreground">{item.school_name}</span>
+                        <span className="max-w-64 whitespace-normal break-words text-xs text-muted-foreground">
+                          Domisili: {item.domicile || 'Belum dicantumkan'}
+                        </span>
                         <div className="flex flex-wrap gap-1">
                           <Badge variant="outline">{item.student_grade}</Badge>
                           <Badge variant={item.trial_mode === 'OFFLINE' ? 'default' : 'secondary'}>
@@ -271,7 +323,10 @@ export default function TrialClassTable({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={STATUS_STYLES[item.status]}>{STATUS_LABELS[item.status]}</Badge>
+                      <div className="flex min-w-48 flex-col items-start gap-1">
+                        <Badge variant="outline" className={STATUS_STYLES[item.status]}>{STATUS_LABELS[item.status]}</Badge>
+                        <Badge variant="outline" className={TRIAL_OUTCOME_STYLES[outcome]}>{TRIAL_OUTCOME_LABELS[outcome]}</Badge>
+                      </div>
                     </TableCell>
                     <TableCell className="whitespace-normal text-sm">
                       {item.status === 'SCHEDULED' && item.scheduled_at ? (
@@ -306,29 +361,58 @@ export default function TrialClassTable({
                         {item.trial_mode === 'OFFLINE' && item.notes ? <span className="text-xs leading-5">Catatan: {item.notes}</span> : null}
                       </div>
                     </TableCell>
-                    <TableCell className="pr-6">
-                      <div className="flex min-w-40 justify-end gap-1">
-                        <Button asChild size="icon" variant="ghost" title="Hubungi via WhatsApp">
-                          <a href={`https://wa.me/${item.phone}`} target="_blank" rel="noopener noreferrer" aria-label={`WhatsApp ${item.parent_name}`}>
-                            <MessageCircle />
+                    <TableCell className="w-16 pr-6 text-right">
+                      <ActionDropdown label={`Buka aksi trial ${item.student_name}`}>
+                        <div className="flex flex-col gap-1 p-1">
+                          <a
+                            href={`https://wa.me/${item.phone}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-slate-100"
+                          >
+                            Hubungi WhatsApp
                           </a>
-                        </Button>
-                        {!isTerminal ? (
-                          <Button size="icon" variant="ghost" title={item.status === 'SCHEDULED' ? 'Ubah coach atau jadwal' : 'Assign coach dan jadwal'} onClick={() => openAssign(item)}>
-                            <CalendarPlus />
-                          </Button>
-                        ) : null}
-                        {item.status === 'SCHEDULED' ? (
-                          <>
-                            <Button size="icon" variant="ghost" title="Batalkan trial" onClick={() => openTerminal(item, 'CANCELLED')}>
-                              <Ban />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="text-red-600 hover:text-red-700" title="Tandai gagal" onClick={() => openTerminal(item, 'FAILED')}>
-                              <CircleX />
-                            </Button>
-                          </>
-                        ) : null}
-                      </div>
+                          {!isTerminal ? (
+                            <button
+                              type="button"
+                              className="flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-slate-100"
+                              onClick={() => openAssign(item)}
+                            >
+                              <CalendarPlus size={16} />
+                              {item.status === 'SCHEDULED' ? 'Ubah coach atau jadwal' : 'Assign coach dan jadwal'}
+                            </button>
+                          ) : null}
+                          {item.status === 'SCHEDULED' ? (
+                            <>
+                              <button
+                                type="button"
+                                className="flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-slate-100"
+                                onClick={() => openTerminal(item, 'CANCELLED')}
+                              >
+                                <Ban size={16} />
+                                Batalkan trial
+                              </button>
+                              <button
+                                type="button"
+                                className="flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                                onClick={() => openTerminal(item, 'FAILED')}
+                              >
+                                <CircleX size={16} />
+                                Tandai gagal
+                              </button>
+                            </>
+                          ) : null}
+                          <button
+                            type="button"
+                            className="flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                            onClick={() => deleteTrial(item)}
+                            disabled={isPending}
+                          >
+                            <Trash2 size={16} />
+                            Hapus trial
+                          </button>
+                        </div>
+                      </ActionDropdown>
                     </TableCell>
                   </TableRow>
                 );

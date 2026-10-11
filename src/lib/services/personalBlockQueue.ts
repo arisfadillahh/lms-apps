@@ -20,19 +20,24 @@ export function planTransferQueue<T extends PersonalBlock>(journey: T[], targetB
   const targetIndex = curriculumOrder.indexOf(targetBlockId);
   if (targetIndex < 0) throw new Error('Target block is outside the coder level');
   const previous = new Map(journey.map((row) => [row.block_id, row]));
+  const sourceBlockId = journey.find((row) => row.status === 'IN_PROGRESS')?.block_id;
+  const deferredSourceId = sourceBlockId !== targetBlockId ? sourceBlockId : undefined;
   const completed = [...journey].filter((row) => row.status === 'COMPLETED')
     .sort((a, b) => a.journey_order - b.journey_order);
   const remainingIds = [...curriculumOrder.slice(targetIndex), ...curriculumOrder.slice(0, targetIndex)]
     .filter((id) => previous.get(id)?.status !== 'COMPLETED');
-  return [...completed.map((row) => row.block_id), ...remainingIds].map((id, index) => {
+  const orderedRemainingIds = [...remainingIds.filter((id) => id !== deferredSourceId),
+    ...remainingIds.filter((id) => id === deferredSourceId)];
+  return [...completed.map((row) => row.block_id), ...orderedRemainingIds].map((id, index) => {
     const row = previous.get(id);
     const sourceIndex = curriculumOrder.indexOf(id);
     return {
       block_id: id,
       journey_order: index,
       status: row?.status === 'COMPLETED' ? 'COMPLETED' as const
-        : id === remainingIds[0] ? 'IN_PROGRESS' as const : 'PENDING' as const,
-      deferred_after_class: row?.status === 'COMPLETED' ? false : sourceIndex < targetIndex,
+        : id === orderedRemainingIds[0] ? 'IN_PROGRESS' as const : 'PENDING' as const,
+      deferred_after_class: row?.status === 'COMPLETED' ? false
+        : sourceIndex < targetIndex || id === deferredSourceId,
     };
   });
 }

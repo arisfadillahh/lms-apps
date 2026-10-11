@@ -50,4 +50,13 @@ describe('personal block queue when moving classes', () => {
     expect(transfer).not.toContain('finalize_coder_level(');
     expect(sql).toContain("progress.deferred_after_class = true");
   });
+
+  it('also defers an unfinished source block when moving backwards in the curriculum', () => {
+    const fromD = curriculum.map((block_id, journey_order) => ({
+      block_id, journey_order, status: block_id === 'D' ? 'IN_PROGRESS' as const : 'PENDING' as const,
+    }));
+    const queue = planTransferQueue(fromD, 'B', curriculum);
+    expect(queue.map((row) => row.block_id)).toEqual(['B', 'C', 'E', 'A', 'D']);
+    expect(queue.at(-1)).toMatchObject({ block_id: 'D', status: 'PENDING', deferred_after_class: true });
+  });
 });

@@ -98,7 +98,9 @@ BEGIN
     WHERE p.coder_id = p_coder_id AND p.level_id = p_level_id
     ORDER BY CASE WHEN p.status = 'COMPLETED' THEN 0 ELSE 1 END,
       CASE WHEN p.status = 'COMPLETED' THEN p.journey_order END,
-      CASE WHEN p.status <> 'COMPLETED' AND b.order_index >= v_target_order THEN 0 ELSE 1 END,
+      CASE WHEN p.status = 'COMPLETED' THEN 0
+           WHEN p.block_id = v_source_block_id AND p.block_id <> v_target_block_id THEN 2
+           WHEN b.order_index >= v_target_order THEN 0 ELSE 1 END,
       b.order_index, p.id
   LOOP
     UPDATE public.coder_block_progress SET
@@ -107,7 +109,9 @@ BEGIN
                     WHEN v_first_pending THEN 'IN_PROGRESS' ELSE 'PENDING' END,
       completed_at = CASE WHEN v_row.status = 'COMPLETED' THEN completed_at ELSE NULL END,
       completion_source = CASE WHEN v_row.status = 'COMPLETED' THEN completion_source ELSE NULL END,
-      deferred_after_class = v_row.status <> 'COMPLETED' AND v_row.order_index < v_target_order,
+      deferred_after_class = v_row.status <> 'COMPLETED' AND
+        (v_row.order_index < v_target_order OR
+         (v_row.block_id = v_source_block_id AND v_row.block_id <> v_target_block_id)),
       entry_lesson_position = CASE WHEN v_row.block_id = v_target_block_id
         THEN v_entry_lesson_position
         WHEN v_row.block_id = v_source_block_id AND v_row.status <> 'COMPLETED'

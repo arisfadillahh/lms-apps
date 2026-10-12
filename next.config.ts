@@ -1,5 +1,8 @@
 import type { NextConfig } from 'next';
-import { buildContentSecurityPolicy } from './src/lib/security/contentSecurityPolicy';
+import { buildContentSecurityPolicy, shouldUpgradeInsecureRequests } from './src/lib/security/contentSecurityPolicy';
+
+const publicAppUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL;
+const useHttpsHeaders = shouldUpgradeInsecureRequests(publicAppUrl);
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
@@ -31,12 +34,12 @@ const nextConfig: NextConfig = {
     return [{
       source: '/(.*)',
       headers: [
-        { key: 'Content-Security-Policy', value: buildContentSecurityPolicy() },
+        { key: 'Content-Security-Policy', value: buildContentSecurityPolicy({ upgradeInsecureRequests: useHttpsHeaders }) },
         { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
         { key: 'X-Content-Type-Options', value: 'nosniff' },
         { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
         { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()' },
-        { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
+        ...(useHttpsHeaders ? [{ key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' }] : []),
       ],
     }];
   },

@@ -15,6 +15,13 @@ const CONTENT_SECURITY_POLICY_DIRECTIVES = [
   'upgrade-insecure-requests',
 ] as const;
 
-export function buildContentSecurityPolicy(): string {
-  return CONTENT_SECURITY_POLICY_DIRECTIVES.join('; ');
+export function shouldUpgradeInsecureRequests(appUrl: string | undefined): boolean {
+  return !appUrl?.toLowerCase().startsWith('http://');
+}
+
+export function buildContentSecurityPolicy(options: { upgradeInsecureRequests?: boolean } = {}): string {
+  const directives = options.upgradeInsecureRequests === false
+    ? CONTENT_SECURITY_POLICY_DIRECTIVES.filter((directive) => directive !== 'upgrade-insecure-requests')
+    : CONTENT_SECURITY_POLICY_DIRECTIVES;
+  return directives.join('; ');
 }

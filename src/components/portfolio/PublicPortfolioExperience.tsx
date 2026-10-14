@@ -10,9 +10,11 @@ import styles from './PublicPortfolioExperience.module.css';
 
 const classNames = (...names: Array<string | false | null | undefined>) => names.filter(Boolean).join(' ');
 
-function Brand() {
+function Brand({ surface = 'light' }: { surface?: 'light' | 'dark' }) {
+  // Asset names describe the lettering: dark = blue text, light = white text.
+  const logo = surface === 'light' ? '/logo/innovator-camp-logo-dark.png' : '/logo/innovator-camp-logo-light.png';
   return <a href="#home" className={styles.brand} aria-label="Clevio portfolio home">
-    <Image src="/images/clevio-logo.png.png" alt="Clevio Innovator Camp" width={146} height={50} priority />
+    <Image src={logo} alt="Clevio Innovator Camp" width={146} height={50} priority />
   </a>;
 }
 

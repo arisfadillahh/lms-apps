@@ -52,7 +52,7 @@ describe('public portfolio rendered behavior', () => {
     const projects = Array.from({length:6},(_,i)=>({...project,id:`project-${i}`,snapshot:{...project.snapshot,tools:[`Tool ${i}`]}}));
     const html = render({projects});
     expect([...html.matchAll(/<button[^>]*aria-pressed="(?:true|false)"[^>]*>([^<]+)<\/button>/g)].map((match)=>match[1])).toEqual(['Semua (6)','Tool 0','Tool 1','Tool 2','Tool 3','Tool 4','Tool 5']);
-    expect([...html.matchAll(/<img[^>]*src="([^"]+)"/g)].map((match)=>match[1])).toEqual(expect.arrayContaining(['/images/clevio-logo.png.png']));
+    expect([...html.matchAll(/<img[^>]*src="([^"]+)"/g)].map((match)=>match[1])).toEqual(['/logo/innovator-camp-logo-dark.png', '/logo/innovator-camp-logo-dark.png']);
   });
 
   it.each(['PENDING', 'COMPLETED'] as const)('keeps the journey meaningful when every block is %s', (status) => {

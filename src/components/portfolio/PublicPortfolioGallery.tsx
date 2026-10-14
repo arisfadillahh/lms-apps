@@ -15,6 +15,11 @@ const ACCENTS = ['#86c5ee', '#8ac278', '#53b9df', '#ffd6ca', '#b8c5d4'];
 
 export default function PublicPortfolioGallery({ projects }: { projects: PublicProject[] }) {
   const [selected, setSelected] = useState<PublicProject | null>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  const openProject = (project: PublicProject) => {
+    returnFocusRef.current = document.activeElement as HTMLElement | null;
+    setSelected(project);
+  };
   const [filter, setFilter] = useState('All');
   const tools = ['All', ...Array.from(new Set(projects.flatMap((project) => project.snapshot.tools)))];
   const shownProjects = filter === 'All' ? projects : projects.filter((project) => project.snapshot.tools.includes(filter));
@@ -27,7 +32,12 @@ export default function PublicPortfolioGallery({ projects }: { projects: PublicP
     const previousInert = page?.inert ?? false;
     if (page) page.inert = true;
     window.addEventListener('keydown', onKeyDown);
-    return () => { if (page) page.inert = previousInert; unlockDocumentScroll(); window.removeEventListener('keydown', onKeyDown); };
+    return () => {
+      if (page) page.inert = previousInert;
+      unlockDocumentScroll();
+      window.removeEventListener('keydown', onKeyDown);
+      requestAnimationFrame(() => { if (returnFocusRef.current?.isConnected) returnFocusRef.current.focus(); });
+    };
   }, [selected]);
 
   if (projects.length === 0) return <section id="projects" className={styles.emptyProjects}><Sparkles size={38} /><h2>Karya sedang dipersiapkan</h2><p>Project yang disetujui Coach akan tampil di portfolio ini.</p></section>;
@@ -35,7 +45,7 @@ export default function PublicPortfolioGallery({ projects }: { projects: PublicP
   return <>
     <section className={styles.gallerySection}>
       <div className={styles.sectionHead}><div className={styles.titleWrap}><span className={styles.sectionIcon}><Sparkles size={19} /></span><h2>Sorotan karya terbaru</h2></div><p>Sudah disetujui Coach, siap dieksplorasi.</p></div>
-      <button type="button" className={styles.feature} onClick={() => setSelected(featured)} aria-label={'Lihat project ' + featured.snapshot.title}>
+      <button type="button" className={styles.feature} onClick={() => openProject(featured)} aria-label={'Lihat project ' + featured.snapshot.title}>
         <div className={styles.featureMedia}>{featured.snapshot.screenshots[0] ? <img src={featured.snapshot.screenshots[0].publicUrl} alt="" loading="lazy" /> : <Gamepad2 size={88} />}<span className={styles.featurePlay}><ArrowRight size={22} /></span></div>
         <div className={styles.featureCopy}><span className={styles.projectTag}>{featured.snapshot.projectType}</span><h3>{featured.snapshot.title}</h3><p>{featured.snapshot.summary}</p><div className={styles.chips}>{featured.snapshot.skills.slice(0, 4).map((skill) => <span className={styles.chip} key={skill}>{skill}</span>)}</div><span className={styles.featureLink}>Lihat detail karya <ArrowRight size={17} /></span></div>
       </button>
@@ -43,7 +53,7 @@ export default function PublicPortfolioGallery({ projects }: { projects: PublicP
     <section id="projects" className={styles.gallerySection}>
       <div className={styles.sectionHead}><div><div className={styles.titleWrap}><span className={styles.sectionIcon}><FolderKanban size={19} /></span><h2>Jelajahi karya</h2></div><p>Pilih kartu untuk membaca cerita, melihat gambar, atau mencoba karya.</p></div><div className={styles.tabs} role="group" aria-label="Filter karya berdasarkan aplikasi">{tools.map((tool) => <button type="button" key={tool} className={filter === tool ? styles.activeTab : styles.tab} aria-pressed={filter === tool} onClick={() => setFilter(tool)}>{tool === 'All' ? `Semua (${projects.length})` : tool}</button>)}</div></div>
       <p className={styles.projectCount} role="status">{shownProjects.length} karya{filter !== 'All' ? ` dibuat dengan ${filter}` : ' untuk dijelajahi'}</p>
-      <div className={styles.projects}>{shownProjects.map((project, index) => <ProjectCard key={project.id} project={project} index={index} onOpen={setSelected} />)}</div>
+      <div className={styles.projects}>{shownProjects.map((project, index) => <ProjectCard key={project.id} project={project} index={index} onOpen={openProject} />)}</div>
       {shownProjects.length === 0 && <p className={styles.filteredEmpty}>Belum ada project untuk tool ini.</p>}
     </section>
     {selected && createPortal(<ProjectModal project={selected} onClose={() => setSelected(null)} />, document.body)}
@@ -62,9 +72,7 @@ function ProjectModal({ project, onClose }: { project: PublicProject; onClose: (
   const dialogRef = useRef<HTMLElement>(null);
   const [shotIndex, setShotIndex] = useState(0);
   useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
     dialogRef.current?.querySelector<HTMLElement>('button')?.focus();
-    return () => { requestAnimationFrame(() => { if (previous?.isConnected) previous.focus(); }); };
   }, []);
   const snapshot = project.snapshot;
   const actionLinks = [

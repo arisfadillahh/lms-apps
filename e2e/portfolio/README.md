@@ -9,7 +9,9 @@ node node_modules/vitest/node_modules/vite/bin/vite.js --config e2e/portfolio/vi
 Open `http://127.0.0.1:4175/`. Use `/?empty` for a portfolio without published work,
 or `/?stress` for a long name/school and unbroken tool, skill, project and block labels.
 This renders the actual public portfolio components with synthetic approved snapshots;
-it makes no API requests and is not a Next.js route or production data seed.
+it makes no database requests or production writes and is not a Next.js route or data seed.
+Official software images use the real read-only image handler through the Vite middleware;
+the handler fetches only its fixed vendor-source registry.
 
 Manual checks: 320×480, 390×844, 640×320, 768×1024, 820×1180,
 1024×600, 1366×768, and 1920×1080.
@@ -33,3 +35,13 @@ Manual checks: 320×480, 390×844, 640×320, 768×1024, 820×1180,
 
 For production verification, additionally confirm that the Next.js optimized logo,
 global scroll styles, approved snapshots, and school visibility still behave correctly.
+
+## Software logo form
+
+Open `/software.html` for the actual admin form with local API mocks. The default
+checkbox deliberately makes software saving fail after a successful upload. Upload
+a test PNG from `public/logo/`, save, uncheck the failure checkbox and save again:
+the counters must show one upload and two save attempts. No Supabase write occurs.
+Also check URL validation, a broken URL's warning/fallback, “Gunakan logo bawaan”,
+and 320/390/768/1280px controls. Signed-out public images and protected admin upload
+are independently covered by behavioral route/middleware tests.

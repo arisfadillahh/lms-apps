@@ -1,11 +1,13 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
+import SoftwareLogo from '@/components/software/SoftwareLogo';
+import { defaultSoftwareLogo, normalizeSoftwareLogoUrl } from '@/lib/softwareLogos';
 
 const schema = z.object({
     name: z.string().min(2, 'Minimal 2 karakter'),
@@ -14,7 +16,7 @@ const schema = z.object({
     installationUrl: z.string().url('URL tidak valid').optional().or(z.literal('')),
     installationInstructions: z.string().optional().or(z.literal('')),
     accessInfo: z.string().optional().or(z.literal('')),
-    iconUrl: z.string().url('URL tidak valid').optional().or(z.literal('')),
+    iconUrl: z.string().refine(value => !value.trim() || normalizeSoftwareLogoUrl(value) !== null, 'Gunakan URL gambar HTTPS yang valid.').optional(),
     // minimumSpecs as JSON string
     minimumSpecsCpu: z.string().optional().or(z.literal('')),
     minimumSpecsRam: z.string().optional().or(z.literal('')),
@@ -48,10 +50,16 @@ export default function SoftwareForm({ mode, initialData }: SoftwareFormProps) {
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [logoFile, setLogoFile] = useState<File | null>(null);
+    const [logoPreview, setLogoPreview] = useState<string | null>(null);
+    const [logoLoadFailed,setLogoLoadFailed] = useState(false);
+    const logoInput = useRef<HTMLInputElement>(null);
+    const clearLogoFile = () => { setLogoFile(null); if (logoInput.current) logoInput.current.value = ''; };
 
     const {
         register,
         handleSubmit,
+        watch, setValue, setError, clearErrors,
         formState: { errors },
     } = useForm<FormValues>({
         resolver: zodResolver(schema),
@@ -69,6 +77,15 @@ export default function SoftwareForm({ mode, initialData }: SoftwareFormProps) {
             minimumSpecsOs: initialData?.minimum_specs?.os ?? '',
         },
     });
+    const softwareName = watch('name');
+    const iconUrl = watch('iconUrl');
+    useEffect(()=>setLogoLoadFailed(false),[iconUrl,logoFile]);
+    useEffect(() => {
+        if (!logoFile) { setLogoPreview(null); return; }
+        const url = URL.createObjectURL(logoFile);
+        setLogoPreview(url);
+        return () => URL.revokeObjectURL(url);
+    }, [logoFile]);
 
     const onSubmit = async (values: FormValues) => {
         setIsSubmitting(true);
@@ -95,6 +112,17 @@ export default function SoftwareForm({ mode, initialData }: SoftwareFormProps) {
         };
 
         try {
+            if (logoFile) {
+                const form = new FormData();
+                form.set('file', logoFile);
+                const upload = await fetch('/api/admin/software/logo', { method:'POST', body:form });
+                const data = await upload.json().catch(() => ({}));
+                if (!upload.ok || !normalizeSoftwareLogoUrl(data.iconUrl)) throw new Error(data.error || 'Logo gagal diunggah. Coba simpan lagi.');
+                payload.iconUrl = data.iconUrl;
+                // Preserve successful upload on a subsequent software-save failure/retry.
+                setValue('iconUrl', data.iconUrl, { shouldDirty:true, shouldValidate:true });
+                clearLogoFile();
+            }
             const url = mode === 'edit' ? `/api/admin/software/${initialData?.id}` : '/api/admin/software';
             const method = mode === 'edit' ? 'PUT' : 'POST';
 
@@ -125,6 +153,40 @@ export default function SoftwareForm({ mode, initialData }: SoftwareFormProps) {
                 <input type="text" style={inputStyle} {...register('name')} placeholder="Contoh: Scratch 3.0" />
                 {errors.name && <span style={errorStyle}>{errors.name.message}</span>}
             </div>
+
+            <section style={{ ...formGroupStyle, padding:16, border:'1px solid #dce5f2', borderRadius:12 }} aria-label="Logo software">
+                <label htmlFor="software-logo-file" style={labelStyle}>Logo Software</label>
+                <p style={{fontSize:12,color:'#64748b',lineHeight:1.5,margin:'0 0 12px'}}>Logo digunakan di katalog software dan portofolio publik coder.</p>
+                <div style={{ display:'flex', gap:16, alignItems:'center', flexWrap:'wrap', marginBottom:12 }}>
+                    <div style={{ width:80, height:80, flexShrink:0, display:'grid', placeItems:'center', background:'#fff', border:'1px solid #dce5f2', borderRadius:12, padding:10 }}>
+                        {logoPreview ? <img src={logoPreview} alt="Preview logo yang dipilih" style={{ width:'100%', height:'100%', objectFit:'contain' }} onError={()=>setError('iconUrl',{type:'manual',message:'Gambar tidak dapat dibaca. Pilih file PNG, JPG, atau WebP yang valid.'})} />
+                            : <SoftwareLogo name={softwareName} src={iconUrl} size={58} onSourceError={source=>{if (source === normalizeSoftwareLogoUrl(iconUrl)) setLogoLoadFailed(true);}} />}
+                    </div>
+                    <div style={{ flex:'1 1 220px', minWidth:0 }}>
+                        <input ref={logoInput} id="software-logo-file" type="file" accept="image/png,image/jpeg,image/webp" disabled={isSubmitting}
+                            style={{ maxWidth:'100%' }} onChange={event => {
+                                const file = event.currentTarget.files?.[0];
+                                if (!file) return;
+                                if (!['image/png','image/jpeg','image/webp'].includes(file.type) || file.size > 1024*1024 || !file.size) {
+                                    setError('iconUrl', { type:'manual', message:'Pilih PNG, JPG, atau WebP maksimal 1 MB.' });
+                                    event.currentTarget.value = ''; return;
+                                }
+                                clearErrors('iconUrl'); setLogoFile(file);
+                            }} />
+                        <p style={{ fontSize:12, color:'#64748b', lineHeight:1.5, margin:'8px 0' }}>PNG, JPG, atau WebP, maksimal 1 MB. Logo tersimpan bersama data software.</p>
+                        {logoFile && <button type="button" className="btn btn-sm" disabled={isSubmitting} onClick={() => { clearLogoFile(); clearErrors('iconUrl'); }}>Batalkan pilihan gambar</button>}
+                    </div>
+                </div>
+                <label htmlFor="software-logo-url" style={labelStyle}>Atau pakai URL logo</label>
+                <input id="software-logo-url" type="text" inputMode="url" style={inputStyle} disabled={isSubmitting || Boolean(logoFile)}
+                    {...register('iconUrl')} placeholder="https://…/logo.png" />
+                {errors.iconUrl && <span style={errorStyle} role="alert">{errors.iconUrl.message}</span>}
+                {logoLoadFailed && <p role="status" style={{fontSize:12,color:'#956100',lineHeight:1.5}}>Preview URL belum bisa dimuat. Periksa link gambar; logo bawaan ditampilkan sementara jika tersedia.</p>}
+                {!logoFile && !iconUrl && <p style={{ fontSize:12, color:'#64748b', lineHeight:1.5, margin:'8px 0 0' }}>
+                    {defaultSoftwareLogo(softwareName) ? 'Logo resmi bawaan digunakan. Isi URL atau unggah gambar untuk menggantinya.' : 'Belum ada logo bawaan. Unggah gambar atau isi URL logo software ini.'}
+                </p>}
+                {(iconUrl || logoFile) && <button type="button" className="btn btn-sm" style={{ marginTop:8 }} disabled={isSubmitting} onClick={() => { clearLogoFile(); setValue('iconUrl','',{ shouldDirty:true, shouldValidate:true }); clearErrors('iconUrl'); }}>Gunakan logo bawaan</button>}
+            </section>
 
             <div style={formGroupStyle}>
                 <label style={labelStyle}>Deskripsi</label>
@@ -195,7 +257,7 @@ export default function SoftwareForm({ mode, initialData }: SoftwareFormProps) {
                         opacity: isSubmitting ? 0.6 : 1,
                     }}
                 >
-                    {isSubmitting ? 'Menyimpan...' : mode === 'edit' ? 'Update Software' : 'Tambah Software'}
+                    {isSubmitting ? 'Menyimpan...' : mode === 'edit' ? 'Simpan Perubahan' : 'Tambah Software'}
                 </button>
                 <button
                     type="button"

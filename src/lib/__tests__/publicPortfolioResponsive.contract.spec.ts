@@ -39,6 +39,12 @@ describe('public portfolio rendered behavior', () => {
     expect(empty).not.toMatch(/— Coder/);
   });
 
+  it('uses the catalog logo for an approved tool without exposing unrelated catalog entries', () => {
+    const html = render({softwareCatalog:[{name:'Scratch 3 Install',icon_url:'https://assets.example/scratch.png'},{name:'Unrelated private tool',icon_url:'https://assets.example/unrelated.png'}]});
+    const logos = [...html.matchAll(/<img[^>]*src="([^"]+)"[^>]*alt="Logo ([^"]+)"/g)].map(match=>({src:match[1],name:match[2]}));
+    expect(logos).toEqual([{src:'https://assets.example/scratch.png',name:'Scratch'}]);
+  });
+
   it('keeps a later active block in the initial journey preview', () => {
     const learningBlocks: NonNullable<PortfolioExperienceInput['learningBlocks']> = Array.from({length:8},(_,i)=>({ id:`block-${i}`, blockName:`Materi unik ${i}`, levelName:'XPLORER', levelOrder:0, journeyOrder:i, status:i<5?'COMPLETED':i===5?'IN_PROGRESS':'PENDING', completedAt:null }));
     const html = render({learningBlocks});
@@ -52,7 +58,7 @@ describe('public portfolio rendered behavior', () => {
     const projects = Array.from({length:6},(_,i)=>({...project,id:`project-${i}`,snapshot:{...project.snapshot,tools:[`Tool ${i}`]}}));
     const html = render({projects});
     expect([...html.matchAll(/<button[^>]*aria-pressed="(?:true|false)"[^>]*>([^<]+)<\/button>/g)].map((match)=>match[1])).toEqual(['Semua (6)','Tool 0','Tool 1','Tool 2','Tool 3','Tool 4','Tool 5']);
-    expect([...html.matchAll(/<img[^>]*src="([^"]+)"/g)].map((match)=>match[1])).toEqual(['/logo/innovator-camp-logo-dark.png', '/logo/innovator-camp-logo-dark.png']);
+    expect([...html.matchAll(/<img[^>]*src="([^"]+)"[^>]*alt="Clevio Innovator Camp"/g)].map((match)=>match[1])).toEqual(['/logo/innovator-camp-logo-dark.png', '/logo/innovator-camp-logo-dark.png']);
   });
 
   it.each(['PENDING', 'COMPLETED'] as const)('keeps the journey meaningful when every block is %s', (status) => {

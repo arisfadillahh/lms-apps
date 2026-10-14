@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSessionOrThrow } from '@/lib/auth';
 import { getSoftwareById, updateSoftware, deleteSoftware } from '@/lib/dao/softwareDao';
+import { normalizeSoftwareLogoUrl } from '@/lib/softwareLogos';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -36,6 +37,9 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
         const body = await request.json();
         const { name, description, version, installationUrl, installationInstructions, minimumSpecs, accessInfo, iconUrl } = body;
+        if (iconUrl !== undefined && iconUrl !== null && (typeof iconUrl !== 'string' || (iconUrl.trim() && !normalizeSoftwareLogoUrl(iconUrl)))) {
+            return NextResponse.json({ error:'URL logo harus berupa gambar HTTPS yang valid.' }, { status:400 });
+        }
 
         const software = await updateSoftware(id, {
             name,
@@ -45,7 +49,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
             installationInstructions,
             minimumSpecs,
             accessInfo,
-            iconUrl,
+            iconUrl: iconUrl === undefined ? undefined : normalizeSoftwareLogoUrl(iconUrl),
         });
 
         return NextResponse.json(software);

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ArrowDown, ArrowRight, BarChart3, Check, Compass, FolderKanban, FolderOpen, Heart, Menu, Rocket, Share2, Sparkles, Wrench, X } from 'lucide-react';
 
 import PublicPortfolioGallery from '@/components/portfolio/PublicPortfolioGallery';
+import SoftwareLogo from '@/components/software/SoftwareLogo';
 import type { PortfolioExperienceModel } from '@/lib/publicPortfolioExperience';
 import styles from './PublicPortfolioExperience.module.css';
 
@@ -143,7 +144,7 @@ export default function PublicPortfolioExperience({ model }: { model: PortfolioE
     };
   }, []);
   const completedBlocks = model.learningJourney.reduce((total, level) => total + level.completedCount, 0);
-  const tools = [...new Set(model.projects.flatMap((project) => project.snapshot.tools))].slice(0, 6);
+  const tools = model.toolLogos;
   return <div className={styles.root} data-public-portfolio>
     <a className={styles.skipLink} href="#projects">Langsung ke karya</a>
     <Navigation />
@@ -154,7 +155,7 @@ export default function PublicPortfolioExperience({ model }: { model: PortfolioE
       <PublicPortfolioGallery projects={model.projects} />
       <LearningPath model={model} />
       <section id="skills" className={styles.bottomGrid}>
-        <article className={styles.infoCard}><h2><Wrench size={19} /> Alat berkarya</h2><p>Aplikasi yang digunakan untuk membuat karya-karya ini.</p><div className={styles.skillIcons}>{tools.length > 0 ? tools.map((tool) => <span className={styles.skill} key={tool}><i>{tool.slice(0, 1).toUpperCase()}</i>{tool}</span>) : <span className={styles.noData}>Belum ada alat berkarya yang tercatat.</span>}</div></article>
+        <article className={styles.infoCard}><h2><Wrench size={19} /> Alat berkarya</h2><p>Aplikasi yang digunakan untuk membuat karya-karya ini.</p><div className={styles.skillIcons}>{tools.length > 0 ? tools.map(tool => <span className={styles.skill} key={tool.name}><SoftwareLogo name={tool.name} src={tool.iconUrl} size={44} />{tool.name}</span>) : <span className={styles.noData}>Belum ada alat berkarya yang tercatat.</span>}</div></article>
         <article className={styles.infoCard}><h2><Heart size={19} /> Keahlian yang dilatih</h2><p>Terlihat dari karya yang sudah dipublikasikan.</p><div className={styles.chips}>{model.journey.length > 0 ? model.journey.map((skill) => <span className={styles.chip} key={skill.label}>{skill.label} · {skill.count} karya</span>) : <span className={styles.noData}>Keahlian akan muncul setelah karya disetujui.</span>}</div></article>
         <article className={styles.infoCard} id="reflection"><h2><Sparkles size={19} /> Cerita belajarku</h2>{model.featuredProject?.snapshot.learningReflection ? <><p className={styles.reflection}>“{model.featuredProject.snapshot.learningReflection}”</p><p className={styles.attribution}>— {model.firstName}, dari karya {model.featuredProject.snapshot.title}</p></> : <p>Refleksi akan tampil saat coder membagikan cerita belajarnya.</p>}</article>
       </section>

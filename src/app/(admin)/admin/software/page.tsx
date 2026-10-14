@@ -1,7 +1,8 @@
 import Link from 'next/link';
-import { Package, Plus, Pencil, ExternalLink } from 'lucide-react';
+import { Plus, Pencil, ExternalLink } from 'lucide-react';
 import { softwareDao } from '@/lib/dao';
 import PageHead from '@/components/admin/PageHead';
+import SoftwareLogo from '@/components/software/SoftwareLogo';
 
 export default async function SoftwareListPage() {
   const softwareList = await softwareDao.listAllSoftware();
@@ -31,11 +32,7 @@ export default async function SoftwareListPage() {
                   background: 'var(--surface-2)', display: 'flex', alignItems: 'center',
                   justifyContent: 'center', flexShrink: 0,
                 }}>
-                  {software.icon_url ? (
-                    <img src={software.icon_url} alt={software.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'var(--radius)' }} />
-                  ) : (
-                    <Package size={22} style={{ color: 'var(--text-muted)' }} />
-                  )}
+                  <SoftwareLogo name={software.name} src={software.icon_url} size={36} />
                 </div>
                 <div>
                   <div style={{ fontWeight: 800, fontSize: 14.5 }}>{software.name}</div>

@@ -18,6 +18,7 @@ const PUBLIC_PREFIXES = [
   '/api/invoices/seasonal',
   '/api/free-trial',
   '/api/whatsapp/send',
+  '/api/software/logos',
 ];
 
 type AdminMenuId =

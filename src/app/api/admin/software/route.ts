@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSessionOrThrow } from '@/lib/auth';
 import { listAllSoftware, createSoftware } from '@/lib/dao/softwareDao';
+import { normalizeSoftwareLogoUrl } from '@/lib/softwareLogos';
 
 export async function GET() {
     try {
@@ -22,6 +23,9 @@ export async function POST(request: Request) {
 
         const body = await request.json();
         const { name, description, version, installationUrl, installationInstructions, minimumSpecs, accessInfo, iconUrl } = body;
+        if (iconUrl !== undefined && iconUrl !== null && (typeof iconUrl !== 'string' || (iconUrl.trim() && !normalizeSoftwareLogoUrl(iconUrl)))) {
+            return NextResponse.json({ error:'URL logo harus berupa gambar HTTPS yang valid.' }, { status:400 });
+        }
 
         if (!name || typeof name !== 'string' || name.trim().length < 2) {
             return NextResponse.json({ error: 'Name is required (min 2 characters)' }, { status: 400 });
@@ -35,7 +39,7 @@ export async function POST(request: Request) {
             installationInstructions: installationInstructions ?? null,
             minimumSpecs: minimumSpecs ?? null,
             accessInfo: accessInfo ?? null,
-            iconUrl: iconUrl ?? null,
+            iconUrl: normalizeSoftwareLogoUrl(iconUrl),
         });
 
         return NextResponse.json(software, { status: 201 });

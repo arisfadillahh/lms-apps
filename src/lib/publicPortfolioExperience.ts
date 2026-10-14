@@ -1,5 +1,6 @@
 import type { PublishedPortfolioSnapshot } from '@/lib/coderPortfolio';
 import { portfolioTagKey, uniquePortfolioTags } from '@/lib/portfolioTags';
+import { resolveSoftwareLogo, type SoftwareLogoRecord } from '@/lib/softwareLogos';
 
 export type ExperienceProject = {
   id: string;
@@ -25,11 +26,13 @@ export type PortfolioExperienceInput = {
   programTypes: Array<'WEEKLY' | 'EKSKUL'>;
   projects: ExperienceProject[];
   learningBlocks?: PortfolioLearningBlock[];
+  softwareCatalog?: SoftwareLogoRecord[];
   season?: string;
 };
 
 export type PortfolioExperienceModel = PortfolioExperienceInput & {
   firstName: string;
+  toolLogos: Array<{ name: string; iconUrl: string | null }>;
   initials: string;
   season: string;
   stats: {
@@ -64,6 +67,7 @@ function initialsFor(fullName: string): string {
 }
 
 export function buildPortfolioExperienceModel(input: PortfolioExperienceInput): PortfolioExperienceModel {
+  const { softwareCatalog, ...publicInput } = input;
   const projects = input.projects ?? [];
   const learningBlocks = input.learningBlocks ?? [];
   const firstName = input.fullName.trim().split(/\s+/).filter(Boolean)[0] || 'Coder';
@@ -117,8 +121,10 @@ export function buildPortfolioExperienceModel(input: PortfolioExperienceInput): 
     }, []);
 
   return {
-    ...input,
+    ...publicInput,
     firstName,
+    toolLogos: uniquePortfolioTags(projects.flatMap(project => project.snapshot.tools ?? []))
+      .map(name => ({ name, iconUrl:resolveSoftwareLogo(name, softwareCatalog) })),
     initials: initialsFor(input.fullName),
     season: input.season ?? `Learning Journey ${year}`,
     stats: {

@@ -13,11 +13,12 @@ async function getPublicPortfolio(slug: string) {
   const supabase = getSupabaseAdmin() as any;
   const { data: profile, error } = await supabase.from('coder_portfolio_profiles').select('coder_id, school_visible').eq('public_slug', slug).maybeSingle();
   if (error || !profile) return null;
-  const [{ data: user }, { data: enrollments }, { data: portfolios }, { data: learningBlocks }] = await Promise.all([
+  const [{ data: user }, { data: enrollments }, { data: portfolios }, { data: learningBlocks }, { data: softwareCatalog }] = await Promise.all([
     supabase.from('users').select('full_name, school_name, school_grade').eq('id', profile.coder_id).maybeSingle(),
     supabase.from('enrollments').select('enrolled_at, classes(type, levels(name))').eq('coder_id', profile.coder_id).order('enrolled_at', { ascending: false }),
     supabase.from('coder_portfolios').select('id, published_snapshot, published_at, program_type').eq('coder_id', profile.coder_id).not('published_snapshot', 'is', null).order('published_at', { ascending: false }),
     supabase.from('coder_block_progress').select('id, journey_order, status, completed_at, blocks(name, levels(name, order_index))').eq('coder_id', profile.coder_id),
+    supabase.from('software').select('name, icon_url'),
   ]);
   if (!user) return null;
   const programTypes = [...new Set([
@@ -32,6 +33,7 @@ async function getPublicPortfolio(slug: string) {
   const levelName = Array.isArray(latestLevel) ? latestLevel[0]?.name : latestLevel?.name;
   return {
     profile,
+    softwareCatalog: softwareCatalog ?? [],
     user,
     programTypes,
     levelName: levelName || null,
@@ -71,6 +73,7 @@ export default async function PublicPortfolioPage({ params }: Params) {
     programTypes: data.programTypes,
     projects: data.projects,
     learningBlocks: data.learningBlocks,
+    softwareCatalog: data.softwareCatalog,
   });
 
   return <PublicPortfolioExperience model={model} />;

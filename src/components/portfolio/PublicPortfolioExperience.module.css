@@ -42,6 +42,8 @@
 .root.root .heroActions :is(a,button) { min-height:48px; }
 .root.root .stats { grid-template-columns:repeat(4,minmax(0,1fr)); margin-top:30px; }
 .root.root .achievementStat { grid-column:1/-1; border-top:1px solid var(--line); padding:14px 20px; }
+.root.root .achievementStat>.iconBox { display:grid; place-items:center; color:#3e60d7; }
+.root.root .achievementStat>.iconBox svg { display:block; margin:0; }
 .root.root .achievementStat strong { white-space:normal; max-width:none; overflow-wrap:anywhere; }
 .root.root .section,.root.root .gallerySection { margin:64px 0; }
 .root.root .sectionHead { align-items:center; margin-bottom:24px; }

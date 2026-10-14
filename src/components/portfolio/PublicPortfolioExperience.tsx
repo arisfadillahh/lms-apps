@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ArrowDown, ArrowRight, BarChart3, Check, Compass, FolderKanban, Heart, Menu, Rocket, Share2, Sparkles, Trophy, Wrench, X } from 'lucide-react';
+import { ArrowDown, ArrowRight, BarChart3, Check, Compass, FolderKanban, FolderOpen, Heart, Menu, Rocket, Share2, Sparkles, Wrench, X } from 'lucide-react';
 
 import PublicPortfolioGallery from '@/components/portfolio/PublicPortfolioGallery';
 import type { PortfolioExperienceModel } from '@/lib/publicPortfolioExperience';
@@ -150,7 +150,7 @@ export default function PublicPortfolioExperience({ model }: { model: PortfolioE
     <main>
       <PortfolioHero model={model} />
       <div className={styles.shell}>
-      <section className={styles.stats} aria-label="Ringkasan portofolio"><Stat icon={<FolderKanban size={20} />} value={model.stats.projects} label="Karya terbit" /><Stat icon={<BarChart3 size={20} />} value={completedBlocks} label="Block selesai" /><Stat icon={<Wrench size={20} />} value={model.stats.skills} label="Keahlian dilatih" /><Stat icon={<Compass size={20} />} value={model.stats.reflections} label="Refleksi karya" /><div className={styles.achievementStat}><span className={styles.iconBox}><Trophy size={20} /></span><div><small>Karya terbaru</small><strong>{model.featuredProject?.snapshot.title || 'Karya sedang dipersiapkan'}</strong><span>{model.featuredProject ? 'Sudah disetujui Coach' : 'Petualangan baru dimulai'}</span></div></div></section>
+      <section className={styles.stats} aria-label="Ringkasan portofolio"><Stat icon={<FolderKanban size={20} />} value={model.stats.projects} label="Karya terbit" /><Stat icon={<BarChart3 size={20} />} value={completedBlocks} label="Block selesai" /><Stat icon={<Wrench size={20} />} value={model.stats.skills} label="Keahlian dilatih" /><Stat icon={<Compass size={20} />} value={model.stats.reflections} label="Refleksi karya" /><div className={styles.achievementStat}><span className={styles.iconBox}><FolderOpen size={20} aria-hidden="true" /></span><div><small>Karya terbaru</small><strong>{model.featuredProject?.snapshot.title || 'Karya sedang dipersiapkan'}</strong><span>{model.featuredProject ? 'Sudah disetujui Coach' : 'Petualangan baru dimulai'}</span></div></div></section>
       <PublicPortfolioGallery projects={model.projects} />
       <LearningPath model={model} />
       <section id="skills" className={styles.bottomGrid}>

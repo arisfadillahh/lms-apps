@@ -18,9 +18,11 @@ const projects: ExperienceProject[] = Array.from({ length: 6 }, (_, i) => ({
   },
 }));
 const empty = new URLSearchParams(location.search).has('empty');
+const stress = new URLSearchParams(location.search).has('stress');
+const stressLabel = 'NamaAplikasiDanKeahlianYangSangatPanjangTanpaSpasiUntukQA';
 const model = buildPortfolioExperienceModel({
-  fullName: 'Nara Pratama — Akun Demo QA', schoolName: 'Sekolah Demo', schoolVisible: false,
-  levelName: 'XPLORER', programTypes: ['EKSKUL', 'WEEKLY'], projects: empty ? [] : projects,
-  learningBlocks: empty ? [] : Array.from({ length: 8 }, (_, i) => ({ id:`block-${i}`, levelName:'XPLORER', levelOrder:0, journeyOrder:i, blockName:`Block ${i + 1}: Coding & Creativity`, status:i < 5 ? 'COMPLETED' : i === 5 ? 'IN_PROGRESS' : 'PENDING', completedAt:null })),
+  fullName: stress ? 'Nara Pratama Adiwijaya Kusuma — Akun Demo QA Nama Panjang' : 'Nara Pratama — Akun Demo QA', schoolName: stress ? 'Sekolah Demo dengan Nama Sangat Panjang untuk Pemeriksaan Layout' : 'Sekolah Demo', schoolVisible: stress,
+  levelName: 'XPLORER', programTypes: ['EKSKUL', 'WEEKLY'], projects: empty ? [] : stress ? projects.map(p=>({...p,snapshot:{...p.snapshot,title:stressLabel,tools:[stressLabel,...p.snapshot.tools],skills:[stressLabel,...p.snapshot.skills]}})) : projects,
+  learningBlocks: empty ? [] : Array.from({ length: 8 }, (_, i) => ({ id:`block-${i}`, levelName:'XPLORER', levelOrder:0, journeyOrder:i, blockName:stress ? `Block ${i + 1}: ${stressLabel}` : `Block ${i + 1}: Coding & Creativity`, status:i < 5 ? 'COMPLETED' : i === 5 ? 'IN_PROGRESS' : 'PENDING', completedAt:null })),
 });
 createRoot(document.getElementById('root')!).render(<PublicPortfolioExperience model={model} />);

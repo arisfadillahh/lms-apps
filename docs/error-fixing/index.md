@@ -4,6 +4,7 @@ Search this file and the linked monthly log before changing related code.
 
 | Date | Reference | Area | Symptom | Monthly log |
 | --- | --- | --- | --- | --- |
+| 2026-10-14 | INTERNAL-20261014-02 | Public portfolio hero and responsive QA | Parallax stayed in the right panel; long labels overflowed cards, filters, journey and modal badge; body scroll normalization broke sticky navigation | [2026-10](./2026-10.md#internal-20261014-02-full-width-portfolio-hero-and-long-content-bounds) |
 | 2026-10-14 | INTERNAL-20261014-01 | Public portfolio UX | Misleading navigation, hidden project actions/screenshots, and truncated current journey; universe parallax and clearer visitor flow | [2026-10](./2026-10.md#internal-20261014-01-public-portfolio-universe-parallax-and-visitor-usability) |
 | 2026-08-12 | INTERNAL-20260812-01 | Ekskul lesson editor | Editor opened another lesson's data | [2026-08](./2026-08.md#internal-20260812-01-ekskul-lesson-editor-loaded-the-wrong-record) |
 | 2026-08-12 | INTERNAL-20260812-02 | Admin users | Page failed because schema extension threw at runtime | [2026-08](./2026-08.md#internal-20260812-02-admin-users-page-schema-crash) |

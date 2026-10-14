@@ -16,8 +16,8 @@ const ACCENTS = ['#86c5ee', '#8ac278', '#53b9df', '#ffd6ca', '#b8c5d4'];
 export default function PublicPortfolioGallery({ projects }: { projects: PublicProject[] }) {
   const [selected, setSelected] = useState<PublicProject | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
-  const openProject = (project: PublicProject) => {
-    returnFocusRef.current = document.activeElement as HTMLElement | null;
+  const openProject = (project: PublicProject, trigger: HTMLButtonElement) => {
+    returnFocusRef.current = trigger;
     setSelected(project);
   };
   const [filter, setFilter] = useState('All');
@@ -45,7 +45,7 @@ export default function PublicPortfolioGallery({ projects }: { projects: PublicP
   return <>
     <section className={styles.gallerySection}>
       <div className={styles.sectionHead}><div className={styles.titleWrap}><span className={styles.sectionIcon}><Sparkles size={19} /></span><h2>Sorotan karya terbaru</h2></div><p>Sudah disetujui Coach, siap dieksplorasi.</p></div>
-      <button type="button" className={styles.feature} onClick={() => openProject(featured)} aria-label={'Lihat project ' + featured.snapshot.title}>
+      <button type="button" className={styles.feature} onClick={(event) => openProject(featured, event.currentTarget)} aria-label={'Lihat project ' + featured.snapshot.title}>
         <div className={styles.featureMedia}>{featured.snapshot.screenshots[0] ? <img src={featured.snapshot.screenshots[0].publicUrl} alt="" loading="lazy" /> : <Gamepad2 size={88} />}<span className={styles.featurePlay}><ArrowRight size={22} /></span></div>
         <div className={styles.featureCopy}><span className={styles.projectTag}>{featured.snapshot.projectType}</span><h3>{featured.snapshot.title}</h3><p>{featured.snapshot.summary}</p><div className={styles.chips}>{featured.snapshot.skills.slice(0, 4).map((skill) => <span className={styles.chip} key={skill}>{skill}</span>)}</div><span className={styles.featureLink}>Lihat detail karya <ArrowRight size={17} /></span></div>
       </button>
@@ -60,9 +60,9 @@ export default function PublicPortfolioGallery({ projects }: { projects: PublicP
   </>;
 }
 
-function ProjectCard({ project, index, onOpen }: { project: PublicProject; index: number; onOpen: (project: PublicProject) => void }) {
+function ProjectCard({ project, index, onOpen }: { project: PublicProject; index: number; onOpen: (project: PublicProject, trigger: HTMLButtonElement) => void }) {
   const cover = project.snapshot.screenshots[0];
-  return <button type="button" className={styles.project} onClick={() => onOpen(project)} aria-label={'Buka project ' + project.snapshot.title}>
+  return <button type="button" className={styles.project} onClick={(event) => onOpen(project, event.currentTarget)} aria-label={'Buka project ' + project.snapshot.title}>
     <span className={styles.thumb} style={{ background: 'linear-gradient(150deg,' + ACCENTS[index % ACCENTS.length] + ',#dce8ff)' }}>{cover ? <img src={cover.publicUrl} alt="" loading="lazy" /> : <Gamepad2 size={44} />}<span><ArrowRight size={16} /></span></span>
     <span className={styles.projectBody}><small>{project.snapshot.tools[0] || project.snapshot.projectType} · {project.snapshot.programType === 'EKSKUL' ? 'Ekskul' : 'Weekly'}</small><strong>{project.snapshot.title}</strong><em>{project.snapshot.summary}</em><span className={styles.cardAction}>Lihat karya <ArrowRight size={15} /></span></span>
   </button>;

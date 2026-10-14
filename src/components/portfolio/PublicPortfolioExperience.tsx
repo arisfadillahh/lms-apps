@@ -49,27 +49,28 @@ function Navigation() {
   </header>;
 }
 
-function UniverseStage({ model }: { model: PortfolioExperienceModel }) {
-  const stageRef = useRef<HTMLDivElement>(null);
+function PortfolioHero({ model }: { model: PortfolioExperienceModel }) {
+  const heroRef = useRef<HTMLElement>(null);
   useEffect(() => {
-    const stage = stageRef.current;
-    if (!stage) return;
+    const hero = heroRef.current;
+    if (!hero) return;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
     let frame = 0;
     let visible = true;
     const update = () => {
       frame = 0;
-      if (reduced.matches) { stage.style.setProperty('--depth', '0px'); return; }
-      const bounds = stage.getBoundingClientRect();
-      const offset = Math.max(-32, Math.min(32, (window.innerHeight / 2 - bounds.top - bounds.height / 2) * 0.09));
-      stage.style.setProperty('--depth', `${offset}px`);
+      if (reduced.matches) { hero.style.setProperty('--depth', '0px'); return; }
+      const bounds = hero.getBoundingClientRect();
+      const offset = Math.max(-32, Math.min(100, -bounds.top * 0.18));
+      hero.style.setProperty('--depth', `${offset}px`);
     };
     const schedule = () => { if (visible && !reduced.matches && !frame) frame = requestAnimationFrame(update); };
     const observer = new IntersectionObserver(([entry]) => {
       visible = entry.isIntersecting;
       if (visible) schedule();
+      else { cancelAnimationFrame(frame); frame = 0; }
     });
-    observer.observe(stage);
+    observer.observe(hero);
     window.addEventListener('scroll', schedule, { passive: true });
     window.addEventListener('resize', schedule);
     reduced.addEventListener('change', update);
@@ -82,8 +83,23 @@ function UniverseStage({ model }: { model: PortfolioExperienceModel }) {
       reduced.removeEventListener('change', update);
     };
   }, []);
+  return <section id="home" ref={heroRef} className={styles.hero} aria-label="Semesta karya coder">
+    <div className={styles.heroBackdrop} aria-hidden="true">
+      <div className={styles.heroNebula} />
+      <div className={styles.heroStarfield} />
+      <div className={styles.heroConstellation} />
+      <div className={styles.heroHorizon} />
+    </div>
+    <div className={classNames(styles.shell, styles.heroLayout)}>
+      <div className={styles.heroCopy}><p className={styles.eyebrow}><Sparkles size={16} /> Semesta karya seorang coder</p><h1>{model.fullName}</h1><div className={styles.profileFacts}>{model.levelName && <span>{model.levelName}</span>}{model.programTypes.map((program) => <span key={program}>{program === 'EKSKUL' ? 'Ekskul' : 'Weekly'}</span>)}{model.schoolVisible && model.schoolName && <span>{model.schoolName}</span>}</div><h2>Ide kecil.<br />Petualangan tanpa batas.</h2><p>Kenali {model.firstName} lewat karya, cerita di balik pembuatannya, dan perjalanan belajarnya.</p><div className={styles.heroActions}><a className={styles.primaryButton} href="#projects">Lihat karya <ArrowRight size={18} /></a><a className={styles.secondaryButton} href="#journey"><Compass size={16} /> Perjalanan belajar</a></div><p className={styles.heroHint}>Pilih karya untuk melihat ceritanya atau mencoba game-nya.</p></div>
+      <UniverseStage model={model} />
+    </div>
+  </section>;
+}
+
+function UniverseStage({ model }: { model: PortfolioExperienceModel }) {
   return <div className={styles.heroArt} aria-hidden="true">
-    <div ref={stageRef} className={styles.universeStage}>
+    <div className={styles.universeStage}>
       <div className={styles.spaceDust} />
       <i className={classNames(styles.glow, styles.glowA)} /><i className={classNames(styles.glow, styles.glowB)} />
       <div className={styles.stars} aria-hidden="true">{Array.from({ length: 11 }, (_, index) => <i key={index} />)}</div>
@@ -131,11 +147,9 @@ export default function PublicPortfolioExperience({ model }: { model: PortfolioE
   return <div className={styles.root} data-public-portfolio>
     <a className={styles.skipLink} href="#projects">Langsung ke karya</a>
     <Navigation />
-    <main className={styles.shell}>
-      <section id="home" className={styles.hero}>
-        <div className={styles.heroCopy}><p className={styles.eyebrow}><Sparkles size={16} /> Semesta karya seorang coder</p><h1>{model.fullName}</h1><div className={styles.profileFacts}>{model.levelName && <span>{model.levelName}</span>}{model.programTypes.map((program) => <span key={program}>{program === 'EKSKUL' ? 'Ekskul' : 'Weekly'}</span>)}{model.schoolVisible && model.schoolName && <span>{model.schoolName}</span>}</div><h2>Ide kecil.<br />Petualangan tanpa batas.</h2><p>Kenali {model.firstName} lewat karya, cerita di balik pembuatannya, dan perjalanan belajarnya.</p><div className={styles.heroActions}><a className={styles.primaryButton} href="#projects">Lihat karya <ArrowRight size={18} /></a><a className={styles.secondaryButton} href="#journey"><Compass size={16} /> Perjalanan belajar</a></div><p className={styles.heroHint}>Pilih karya untuk melihat ceritanya atau mencoba game-nya.</p></div>
-        <UniverseStage model={model} />
-      </section>
+    <main>
+      <PortfolioHero model={model} />
+      <div className={styles.shell}>
       <section className={styles.stats} aria-label="Ringkasan portofolio"><Stat icon={<FolderKanban size={20} />} value={model.stats.projects} label="Karya terbit" /><Stat icon={<BarChart3 size={20} />} value={completedBlocks} label="Block selesai" /><Stat icon={<Wrench size={20} />} value={model.stats.skills} label="Keahlian dilatih" /><Stat icon={<Compass size={20} />} value={model.stats.reflections} label="Refleksi karya" /><div className={styles.achievementStat}><span className={styles.iconBox}><Trophy size={20} /></span><div><small>Karya terbaru</small><strong>{model.featuredProject?.snapshot.title || 'Karya sedang dipersiapkan'}</strong><span>{model.featuredProject ? 'Sudah disetujui Coach' : 'Petualangan baru dimulai'}</span></div></div></section>
       <PublicPortfolioGallery projects={model.projects} />
       <LearningPath model={model} />
@@ -164,6 +178,7 @@ export default function PublicPortfolioExperience({ model }: { model: PortfolioE
           <span>PORTFOLIO EXPERIENCE · {new Date().getFullYear()}</span>
         </div>
       </footer>
+      </div>
     </main>
   </div>;
 }

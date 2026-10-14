@@ -1,85 +1,64 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import * as React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { describe, expect, it, vi } from 'vitest';
+import PublicPortfolioExperience from '@/components/portfolio/PublicPortfolioExperience';
+import { buildPortfolioExperienceModel, type ExperienceProject, type PortfolioExperienceInput } from '@/lib/publicPortfolioExperience';
 
-const read = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8');
+vi.stubGlobal('React', React);
+vi.mock('next/image', () => ({ default: ({ priority: _priority, ...props }: React.ImgHTMLAttributes<HTMLImageElement> & { priority?: boolean }) => React.createElement('img', props) }));
 
-describe('public portfolio mockup-v4 responsive contract', () => {
-  const experience = read('src/components/portfolio/PublicPortfolioExperience.tsx');
-  const gallery = read('src/components/portfolio/PublicPortfolioGallery.tsx');
-  const css = read('src/components/portfolio/PublicPortfolioExperience.module.css');
-  const modalCss = read('src/components/portfolio/PublicPortfolioModalLandscape.module.css');
-  const scrollLock = read('src/lib/documentScrollLock.ts');
+const project: ExperienceProject = {
+  id: 'approved-fixture', publishedAt: '2026-10-01T00:00:00Z', snapshot: {
+    title: 'Misi Planet Hijau', projectType: 'Game', summary: 'Game tentang lingkungan.', description: 'Kumpulkan bintang.',
+    roleContribution: 'Membuat karakter.', tools: ['Scratch'], howToPlay: 'Gunakan panah.', playableUrl: '', repositoryUrl: null, videoUrl: null,
+    learningReflection: 'Belajar logika.', nextSteps: 'Menambah level.', skills: ['Logic'], programType: 'EKSKUL', screenshots: [],
+  },
+};
+const base: PortfolioExperienceInput = { fullName:'Coder QA', schoolName:'Sekolah privat fixture', schoolVisible:false, levelName:'XPLORER', programTypes:['EKSKUL','WEEKLY'], projects:[project] };
+const render = (changes: Partial<PortfolioExperienceInput> = {}) => renderToStaticMarkup(React.createElement(PublicPortfolioExperience, { model:buildPortfolioExperienceModel({...base,...changes}) }));
+const textOf = (markup: string) => markup.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+const links = (markup: string) => [...markup.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)].map((match) => ({href:match[1],text:textOf(match[2])}));
 
-  it('uses the v4 page hierarchy and the official Clevio logo', () => {
-    expect(experience).toContain('/images/clevio-logo.png.png');
-    expect(experience).toContain("A Young Creator&apos;s Journey");
-    expect(gallery).toContain('Featured Project');
-    expect(experience).toContain('My Learning Journey');
-    expect(experience).toContain('Skills I&apos;m Building');
-    expect(experience).toContain('<Rocket size={72} />');
-    expect(experience).toContain('document.body.dataset.portfolioPage');
+describe('public portfolio rendered behavior', () => {
+  it('renders real approved counts, program context, and clear anchor actions', () => {
+    const html = render();
+    expect(links(html)).toEqual(expect.arrayContaining([
+      {href:'#projects',text:'Lihat karya'}, {href:'#journey',text:'Perjalanan belajar'},
+    ]));
+    const stats = html.match(/<section[^>]*aria-label="Ringkasan portofolio"[^>]*>([\s\S]*?)<\/section>/)?.[1] ?? '';
+    expect([...stats.matchAll(/<strong>(\d+)<\/strong>/g)].map((match) => Number(match[1]))).toEqual([1,0,1,1]);
+    expect(textOf(html)).toMatch(/XPLORER Ekskul Weekly/);
+    expect(html.match(/aria-pressed="true"/g)?.length).toBe(1);
   });
 
-  it('keeps the light reference palette and responsive page structure', () => {
-    expect(css).toContain('--navy:#14347f');
-    expect(css).toContain('linear-gradient(#f8fbff,#f6f9fe)');
-    expect(css).toContain('grid-template-columns:1.02fr .98fr');
-    expect(css).toContain('grid-template-columns:repeat(4,1fr) 1.55fr');
-    expect(css).toContain('@media(max-width:720px)');
-    expect(css).toContain('@media(max-width:520px)');
-    expect(css).toContain('overflow-x:clip');
+  it('does not expose an opted-out school or attribute a fallback reflection to the coder', () => {
+    expect(textOf(render())).not.toMatch(/Sekolah privat fixture/);
+    expect(textOf(render({schoolVisible:true}))).toMatch(/Sekolah privat fixture/);
+    const empty = textOf(render({projects:[]}));
+    expect(empty).toMatch(/Karya sedang dipersiapkan/);
+    expect(empty).not.toMatch(/— Coder/);
   });
 
-  it('keeps dynamic project content reachable with a filter and an accessible modal', () => {
-    expect(gallery).toContain("const featured = projects[0]");
-    expect(gallery).toContain("const [filter, setFilter] = useState('All')");
-    expect(gallery).toContain('snapshot.screenshots');
-    expect(gallery).toContain('role=\"dialog\" aria-modal=\"true\"');
-    expect(gallery).toContain('lockDocumentScroll()');
-    expect(gallery).toContain('unlockDocumentScroll()');
-    expect(gallery).toContain('window.addEventListener');
-    expect(css).toContain('.modalShell');
-    expect(css).toContain('@media(max-width:700px)');
-    expect(scrollLock).toContain("setProperty('overflow-y', 'hidden', 'important')");
+  it('keeps a later active block in the initial journey preview', () => {
+    const learningBlocks: NonNullable<PortfolioExperienceInput['learningBlocks']> = Array.from({length:8},(_,i)=>({ id:`block-${i}`, blockName:`Materi unik ${i}`, levelName:'XPLORER', levelOrder:0, journeyOrder:i, status:i<5?'COMPLETED':i===5?'IN_PROGRESS':'PENDING', completedAt:null }));
+    const html = render({learningBlocks});
+    const headings = [...html.matchAll(/<h3[^>]*>(Materi unik \d+)<\/h3>/g)].map((match)=>match[1]);
+    expect(headings).toEqual(['Materi unik 4','Materi unik 5','Materi unik 6','Materi unik 7']);
+    expect(textOf(html)).toMatch(/Lihat semua 8 block/);
+    expect(textOf(html)).toMatch(/Sedang dipelajari/);
   });
 
-  it('matches the v4 project story modal and closing footer structure', () => {
-    expect(gallery).toContain('modalShellV4');
-    expect(gallery).toContain('projectModalV4');
-    expect(gallery).toContain('PROJECT STORY');
-    expect(gallery).toContain('My Creation');
-    expect(gallery).toContain('StoryBlock number="01" title="What I Made"');
-    expect(gallery).toContain('StoryBlock number="02" title="What I Learned"');
-    expect(gallery).toContain('StoryBlock number="03" title="Skills Practiced"');
-    expect(gallery).not.toContain('modalShots');
-
-    expect(experience).toContain('footerBannerV4');
-    expect(experience).toContain('KEEP EXPLORING.<br />KEEP CREATING.');
-    expect(experience).toContain('<Rocket size={72} />');
-    expect(experience).toContain('siteFooterV4');
-    expect(css).toContain('.footerBannerV4');
-    expect(css).toContain('.siteFooterV4');
-    expect(css).toContain('.projectModalV4');
-    expect(css).toContain('.storyGridV4');
-    expect(css).toContain('.modalReflectionV4');
-    expect(gallery).toContain('modalStyles.projectModal');
-    expect(gallery).toContain('PROJECT SNAPSHOT');
-    expect(gallery).toContain('project.publishedAt');
-    expect(gallery).toContain('snapshot.projectType');
-    expect(modalCss).toContain('aspect-ratio: 16 / 10');
-    expect(modalCss).toContain('object-fit: contain');
-    expect(modalCss).toContain('@media (max-width: 960px)');
-    expect(modalCss).toContain('height: min(700px, calc(100dvh - 44px))');
-    expect(modalCss).toContain('min-height: 0');
-    expect(modalCss).toContain('overflow-y: auto');
+  it('renders all tool filters, including a fifth tool, and retains the official logo', () => {
+    const projects = Array.from({length:6},(_,i)=>({...project,id:`project-${i}`,snapshot:{...project.snapshot,tools:[`Tool ${i}`]}}));
+    const html = render({projects});
+    expect([...html.matchAll(/<button[^>]*aria-pressed="(?:true|false)"[^>]*>([^<]+)<\/button>/g)].map((match)=>match[1])).toEqual(['Semua (6)','Tool 0','Tool 1','Tool 2','Tool 3','Tool 4','Tool 5']);
+    expect([...html.matchAll(/<img[^>]*src="([^"]+)"/g)].map((match)=>match[1])).toEqual(expect.arrayContaining(['/images/clevio-logo.png.png']));
   });
 
-  it('uses real block progress rather than reference-only milestones', () => {
-    expect(experience).toContain('model.learningJourney.flatMap');
-    expect(experience).toContain("block.status === 'COMPLETED'");
-    expect(experience).toContain("block.status === 'IN_PROGRESS'");
-    expect(experience).toContain('Blocks Completed');
-    expect(experience).not.toContain('Khansa');
+  it.each(['PENDING', 'COMPLETED'] as const)('keeps the journey meaningful when every block is %s', (status) => {
+    const learningBlocks = Array.from({length:6},(_,i)=>({id:`b-${i}`,blockName:`Materi ${i}`,levelName:'XPLORER',levelOrder:0,journeyOrder:i,status,completedAt:null}));
+    const html = render({learningBlocks});
+    const headings = [...html.matchAll(/<h3[^>]*>(Materi \d+)<\/h3>/g)].map((match)=>match[1]);
+    expect(headings).toEqual(status === 'PENDING' ? ['Materi 0','Materi 1','Materi 2','Materi 3'] : ['Materi 2','Materi 3','Materi 4','Materi 5']);
   });
 });

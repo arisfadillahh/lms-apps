@@ -1,8 +1,8 @@
-import type { Invoice } from '@/lib/types/invoice';
+import type { Invoice, InvoiceItem } from '@/lib/types/invoice';
 
 type InvoicePeriod = Pick<Invoice,
   'invoice_type' | 'period_month' | 'period_year' | 'period_start_date' | 'period_end_date'
->;
+> & { items?: ReadonlyArray<Pick<InvoiceItem, 'billing_period'>> };
 
 const MONTHS = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -10,7 +10,15 @@ const MONTHS = [
 ];
 const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
-/** Billing month is independent of learning dates and when a parent settles. */
+/** Unknown or mixed durations keep their original range, never assume one month. */
+export function isSingleMonthInvoice(invoice: InvoicePeriod): boolean {
+  const items = invoice.items;
+  return invoice.invoice_type === 'MONTHLY'
+    && items !== undefined && items.length > 0
+    && items.every((item) => item.billing_period?.payment_plans?.duration_months === 1);
+}
+
+/** One-month billing label is independent of learning dates or settlement date. */
 export function formatInvoicePeriod(invoice: InvoicePeriod, short = false): string {
   const months = short ? SHORT_MONTHS : MONTHS;
   const billingMonth = Number.isInteger(invoice.period_month)
@@ -19,13 +27,13 @@ export function formatInvoicePeriod(invoice: InvoicePeriod, short = false): stri
     ? `${months[invoice.period_month - 1]} ${invoice.period_year}`
     : '-';
 
-  if (invoice.invoice_type === 'MONTHLY') return billingMonth;
+  if (isSingleMonthInvoice(invoice)) return billingMonth;
 
-  // Registration/seasonal invoices retain their learning-period range.
-  if (!invoice.period_start_date || !invoice.period_end_date) return billingMonth;
+  // Longer, mixed, unknown, registration and seasonal invoices retain the range.
+  if (!invoice.period_start_date || !invoice.period_end_date) return '-';
   const start = new Date(invoice.period_start_date);
   const end = new Date(invoice.period_end_date);
-  if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) return billingMonth;
+  if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) return '-';
 
   // Stored SQL DATE values must not move months in the visitor's timezone.
   const startMonth = months[start.getUTCMonth()];

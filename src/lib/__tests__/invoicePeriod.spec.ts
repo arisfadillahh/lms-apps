@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { formatInvoicePeriod } from '@/lib/invoicePeriod';
+import { formatInvoicePeriod, isSingleMonthInvoice } from '@/lib/invoicePeriod';
 import type { Invoice } from '@/lib/types/invoice';
 
 const monthly = {
@@ -8,6 +8,7 @@ const monthly = {
   period_year: 2026,
   period_start_date: '2026-10-26',
   period_end_date: '2026-11-25',
+  items: [{ billing_period: { payment_plans: { duration_months: 1 } } }],
 };
 
 afterEach(() => vi.useRealTimers());
@@ -41,10 +42,28 @@ describe('invoice billing period presentation', () => {
     expect(formatInvoicePeriod(invoice)).toBe('Oktober 2026');
   });
 
-  it('does not change package dates, amount or paid state, including longer packages', () => {
-    const invoice = Object.freeze({ ...monthly, period_end_date: '2027-01-25', total_amount: 900000, status: 'PAID' });
-    expect(formatInvoicePeriod(invoice)).toBe('Oktober 2026');
-    expect(invoice).toEqual({ ...monthly, period_end_date: '2027-01-25', total_amount: 900000, status: 'PAID' });
+  it.each([
+    [3, '2027-01-25', 'Oktober 2026 - Januari 2027'],
+    [6, '2027-04-25', 'Oktober 2026 - April 2027'],
+    [12, '2027-10-25', 'Oktober 2026 - Oktober 2027'],
+  ])('preserves the range, amount and paid state for a %i-month package', (duration, end, expected) => {
+    const input = { ...monthly, period_end_date: end, items: [{ billing_period: { payment_plans: { duration_months: duration } } }], total_amount: 900000, status: 'PAID' };
+    const invoice = Object.freeze(structuredClone(input));
+    expect(isSingleMonthInvoice(invoice)).toBe(false);
+    expect(formatInvoicePeriod(invoice)).toBe(expected);
+    expect(invoice).toEqual(input);
+  });
+
+  it('keeps the range for mixed plans and unknown historical duration', () => {
+    for (const items of [undefined, [], [{}], [{ billing_period: null }],
+      [...monthly.items, { billing_period: { payment_plans: { duration_months: 3 } } }],
+      [...monthly.items, { billing_period: null }],
+    ]) {
+      const invoice = { ...monthly, items };
+      expect(isSingleMonthInvoice(invoice)).toBe(false);
+      expect(formatInvoicePeriod(invoice)).toBe('Oktober - November 2026');
+    }
+    expect(isSingleMonthInvoice({ ...monthly, items: [...monthly.items, ...monthly.items] })).toBe(true);
   });
 
   it.each(['REGISTRATION', 'SEASONAL'] as Invoice['invoice_type'][])('preserves the date range for %s', (type) => {
@@ -60,7 +79,8 @@ describe('invoice billing period presentation', () => {
 
   it('handles legacy missing dates and invalid billing metadata without inventing a month', () => {
     expect(formatInvoicePeriod({ ...monthly, period_start_date: '', period_end_date: '' })).toBe('Oktober 2026');
-    expect(formatInvoicePeriod({ ...monthly, invoice_type: 'SEASONAL', period_start_date: 'invalid' })).toBe('Oktober 2026');
+    expect(formatInvoicePeriod({ ...monthly, invoice_type: 'SEASONAL', period_start_date: 'invalid' })).toBe('-');
+    expect(formatInvoicePeriod({ ...monthly, items: [], period_start_date: '', period_end_date: '' })).toBe('-');
     for (const month of [0, 13, 1.5, NaN]) expect(formatInvoicePeriod({ ...monthly, period_month: month })).toBe('-');
   });
 });

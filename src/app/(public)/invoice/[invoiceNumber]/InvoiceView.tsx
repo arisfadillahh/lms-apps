@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { useState, type CSSProperties } from 'react';
 import type { PublicInvoice } from '@/lib/publicInvoice';
 import type { PublicInvoicePaymentInstruction, PublicInvoicePaymentOption } from '@/lib/invoicePaymentMethods';
-import { formatInvoicePeriod } from '@/lib/invoicePeriod';
+import { formatInvoicePeriod, isSingleMonthInvoice } from '@/lib/invoicePeriod';
 
 interface BankInfo {
     bank_name: string;
@@ -356,7 +356,7 @@ export default function InvoiceView({ invoice, publicToken, paymentOptions, init
                             {/* Period only for non-REG invoices */}
                             {invoice.invoice_type !== 'REGISTRATION' && (
                                 <div style={{ ...periodContainerStyle, marginTop: '15px' }}>
-                                    <div style={periodLabelStyle}>{invoice.invoice_type === 'MONTHLY' ? 'Bulan Pembayaran:' : 'Periode:'}</div>
+                                    <div style={periodLabelStyle}>{isSingleMonthInvoice(invoice) ? 'Bulan Pembayaran:' : 'Periode:'}</div>
                                     <div style={periodValueStyle}>{formatInvoicePeriod(invoice)}</div>
                                 </div>
                             )}

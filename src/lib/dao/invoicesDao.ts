@@ -522,6 +522,8 @@ export async function createSeasonalInvoice(data: {
     };
 }
 
+export const INVOICE_ITEMS_WITH_BILLING_DURATION = 'items:invoice_items(*, billing_period:coder_payment_periods(payment_plans(duration_months)))';
+
 export async function getInvoiceByNumber(invoiceNumber: string): Promise<Invoice | null> {
     const supabase = getSupabaseAdmin();
 
@@ -529,7 +531,7 @@ export async function getInvoiceByNumber(invoiceNumber: string): Promise<Invoice
         .from('invoices' as any)
         .select(`
       *,
-      items:invoice_items(*),
+      ${INVOICE_ITEMS_WITH_BILLING_DURATION},
       ccr_numbers(*)
     `)
         .eq('invoice_number', invoiceNumber)
@@ -554,7 +556,7 @@ export async function getInvoiceById(id: string): Promise<Invoice | null> {
         .from('invoices' as any)
         .select(`
       *,
-      items:invoice_items(*),
+      ${INVOICE_ITEMS_WITH_BILLING_DURATION},
       ccr_numbers(*)
     `)
         .eq('id', id)
@@ -637,7 +639,7 @@ export async function listInvoices(filters: InvoiceFilters): Promise<InvoiceList
 
     let query = supabase
         .from('invoices' as any)
-        .select('*, items:invoice_items(*), ccr_numbers(*)', { count: 'exact' });
+        .select(`*, ${INVOICE_ITEMS_WITH_BILLING_DURATION}, ccr_numbers(*)`, { count: 'exact' });
 
     if (month) {
         query = query.eq('period_month', month);
@@ -701,7 +703,7 @@ export async function getUnpaidInvoicesForMonth(
 
     const { data, error } = await supabase
         .from('invoices' as any)
-        .select('*, items:invoice_items(*), ccr_numbers(*)')
+        .select(`*, ${INVOICE_ITEMS_WITH_BILLING_DURATION}, ccr_numbers(*)`)
         .eq('period_month', month)
         .eq('period_year', year)
         .in('status', ['PENDING', 'OVERDUE']);
@@ -741,7 +743,7 @@ export async function getMonthlyInvoiceForParent(
 
     const { data, error } = await supabase
         .from('invoices' as any)
-        .select('*, items:invoice_items(*)')
+        .select(`*, ${INVOICE_ITEMS_WITH_BILLING_DURATION}`)
         .eq('parent_phone', parentPhone)
         .eq('period_month', month)
         .eq('period_year', year)
@@ -770,7 +772,7 @@ export async function updateInvoiceSummary(
         .from('invoices' as any)
         .update(data)
         .eq('id', id)
-        .select('*, items:invoice_items(*)')
+        .select(`*, ${INVOICE_ITEMS_WITH_BILLING_DURATION}`)
         .single();
 
     if (error) {

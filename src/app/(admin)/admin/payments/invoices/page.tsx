@@ -6,6 +6,7 @@
  */
 
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { INVOICE_ITEMS_WITH_BILLING_DURATION } from '@/lib/dao/invoicesDao';
 import InvoiceManagement from './InvoiceManagement';
 
 export default async function AdminInvoicesPage() {
@@ -19,7 +20,7 @@ export default async function AdminInvoicesPage() {
     // Fetch initial data
     const { data: invoicesData } = await supabase
         .from('invoices' as any)
-        .select('*, items:invoice_items(*)')
+        .select(`*, ${INVOICE_ITEMS_WITH_BILLING_DURATION}`)
         .eq('period_month', currentMonth)
         .eq('period_year', currentYear)
         .order('created_at', { ascending: false })

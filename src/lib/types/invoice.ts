@@ -103,6 +103,8 @@ export interface InvoiceItem {
     payment_period_id: string | null;
     created_at: string;
     description?: string; // Optional for seasonal items
+    // Read-only projection of the existing linked payment plan (no new column).
+    billing_period?: { payment_plans: { duration_months: number | null } | null } | null;
 }
 
 export interface WhatsAppSession {

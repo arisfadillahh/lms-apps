@@ -16,7 +16,8 @@ const fixture: Invoice = {
   parent_name: 'Orang Tua QA', parent_phone: '', invoice_type: 'MONTHLY',
   period_month: 10, period_year: 2026, period_start_date: '2026-10-26', period_end_date: '2026-11-25',
   total_amount: 300000, status: 'PENDING', due_date: '2026-10-25', paid_at: null, paid_notes: null,
-  created_at: '2026-10-21T00:00:00Z', updated_at: '2026-10-21T00:00:00Z', items: [],
+  created_at: '2026-10-21T00:00:00Z', updated_at: '2026-10-21T00:00:00Z',
+  items: [{ id: 'item-qa', invoice_id: 'invoice-fixture', coder_id: null, coder_name: 'Coder QA', class_name: 'Weekly QA', level_name: 'XPLORER', base_price: 300000, discount_amount: 0, final_price: 300000, payment_period_id: null, created_at: '2026-10-21T00:00:00Z', billing_period: { payment_plans: { duration_months: 1 } } }],
 };
 const settings = { base_url: 'https://example.test', invoice_message_template: 'Halo {parent_name}\nPeriode: {period_month_year}\nTotal: Rp {total_amount}\n{invoice_url}' };
 
@@ -31,6 +32,12 @@ describe('invoice WhatsApp template period', () => {
     expect(await formatInvoiceMessage({ ...fixture, invoice_type: 'SEASONAL' }, {
       ...settings, invoice_message_template: '{period_month_year}',
     })).toBe('Oktober - November 2026');
+  });
+
+  it('keeps a three-month package range in the real template', async () => {
+    expect(await formatInvoiceMessage({ ...fixture, period_end_date: '2027-01-25', items: fixture.items!.map(item => ({ ...item, billing_period: { payment_plans: { duration_months: 3 } } })) }, {
+      ...settings, invoice_message_template: '{period_month_year}',
+    })).toBe('Oktober 2026 - Januari 2027');
   });
 
   it('leaves the weekly registration template unchanged', async () => {

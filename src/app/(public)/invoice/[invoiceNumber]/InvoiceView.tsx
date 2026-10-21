@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useState, type CSSProperties } from 'react';
 import type { PublicInvoice } from '@/lib/publicInvoice';
 import type { PublicInvoicePaymentInstruction, PublicInvoicePaymentOption } from '@/lib/invoicePaymentMethods';
+import { formatInvoicePeriod } from '@/lib/invoicePeriod';
 
 interface BankInfo {
     bank_name: string;
@@ -56,38 +57,6 @@ export default function InvoiceView({ invoice, publicToken, paymentOptions, init
             month: 'long',
             year: 'numeric'
         });
-    };
-
-    const getMonthName = (month: number) => {
-        const months = [
-            'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-        ];
-        return months[month - 1] || '';
-    };
-
-    const formatPeriodRange = (startDate: string, endDate: string) => {
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-
-        const startMonth = getMonthName(start.getMonth() + 1);
-        const startYear = start.getFullYear();
-
-        const endMonth = getMonthName(end.getMonth() + 1);
-        const endYear = end.getFullYear();
-
-        // Same month and year: "Januari 2026"
-        if (start.getMonth() === end.getMonth() && startYear === endYear) {
-            return `${startMonth} ${startYear}`;
-        }
-
-        // Same year, different months: "Januari - Maret 2026"
-        if (startYear === endYear) {
-            return `${startMonth} - ${endMonth} ${startYear}`;
-        }
-
-        // Different years: "Desember 2025 - Februari 2026"
-        return `${startMonth} ${startYear} - ${endMonth} ${endYear}`;
     };
 
     const handleContactAdmin = () => {
@@ -387,8 +356,8 @@ export default function InvoiceView({ invoice, publicToken, paymentOptions, init
                             {/* Period only for non-REG invoices */}
                             {invoice.invoice_type !== 'REGISTRATION' && (
                                 <div style={{ ...periodContainerStyle, marginTop: '15px' }}>
-                                    <div style={periodLabelStyle}>Periode:</div>
-                                    <div style={periodValueStyle}>{formatPeriodRange(invoice.period_start_date, invoice.period_end_date)}</div>
+                                    <div style={periodLabelStyle}>{invoice.invoice_type === 'MONTHLY' ? 'Bulan Pembayaran:' : 'Periode:'}</div>
+                                    <div style={periodValueStyle}>{formatInvoicePeriod(invoice)}</div>
                                 </div>
                             )}
                         </div>

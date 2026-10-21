@@ -4,6 +4,7 @@ Search this file and the linked monthly log before changing related code.
 
 | Date | Reference | Area | Symptom | Monthly log |
 | --- | --- | --- | --- | --- |
+| 2026-10-21 | INTERNAL-20261021-01 | Monthly invoice period | One monthly bill appeared to cover two months because its label used learning dates | [2026-10](./2026-10.md#internal-20261021-01-monthly-invoice-billing-month-label) |
 | 2026-10-14 | INTERNAL-20261014-04 | Software catalog and public portfolio | Logo field lacked admin controls; tools rendered initials rather than real software logos | [2026-10](./2026-10.md#internal-20261014-04-software-catalog-logos-and-portfolio-tools) |
 | 2026-10-14 | INTERNAL-20261014-03 | Portfolio summary icon | Latest-work icon aligned to the top-left and used a misleading trophy | [2026-10](./2026-10.md#internal-20261014-03-latest-work-icon-alignment) |
 | 2026-10-14 | INTERNAL-20261014-02 | Public portfolio hero and responsive QA | Parallax stayed in the right panel; long labels overflowed cards, filters, journey and modal badge; body scroll normalization broke sticky navigation | [2026-10](./2026-10.md#internal-20261014-02-full-width-portfolio-hero-and-long-content-bounds) |

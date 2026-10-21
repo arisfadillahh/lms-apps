@@ -20,6 +20,7 @@ import {
     buildInvoiceReminderIdempotencyKey,
 } from '@/lib/services/reminderIdempotency';
 import { buildInvoicePublicUrl } from '@/lib/services/invoicePublicAccess';
+import { formatInvoicePeriod } from '@/lib/invoicePeriod';
 import { getShortInvoiceUrlOrOriginal } from '@/lib/services/shortLinks';
 import { createAdminNotifications } from '@/lib/dao/notificationsDao';
 import type { Invoice, SendRemindersResponse, WhatsAppSession, WhatsAppStatus } from '@/lib/types/invoice';
@@ -1005,7 +1006,7 @@ function normalizePhoneNumber(phone: string): string | null {
 /**
  * Format invoice message using template
  */
-async function formatInvoiceMessage(
+export async function formatInvoiceMessage(
     invoice: Invoice,
     settings: {
         invoice_message_template: string;
@@ -1064,46 +1065,7 @@ Terima kasih!`;
     const formattedAmount = new Intl.NumberFormat('id-ID').format(invoice.total_amount);
     // formattedDueDate is already calculated above
 
-    // Format period as date range
-    const getMonthName = (month: number) => {
-        const months = [
-            'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-        ];
-        return months[month - 1] || '';
-    };
-
-    let periodMonthYear = '';
-    if (invoice.period_start_date && invoice.period_end_date) {
-        const start = new Date(invoice.period_start_date);
-        const end = new Date(invoice.period_end_date);
-
-        const startMonth = getMonthName(start.getMonth() + 1);
-        const startYear = start.getFullYear();
-
-        const endMonth = getMonthName(end.getMonth() + 1);
-        const endYear = end.getFullYear();
-
-        // Same month: "Januari 2026"
-        if (start.getMonth() === end.getMonth() && startYear === endYear) {
-            periodMonthYear = `${startMonth} ${startYear}`;
-        }
-        // Same year: "Januari - Maret 2026"
-        else if (startYear === endYear) {
-            periodMonthYear = `${startMonth} - ${endMonth} ${startYear}`;
-        }
-        // Different years: "Desember 2025 - Februari 2026"
-        else {
-            periodMonthYear = `${startMonth} ${startYear} - ${endMonth} ${endYear}`;
-        }
-    } else {
-        // Fallback to old format if period dates not available
-        const periodDate = new Date(invoice.period_year, invoice.period_month - 1);
-        periodMonthYear = periodDate.toLocaleDateString('id-ID', {
-            month: 'long',
-            year: 'numeric'
-        });
-    }
+    const periodMonthYear = formatInvoicePeriod(invoice);
 
     // Generate student list
     let studentList = '';

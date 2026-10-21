@@ -3,6 +3,7 @@
 import { useState, type CSSProperties, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import type { Invoice } from '@/lib/types/invoice';
+import { formatInvoicePeriod } from '@/lib/invoicePeriod';
 import { useReminder } from '@/contexts/ReminderContext';
 import AssignClassModal from './AssignClassModal';
 import SeasonalInvoiceModal from './SeasonalInvoiceModal';
@@ -98,30 +99,6 @@ export default function InvoiceManagement({
     const getMonthName = (m: number) => {
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
         return months[m - 1] || '';
-    };
-
-    const formatPeriodRange = (startDate: string, endDate: string) => {
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-
-        const startMonth = getMonthName(start.getMonth() + 1);
-        const startYear = start.getFullYear();
-
-        const endMonth = getMonthName(end.getMonth() + 1);
-        const endYear = end.getFullYear();
-
-        // Same month: "Jan 2026"
-        if (start.getMonth() === end.getMonth() && startYear === endYear) {
-            return `${startMonth} ${startYear}`;
-        }
-
-        // Same year: "Jan - Mar 2026"
-        if (startYear === endYear) {
-            return `${startMonth} - ${endMonth} ${startYear}`;
-        }
-
-        // Different years: "Des 2025 - Feb 2026"
-        return `${startMonth} ${startYear} - ${endMonth} ${endYear}`;
     };
 
     const fetchInvoices = useCallback(async () => {
@@ -485,7 +462,7 @@ export default function InvoiceManagement({
                                         </Link>
                                     </td>
                                     <td><div style={{ fontWeight: 600 }}>{inv.parent_name}</div></td>
-                                    <td>{formatPeriodRange(inv.period_start_date, inv.period_end_date)}</td>
+                                    <td>{formatInvoicePeriod(inv, true)}</td>
                                     <td style={{ fontWeight: 700 }}>{formatCurrency(inv.total_amount)}</td>
                                     <td>
                                         {inv.status === 'PAID' && <span className="badge badge-success">Paid</span>}

@@ -64,16 +64,17 @@ export function getInvoicePaymentOptions(): InvoicePaymentMethodOption[] {
         {
             code: 'gopay',
             label: 'GoPay',
-            description: 'Bayar langsung melalui aplikasi GoPay atau halaman pembayaran GoPay.',
+            description: 'GoPay langsung sementara dinonaktifkan. Gunakan QRIS.',
             feePercent: 0,
             feeFixed: adminFeeFixed,
             feeVatPercent: 0,
-            feeLabel: adminFeeLabel
+            feeLabel: adminFeeLabel,
+            disabled: true
         },
         {
             code: 'qris',
-            label: 'QR GoPay',
-            description: 'Scan QR pembayaran dari invoice.',
+            label: 'QRIS',
+            description: 'Bayar dengan mobile banking atau dompet digital yang mendukung QRIS.',
             feePercent: 0,
             feeFixed: adminFeeFixed,
             feeVatPercent: 0,

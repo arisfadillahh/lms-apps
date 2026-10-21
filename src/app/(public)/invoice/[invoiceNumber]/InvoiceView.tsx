@@ -573,7 +573,7 @@ function PaymentMethodCard({
 
     return (
         <div style={paymentInstructionStyle}>
-            <div style={paymentMethodLabelStyle}>{payment.label}</div>
+            <div style={paymentMethodLabelStyle}>{isQr ? 'QRIS' : payment.label}</div>
             <div style={paymentBreakdownStyle}>
                 <div style={paymentBreakdownRowStyle}>
                     <span>Tagihan</span>
@@ -591,6 +591,7 @@ function PaymentMethodCard({
 
             {isQr && payment.qrImageUrl ? (
                 <div style={qrBoxStyle}>
+                    <div style={paymentEmptyTextStyle}>Scan dengan mobile banking atau dompet digital yang mendukung QRIS.</div>
                     <img src={payment.qrImageUrl} alt="QR pembayaran" style={qrImageStyle} />
                     <a href={payment.qrImageUrl} download style={downloadQrButtonStyle}>
                         Unduh QR

@@ -56,3 +56,11 @@ Payment logic and migration require approval after backup and existing-row revie
 - Never auto-roll back schema, delete ledger history, release reservations on timers or overwrite newer settlements with older backup rows. Data recovery requires explicit reviewed reconciliation.
 - SENDING/UNCERTAIN WhatsApp delivery is not automatically retried. One grouped message per family/WIB day is claimed atomically. Verify delivery before authorizing a retry.
 - No recovery key, ciphertext export, production row, `.env`, runtime file or QA screenshot belongs in Git.
+
+## Approved deployment checkpoint — 22 October 2026
+
+The user approved deployment for actual use after the verified backup and held-gate report. The implementation was first integrated and deployed as `ed5622f5184a817f2c204cd50518caf9b3200c30`, feature OFF, from previous production `3886d1dc8529a6fb600da91c3d318aa51bcc9b81`.
+
+Migration `20261021100000` then committed successfully under the deployment lock. The exact committed migration was enclosed in a repeatable-read transaction with before/after fingerprints over all seven existing billing tables and abort-on-mismatch. Fingerprints matched. History registration, seven RLS tables, anon/authenticated denial and service-role reserve privileges were verified; new links/intents/grants were empty. Read-only application-side checks confirmed PostgREST could see all new tables/nullable fields.
+
+The activation release differs only in documentation, ensuring that the immediate previous release is callback-compatible before the runtime flag is enabled. Three incomplete historical pending invoices remain unchanged and fail closed before a new charge; they require Admin review, not invented dates or automatic correction. Existing live legacy instructions still block overlapping charges. Final activation SHA and production smoke/log results belong in the task handoff. Do not describe this as a real bank settlement test or a full-project disaster-recovery test.

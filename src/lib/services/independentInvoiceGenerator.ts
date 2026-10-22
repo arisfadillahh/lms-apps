@@ -35,12 +35,19 @@ export async function generateIndependentInvoicesForMonth(month: number, year: n
   }
   const anchors = [...latest.values()];
   if (!anchors.length) return result;
-  const [{ data: enrollments, error: ee }, { data: changes, error: ce }, { data: activity, error: ae }] = await Promise.all([
+  const cycleStart = `${year}-${String(month).padStart(2, '0')}-26`;
+  const nextMonth = new Date(Date.UTC(year, month, 26)).toISOString().slice(0, 10);
+  const staleClassIds = [...new Set(anchors.filter(a => a.classes?.type === 'WEEKLY'
+    && a.classes.lifecycle_status === 'ACTIVE' && !a.classes.archived_at && a.classes.end_date < cycleStart).map(a => a.class_id))];
+  const [{ data: enrollments, error: ee }, { data: changes, error: ce }, { data: activity, error: ae }, { data: continuing, error: se }] = await Promise.all([
     db.from('enrollments').select('coder_id,class_id,enrolled_at,updated_at,status').in('coder_id', anchors.map(a => a.coder_id)).eq('status', 'ACTIVE'),
     db.from('class_lifecycle_changes' as any).select('class_id,previous_status,new_status,created_at').in('class_id', anchors.map(a => a.class_id)),
     db.from('invoice_billing_status_events' as any).select('coder_id,class_id,active,changed_at').in('coder_id', anchors.map(a => a.coder_id)).order('changed_at', { ascending: false }),
+    staleClassIds.length ? db.from('classes').select('id,sessions!inner(date_time,status)').in('id', staleClassIds)
+      .gte('sessions.date_time', `${cycleStart}T00:00:00+07:00`).lt('sessions.date_time', `${nextMonth}T00:00:00+07:00`)
+      .in('sessions.status', ['SCHEDULED', 'COMPLETED']) : Promise.resolve({ data: [], error: null }),
   ]);
-  if (ee || ce || ae) return { ...result, success: false, errors: ['Status enrollment atau riwayat cuti tidak dapat diverifikasi. Tidak ada tagihan dibuat.'] };
+  if (ee || ce || ae || se) return { ...result, success: false, errors: ['Status enrollment, riwayat cuti, atau jadwal kelas tidak dapat diverifikasi. Tidak ada tagihan dibuat.'] };
   const groups = new Map<string, { anchor: BillingAnchor; items: Array<Omit<InvoiceItem, 'id' | 'created_at' | 'invoice_id'>> }>();
   for (const a of anchors) {
     const enrollment = enrollments?.find(e => e.coder_id === a.coder_id && e.class_id === a.class_id);
@@ -51,9 +58,16 @@ export async function generateIndependentInvoicesForMonth(month: number, year: n
     const accountActiveSince = events.find(e => e.coder_id === a.coder_id && e.class_id === null)?.changed_at ?? a.users.updated_at;
     const enrollmentActiveSince = events.find(e => e.coder_id === a.coder_id && e.class_id === a.class_id)?.changed_at ?? enrollment.updated_at;
     const activeSince = [enrollment.enrolled_at, accountActiveSince, enrollmentActiveSince].filter(Boolean).sort().at(-1)!;
+    const continuedClass = (continuing as unknown as Array<{ id: string; sessions: Array<{ date_time: string; status: string }> }> | null)
+      ?.find(c => c.id === a.class_id);
+    const continued = Array.isArray(continuedClass?.sessions)
+      ? continuedClass.sessions.find(s => ['SCHEDULED', 'COMPLETED'].includes(s.status)) : undefined;
+    const continuationTime = continued ? new Date(continued.date_time) : null;
+    const continuationSessionDate = continuationTime && Number.isFinite(continuationTime.getTime())
+      ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit' }).format(continuationTime) : null;
     const cycle = planInvoiceBillingCycle({ anchorEnd: a.end_date, durationMonths: a.payment_plans?.duration_months ?? 0,
       month, year, today, enrolledAt: activeSince, classStart: a.classes.start_date, classEnd: a.classes.end_date,
-      lifecycle: a.classes.lifecycle_status, periodStatus: a.status, hasPauseSinceAnchor });
+      lifecycle: a.classes.lifecycle_status, periodStatus: a.status, hasPauseSinceAnchor, continuationSessionDate });
     if (!cycle) {
       result.skipped++;
       if (hasPauseSinceAnchor) result.errors.push(`Kelas ${a.classes.name}: riwayat cuti memerlukan review acuan tagihan oleh admin.`);

@@ -81,4 +81,12 @@ describe('billing eligibility independent of paid access', () => {
     expect(planInvoiceBillingCycle({...cycle,month:11,today:'2026-11-01'})).not.toBeNull();
     expect(planInvoiceBillingCycle({...cycle,anchorEnd:'2026-12-25',month:1,year:2027,today:'2027-01-01'})).toEqual({start:'2027-01-26',end:'2027-02-25'});
   });
+  it('only overrides a stale end date with session evidence inside this first billing month',()=>{
+    const c={...cycle,classEnd:'2026-10-10'};
+    expect(planInvoiceBillingCycle({...cycle,classEnd:'2026-10-25'})).toBeNull();
+    for(const classEnd of ['2026-10-26','2026-10-27'])expect(planInvoiceBillingCycle({...cycle,classEnd})).not.toBeNull();
+    for(const continuationSessionDate of ['2026-10-26','2026-11-25'])expect(planInvoiceBillingCycle({...c,continuationSessionDate})).toEqual({start:'2026-10-26',end:'2026-11-25'});
+    for(const continuationSessionDate of [null,undefined,'invalid','2026-10-25','2026-11-26'])expect(planInvoiceBillingCycle({...c,continuationSessionDate})).toBeNull();
+    for(const patch of [{lifecycle:'PAUSED'},{lifecycle:'ENDED'},{periodStatus:'STOPPED'},{hasPauseSinceAnchor:true},{enrolledAt:'2026-10-27'},{durationMonths:3}])expect(planInvoiceBillingCycle({...c,continuationSessionDate:'2026-10-31',...patch})).toBeNull();
+  });
 });

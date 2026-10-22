@@ -11,6 +11,8 @@ export interface BillingCycleInput {
   periodStatus: string;
   /** A pause anywhere since the price/period anchor requires explicit admin review. */
   hasPauseSinceAnchor: boolean;
+  /** Verified non-cancelled Weekly session in the first month of this cycle (WIB date). */
+  continuationSessionDate?: string | null;
 }
 
 function date(value: string): Date | null {
@@ -33,7 +35,12 @@ export function planInvoiceBillingCycle(input: BillingCycleInput): { start: stri
   if (delta < 0 || delta % duration !== 0 || year * 12 + month > today.getUTCFullYear() * 12 + today.getUTCMonth() + 1) return null;
   const start = new Date(Date.UTC(year, month - 1, 26));
   const end = new Date(Date.UTC(year, month - 1 + duration, 25));
-  // Class end limits the start of a new obligation; never charge a new cycle after it ended.
-  if (start < classStart || start > classEnd || start < enrolled) return null;
+  const continuation = input.continuationSessionDate ? date(input.continuationSessionDate) : null;
+  const nextMonth = new Date(Date.UTC(year, month, 26));
+  // Weekly auto-planning can continue beyond an old estimated end_date. Only
+  // actual eligible session evidence in this billing month may override it;
+  // active flags alone or sessions in another month must not create new debt.
+  const continuesThisMonth = continuation && continuation >= start && continuation < nextMonth;
+  if (start < classStart || start < enrolled || (start > classEnd && !continuesThisMonth)) return null;
   return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
 }

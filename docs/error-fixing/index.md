@@ -4,6 +4,7 @@ Search this file and the linked monthly log before changing related code.
 
 | Date | Reference | Area | Symptom | Monthly log |
 | --- | --- | --- | --- | --- |
+| 2026-10-22 | INTERNAL-20261022-01 | Weekly invoice eligibility | Ongoing class with an old estimated end date incorrectly blocked the next unpaid billing month | [2026-10](./2026-10.md#internal-20261022-01-ongoing-weekly-billing-beyond-an-old-class-end-date) |
 | 2026-10-21 | INTERNAL-20261021-03 | Invoice arrears / selected payment | Earlier unpaid months blocked new obligations; no safe one-transaction selection of monthly invoices | [2026-10](./2026-10.md#internal-20261021-03-selected-invoice-checkout-and-independent-billing) |
 | 2026-10-21 | INTERNAL-20261021-02 | Invoice payment options | Direct GoPay temporarily removed; QR GoPay clarified as interoperable QRIS without breaking issued instructions | [2026-10](./2026-10.md#internal-20261021-02-hide-direct-gopay-retain-qris) |
 | 2026-10-21 | INTERNAL-20261021-01 | Monthly invoice period | One monthly bill appeared to cover two months because its label used learning dates | [2026-10](./2026-10.md#internal-20261021-01-monthly-invoice-billing-month-label) |

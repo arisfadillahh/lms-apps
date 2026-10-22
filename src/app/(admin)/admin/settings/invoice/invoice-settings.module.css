@@ -1,0 +1,15 @@
+.form { color: var(--text, #1b2550); font-family: var(--font-ui, 'Nunito', system-ui, sans-serif); }
+.form input:focus-visible, .form textarea:focus-visible, .form button:focus-visible { outline: 3px solid var(--c-cyan, #00b0d7); outline-offset: 3px; }
+.form h2 > svg { color: var(--accent, #22367b); flex-shrink: 0; }
+.form code { overflow-wrap: anywhere; }
+.checkoutTemplate { padding: 18px; margin: 20px 0 24px; border: 1px solid var(--border-strong, #c2cae0); border-left: 3px solid var(--accent, #22367b); border-radius: var(--radius, 14px); background: var(--accent-weak, #e4e9f7); }
+.savePanel { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 20px; border: 1px solid var(--border, #dde2f0); border-radius: var(--radius-lg, 18px); background: var(--surface, #fff); }
+.savePanel p { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: var(--text-muted, #5e6a8b); margin: 0; }
+.savePanel p svg { flex-shrink: 0; margin-top: 2px; }
+.savePanel button { min-height: 44px; }
+.savePanel button:disabled { opacity: .5; cursor: not-allowed; }
+@media (max-width: 480px) {
+  .checkoutTemplate { padding: 14px; }
+  .savePanel { padding: 16px; }
+  .savePanel button { width: 100%; }
+}

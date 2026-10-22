@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { CheckCircle2, ShieldCheck, ReceiptText, RefreshCw, Copy, ArrowRight } from 'lucide-react';
+import Image from 'next/image';
+import { CheckCircle2, ShieldCheck, ReceiptText, RefreshCw, Copy, ArrowRight, CreditCard, AlertCircle, LockKeyhole, Download } from 'lucide-react';
 import { calculateInvoicePaymentAdminFee, type PublicInvoicePaymentOption } from '@/lib/invoicePaymentMethods';
 import { checkoutSelectedTotal, defaultCheckoutSelection, type CheckoutInvoice } from '@/lib/invoiceCheckout';
 import styles from './checkout.module.css';
@@ -52,45 +53,57 @@ export default function InvoiceCheckoutView({ id, token, initialData }: { id: st
     try { await navigator.clipboard.writeText(value); setMessage('Nomor pembayaran disalin.'); }
     catch { setMessage('Tidak dapat menyalin otomatis. Pilih dan salin nomor yang tampil.'); }
   }
-  return <main className={styles.page}>
+  return <main className={styles.page} data-awaiting-payment={!allPaid && !active}>
     <div className={styles.container}>
-      <header className={styles.header}><span className={styles.brand}>CLEVIO</span><span><ShieldCheck size={16} /> Pembayaran kelas</span></header>
+      <header className={styles.header}>
+        <div className={styles.brand} role="img" aria-label="Clevio Innovator Camp">
+          <Image className={styles.logoLight} src="/logo/innovator-camp-logo-dark.png" alt="" aria-hidden="true" width={152} height={54} sizes="152px" priority />
+          <Image className={styles.logoDark} src="/logo/innovator-camp-logo-light.png" alt="" aria-hidden="true" width={152} height={54} sizes="152px" priority />
+        </div>
+        <span className={styles.headerBadge}><ShieldCheck size={16} aria-hidden="true" /> Pembayaran kelas</span>
+      </header>
       <section className={styles.intro}>
-        <div className={styles.icon}><ReceiptText size={25} /></div>
-        <p className={styles.eyebrow}>TAGIHAN KELAS</p>
+        <p className={styles.eyebrow}><ReceiptText size={16} aria-hidden="true" /> TAGIHAN KELAS</p>
         <h1>{allPaid ? 'Semua tagihan sudah lunas' : 'Pilih tagihan yang ingin dibayar'}</h1>
         <p>{allPaid ? 'Terima kasih. Tidak ada pembayaran lagi untuk daftar ini.' : 'Semua tagihan belum lunas dipilih otomatis. Anda boleh membayar satu tagihan dahulu atau beberapa sekaligus.'}</p>
+        {!allPaid && <ol className={styles.steps} aria-label="Langkah pembayaran"><li><span>1</span> Pilih tagihan</li><li><span>2</span> Buat QR / VA</li><li><span>3</span> Bayar & periksa status</li></ol>}
       </section>
       {message && <div role="status" className={styles.notice}>{message}</div>}
       {!data.enabled && !allPaid && <div role="alert" className={styles.notice}>Pembayaran baru sedang dinonaktifkan. Instruksi aktif tetap dapat diperiksa; hubungi admin untuk bantuan.</div>}
       {data.hasOtherActive && <div role="alert" className={styles.notice}>Ada instruksi aktif dari link invoice lain. Selesaikan instruksi tersebut atau hubungi admin sebelum membuat pembayaran baru.</div>}
+      <div className={styles.workspace}>
       <section className={styles.card} aria-label="Daftar tagihan">
-        <div className={styles.cardTitle}><h2>Rincian tagihan</h2>{!allPaid && <button type="button" disabled={locked} onClick={() => setSelected(defaultCheckoutSelection(data.invoices))}>Pilih semua</button>}</div>
-        {data.invoices.map(invoice => <label key={invoice.id} className={styles.invoice}>
+        <div className={styles.cardTitle}><div><h2><ReceiptText size={19} aria-hidden="true" /> Rincian tagihan</h2><p>{data.invoices.length} tagihan dalam daftar ini</p></div>{!allPaid && <button type="button" disabled={locked} onClick={() => setSelected(defaultCheckoutSelection(data.invoices))}>Pilih semua</button>}</div>
+        <div className={styles.invoiceList}>
+        {data.invoices.map(invoice => <label key={invoice.id} className={styles.invoice} data-selected={selected.includes(invoice.id) && invoice.status !== 'PAID'} data-paid={invoice.status === 'PAID'}>
           <input type="checkbox" aria-label={`Bayar ${invoice.periodLabel} ${invoice.invoice_number}`} checked={selected.includes(invoice.id) && invoice.status !== 'PAID'} disabled={locked || invoice.status === 'PAID'} onChange={e => setSelected(e.target.checked ? [...selected, invoice.id] : selected.filter(x => x !== invoice.id))} />
           <span className={styles.invoiceText}><strong>{invoice.periodLabel}</strong><small>{invoice.invoice_number}</small><small>{invoice.coderNames.join(', ')}</small>
             <span className={invoice.status === 'PAID' ? styles.paid : styles.unpaid}>{invoice.status === 'PAID' ? 'Lunas' : invoice.status === 'OVERDUE' ? 'Menunggak' : 'Belum lunas'}</span>
           </span><strong className={styles.amount}>{money(invoice.total_amount)}</strong>
         </label>)}
+        </div>
+        <p className={styles.listNote}><ShieldCheck size={16} aria-hidden="true" /> Invoice tetap terpisah. Hanya tagihan yang Anda pilih yang akan dibayar.</p>
       </section>
+      <div className={styles.paymentColumn}>
       {!allPaid && !active && <section className={styles.card}>
-        <h2>Metode pembayaran</h2>
-        <label htmlFor="payment-method">Pilih QRIS atau bank</label>
+        <h2><CreditCard size={20} aria-hidden="true" /> Metode pembayaran</h2>
+        <label className={styles.fieldLabel} htmlFor="payment-method">Pilih QRIS atau bank</label>
         <select id="payment-method" value={method} disabled={locked} onChange={e => setMethod(e.target.value as typeof method)}>
           {data.options.map(o => <option key={o.code} value={o.code}>{o.label}</option>)}
         </select>
         <p className={styles.hint}>{option?.description}</p>
-        <div className={styles.summary}><span>Tagihan terpilih ({selected.length})</span><strong>{money(base)}</strong><span>Biaya admin transaksi</span><strong>{money(fee)}</strong></div>
+        <div className={styles.summary} aria-live="polite"><span>Tagihan terpilih ({selected.length})</span><strong>{money(base)}</strong><span>Biaya admin transaksi</span><strong>{money(fee)}</strong></div>
         <p className={styles.hint}>Biaya admin berlaku satu kali untuk transaksi ini. Pilihan tagihan dikunci setelah instruksi dibuat.</p>
       </section>}
       {active && <section className={styles.card} aria-label="Instruksi pembayaran">
-        <h2>{active.state === 'REVIEW' ? 'Pembayaran perlu pemeriksaan admin' : active.payment?.label ?? 'Instruksi sedang dikonfirmasi'}</h2>
+        <p className={styles.instructionBadge}><LockKeyhole size={14} aria-hidden="true" /> Pilihan tagihan dikunci</p>
+        <h2>{active.state === 'REVIEW' ? <AlertCircle size={20} aria-hidden="true" /> : <CreditCard size={20} aria-hidden="true" />}{active.state === 'REVIEW' ? 'Pembayaran perlu pemeriksaan admin' : active.payment?.label ?? 'Instruksi sedang dikonfirmasi'}</h2>
         {active.state === 'REVIEW' ? <p>Jangan membayar ulang. Admin perlu memeriksa kecocokan pembayaran dan periode belajar.</p> : active.payment ? <>
           <p>Bayar tepat sejumlah <strong>{money(active.total)}</strong>, termasuk biaya admin {money(active.adminFee)}.</p>
           {active.payment.qrImageUrl && <><p>Scan dengan mobile banking atau dompet digital yang mendukung QRIS.</p>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img className={styles.qr} src={active.payment.qrImageUrl} alt="QRIS untuk tagihan terpilih" />
-            <a href={active.payment.qrImageUrl} download="qris-tagihan.png">Unduh QRIS</a></>}
+            <a className={styles.download} href={active.payment.qrImageUrl} download="qris-tagihan.png"><Download size={16} aria-hidden="true" /> Unduh QRIS</a></>}
           {[['Nomor Virtual Account', active.payment.vaNumber], ['Biller Code', active.payment.billerCode], ['Bill Key', active.payment.billKey]].map(([label, value]) => value ? <div className={styles.copyRow} key={label}><span>{label}<strong>{value}</strong></span><button type="button" onClick={() => copy(value)} aria-label={`Salin ${label}`}><Copy size={18} /></button></div> : null)}
         </> : <p>Jika pembuatan instruksi terputus, jangan membuat transaksi lain. Periksa status atau hubungi admin.</p>}
         <div className={styles.actions}><button type="button" disabled={busy} onClick={() => action({ action: 'refresh', orderId: active.orderId })}><RefreshCw size={16} /> Periksa status</button>
@@ -98,8 +111,12 @@ export default function InvoiceCheckoutView({ id, token, initialData }: { id: st
       </section>}
       {allPaid ? <div className={styles.complete}><CheckCircle2 /> Pembayaran untuk daftar ini telah selesai.</div> : !active && <footer className={styles.footer}><div><small>{selected.length} tagihan · {option?.label}<br />Termasuk biaya admin {money(fee)}</small><strong>{money(base + fee)}</strong></div>
         <button type="button" disabled={busy || !base || !data.enabled || data.hasOtherActive} onClick={() => action({ action: 'pay', invoiceIds: selected, method, expectedBase: base })}>{busy ? 'Memproses…' : 'Buat instruksi pembayaran'}<ArrowRight size={18} /></button></footer>}
+      </div>
+      </div>
+      <div className={styles.pageNote}>
       <p className={styles.hint}>Status lunas diperbarui setelah pembayaran dikonfirmasi. Membuka link atau membuat instruksi tidak menambah masa belajar.</p>
-      <button className={styles.reload} type="button" disabled={busy} onClick={() => action()}>Muat ulang daftar tagihan</button>
+      <button className={styles.reload} type="button" disabled={busy} onClick={() => action()}><RefreshCw size={14} aria-hidden="true" /> Muat ulang daftar tagihan</button>
+      </div>
     </div>
   </main>;
 }

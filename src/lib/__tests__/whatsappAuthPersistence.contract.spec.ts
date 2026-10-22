@@ -36,6 +36,7 @@ describe('LMS WhatsApp authentication persistence contract', () => {
 
         expect(script).toContain('WHATSAPP_AUTH_DIR="${WHATSAPP_AUTH_DIR:-$SHARED_DIR/baileys_auth_info}"');
         expect(script).toContain('mkdir -p "$RELEASES_DIR" "$SHARED_DIR" "$DEPLOY_LOG_DIR" "$WHATSAPP_AUTH_DIR"');
-        expect(script).toContain('NODE_ENV=production WHATSAPP_AUTH_DIR="$WHATSAPP_AUTH_DIR" pm2 start npm');
+        expect(script).toContain('NODE_ENV=production WHATSAPP_AUTH_DIR="$WHATSAPP_AUTH_DIR" pm2 start ./node_modules/next/dist/bin/next');
+        expect(script).toContain('--interpreter "$NODE_BIN"');
     });
 });

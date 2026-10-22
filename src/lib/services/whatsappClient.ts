@@ -536,6 +536,9 @@ function resolveWhatsAppTarget(target: string): { kind: 'group'; jid: string } |
  */
 export async function sendSingleInvoiceReminder(invoiceId: string): Promise<{ success: boolean; error?: string; skipped?: boolean }> {
     try {
+        const { sendGroupedReminderForInvoice } = await import('@/lib/services/invoiceCheckoutMessaging');
+        const grouped = await sendGroupedReminderForInvoice(invoiceId);
+        if (grouped) return grouped;
         // Check connection
         if (!isConnected || !sock) {
             // Try one last attempt to reconnect
@@ -918,6 +921,13 @@ export async function sendInvoiceReminders(
             const invoice = invoices[i];
 
             try {
+                const { sendGroupedReminderForInvoice } = await import('@/lib/services/invoiceCheckoutMessaging');
+                const grouped = await sendGroupedReminderForInvoice(invoice.id);
+                if (grouped) {
+                    if (grouped.success && !grouped.skipped) result.sent++;
+                    else if (!grouped.success) result.failed++;
+                    continue;
+                }
                 const idempotencyKey = buildInvoiceReminderIdempotencyKey(invoice.id);
                 if (await hasWhatsappLogWithIdempotencyKey(idempotencyKey)) {
                     console.log(`[WhatsApp] Skipping duplicate reminder for ${invoice.invoice_number}`);

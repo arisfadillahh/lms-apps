@@ -2,12 +2,14 @@
 
 import { useState, type CSSProperties } from 'react';
 import type { InvoiceSettings } from '@/lib/types/invoice';
+import { DEFAULT_CHECKOUT_MESSAGE } from '@/lib/invoiceCheckout';
 
 interface Props {
     initialSettings: InvoiceSettings | null;
+    checkoutEnabled?: boolean;
 }
 
-export default function InvoiceSettingsForm({ initialSettings }: Props) {
+export default function InvoiceSettingsForm({ initialSettings, checkoutEnabled = false }: Props) {
     const [settings, setSettings] = useState({
         generate_day: initialSettings?.generate_day || 15,
         due_days: initialSettings?.due_days || 10,
@@ -25,6 +27,7 @@ export default function InvoiceSettingsForm({ initialSettings }: Props) {
     });
 
     const [saving, setSaving] = useState(false);
+    const [checkoutTemplate, setCheckoutTemplate] = useState(initialSettings?.selected_invoices_message_template || DEFAULT_CHECKOUT_MESSAGE);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
     const handleChange = (field: string, value: string | number | boolean) => {
@@ -39,7 +42,7 @@ export default function InvoiceSettingsForm({ initialSettings }: Props) {
             const res = await fetch('/api/invoices/settings', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(settings)
+                body: JSON.stringify({ ...settings, ...(checkoutEnabled ? { selected_invoices_message_template: checkoutTemplate } : {}) })
             });
 
             if (res.ok) {
@@ -187,6 +190,11 @@ export default function InvoiceSettingsForm({ initialSettings }: Props) {
 
             <div style={cardStyle}>
                 <h2 style={sectionTitleStyle}>💬 Template Pesan WhatsApp</h2>
+                {checkoutEnabled && <div style={formGroupStyle}>
+                    <label style={labelStyle} htmlFor="checkout-template">Pembayaran beberapa tagihan</label>
+                    <textarea id="checkout-template" rows={10} value={checkoutTemplate} onChange={e => setCheckoutTemplate(e.target.value)} style={textareaStyle} />
+                    <p style={helpTextStyle}>Wajib: {'{invoice_list}'} dan {'{payment_url}'}. Opsional: {'{parent_name}'}, {'{total_unpaid}'}. Tidak dikirim otomatis ketika link dibuat.</p>
+                </div>}
 
                 <div style={formGroupStyle}>
                     <label style={labelStyle}>Template Pesan Reminder</label>

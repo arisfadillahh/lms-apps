@@ -130,6 +130,7 @@ const ADMIN_ACCESS_RULES: AdminAccessRule[] = [
   { prefix: '/api/clean-evals', menus: ['evaluations'] },
   { prefix: '/api/invoices/settings', menus: ['settings', 'invoices', 'whatsapp'] },
   { prefix: '/api/invoices', menus: ['invoices'] },
+  { prefix: '/api/admin/invoice-checkouts', menus: ['invoices'] },
   { prefix: '/api/whatsapp/send', menus: null, exact: true },
   { prefix: '/api/whatsapp', menus: ['whatsapp', 'settings', 'invoices'] },
 ];
@@ -189,6 +190,10 @@ function isPublicPath(pathname: string): boolean {
 
 function isPublicInvoicePaymentApiPath(pathname: string): boolean {
   const segments = pathname.split('/').filter(Boolean);
+  if (segments[0] === 'api' && segments[1] === 'invoice-checkouts') {
+    return (segments.length === 3 || (segments.length === 4 && segments[3] === 'qr'))
+      && /^[0-9a-f-]{36}$/i.test(segments[2]);
+  }
   return segments[0] === 'api'
     && segments[1] === 'invoices'
     && segments.length === 4

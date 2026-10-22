@@ -21,6 +21,7 @@ export interface InvoiceSettings {
     payment_confirmation_template: string;
     seasonal_invoice_message_template: string;
     weekly_invoice_message_template: string; // New field for Weekly Registration
+    selected_invoices_message_template?: string | null;
 
     // Class Reminder Settings
     enable_class_reminder?: boolean;
@@ -103,6 +104,9 @@ export interface InvoiceItem {
     payment_period_id: string | null;
     created_at: string;
     description?: string; // Optional for seasonal items
+    billing_start_date?: string | null;
+    billing_end_date?: string | null;
+    billing_duration_months?: number | null;
     // Read-only projection of the existing linked payment plan (no new column).
     billing_period?: { payment_plans: { duration_months: number | null } | null } | null;
 }

@@ -53,6 +53,7 @@ export default async function AdminInvoicesPage() {
             }}
             initialMonth={currentMonth}
             initialYear={currentYear}
+            checkoutEnabled={process.env.LMS_SELECTED_INVOICE_CHECKOUT_ENABLED === 'true'}
         />
     );
 }

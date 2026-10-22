@@ -5,6 +5,8 @@ import { verifyInvoicePublicToken } from '@/lib/services/invoicePublicAccess';
 import { buildInvoicePaymentBreakdown, getInvoicePaymentOption, getPublicInvoicePaymentOptions } from '@/lib/invoicePaymentMethods';
 import { createLmsInvoiceMidtransOrderId, InvoiceMidtransClient } from '@/lib/invoiceMidtransClient';
 import { getStoredInvoicePaymentByInvoiceId, saveStoredInvoicePayment, toPublicStoredInvoicePayment } from '@/lib/invoicePaymentStore';
+import { isInvoiceCheckoutEnabled, createCheckoutPayment, getClaimedIntents, CheckoutError } from '@/lib/services/invoiceCheckoutServer';
+import { isLiveSingleInvoiceCheckout } from '@/lib/services/invoicePaymentInstructions';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -28,6 +30,24 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         const payment = buildInvoicePaymentBreakdown(method, invoice.total_amount);
         if (!option || !payment) {
             return NextResponse.json({ error: 'Metode pembayaran tidak tersedia.' }, { status: 400 });
+        }
+
+        if (isInvoiceCheckoutEnabled() && invoice.invoice_type === 'MONTHLY') {
+            const claims = await getClaimedIntents([invoice.id]);
+            if (claims.some(c => c.link_id !== null)) {
+                throw new CheckoutError('Invoice sedang termasuk pembayaran tagihan pilihan. Gunakan link tersebut atau minta admin memeriksa statusnya.');
+            }
+            const old = await getReusableInvoicePayment(invoice, token);
+            if (!claims.length && old?.method === payment.method) {
+                return NextResponse.json({ ok: true, reused: true, payment: old, options: getPublicInvoicePaymentOptions(invoice.total_amount) });
+            }
+            const intent = await createCheckoutPayment([invoice], null, payment.method, invoice.total_amount);
+            if (intent.state !== 'PENDING' || !intent.payment_details) throw new CheckoutError('Instruksi sedang dikonfirmasi. Jangan membuat pembayaran lain; hubungi admin.');
+            const stored = await saveStoredInvoicePayment({ invoiceId: invoice.id, invoiceNumber: invoice.invoice_number, payment: {
+                orderId: intent.order_id, transactionId: null, paymentType: null, transactionStatus: 'pending', expiresAt: null,
+                paymentDetails: intent.payment_details, rawResponse: {},
+            } });
+            return NextResponse.json({ ok: true, payment: toPublicStoredInvoicePayment(stored, token), options: getPublicInvoicePaymentOptions(invoice.total_amount) });
         }
 
         const existingPayment = await getReusableInvoicePayment(invoice, token);
@@ -56,6 +76,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             options: getPublicInvoicePaymentOptions(invoice.total_amount)
         });
     } catch (error) {
+        if (error instanceof CheckoutError) return NextResponse.json({ error: error.message }, { status: error.status });
         console.error('[InvoicePayment] Create payment method error:', error);
         return NextResponse.json({
             error: error instanceof Error ? error.message : 'Gagal membuat instruksi pembayaran.'
@@ -125,6 +146,10 @@ async function tryStorePaymentInDatabase(
 async function getReusableInvoicePayment(invoice: Awaited<ReturnType<typeof getInvoiceById>>, token: string | null) {
     if (!invoice || !token) return null;
     const stored = await getStoredInvoicePaymentByInvoiceId(invoice.id);
+    if (stored?.orderId.startsWith('LMSB-')) {
+        return await isLiveSingleInvoiceCheckout(invoice, stored.orderId) ? toPublicStoredInvoicePayment(stored, token) : null;
+    }
+    if (invoice.midtrans_order_id?.startsWith('LMSB-')) return null;
     if (!invoice.payment_method || !invoice.midtrans_order_id) {
         return stored ? toPublicStoredInvoicePayment(stored, token) : null;
     }

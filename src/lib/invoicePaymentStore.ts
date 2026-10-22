@@ -1,6 +1,7 @@
 import 'server-only';
 
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, readdir, rename } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import type { InvoiceMidtransPayment, MidtransNotificationPayload } from '@/lib/invoiceMidtransClient';
 import type { PublicInvoicePaymentInstruction } from '@/lib/invoicePaymentMethods';
@@ -67,6 +68,24 @@ export async function getStoredInvoicePaymentByOrderId(orderId: string) {
     return readJson<StoredInvoicePayment>(orderPath(orderId));
 }
 
+/** Old instructions may not be the latest invoice snapshot. Check every order. */
+export async function getHistoricalInvoicePayments(invoiceIds: string[]): Promise<StoredInvoicePayment[]> {
+    const wanted = new Set(invoiceIds);
+    let files: string[];
+    try { files = await readdir(path.join(storeRoot(), 'orders')); }
+    catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
+        throw new Error('Riwayat instruksi pembayaran belum dapat diperiksa.');
+    }
+    const records: StoredInvoicePayment[] = [];
+    for (const file of files.filter(f => /^[a-zA-Z0-9_-]+\.json$/.test(f))) {
+        // Fail closed on unreadable/corrupt records, not "no old payment".
+        const record = JSON.parse(await readFile(path.join(storeRoot(), 'orders', file), 'utf8')) as StoredInvoicePayment;
+        if (wanted.has(record.invoiceId)) records.push(record);
+    }
+    return records;
+}
+
 export async function updateStoredInvoicePaymentStatus(
     orderId: string,
     payload: MidtransNotificationPayload,
@@ -85,10 +104,9 @@ export async function updateStoredInvoicePaymentStatus(
         updatedAt: new Date().toISOString()
     };
 
-    await Promise.all([
-        writeJson(invoicePath(existing.invoiceId), updated),
-        writeJson(orderPath(orderId), updated)
-    ]);
+    await writeJson(orderPath(orderId), updated);
+    const selected = await getStoredInvoicePaymentByInvoiceId(existing.invoiceId);
+    if (selected?.orderId === orderId) await writeJson(invoicePath(existing.invoiceId), updated);
 
     return updated;
 }
@@ -130,7 +148,9 @@ function orderPath(orderId: string) {
 
 async function writeJson(filePath: string, data: unknown) {
     await mkdir(path.dirname(filePath), { recursive: true });
-    await writeFile(filePath, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
+    const temporary = `${filePath}.${randomUUID()}.tmp`;
+    await writeFile(temporary, `${JSON.stringify(data, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
+    await rename(temporary, filePath);
 }
 
 async function readJson<T>(filePath: string): Promise<T | null> {

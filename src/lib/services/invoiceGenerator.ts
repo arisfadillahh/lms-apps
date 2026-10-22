@@ -65,6 +65,10 @@ export async function generateInvoicesForMonth(
     month: number,
     year: number
 ): Promise<GenerateInvoicesResponse> {
+    if (process.env.LMS_SELECTED_INVOICE_CHECKOUT_ENABLED === 'true') {
+        const { generateIndependentInvoicesForMonth } = await import('@/lib/services/independentInvoiceGenerator');
+        return generateIndependentInvoicesForMonth(month, year);
+    }
     const result: GenerateInvoicesResponse = {
         success: true,
         generated: 0,

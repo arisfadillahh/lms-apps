@@ -8,6 +8,8 @@ import { useReminder } from '@/contexts/ReminderContext';
 import AssignClassModal from './AssignClassModal';
 import SeasonalInvoiceModal from './SeasonalInvoiceModal';
 import WeeklyRegistrationModal from './WeeklyRegistrationModal';
+import InvoiceCheckoutModal from './InvoiceCheckoutModal';
+import { Link2 } from 'lucide-react';
 
 interface Stats {
     pending: number;
@@ -21,13 +23,15 @@ interface Props {
     initialStats: Stats;
     initialMonth: number;
     initialYear: number;
+    checkoutEnabled?: boolean;
 }
 
 export default function InvoiceManagement({
     initialInvoices,
     initialStats,
     initialMonth,
-    initialYear
+    initialYear,
+    checkoutEnabled = false
 }: Props) {
     const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
     const [stats, setStats] = useState<Stats>(initialStats);
@@ -79,6 +83,7 @@ export default function InvoiceManagement({
     const [showSeasonalModal, setShowSeasonalModal] = useState(false);
     // Weekly Registration Modal
     const [showWeeklyModal, setShowWeeklyModal] = useState(false);
+    const [checkoutInvoiceId, setCheckoutInvoiceId] = useState<string | null>(null);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('id-ID', {
@@ -473,6 +478,7 @@ export default function InvoiceManagement({
                                     <td className="muted">{inv.paid_at ? formatDate(inv.paid_at) : '-'}</td>
                                     <td style={{ textAlign: 'right' }}>
                                         <div className="row gap-1" style={{ justifyContent: 'flex-end' }}>
+                                            {checkoutEnabled && inv.invoice_type === 'MONTHLY' && inv.status !== 'PAID' && inv.ccr_id && <button type="button" className="btn btn-sm btn-ghost" title="Bayar tagihan pilihan" aria-label={`Bayar tagihan pilihan untuk ${inv.parent_name}`} onClick={() => setCheckoutInvoiceId(inv.id)}><Link2 size={17} /></button>}
                                                 <Link href={previewUrl} target="_blank" className="btn btn-sm btn-ghost" title="Preview invoice">
                                                 👁️
                                                 </Link>
@@ -557,6 +563,7 @@ export default function InvoiceManagement({
             </div>
 
             {/* Mark Paid Modal */}
+            {checkoutInvoiceId && <InvoiceCheckoutModal invoiceId={checkoutInvoiceId} onClose={() => setCheckoutInvoiceId(null)} />}
             {showPaidModal && (
                 <div style={modalOverlayStyle}>
                     <div style={modalStyle}>

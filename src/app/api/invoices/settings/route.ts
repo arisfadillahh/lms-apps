@@ -51,6 +51,12 @@ export async function PUT(request: NextRequest) {
         }
 
         const body = await request.json();
+        if (body.selected_invoices_message_template !== undefined && body.selected_invoices_message_template !== null) {
+            const template = body.selected_invoices_message_template;
+            if (typeof template !== 'string' || template.length > 4000 || !template.includes('{payment_url}') || !template.includes('{invoice_list}') || template.includes('\\n')) {
+                return NextResponse.json({ error: 'Template tagihan pilihan maksimal 4.000 karakter, wajib memuat {payment_url} dan {invoice_list}, serta memakai baris baru asli.' }, { status: 400 });
+            }
+        }
 
         // Validate generate_day
         if (body.generate_day !== undefined) {

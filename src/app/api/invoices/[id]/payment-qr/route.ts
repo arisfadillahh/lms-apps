@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import { getInvoiceById } from '@/lib/dao/invoicesDao';
 import { verifyInvoicePublicToken } from '@/lib/services/invoicePublicAccess';
 import { getStoredInvoicePaymentByInvoiceId } from '@/lib/invoicePaymentStore';
+import { isLiveSingleInvoiceCheckout } from '@/lib/services/invoicePaymentInstructions';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -17,13 +18,19 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     const storedPayment = await getStoredInvoicePaymentByInvoiceId(invoice.id);
-    const activeOrderId = invoice.midtrans_order_id ?? storedPayment?.orderId ?? null;
+    const activeOrderId = storedPayment?.orderId.startsWith('LMSB-')
+        ? storedPayment.orderId : invoice.midtrans_order_id ?? storedPayment?.orderId ?? null;
+
+    if (activeOrderId?.startsWith('LMSB-') && !await isLiveSingleInvoiceCheckout(invoice, activeOrderId)) {
+        return NextResponse.json({ error: 'QR pembayaran tidak aktif. Muat ulang status tagihan.' }, { status: 409 });
+    }
 
     if (requestedOrder && requestedOrder !== activeOrderId) {
         return NextResponse.json({ error: 'QR pembayaran tidak aktif.' }, { status: 404 });
     }
 
-    const payment = normalizePaymentDetails(invoice.midtrans_payment_details ?? storedPayment?.paymentDetails ?? null);
+    const payment = normalizePaymentDetails(activeOrderId?.startsWith('LMSB-')
+        ? storedPayment?.paymentDetails ?? null : invoice.midtrans_payment_details ?? storedPayment?.paymentDetails ?? null);
     if (!payment || payment.method !== 'qris' || (!payment.qrCodeUrl && !payment.fallbackQrValue)) {
         return NextResponse.json({ error: 'QR pembayaran belum tersedia.' }, { status: 404 });
     }

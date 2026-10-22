@@ -5,6 +5,7 @@ import { buildInvoicePublicUrl } from '@/lib/services/invoicePublicAccess';
 import { getShortInvoiceUrlOrOriginal } from '@/lib/services/shortLinks';
 import { notifyEventManagerInvoiceStatus } from '@/lib/services/eventManagerWebhook';
 import { validateBearerToken } from '@/lib/apiTokenAuth';
+import { isInvoiceCheckoutEnabled, confirmManualMonthlyPayment, CheckoutError } from '@/lib/services/invoiceCheckoutServer';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -23,12 +24,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
     }
 
-    const invoice = await markInvoiceAsPaid(id, paidAt, paidNotes);
+    let invoice;
+    const transactional = isInvoiceCheckoutEnabled() && existingInvoice.invoice_type === 'MONTHLY';
+    try {
+        invoice = transactional ? (await confirmManualMonthlyPayment(existingInvoice, paidAt, paidNotes)).invoice : await markInvoiceAsPaid(id, paidAt, paidNotes);
+    } catch (error) {
+        return NextResponse.json({ error: error instanceof CheckoutError ? error.message : 'Gagal mengonfirmasi pembayaran.' }, { status: error instanceof CheckoutError ? error.status : 500 });
+    }
     if (!invoice) {
         return NextResponse.json({ error: 'Failed to update invoice' }, { status: 500 });
     }
 
-    await extendPaymentPeriodsForInvoice(id);
+    if (!transactional) await extendPaymentPeriodsForInvoice(id);
 
     const invoiceForResponse = await getInvoiceById(id) ?? invoice;
     const eventManagerWebhookStatus = notifyEventManager

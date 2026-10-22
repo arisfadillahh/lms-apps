@@ -86,6 +86,26 @@ export class InvoiceMidtransClient {
     private readonly serverKey = process.env.MIDTRANS_SERVER_KEY?.trim();
     private readonly isProduction = process.env.MIDTRANS_IS_PRODUCTION === 'true';
 
+    /** Read the provider's authoritative state; a local expiry timer is not proof. */
+    async getTransactionStatus(orderId: string): Promise<MidtransNotificationPayload> {
+        return this.transactionRequest(orderId, 'status', 'GET');
+    }
+
+    async cancelTransaction(orderId: string): Promise<MidtransNotificationPayload> {
+        return this.transactionRequest(orderId, 'cancel', 'POST');
+    }
+
+    private async transactionRequest(orderId: string, action: 'status' | 'cancel', method: 'GET' | 'POST'): Promise<MidtransNotificationPayload> {
+        if (!this.serverKey) throw new Error('Konfigurasi gateway belum tersedia.');
+        const response = await fetch(`${this.coreBaseUrl}/v2/${encodeURIComponent(orderId)}/${action}`, {
+            method, cache: 'no-store', signal: AbortSignal.timeout(15000),
+            headers: { Accept: 'application/json', Authorization: `Basic ${Buffer.from(`${this.serverKey}:`).toString('base64')}` },
+        });
+        const data = await response.json().catch(() => null) as MidtransNotificationPayload | null;
+        if (!response.ok || !data?.order_id || !data.transaction_status) throw new Error('Status pembayaran belum dapat dipastikan. Jangan membuat pembayaran lain dulu.');
+        return data;
+    }
+
     async createPayment(invoice: Invoice, payment: InvoicePaymentBreakdown, orderId: string): Promise<InvoiceMidtransPayment> {
         if (!this.serverKey) {
             throw new Error('MIDTRANS_SERVER_KEY belum dikonfigurasi di LMS.');

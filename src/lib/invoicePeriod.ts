@@ -2,7 +2,7 @@ import type { Invoice, InvoiceItem } from '@/lib/types/invoice';
 
 type InvoicePeriod = Pick<Invoice,
   'invoice_type' | 'period_month' | 'period_year' | 'period_start_date' | 'period_end_date'
-> & { items?: ReadonlyArray<Pick<InvoiceItem, 'billing_period'>> };
+> & { items?: ReadonlyArray<Pick<InvoiceItem, 'billing_period' | 'billing_duration_months'>> };
 
 const MONTHS = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -15,7 +15,7 @@ export function isSingleMonthInvoice(invoice: InvoicePeriod): boolean {
   const items = invoice.items;
   return invoice.invoice_type === 'MONTHLY'
     && items !== undefined && items.length > 0
-    && items.every((item) => item.billing_period?.payment_plans?.duration_months === 1);
+    && items.every((item) => (item.billing_duration_months ?? item.billing_period?.payment_plans?.duration_months) === 1);
 }
 
 /** One-month billing label is independent of learning dates or settlement date. */

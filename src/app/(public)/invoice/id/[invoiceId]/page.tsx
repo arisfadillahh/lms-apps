@@ -8,7 +8,8 @@ import { notFound } from 'next/navigation';
 import { getInvoiceById, getInvoiceSettings } from '@/lib/dao/invoicesDao';
 import { verifyInvoicePublicToken } from '@/lib/services/invoicePublicAccess';
 import { getPublicInvoicePaymentOptions } from '@/lib/invoicePaymentMethods';
-import { getStoredInvoicePaymentByInvoiceId, toPublicStoredInvoicePayment } from '@/lib/invoicePaymentStore';
+import { toPublicStoredInvoicePayment } from '@/lib/invoicePaymentStore';
+import { getCurrentStoredInvoicePayment } from '@/lib/services/invoicePaymentInstructions';
 import InvoiceView from '../../[invoiceNumber]/InvoiceView';
 import { toPublicInvoice } from '@/lib/publicInvoice';
 
@@ -30,7 +31,7 @@ export default async function PublicInvoiceByIdPage({ params, searchParams }: Pr
 
     const [settings, storedPayment] = await Promise.all([
         getInvoiceSettings(),
-        getStoredInvoicePaymentByInvoiceId(invoice.id)
+        getCurrentStoredInvoicePayment(invoice)
     ]);
 
     return (

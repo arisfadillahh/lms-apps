@@ -26,6 +26,8 @@ import {
     finishMidtransWebhookEvent,
     sanitizeMidtransNotificationPayload,
 } from '@/lib/midtransWebhookSecurity';
+import { getCheckoutIntent, finishCheckoutFromProvider } from '@/lib/services/invoiceCheckoutServer';
+import { sendCheckoutPaidConfirmation } from '@/lib/services/invoiceCheckoutMessaging';
 
 export async function POST(request: NextRequest) {
     const payload = (await request.json().catch(() => null)) as MidtransNotificationPayload | null;
@@ -68,6 +70,18 @@ export async function POST(request: NextRequest) {
 }
 
 async function processVerifiedNotification(payload: MidtransNotificationPayload, orderId: string) {
+    // This handler remains active even when new checkout creation is disabled.
+    // In-flight payments must still settle after a feature-flag rollback.
+    if (orderId.startsWith('LMSB-')) {
+        const intent = await getCheckoutIntent(orderId);
+        if (!intent) return NextResponse.json({ ok: false, message: 'Payment intent not found' }, { status: 500 });
+        const result = await finishCheckoutFromProvider(intent, payload);
+        if (result.state === 'PAID') await sendCheckoutPaidConfirmation(orderId);
+        if (result.state === 'REVIEW' && intent.state !== 'REVIEW') {
+            await createAdminNotifications({ title: 'Pembayaran perlu rekonsiliasi', message: `Pembayaran ${orderId} memerlukan pemeriksaan periode. Jangan menagih ulang atau menandai lunas manual.`, type: 'PAYMENT_REVIEW', pushUrl: '/admin/payments/invoices', pushTag: `payment-review-${orderId}` }).catch(() => {});
+        }
+        return NextResponse.json({ ok: true, updated: true, state: result.state });
+    }
     const supabase = getSupabaseAdmin();
     const safePayload = sanitizeMidtransNotificationPayload(payload);
     const { data: attempt, error: attemptError } = await supabase

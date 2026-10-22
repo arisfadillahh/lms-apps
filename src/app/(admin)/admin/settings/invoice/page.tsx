@@ -23,7 +23,7 @@ export default async function InvoiceSettingsPage() {
                 Konfigurasi pengaturan invoice dan informasi bank
             </p>
 
-            <InvoiceSettingsForm initialSettings={settings} />
+            <InvoiceSettingsForm initialSettings={settings} checkoutEnabled={process.env.LMS_SELECTED_INVOICE_CHECKOUT_ENABLED === 'true'} />
         </div>
     );
 }

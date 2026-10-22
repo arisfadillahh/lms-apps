@@ -12,6 +12,7 @@ import { buildPaymentConfirmationMessage, resolvePaymentConfirmationTarget } fro
 import { buildInvoicePublicUrl } from '@/lib/services/invoicePublicAccess';
 import { getShortInvoiceUrlOrOriginal } from '@/lib/services/shortLinks';
 import { notifyEventManagerInvoiceStatus, resolveExternalReference } from '@/lib/services/eventManagerWebhook';
+import { isInvoiceCheckoutEnabled, confirmManualMonthlyPayment, CheckoutError } from '@/lib/services/invoiceCheckoutServer';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -161,7 +162,11 @@ export async function PATCH(
             );
         }
 
-        const invoice = await markInvoiceAsPaid(id, paid_at, paid_notes);
+        const before = isInvoiceCheckoutEnabled() ? await getInvoiceById(id) : null;
+        const transactional = before?.invoice_type === 'MONTHLY';
+        const confirmed = transactional ? await confirmManualMonthlyPayment(before!, paid_at, paid_notes) : null;
+        const invoice = confirmed?.invoice ?? await markInvoiceAsPaid(id, paid_at, paid_notes);
+        if (confirmed?.duplicate) return NextResponse.json({ ...invoice, waStatus: { sent: false, skipped: true } });
 
         if (!invoice) {
             return NextResponse.json(
@@ -171,7 +176,7 @@ export async function PATCH(
         }
 
         // Extend payment periods for this invoice
-        await extendPaymentPeriodsForInvoice(id);
+        if (!transactional) await extendPaymentPeriodsForInvoice(id);
 
         // Send Payment Confirmation WhatsApp
         let waStatus: { sent: boolean; error?: string; skipped?: boolean } = { sent: false };
@@ -211,6 +216,7 @@ export async function PATCH(
         return NextResponse.json({ ...invoice, waStatus, eventManagerWebhookStatus });
 
     } catch (error) {
+        if (error instanceof CheckoutError) return NextResponse.json({ error: error.message }, { status: error.status });
         console.error('[API] Update invoice error:', error);
         return NextResponse.json(
             { error: 'Internal server error' },

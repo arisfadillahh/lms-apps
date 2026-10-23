@@ -2,9 +2,11 @@
 
 ## Scope and pins
 
-The official October security release fixes Brotli memory corruption and TLS/DNS validation defects. LMS pins Node 24.22.1, Next 16.3.8 and Sharp 0.35.5. The installer verifies the pinned release-key repository/keyring, GPG signer, signed checksum list and archive digest before extraction. It installs only under `/root/lms/runtimes`, not over system Node. Cached binaries are checked before reuse.
+The official October security release fixes Brotli memory corruption and TLS/DNS validation defects. LMS pins Node 24.22.1, Next 16.4.2 and Sharp 0.35.5. The installer verifies the pinned release-key repository/keyring, GPG signer, signed checksum list and archive digest before extraction. It installs only under `/root/lms/runtimes`, not over system Node. Cached binaries are checked before reuse.
 
 Sources: [Node announcement](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases), [Node 24 release](https://nodejs.org/en/blog/release/v24.22.1), [Next image RCE](https://github.com/vercel/next.js/security/advisories/GHSA-2xp9-vwfh-vxw4), [Next image SSRF](https://github.com/vercel/next.js/security/advisories/GHSA-cjq9-62q9-8jv4), [Sharp advisory](https://github.com/lovell/sharp/security/advisories/GHSA-wq5f-xc86-pv6w).
+
+During rollout, refreshed audit data additionally identified SVG optimization and typed-array cache RCE, plus Server Action denial of service, through Next 16.4.0. The first 16.3.8 release is therefore not the final security target. Follow-up uses 16.4.2 and repeats verification. See [SVG advisory](https://github.com/vercel/next.js/security/advisories/GHSA-2464-fhr4-w9xw) and [cache advisory](https://github.com/vercel/next.js/security/advisories/GHSA-673q-mjm6-r5xr). Record audit time; a prior zero finding count is not a permanent guarantee.
 
 ## LMS release
 

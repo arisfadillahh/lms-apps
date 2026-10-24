@@ -55,6 +55,23 @@ describe('payment safety ordering with real gateway client and mocked HTTP only'
     await expect(createCheckoutPayment([invoice],link.id,'qris',500000)).rejects.toBeInstanceOf(CheckoutError);
     expect(fetch).not.toHaveBeenCalled();
   });
+  it.each([
+    ['CHECKOUT_PERIOD_REVIEW_REQUIRED','Data periode tagihan belum lengkap',409],
+    ['CHECKOUT_PERIOD_OVERLAP','Periode tagihan beririsan',409],
+    ['CHECKOUT_ALREADY_RESERVED','Sudah ada instruksi pembayaran aktif',409],
+    ['CHECKOUT_AMOUNT_CHANGED','Rincian nominal tagihan sudah diperbarui',409],
+    ['CHECKOUT_STATUS_CHANGED','Status tagihan sudah berubah',409],
+    ['private database detail','Layanan pembayaran belum dapat memproses permintaan',503],
+  ])('explains %s accurately without charging or exposing raw database detail',async(message,expected,status)=>{
+    vi.stubGlobal('fetch',vi.fn());
+    const log=vi.spyOn(console,'error').mockImplementation(()=>{});
+    mock.rpc.mockResolvedValue({data:null,error:{code:'P0001',message}});
+    try {
+      await expect(createCheckoutPayment([invoice],link.id,'qris',500000)).rejects.toMatchObject({message:expect.stringContaining(expected),status});
+      expect(fetch).not.toHaveBeenCalled();
+      expect(log).toHaveBeenCalledWith('[InvoiceCheckout] Database operation failed',{operation:'reserve_invoice_checkout',code:'P0001',reason:message.startsWith('CHECKOUT_')?message:'UNEXPECTED_DATABASE_ERROR'});
+    } finally {log.mockRestore();}
+  });
   it('refuses stale totals, disabled GoPay and mixed-family selections before reserve/charge',async()=>{
     vi.stubGlobal('fetch',vi.fn());
     await expect(createCheckoutPayment([invoice],link.id,'qris',1)).rejects.toThrow('Total tagihan berubah');

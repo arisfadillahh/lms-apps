@@ -4,6 +4,7 @@ Search this file and the linked monthly log before changing related code.
 
 | Date | Reference | Area | Symptom | Monthly log |
 | --- | --- | --- | --- | --- |
+| 2026-10-25 | INTERNAL-20261025-01 | Legacy invoice checkout | Legacy renewal labels shared a day with the previous access period; checkout reported a misleading changed-invoice error | [2026-10](./2026-10.md#internal-20261025-01-legacy-renewal-checkout-boundary) |
 | 2026-10-22 | INTERNAL-20261022-03 | Node and image dependency security | Unpatched Node and image dependencies; rollback needed an explicitly verified runtime | [2026-10](./2026-10.md#internal-20261022-03-patched-node-runtime-and-image-dependencies) |
 | 2026-10-22 | INTERNAL-20261022-02 | Selected invoice checkout UI | New payment screens felt disconnected from the LMS; portaled Admin modal missed shell theme styles | [2026-10](./2026-10.md#internal-20261022-02-selected-checkout-design-consistency) |
 | 2026-10-22 | INTERNAL-20261022-01 | Weekly invoice eligibility | Ongoing class with an old estimated end date incorrectly blocked the next unpaid billing month | [2026-10](./2026-10.md#internal-20261022-01-ongoing-weekly-billing-beyond-an-old-class-end-date) |

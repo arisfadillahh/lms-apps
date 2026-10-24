@@ -48,8 +48,18 @@ export function checkoutUrl(link: CheckoutLink) {
 async function rpc<T>(name: string, input: Record<string, unknown>): Promise<T> {
   const { data, error } = await getSupabaseAdmin().rpc(name as never, input as never);
   if (error) {
-    console.error('[InvoiceCheckout] Database operation failed', { operation: name, code: error.code });
-    throw new CheckoutError('Tagihan berubah, memiliki instruksi aktif, atau memerlukan pemeriksaan admin. Muat ulang sebelum melanjutkan.');
+    const messages: Record<string, string> = {
+      CHECKOUT_PERIOD_REVIEW_REQUIRED: 'Data periode tagihan belum lengkap. Hubungi admin untuk memeriksa tagihan ini sebelum melanjutkan pembayaran.',
+      CHECKOUT_PERIOD_OVERLAP: 'Periode tagihan beririsan dengan periode yang sudah tercatat. Hubungi admin untuk menghindari pembayaran ganda.',
+      CHECKOUT_AMOUNT_CHANGED: 'Rincian nominal tagihan sudah diperbarui. Muat ulang halaman dan periksa kembali nominalnya.',
+      CHECKOUT_STATUS_CHANGED: 'Status tagihan sudah berubah. Muat ulang halaman untuk melihat status terbaru.',
+      CHECKOUT_ALREADY_RESERVED: 'Sudah ada instruksi pembayaran aktif untuk tagihan ini. Gunakan instruksi tersebut atau periksa statusnya terlebih dahulu.',
+    };
+    const knownReason = Object.hasOwn(messages, error.message) ? error.message : null;
+    console.error('[InvoiceCheckout] Database operation failed', {
+      operation: name, code: error.code, reason: knownReason ?? 'UNEXPECTED_DATABASE_ERROR',
+    });
+    throw new CheckoutError(knownReason ? messages[knownReason] : 'Layanan pembayaran belum dapat memproses permintaan. Coba beberapa saat lagi atau hubungi admin.', knownReason ? 409 : 503);
   }
   return data as T;
 }

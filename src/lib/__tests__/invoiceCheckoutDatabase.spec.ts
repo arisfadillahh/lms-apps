@@ -29,6 +29,7 @@ describe('checkout PostgreSQL transactions (real migration, no production connec
       CREATE TABLE invoice_items(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),invoice_id uuid REFERENCES invoices(id),coder_id uuid,coder_name text,class_name text,level_name text,base_price integer,discount_amount integer,final_price integer,payment_period_id uuid);
     `);
     await db.exec(readFileSync('supabase/migrations/20261021100000_selected_invoice_checkout.sql', 'utf8'));
+    await db.exec(readFileSync('supabase/migrations/20261025090000_legacy_invoice_checkout_boundary.sql', 'utf8'));
   }, 30000);
   afterAll(async () => { await db?.close(); });
   beforeEach(async () => {
@@ -61,6 +62,71 @@ describe('checkout PostgreSQL transactions (real migration, no production connec
   it('rejects a stale total and rolls back the entire reservation', async () => {
     await expect(reserve('LMSB-qa',await link(),[id(10),id(11)],999999)).rejects.toThrow('CHECKOUT_AMOUNT_CHANGED');
     expect((await rows('select count(*)::int n from invoice_checkout_claims'))[0].n).toBe(0);
+  });
+  it('accepts a legacy three-month boundary without changing the issued invoice or prior access', async () => {
+    await db.query('UPDATE payment_plans SET duration_months=3 WHERE id=$1', [id(3)]);
+    await db.query("UPDATE coder_payment_periods SET start_date='2026-07-26',end_date='2026-10-25',status='ACTIVE' WHERE id=$1", [id(6)]);
+    await db.query("UPDATE invoices SET period_start_date='2026-10-25',period_end_date='2027-01-24' WHERE id=$1", [id(10)]);
+    const before = await rows('select * from invoices where id=$1', [id(10)]);
+    const oldPeriod = await rows('select * from coder_payment_periods where id=$1', [id(6)]);
+    const originalValidator = readFileSync('supabase/migrations/20261021100000_selected_invoice_checkout.sql', 'utf8')
+      .match(/CREATE FUNCTION public\.validate_invoice_checkout_periods\([\s\S]*?END \$\$;/)![0];
+    await db.exec(originalValidator.replace('CREATE FUNCTION', 'CREATE OR REPLACE FUNCTION'));
+    await expect(reserve('LMSB-before-fix', null, [id(10)], 500000)).rejects.toThrow('CHECKOUT_PERIOD_OVERLAP');
+    expect((await rows('select count(*)::int n from invoice_checkout_claims'))[0].n).toBe(0);
+    await db.exec(readFileSync('supabase/migrations/20261025090000_legacy_invoice_checkout_boundary.sql', 'utf8'));
+    await reserve('LMSB-legacy', null, [id(10)], 500000);
+    expect(await rows('select * from invoices where id=$1', [id(10)])).toEqual(before);
+    expect(await rows('select * from coder_payment_periods where id=$1', [id(6)])).toEqual(oldPeriod);
+    expect(await rows('select billing_start_date::text,billing_end_date::text,billing_duration_months from invoice_items where invoice_id=$1', [id(10)])).toEqual([
+      {billing_start_date:'2026-10-26',billing_end_date:'2027-01-25',billing_duration_months:3},
+    ]);
+    expect((await finish('LMSB-legacy', 'PAID', 502500)).state).toBe('PAID');
+    expect(await rows('select start_date::text,end_date::text from coder_payment_periods where id<>$1', [id(6)])).toEqual([
+      {start_date:'2026-10-26',end_date:'2027-01-25'},
+    ]);
+    expect((await finish('LMSB-legacy', 'PAID', 502500)).duplicate).toBe(true);
+    expect((await rows('select count(*)::int n from invoice_checkout_grants'))[0].n).toBe(1);
+  });
+  it('normalizes legacy and newer months together without overlapping grants', async () => {
+    await db.query("UPDATE invoices SET period_start_date='2026-09-25',period_end_date='2026-10-24' WHERE id=$1", [id(10)]);
+    await reserve('LMSB-legacy-mixed', await link(), [id(10),id(11)], 1000000);
+    expect((await finish('LMSB-legacy-mixed', 'PAID')).state).toBe('PAID');
+    expect(await rows('select start_date::text,end_date::text from coder_payment_periods where id<>$1 order by start_date', [id(6)])).toEqual([
+      {start_date:'2026-09-26',end_date:'2026-10-25'},{start_date:'2026-10-26',end_date:'2026-11-25'},
+    ]);
+  });
+  it('does not reinterpret explicit snapshots, missing dates or an unrelated overlap as legacy', async () => {
+    await db.query("UPDATE invoices SET period_start_date='2026-09-25',period_end_date='2026-10-24' WHERE id=$1", [id(10)]);
+    await db.query("UPDATE invoice_items SET billing_start_date='2026-09-25',billing_end_date='2026-10-24',billing_duration_months=1 WHERE invoice_id=$1", [id(10)]);
+    await expect(reserve('LMSB-explicit', null, [id(10)], 500000)).rejects.toThrow('CHECKOUT_PERIOD_OVERLAP');
+    await db.query('UPDATE invoice_items SET billing_start_date=NULL,billing_end_date=NULL,billing_duration_months=NULL WHERE invoice_id=$1', [id(10)]);
+    await db.query('UPDATE invoices SET period_start_date=NULL,period_end_date=NULL WHERE id=$1', [id(10)]);
+    await expect(reserve('LMSB-missing', null, [id(10)], 500000)).rejects.toThrow('CHECKOUT_PERIOD_REVIEW_REQUIRED');
+    await db.query("UPDATE invoices SET period_start_date='2026-09-24',period_end_date='2026-10-23' WHERE id=$1", [id(10)]);
+    await expect(reserve('LMSB-overlap', null, [id(10)], 500000)).rejects.toThrow('CHECKOUT_PERIOD_OVERLAP');
+    expect((await rows('select count(*)::int n from invoice_checkout_claims'))[0].n).toBe(0);
+  });
+  it('still rejects an existing paid period or a duplicate reservation after legacy normalization', async () => {
+    await db.query("UPDATE invoices SET period_start_date='2026-09-25',period_end_date='2026-10-24' WHERE id=$1", [id(10)]);
+    await db.query("INSERT INTO coder_payment_periods(id,coder_id,class_id,payment_plan_id,start_date,end_date,status) VALUES($1,$2,$3,$4,'2026-09-26','2026-10-25','ACTIVE')", [id(50),id(4),id(5),id(3)]);
+    await expect(reserve('LMSB-paid-overlap', null, [id(10)], 500000)).rejects.toThrow('CHECKOUT_PERIOD_OVERLAP');
+    await db.query('DELETE FROM coder_payment_periods WHERE id=$1', [id(50)]);
+    await reserve('LMSB-first', null, [id(10)], 500000);
+    await expect(reserve('LMSB-second', null, [id(10)], 500000)).rejects.toThrow('CHECKOUT_ALREADY_RESERVED');
+  });
+  it('reapplying the function-only migration does not change invoices, items, periods or privileges', async () => {
+    const invoiceRows = await rows('select * from invoices order by id');
+    const itemRows = await rows('select * from invoice_items order by id');
+    const periodRows = await rows('select * from coder_payment_periods order by id');
+    const privilegeSql = "select has_function_privilege('anon','validate_invoice_checkout_periods(uuid[])','execute') a,has_function_privilege('authenticated','validate_invoice_checkout_periods(uuid[])','execute') b,has_function_privilege('service_role','validate_invoice_checkout_periods(uuid[])','execute') c";
+    const privileges = await rows(privilegeSql);
+    await db.exec(readFileSync('supabase/migrations/20261025090000_legacy_invoice_checkout_boundary.sql', 'utf8'));
+    expect(await rows('select * from invoices order by id')).toEqual(invoiceRows);
+    expect(await rows('select * from invoice_items order by id')).toEqual(itemRows);
+    expect(await rows('select * from coder_payment_periods order by id')).toEqual(periodRows);
+    expect(await rows(privilegeSql)).toEqual(privileges);
+    expect(privileges).toEqual([{a:false,b:false,c:false}]);
   });
   it('pays only one selected month; the other stays unpaid', async () => {
     await reserve('LMSB-qa',await link(),[id(10)],500000);

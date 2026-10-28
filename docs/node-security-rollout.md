@@ -31,6 +31,8 @@ System default Node and PM2 daemon are separate from application interpreters. U
 
 ## Verification limits
 
+On 28 October a refreshed advisory also affected Zod before 4.6.6. Follow-up pins 4.6.7, updates Puppeteer Core within major 25 and removes the unused optional Jimp peer. Baileys continues using its preferred required Sharp implementation; do not use a forced Zod-major override inside old Jimp plugins. `scripts/security/native-dependency-smoke.mjs` verifies real image/password operations and synthetic browser/PDF generation when an installed browser is available. Its browser-unavailable result is a verification gap, never a passed PDF check. Preserve the newer production invoice-boundary commit when rebasing this security work.
+
 Initial local result: 115 files / 613 tests, TypeScript and build passed on Node 24.22.1. Production dependency audit is clean. Five high-severity development lint-chain findings remain; forced downgrade of Next ESLint config is not acceptable. Keep development tools private and recheck upstream patches instead of `npm audit fix --force`.
 
 Automated/signed-out probes do not prove every authenticated user/device or real settlement. Do not create charges, send parent WhatsApp, mutate classes/billing or trigger workflows for QA. Record actual per-service checks, gaps and rollback targets; never promise zero possible bugs.

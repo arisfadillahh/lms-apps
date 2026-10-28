@@ -1,0 +1,10 @@
+{
+  "services": {
+    "n8n": {
+      "image": "sha256:1d44e1b16269e9b16fa1693f47ac88b1a9458cb7b70a5da4428865c87eba74f2"
+    },
+    "n8n-worker": {
+      "image": "sha256:1d44e1b16269e9b16fa1693f47ac88b1a9458cb7b70a5da4428865c87eba74f2"
+    }
+  }
+}

@@ -1,5 +1,7 @@
 # Node security rollout — 22 October 2026
 
+Verified 28 October active-service cutovers, exact images, backups, future Compose override and remaining limits: [VPS operational receipt](./vps-node-security-20261028.md). Historical observations below are not claims that an inactive app or every dependency is fully audited.
+
 ## Scope and pins
 
 The official October security release fixes Brotli memory corruption and TLS/DNS validation defects. LMS pins Node 24.22.1, Next 16.4.2 and Sharp 0.35.5. The installer verifies the pinned release-key repository/keyring, GPG signer, signed checksum list and archive digest before extraction. It installs only under `/root/lms/runtimes`, not over system Node. Cached binaries are checked before reuse.

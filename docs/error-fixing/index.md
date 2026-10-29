@@ -4,6 +4,7 @@ Search this file and the linked monthly log before changing related code.
 
 | Date | Reference | Area | Symptom | Monthly log |
 | --- | --- | --- | --- | --- |
+| 2026-10-29 | INTERNAL-20261029-01 | Coach Ekskul reports | Final Ekskul report editor displayed coder reflection and blocked publish when reflection was incomplete | [2026-10](./2026-10.md#internal-20261029-01-ekskul-reports-do-not-require-coder-reflection) |
 | 2026-10-28 | INTERNAL-20261028-02 | VPS runtime security | Host/PM2 and active containers still used older Node; persistent recovery and actual test execution needed verification | [2026-10](./2026-10.md#internal-20261028-02-vps-wide-runtime-cutover-and-recovery-verification) |
 | 2026-10-28 | INTERNAL-20261028-01 | Security dependency follow-up | Refreshed advisory affected direct Zod and optional image/browser dependency chains after the earlier audit | [2026-10](./2026-10.md#internal-20261028-01-compatible-zod-and-runtime-dependency-follow-up) |
 | 2026-10-25 | INTERNAL-20261025-01 | Legacy invoice checkout | Legacy renewal labels shared a day with the previous access period; checkout reported a misleading changed-invoice error | [2026-10](./2026-10.md#internal-20261025-01-legacy-renewal-checkout-boundary) |

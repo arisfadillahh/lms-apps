@@ -15,6 +15,8 @@ describe('Ekskul midterm report cycle', () => {
   const deleteRoute = read('src/app/api/coach/reports/[id]/route.ts');
   const publicReportPage = read('src/app/report/[id]/page.tsx');
   const reportStory = read('src/app/report/[id]/ReportStoryExperience.tsx');
+  const coachReviewPage = read('src/app/(coach)/coach/reports/[id]/page.tsx');
+  const coachReviewClient = read('src/app/(coach)/coach/reports/[id]/ReportReviewClient.tsx');
 
   it('stores a separate, one-time midterm cycle without mutating automatic reports', () => {
     expect(migration).toContain('CREATE TABLE IF NOT EXISTS public.ekskul_report_cycles');
@@ -43,9 +45,18 @@ describe('Ekskul midterm report cycle', () => {
 
   it('reuses the review pipeline without requiring a block reflection or deleting source evaluations', () => {
     expect(coachPublishRoute).toContain("report.report_period_type === 'EKSKUL_MIDTERM'");
-    expect(coachPublishRoute).toContain('!isEkskulMidterm && !reflection');
+    expect(coachPublishRoute).toContain('const skipReflection = isEkskul || isEkskulMidterm');
+    expect(coachPublishRoute).toContain('if (!skipReflection && !reflection)');
     expect(deleteRoute).toContain("report.report_period_type === 'EKSKUL_MIDTERM' || !report.block_id");
     expect(adminClassPage).toContain('PublishEkskulMidtermReportButton');
+  });
+
+  it('skips coder reflection prompts and publish validation for every Ekskul class', () => {
+    expect(coachReviewPage).toContain('class:classes(id, name, coach_id, type)');
+    expect(coachReviewPage).toContain('if (!isEkskul)');
+    expect(coachReviewClient).toContain('!isEkskul && evaluationAnswers.length > 0');
+    expect(coachPublishRoute).toContain('const skipReflection = isEkskul || isEkskulMidterm');
+    expect(coachPublishRoute).toContain('if (!skipReflection && !reflection)');
   });
 
   it('shows completed Ekskul lessons and omits coder reflection from Ekskul reports', () => {

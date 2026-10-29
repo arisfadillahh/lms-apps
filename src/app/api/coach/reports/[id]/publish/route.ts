@@ -6,6 +6,7 @@ import { reportsDao, classesDao } from '@/lib/dao';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { isEnrollmentActiveForSession } from '@/lib/services/enrollmentEligibility';
 import { REPORT_DESCRIPTION_MAX_LENGTH } from '@/lib/reportDescription';
+import { isEkskulClass } from '@/lib/isEkskul';
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // Verify ownership
     const { data: report } = await supabase
       .from('block_reports')
-      .select('status, class_id, block_id, coder_id, report_period_type, class:classes(id, coach_id, lifecycle_status)')
+      .select('status, class_id, block_id, coder_id, report_period_type, class:classes(id, type, coach_id, lifecycle_status)')
       .eq('id', id)
       .single();
 
@@ -51,6 +52,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     const isEkskulMidterm = report.report_period_type === 'EKSKUL_MIDTERM';
+    const isEkskul = isEkskulClass(klass);
+    const skipReflection = isEkskul || isEkskulMidterm;
     const [
       { data: enrollmentRows, error: enrollmentError },
       { data: reflection, error: reflectionError },
@@ -61,7 +64,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         .select('*')
         .eq('class_id', (report as any).class_id)
         .eq('coder_id', (report as any).coder_id),
-      isEkskulMidterm
+      skipReflection
         ? Promise.resolve({ data: { id: 'not-required' }, error: null })
         : supabase
         .from('block_evaluations')
@@ -71,7 +74,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         .eq('coder_id', (report as any).coder_id)
         .limit(1)
         .maybeSingle(),
-      isEkskulMidterm
+      skipReflection
         ? Promise.resolve({ data: null, error: null })
         : supabase
         .from('class_blocks')
@@ -94,7 +97,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!eligibleEnrollment) {
       return NextResponse.json({ error: 'Coder tidak terdaftar di kelas ini pada periode rapor' }, { status: 400 });
     }
-    if (!isEkskulMidterm && !reflection) {
+    if (!skipReflection && !reflection) {
       return NextResponse.json({ error: 'Refleksi evaluasi coder belum selesai' }, { status: 400 });
     }
     

@@ -5,8 +5,9 @@ import ReportReviewClient from './ReportReviewClient';
 import { classesDao } from '@/lib/dao';
 import { readdir } from 'fs/promises';
 import { buildAvatarPublicPath, getAvatarUploadDir, resolveAvatarPublicUrl } from '@/lib/services/avatarStorage';
+import { isEkskulClass } from '@/lib/isEkskul';
 
-type ReportClass = { id: string; name: string; coach_id: string | null };
+type ReportClass = { id: string; name: string; coach_id: string | null; type?: string | null };
 type ReportBlock = { name: string | null };
 type ReportCoder = { id: string | null; full_name: string | null };
 type ReportRecord = {
@@ -72,7 +73,7 @@ export default async function CoachReportReviewPage({ params }: { params: Promis
     .from('block_reports')
     .select(`
       *,
-      class:classes(id, name, coach_id),
+      class:classes(id, name, coach_id, type),
       block:blocks(name),
       coder:users!block_reports_coder_id_fkey(full_name, id)
     `)
@@ -84,6 +85,7 @@ export default async function CoachReportReviewPage({ params }: { params: Promis
   const reportRecord = report as ReportRecord;
   const klass = Array.isArray(reportRecord.class) ? reportRecord.class[0] : reportRecord.class;
   if (!klass) redirect('/coach/reports');
+  const isEkskul = isEkskulClass(klass);
 
   const coachClasses = await classesDao.listClassesForCoach(coachId, { includeArchived: true });
   const isAuthorized = coachClasses.some(c => c.id === klass.id);
@@ -109,51 +111,53 @@ export default async function CoachReportReviewPage({ params }: { params: Promis
   type EvalAnswer = { question: string; answer: string };
   let evaluationAnswers: EvalAnswer[] = [];
   try {
-    const queryTable = (table: string) => (supabase as unknown as { from: (table: string) => LooseQueryBuilder }).from(table);
-    const coderId = reportRecord.coder_id;
-    const { data: evalData } = await queryTable('block_evaluations')
-      .select('answers')
-      .eq('coder_id', coderId)
-      .eq('class_id', reportRecord.class_id)
-      .eq('block_id', reportRecord.block_id)
-      .maybeSingle();
-
-    const answers = isRecord(evalData) ? toStringMap(evalData.answers) : null;
-
-    if (answers) {
-      // Try to get actual questions from template
-      let evalQuestions: { id: string; question: string }[] = [];
-      const { data: evalSession } = await queryTable('block_evaluation_sessions')
-        .select('template_id')
+    if (!isEkskul) {
+      const queryTable = (table: string) => (supabase as unknown as { from: (table: string) => LooseQueryBuilder }).from(table);
+      const coderId = reportRecord.coder_id;
+      const { data: evalData } = await queryTable('block_evaluations')
+        .select('answers')
+        .eq('coder_id', coderId)
+        .eq('class_id', reportRecord.class_id)
         .eq('block_id', reportRecord.block_id)
-        .limit(1)
         .maybeSingle();
 
-      const templateId = isRecord(evalSession) && typeof evalSession.template_id === 'string'
-        ? evalSession.template_id
-        : null;
+      const answers = isRecord(evalData) ? toStringMap(evalData.answers) : null;
 
-      if (templateId) {
-        const { data: tmpl } = await queryTable('block_evaluation_templates')
-          .select('questions')
-          .eq('id', templateId)
-          .single();
-        if (isRecord(tmpl) && tmpl.questions) {
-          evalQuestions = parseQuestionList(tmpl.questions);
+      if (answers) {
+        // Try to get actual questions from template
+        let evalQuestions: { id: string; question: string }[] = [];
+        const { data: evalSession } = await queryTable('block_evaluation_sessions')
+          .select('template_id')
+          .eq('block_id', reportRecord.block_id)
+          .limit(1)
+          .maybeSingle();
+
+        const templateId = isRecord(evalSession) && typeof evalSession.template_id === 'string'
+          ? evalSession.template_id
+          : null;
+
+        if (templateId) {
+          const { data: tmpl } = await queryTable('block_evaluation_templates')
+            .select('questions')
+            .eq('id', templateId)
+            .single();
+          if (isRecord(tmpl) && tmpl.questions) {
+            evalQuestions = parseQuestionList(tmpl.questions);
+          }
         }
+        if (evalQuestions.length === 0) {
+          evalQuestions = [
+            { id: 'q1', question: 'Apa hal baru yang paling kamu sukai dari block ini?' },
+            { id: 'q2', question: 'Di bagian mana kamu merasa paling kesulitan?' },
+            { id: 'q3', question: 'Apa yang sudah berhasil kamu buat atau selesaikan di block ini?' },
+            { id: 'q4', question: 'Apa yang ingin kamu coba pelajari lebih lanjut?' },
+            { id: 'q5', question: 'Pesan untuk dirimu sendiri di block berikutnya:' },
+          ];
+        }
+        evaluationAnswers = evalQuestions
+          .filter(q => answers[q.id]?.trim())
+          .map(q => ({ question: q.question, answer: answers[q.id] }));
       }
-      if (evalQuestions.length === 0) {
-        evalQuestions = [
-          { id: 'q1', question: 'Apa hal baru yang paling kamu sukai dari block ini?' },
-          { id: 'q2', question: 'Di bagian mana kamu merasa paling kesulitan?' },
-          { id: 'q3', question: 'Apa yang sudah berhasil kamu buat atau selesaikan di block ini?' },
-          { id: 'q4', question: 'Apa yang ingin kamu coba pelajari lebih lanjut?' },
-          { id: 'q5', question: 'Pesan untuk dirimu sendiri di block berikutnya:' },
-        ];
-      }
-      evaluationAnswers = evalQuestions
-        .filter(q => answers[q.id]?.trim())
-        .map(q => ({ question: q.question, answer: answers[q.id] }));
     }
   } catch {
     // ignore if tables don't exist
@@ -208,6 +212,7 @@ export default async function CoachReportReviewPage({ params }: { params: Promis
         averageScore={reportRecord.average_score}
         status={reportRecord.status}
         evaluationAnswers={evaluationAnswers}
+        isEkskul={isEkskul}
       />
     </div>
   );

@@ -143,6 +143,7 @@ type Props = {
   averageScore: number | null;
   status: string;
   evaluationAnswers: { question: string; answer: string }[];
+  isEkskul: boolean;
 };
 
 export default function ReportReviewClient({
@@ -156,6 +157,7 @@ export default function ReportReviewClient({
   averageScore,
   status,
   evaluationAnswers,
+  isEkskul,
 }: Props) {
   const router = useRouter();
   const [descriptions, setDescriptions] = useState(() => initialDescriptions.map(item => ({
@@ -314,7 +316,7 @@ export default function ReportReviewClient({
           </div>
 
           {/* Evaluation Answers (Refleksi Coder) */}
-          {evaluationAnswers.length > 0 && (
+          {!isEkskul && evaluationAnswers.length > 0 && (
             <div className="w-full">
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center mb-3">
                 Refleksi Coder

@@ -16,24 +16,24 @@ Di **Rekap & arsip**, pilih bulan/tahun pada baris periode. **Hitung ulang** dan
 
 | Area | Dipakai untuk |
 | --- | --- |
-| **Rekap penerima** | Memeriksa nominal, membuka rincian/pratinjau, membuat penyesuaian, dan mengirim rekap absensi tanpa nominal |
+| **Rekap penerima** | Memeriksa nominal, membuka rincian/pratinjau, membuat penyesuaian, dan melihat status rekap otomatis |
 | **Pembayaran & slip** | Mencatat transfer yang sudah dilakukan dan mengirim slip; digunakan setelah periode final |
 | **Riwayat periode** | Melihat audit, membuka revisi admin, serta memulihkan pengiriman yang menggantung |
 
-Periode draft langsung membuka Rekap penerima. Periode final langsung membuka Pembayaran & slip. Centang penerima agar tombol tindakan massal muncul; **Batal pilih** mengosongkan pilihan. Pindah area kerja juga mengosongkan pilihan untuk mencegah tindakan pada pilihan sebelumnya.
+Periode draft langsung membuka Rekap penerima. Periode final langsung membuka Pembayaran & slip. Checkbox hanya ada di **Pembayaran & slip**: centang penerima agar tombol transfer/kirim slip muncul. **Batal pilih** mengosongkan pilihan. Pindah area kerja juga mengosongkan pilihan untuk mencegah tindakan pada pilihan sebelumnya.
 
 1. Buka **Keuangan → Gaji & Slip Gaji**. Pilih bulan/tahun; pilihan yang sama digunakan untuk membuka arsip bulan lama.
 2. Klik **Hitung ulang**. Periksa nama penerima, aktivitas, pengganti, nominal, dan peringatan. Sumber yang sama tidak dihitung dua kali.
 3. Buka **Rincian** untuk melihat tabel dalam popup, memperbaiki sesi, memindahkan fee ke coach pengganti, mengatur mode sesi, atau memberi nominal khusus untuk force majeure. Alasan wajib diisi. Setelah perubahan, tutup popup lalu klik **Hitung ulang**. **Pratinjau** membuka slip berlogo Clevio dalam popup tanpa mengunduh PDF. Slip merangkum seluruh fee kelas menjadi satu baris jumlah sesi dan total nominal; fee trial dan bonus goal juga diringkas. Gaji pokok, setiap tunjangan, potongan, dan komponen lain tetap tercantum masing-masing. Tanggal/nama sesi dan catatan koreksi lengkap tersedia di Rincian dan rekap absensi, bukan di slip.
-4. Di popup Rincian, klik **Tambahan / potongan** untuk membuka form transport, tunjangan, atau potongan bulan tersebut. Gunakan nominal negatif untuk potongan. Klik **Aktivitas manual** untuk membuka form kegiatan seperti event dan training. Hanya satu form dibuka dalam satu waktu. Pencatatan trial manual hanya untuk pengecualian admin dengan alasan; jalur normalnya otomatis dari penilaian trial. Hindari menambahkan kegiatan yang sudah terhitung dari LMS.
-5. Tanggal 25, di **Rekap penerima**, centang coach lalu klik **Kirim rekap absensi** agar coach memeriksa datanya. Rekap WA berupa pesan teks rinci tanpa nominal dan tanpa lampiran; file hanya dipakai untuk slip gaji. Jika otomatisasi sudah diaktifkan, rekap dijadwalkan setelah 09.00 WIB dan pengingat terakhir setelah 16.00 WIB melalui cron LMS. Admin tetap dapat mengirim atau mengirim ulang rekap sendiri.
+4. Di popup Rincian, tombol **Tambahan / potongan** dan **Aktivitas manual** selalu berada di atas daftar. Klik untuk mengganti isi popup menjadi form khusus; tabel panjang disembunyikan sementara. Gunakan nominal negatif untuk potongan. **Kembali ke rincian** atau Escape kembali ke tabel. Penyimpanan berhasil otomatis kembali ke rincian; jika gagal, form dan isian tetap terlihat. Koreksi aktivitas memakai alur form yang sama. Pencatatan trial manual hanya untuk pengecualian admin dengan alasan; jalur normalnya otomatis dari penilaian trial. Hindari menambahkan kegiatan yang sudah terhitung dari LMS.
+5. **Rekap absensi otomatis tanggal 25**, mulai 09.00 WIB, dengan pengingat terakhir mulai 16.00 WIB dan deadline koreksi 17.00 WIB. Otomatisasi harus diaktifkan di **Tarif & otomatisasi → Otomatisasi**, dan cron LMS harus berjalan. Rekap WA berupa pesan teks rinci tanpa nominal atau lampiran, untuk pemeriksaan absensi oleh coach; ini tidak menandai pembayaran. Status aktivasi terlihat di Rekap penerima dan Info periode. Di local, WA tetap disimulasikan. Kirim ulang manual hanya untuk pengecualian lewat **Rincian → Pengiriman ulang & riwayat penerima → Kirim ulang rekap (manual)**. Pengiriman manual lebih awal tidak menggantikan jadwal tanggal 25.
 6. Setelah seluruh tanggal 25 selesai, klik **Finalisasi**. Sistem menghitung ulang sumber terbaru sebelum menyimpan versi final. Periode berjalan tidak dapat difinalisasi sebelum tanggal 26 pukul 00.00 WIB. Peringatan harus diselesaikan dahulu.
 7. Buka **Pembayaran & slip**. Lakukan transfer melalui bank. Setelah transfer benar-benar selesai, pilih penerima dan klik **Tandai sudah transfer**. Tombol ini mencatat penyelesaian transfer; tidak melakukan transfer bank. Jika pilihan berisi penerima yang sudah dan belum ditransfer, hanya yang belum selesai yang ditandai.
 8. Pilihan penerima tetap tersimpan dan tombol utama berubah menjadi **Kirim slip gaji**. Klik untuk mengirim tanpa mencentang ulang. Untuk satu orang, cukup centang satu penerima; untuk massal, centang beberapa penerima atau semua hasil filter. Slip hanya dapat dikirim setelah final dan tercatat sudah ditransfer. Periksa hasil setiap penerima; kegagalan satu pengiriman tidak membatalkan hasil penerima lainnya.
 
 Perhitungan, transfer, dan pengiriman memiliki status terpisah. Mengirim ulang slip tidak menambah pembayaran. Menekan penanda transfer kembali juga tidak menggandakan transfer yang sudah dicatat.
 
-**Rekap penerima** selalu menyediakan **Kirim rekap absensi**, termasuk setelah final. Di **Pembayaran & slip**, tombol utama mengikuti tahap transfer/slip. Tiga tindakan itu tidak lagi ditampilkan bersamaan.
+**Rekap penerima** tidak mempunyai tombol kirim rekap massal. Rekap normal dijadwalkan otomatis; **Pembayaran & slip** khusus untuk mencatat transfer dan mengirim slip. Jika masih draft, area pembayaran menjelaskan syarat finalisasi dan urutan transfer → slip.
 
 ## Periode dan deadline koreksi
 

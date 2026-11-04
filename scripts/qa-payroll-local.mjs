@@ -73,12 +73,10 @@ try {
   await page.getByPlaceholder('Nama atau jabatan').fill('');
   await page.screenshot({ path: path.join(out, 'admin-desktop.png'), fullPage: true });
   pass('Name filtering and desktop rendering');
-  await page.getByRole('checkbox', { name: 'Pilih Coach Mitra Demo', exact: true }).check();
-  await page.getByRole('checkbox', { name: 'Pilih Coach Tanpa WA Demo', exact: true }).check();
-  await page.getByRole('button', { name: 'Kirim rekap absensi', exact: true }).click();
-  await page.getByRole('status').filter({ hasText: 'Coach Mitra Demo: SIMULATED' }).waitFor();
-  pass('Bulk attendance recap is text-only, with local WA simulation and LMS fallback');
   const coachId = '20000000-0000-4000-8000-000000000001', fulltimeId = '20000000-0000-4000-8000-000000000002', noWaId = '20000000-0000-4000-8000-000000000003';
+  const manualRecap = await command('send', { profileIds: [coachId, noWaId], kind: 'RECAP' });
+  assert.deepEqual(manualRecap.result.map(r => r.status), ['SIMULATED', 'LMS_ONLY']);
+  pass('Manual recap fallback remains text-only, with local WA simulation and LMS fallback');
   const mitraRow = page.locator('tbody tr').filter({ hasText: 'Coach Mitra Demo' });
   await mitraRow.getByRole('button', { name: 'Rincian', exact: true }).click();
   await page.getByRole('button', { name: 'Koreksi aktivitas', exact: true }).first().click();
@@ -89,8 +87,8 @@ try {
   await correction.locator('[name=reason]').fill('Pengganti sesi untuk QA lokal');
   const sourceKey = initial.selected.document.slips.find(s => s.profile_id === coachId).lines[0].key;
   await correction.getByRole('button', { name: 'Simpan koreksi aktivitas' }).click();
-  await page.getByText('Koreksi disimpan. Klik Hitung ulang.', { exact: true }).waitFor();
-  await page.getByRole('button', { name: 'Tutup rincian', exact: true }).click();
+  await page.getByText('Koreksi disimpan. Tutup rincian lalu klik Hitung ulang.', { exact: true }).waitFor();
+  await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Hitung ulang', exact: true }).click();
   await page.getByText('Rekap dihitung ulang; sumber yang sama tidak digandakan.', { exact: true }).waitFor();
   const changed = (await data()).selected.document;

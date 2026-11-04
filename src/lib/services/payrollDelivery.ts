@@ -25,10 +25,17 @@ async function sendOne(periodId: string, profileId: string, kind: 'RECAP' | 'SLI
   if (!slip) throw new PayrollError('Penerima tidak ditemukan.');
   if (kind === 'SLIP' && (p.status !== 'FINAL' || !isPaid(p, profileId))) throw new PayrollError('Slip harus final dan sudah ditransfer sebelum dikirim.');
   if (kind !== 'SLIP' && !p.calculated_at) throw new PayrollError('Hitung ulang rekap terlebih dahulu.');
-  const key = `${profileId}:${kind === 'SLIP' ? p.version : 'period'}:${kind}`;
+  const automatic = actor === null && kind !== 'SLIP';
+  // Manual retries must not consume the scheduled coach message on the 25th.
+  // Keep scheduled keys stable for existing cron records and slip keys unchanged.
+  const baseKey = `${profileId}:${kind === 'SLIP' ? p.version : 'period'}:${kind}`;
+  const key = `${baseKey}${actor !== null && kind !== 'SLIP' ? ':MANUAL' : ''}`;
   const previous = p.deliveries[key];
-  if (previous?.status === 'SENDING') throw new PayrollError('Pengiriman sedang berlangsung. Jangan mengulang.');
-  if (previous && ['SENT', 'LMS_ONLY', 'SIMULATED'].includes(previous.status) && !resend) return previous.status;
+  const pendingKeys = kind === 'SLIP' ? [baseKey] : [baseKey, `${baseKey}:MANUAL`];
+  if (pendingKeys.some(k => p.deliveries[k]?.status === 'SENDING')) throw new PayrollError('Pengiriman sedang berlangsung. Jangan mengulang.');
+  const scheduledFrom = Date.parse(p.correction_deadline) - (kind === 'REMINDER' ? 1 : 8) * 3600000;
+  const legacyEarlyMessage = automatic && previous && Date.now() >= scheduledFrom && Date.parse(previous.at) < scheduledFrom;
+  if (previous && ['SENT', 'LMS_ONLY', 'SIMULATED'].includes(previous.status) && !resend && !legacyEarlyMessage) return previous.status;
   const token = randomUUID();
   const delivery: PayrollDelivery = { token, profile_id: profileId, kind, version: p.version, status: 'SENDING', at: new Date().toISOString() };
   const claimed = { ...p, deliveries: { ...p.deliveries, [key]: delivery } };
@@ -45,7 +52,7 @@ async function sendOne(periodId: string, profileId: string, kind: 'RECAP' | 'SLI
       ? `Slip gaji ${p.id} versi ${p.version}\nHalo ${slip.name}, admin telah mencatat penyelesaian transfer periode ini. Slip PDF terlampir dan tersedia di akun LMS. Hubungi admin jika ada pertanyaan.`
       : `${kind === 'REMINDER' ? 'PENGINGAT TERAKHIR — ' : ''}${recapMessage(p, slip)}`;
     if (profile.user_id) await createNotification(profile.user_id, kind === 'SLIP' ? `Slip gaji ${p.id}` : `Deadline koreksi absensi ${p.id}: tanggal 25 pukul 17.00 WIB`, message, 'PAYROLL', {
-      actionUrl: `/coach/payroll?period=${p.id}`, category: 'PAYROLL', priority: 'HIGH', push: true, dedupeKey: `payroll:${p.id}:${key}`,
+      actionUrl: `/coach/payroll?period=${p.id}`, category: 'PAYROLL', priority: 'HIGH', push: true, dedupeKey: `payroll:${p.id}:${key}${automatic ? ':AUTOMATIC' : ''}`,
     });
     if (!phone) {
       if (profile.user_id) { status = 'LMS_ONLY'; channel = 'LMS'; }

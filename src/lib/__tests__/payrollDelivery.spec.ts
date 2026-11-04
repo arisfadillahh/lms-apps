@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPeriod, type PeriodRecord, type PayrollPerson } from '@/lib/payroll/model';
 vi.mock('server-only', () => ({}));
 const mocks = vi.hoisted(() => ({ get: vi.fn(), commit: vi.fn(), config: vi.fn(), db: vi.fn(), notify: vi.fn(), admins: vi.fn(), wa: vi.fn(), text: vi.fn(), pdf: vi.fn() }));
@@ -14,6 +14,7 @@ describe('private payroll delivery, transfer gating and retries', () => {
   let record: PeriodRecord;
   let profile: PayrollPerson;
   let phone: string | null;
+  afterEach(() => vi.useRealTimers());
   beforeEach(() => {
     vi.clearAllMocks(); vi.unstubAllEnvs();
     record = { id: '2026-10', revision: 1, document: createPeriod(2026, 10) };
@@ -47,6 +48,35 @@ describe('private payroll delivery, transfer gating and retries', () => {
     phone = null; profile.staff_phone = '628111111111';
     expect((await sendPayrollBatch(record.id, ['p1'], 'RECAP', 'admin'))[0].status).toBe('LMS_ONLY');
     expect(mocks.notify).toHaveBeenCalledTimes(1); expect(mocks.wa).not.toHaveBeenCalled();
+  });
+  it('keeps an early manual recap independent of the scheduled recap and deduplicates each channel', async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-20T10:00:00+07:00'));
+    await sendPayrollBatch(record.id, ['p1'], 'RECAP', 'admin');
+    await sendPayrollBatch(record.id, ['p1'], 'RECAP', 'admin');
+    expect(mocks.text).toHaveBeenCalledTimes(1);
+    vi.setSystemTime(new Date('2026-10-25T09:00:00+07:00'));
+    await sendPayrollBatch(record.id, ['p1'], 'RECAP', null);
+    await sendPayrollBatch(record.id, ['p1'], 'RECAP', null);
+    expect(mocks.text).toHaveBeenCalledTimes(2);
+    const keys = mocks.notify.mock.calls.map(call => call[4].dedupeKey);
+    expect(new Set(keys).size).toBe(2);
+    expect(record.document.transfers).toEqual([]);
+    expect(mocks.pdf).not.toHaveBeenCalled();
+  });
+  it.each(['RECAP', 'REMINDER'] as const)('does not let a legacy early %s suppress the scheduled message', async kind => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-25T16:00:00+07:00'));
+    record.document.deliveries[`p1:period:${kind}`] = { token: 'legacy', profile_id: 'p1', kind, version: 1, status: 'SENT', at: '2026-10-20T03:00:00Z' };
+    await sendPayrollBatch(record.id, ['p1'], kind, null);
+    await sendPayrollBatch(record.id, ['p1'], kind, null);
+    expect(mocks.text).toHaveBeenCalledTimes(1);
+    expect(mocks.notify).toHaveBeenCalledWith('u1', expect.any(String), expect.any(String), 'PAYROLL', expect.objectContaining({ dedupeKey: expect.stringContaining('AUTOMATIC') }));
+    expect(mocks.pdf).not.toHaveBeenCalled();
+  });
+  it.each([{ actor: 'admin', pendingSuffix: '' }, { actor: null, pendingSuffix: ':MANUAL' }])('blocks overlapping recap delivery across manual and scheduled sources: $actor', async ({ actor, pendingSuffix }) => {
+    record.document.deliveries[`p1:period:RECAP${pendingSuffix}`] = { token: 'pending', profile_id: 'p1', kind: 'RECAP', version: 1, status: 'SENDING', at: '2026-10-25T02:00:00Z' };
+    expect((await sendPayrollBatch(record.id, ['p1'], 'RECAP', actor))[0].status).toBe('FAILED');
+    expect(mocks.text).not.toHaveBeenCalled();
+    expect(mocks.notify).not.toHaveBeenCalled();
   });
   it('flags staff without contact for admin without pretending LMS delivery', async () => {
     profile.kind = 'STAFF'; profile.user_id = null;

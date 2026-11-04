@@ -69,8 +69,10 @@ try {
   assert.deepEqual(await detail.locator('thead th').allTextContents(), ['Tanggal / aktivitas', 'Jenis & perhitungan', 'Nominal', 'Tindakan']);
   assert.equal(await detail.getByText('Tambahan / potongan manual', { exact: true }).count(), 0);
   await detail.getByRole('button', { name: 'Tambahan / potongan', exact: true }).click();
-  await detail.getByText('Tambahan / potongan manual', { exact: true }).waitFor();
+  const componentDialog = page.getByRole('dialog', { name: 'Tambahan / potongan', exact: true });
+  await componentDialog.getByRole('form', { name: 'Tambahan / potongan manual', exact: true }).waitFor();
   await page.screenshot({ path: path.join(out, 'detail-popup-desktop.png') });
+  await componentDialog.getByRole('button', { name: 'Kembali ke rincian', exact: true }).click();
   await detail.getByRole('button', { name: 'Pratinjau slip', exact: true }).click();
   const preview = page.getByRole('dialog', { name: 'Pratinjau slip gaji', exact: true });
   await preview.waitFor();

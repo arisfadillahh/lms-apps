@@ -3,6 +3,12 @@
 .modal{width:min(1120px,calc(100vw - 32px));max-width:none;max-height:calc(100dvh - 40px);transition-property:opacity;display:flex;flex-direction:column;gap:0;padding:0;overflow:hidden;z-index:80;color:#1b2550;--foreground:#1b2550;--background:#fff;--muted-foreground:#5e6a8b;--primary:#22367b;--primary-foreground:#fff;--border:#dde2f0;--input:#c2cae0;--accent:#eef1fa;font-family:var(--font-sans,Inter,Arial,sans-serif)}.modalHeader{padding:24px 52px 20px 24px;border-bottom:1px solid #dde2f0;text-align:left}.modalHeader h2{font-family:var(--font-display,Nunito,Arial,sans-serif);font-weight:800;font-size:21px}.modalBody{overflow:auto;min-height:0;padding:24px;overscroll-behavior:contain}.detailPanel{display:flex;flex-direction:column;gap:20px;min-width:0}.previewModal{width:min(950px,calc(100vw - 24px))}.previewFrame{width:100%;height:76dvh;border:0;background:#f4f6fd}.modal :global([data-slot='button']){border-radius:10px;font-size:13px;font-weight:600}.modal :global(.bg-primary){background:#22367b;color:#fff}.modal :global([data-slot='input']){border-radius:8px}.allowanceFields{display:flex;flex-direction:column;gap:14px;border-top:1px solid var(--border);padding-top:18px}.allowanceFields h3{font-size:16px;font-weight:750}.allowanceRow{display:grid;grid-template-columns:1fr 160px auto;gap:10px;align-items:end}@media(max-width:600px){.modal{width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}.modalHeader{padding:20px 42px 16px 18px}.modalBody{padding:16px}.allowanceRow{grid-template-columns:1fr}.previewFrame{height:78dvh}}
 .root{width:100%;min-width:0;overflow-wrap:anywhere}.header>div{min-width:0}.audit{overflow-wrap:anywhere}
 /* Keep period actions compact so recipients are visible on the first screen. */
+.detailTools{display:flex;flex-wrap:wrap;gap:8px;padding:12px 24px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--background)}
+.modalHeader{flex-shrink:0}
+.formModal{width:min(760px,calc(100vw - 32px))}
+.formModal .modalBody{display:flex;flex-direction:column;gap:16px}
+.paymentSteps{padding-left:20px;font-size:13px;line-height:1.8;color:var(--muted-foreground)}
+@media(max-width:600px){.detailTools{padding:10px 16px}.detailTools button{flex:1}.formModal{width:calc(100vw - 16px)}}
 .root{gap:12px;max-width:1440px;padding-top:18px}
 .header{flex-direction:row;align-items:center;gap:12px}
 .title{font-size:26px;margin:0}

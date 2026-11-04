@@ -104,7 +104,9 @@ try {
   assert.equal(await page.getByRole('spinbutton', { name: 'Bonus goal / anak' }).inputValue(), '100000');
   assert.equal(await page.getByRole('spinbutton', { name: 'Observasi online', exact: true }).inputValue(), '25000');
   assert.equal(await page.getByRole('spinbutton', { name: 'Observasi offline', exact: true }).inputValue(), '50000');
+  await page.getByRole('tab', { name: 'Otomatisasi', exact: true }).click();
   assert.equal(await page.locator('input[name=automationEnabled]').isChecked(), false);
+  await page.getByRole('tab', { name: 'Mode kelas', exact: true }).click();
   const mode = page.getByRole('combobox', { name: 'Mode mengajar Ekskul Fulltime' });
   await mode.selectOption('MITRA');
   await page.getByText('Perubahan tersimpan.', { exact: true }).waitFor();
@@ -207,6 +209,7 @@ try {
   await page.getByRole('button', { name: 'Rekap & arsip', exact: true }).click();
   await page.getByRole('button', { name: 'Muat ulang', exact: true }).click();
   await page.locator('select[aria-label="Arsip periode"] option[value="2026-08"]').waitFor({ state: 'attached' });
+  await page.getByText('Buka arsip bulan lain', { exact: true }).click();
   await page.getByRole('combobox', { name: 'Arsip periode' }).selectOption('2026-08');
   await page.getByText('2026-08 · FINAL · v2', { exact: true }).waitFor();
   await page.setViewportSize({ width: 390, height: 844 });

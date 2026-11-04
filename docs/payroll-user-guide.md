@@ -12,18 +12,28 @@ Database demo tersimpan terpisah di `.codex-payroll-local/database`. Menjalankan
 
 ## Alur bulanan admin
 
+Halaman **Rekap & arsip** menunjukkan empat langkah: **Siapkan rekap → Periksa & finalisasi → Catat transfer → Kirim slip**. Petunjuk dan tombol di atas mengikuti kondisi periode. Area kerja di bawahnya dipisah:
+
+| Area | Dipakai untuk |
+| --- | --- |
+| **Rekap penerima** | Memeriksa nominal, membuka rincian/pratinjau, membuat penyesuaian, dan mengirim rekap absensi tanpa nominal |
+| **Pembayaran & slip** | Mencatat transfer yang sudah dilakukan dan mengirim slip; digunakan setelah periode final |
+| **Riwayat periode** | Melihat audit, membuka revisi admin, serta memulihkan pengiriman yang menggantung |
+
+Periode draft langsung membuka Rekap penerima. Periode final langsung membuka Pembayaran & slip. Centang penerima agar tombol tindakan massal muncul; **Batal pilih** mengosongkan pilihan. Pindah area kerja juga mengosongkan pilihan untuk mencegah tindakan pada pilihan sebelumnya.
+
 1. Buka **Keuangan → Gaji & Slip Gaji**. Pilih bulan/tahun atau arsip tersimpan.
 2. Klik **Hitung ulang**. Periksa nama penerima, aktivitas, pengganti, nominal, dan peringatan. Sumber yang sama tidak dihitung dua kali.
 3. Buka **Rincian** untuk melihat tabel dalam popup, memperbaiki sesi, memindahkan fee ke coach pengganti, mengatur mode sesi, atau memberi nominal khusus untuk force majeure. Alasan wajib diisi. Setelah perubahan, tutup popup lalu klik **Hitung ulang**. **Pratinjau** membuka slip berlogo Clevio dalam popup tanpa mengunduh PDF. Slip merangkum seluruh fee kelas menjadi satu baris jumlah sesi dan total nominal; fee trial dan bonus goal juga diringkas. Gaji pokok, setiap tunjangan, potongan, dan komponen lain tetap tercantum masing-masing. Tanggal/nama sesi dan catatan koreksi lengkap tersedia di Rincian dan rekap absensi, bukan di slip.
-4. Tambahkan transport, tunjangan, atau potongan melalui **Tambahan / potongan manual**. Gunakan nominal negatif untuk potongan. Event dan training dapat dicatat melalui **Aktivitas tambahan**. Pencatatan trial manual hanya untuk pengecualian admin dengan alasan; jalur normalnya otomatis dari penilaian trial. Hindari menambahkan kegiatan yang sudah terhitung dari LMS.
-5. Tanggal 25, kirim rekap agar coach memeriksa datanya. Rekap WA berupa pesan teks rinci tanpa nominal dan tanpa lampiran; file hanya dipakai untuk slip gaji. Jika otomatisasi sudah diaktifkan, rekap dijadwalkan setelah 09.00 WIB dan pengingat terakhir setelah 16.00 WIB melalui cron LMS. Admin tetap dapat mengirim atau mengirim ulang rekap sendiri.
+4. Di popup Rincian, klik **Tambahan / potongan** untuk membuka form transport, tunjangan, atau potongan bulan tersebut. Gunakan nominal negatif untuk potongan. Klik **Aktivitas manual** untuk membuka form kegiatan seperti event dan training. Hanya satu form dibuka dalam satu waktu. Pencatatan trial manual hanya untuk pengecualian admin dengan alasan; jalur normalnya otomatis dari penilaian trial. Hindari menambahkan kegiatan yang sudah terhitung dari LMS.
+5. Tanggal 25, di **Rekap penerima**, centang coach lalu klik **Kirim rekap absensi** agar coach memeriksa datanya. Rekap WA berupa pesan teks rinci tanpa nominal dan tanpa lampiran; file hanya dipakai untuk slip gaji. Jika otomatisasi sudah diaktifkan, rekap dijadwalkan setelah 09.00 WIB dan pengingat terakhir setelah 16.00 WIB melalui cron LMS. Admin tetap dapat mengirim atau mengirim ulang rekap sendiri.
 6. Setelah seluruh tanggal 25 selesai, klik **Finalisasi**. Sistem menghitung ulang sumber terbaru sebelum menyimpan versi final. Periode berjalan tidak dapat difinalisasi sebelum tanggal 26 pukul 00.00 WIB. Peringatan harus diselesaikan dahulu.
-7. Lakukan transfer melalui bank. Setelah transfer benar-benar selesai, pilih penerima dan klik **Tandai sudah transfer**. Tombol ini mencatat penyelesaian transfer; tidak melakukan transfer bank. Jika pilihan berisi penerima yang sudah dan belum ditransfer, hanya yang belum selesai yang ditandai.
+7. Buka **Pembayaran & slip**. Lakukan transfer melalui bank. Setelah transfer benar-benar selesai, pilih penerima dan klik **Tandai sudah transfer**. Tombol ini mencatat penyelesaian transfer; tidak melakukan transfer bank. Jika pilihan berisi penerima yang sudah dan belum ditransfer, hanya yang belum selesai yang ditandai.
 8. Pilihan penerima tetap tersimpan dan tombol utama berubah menjadi **Kirim slip gaji**. Klik untuk mengirim tanpa mencentang ulang. Untuk satu orang, tombol **Kirim WA** di baris penerima juga tersedia. Slip hanya dapat dikirim setelah final dan tercatat sudah ditransfer. Periksa hasil setiap penerima; kegagalan satu pengiriman tidak membatalkan hasil penerima lainnya.
 
 Perhitungan, transfer, dan pengiriman memiliki status terpisah. Mengirim ulang slip tidak menambah pembayaran. Menekan penanda transfer kembali juga tidak menggandakan transfer yang sudah dicatat.
 
-Saat draft, tindakan massal hanya menampilkan **Kirim rekap absensi**. Setelah final, tombol utama mengikuti tahap transfer/slip. Aksi **Kirim rekap absensi** tetap tersedia terpisah untuk mengirim pesan absensi tanpa nominal dan tanpa lampiran.
+**Rekap penerima** selalu menyediakan **Kirim rekap absensi**, termasuk setelah final. Di **Pembayaran & slip**, tombol utama mengikuti tahap transfer/slip. Tiga tindakan itu tidak lagi ditampilkan bersamaan.
 
 ## Periode dan deadline koreksi
 
@@ -35,13 +45,13 @@ Tanggal 26 membuat periode baru. Riwayat bulan sebelumnya tetap tersimpan; tidak
 
 ## Menyiapkan penerima dan kontrak
 
-Di tab **Coach & staf**, tambahkan coach dengan memilih akun LMS yang sudah ada. Pilih kontrak **Mitra** atau **Fulltime**, gaji tetap per periode, dan tanggal mulai berlaku. Kontrak ini juga terlihat di profil coach. Nama coach mengikuti akun LMS. Nomor WhatsApp coach selalu diambil dari profil coach.
+Di tab **Coach & staf**, klik **Tambah penerima** untuk membuka form dalam popup. Tambahkan coach dengan memilih akun LMS yang sudah ada. Pilih kontrak **Mitra** atau **Fulltime**, gaji tetap per periode, dan tanggal mulai berlaku. Kontrak ini juga terlihat di profil coach. Nama coach mengikuti akun LMS. Nomor WhatsApp coach selalu diambil dari profil coach.
 
 Untuk karyawan lain, pilih **Staf non-coach**. Isi nama, jabatan, nomor WA pribadi jika tersedia, kontrak, serta gaji pokok. Staf tidak perlu akun LMS; admin mengelola nomor WA staf di sini. Gunakan Fulltime jika penerima mempunyai gaji tetap.
 
-Klik **Profil & tunjangan** di penerima untuk mengatur **Tunjangan jabatan** dan **Tambah tunjangan rutin lainnya**, misalnya komunikasi atau makan. Tunjangan rutin otomatis masuk satu kali setiap periode setelah **Hitung ulang**, mengikuti tanggal berlaku kontrak. Untuk perubahan ke depan, isi tanggal **Berlaku mulai** yang baru. Versi final bulan lama tetap tersimpan. Tunjangan rutin mengikuti nominal bulanan penuh, tanpa prorata otomatis.
+Klik **Profil & tunjangan** di penerima untuk membuka popup pengaturan **Tunjangan jabatan** dan **Tambah tunjangan rutin lainnya**, misalnya komunikasi atau makan. Popup menutup setelah penyimpanan berhasil. Tunjangan rutin otomatis masuk satu kali setiap periode setelah **Hitung ulang**, mengikuti tanggal berlaku kontrak. Untuk perubahan ke depan, isi tanggal **Berlaku mulai** yang baru. Versi final bulan lama tetap tersimpan. Tunjangan rutin mengikuti nominal bulanan penuh, tanpa prorata otomatis.
 
-Untuk tunjangan atau potongan khusus satu bulan, buka **Rekap & arsip → pilih bulan → Rincian penerima → Tambahan / potongan manual**. Isi label, nominal, dan alasan. Nominal negatif menjadi potongan. Komponen ini hanya berlaku pada periode yang dipilih; tidak berulang pada bulan berikutnya. Contoh: tunjangan jabatan rutin Rp500.000 disimpan di profil, sedangkan bantuan khusus November Rp250.000 ditambahkan di rincian November.
+Untuk tunjangan atau potongan khusus satu bulan, buka **Rekap & arsip → pilih bulan → Rekap penerima → Rincian → Tambahan / potongan**. Isi label, nominal, dan alasan. Nominal negatif menjadi potongan. Komponen ini hanya berlaku pada periode yang dipilih; tidak berulang pada bulan berikutnya. Contoh: tunjangan jabatan rutin Rp500.000 disimpan di profil, sedangkan bantuan khusus November Rp250.000 ditambahkan di rincian November.
 
 Gaji tetap merupakan nominal satu periode, tanpa prorata otomatis. Untuk masuk/keluar di tengah periode atau penyesuaian khusus, admin mencatat komponen tambahan/potongan beralasan. Perubahan kontrak dan tarif memakai tanggal berlaku. Versi final yang sudah tersimpan tidak ikut berubah.
 
@@ -61,7 +71,7 @@ Gaji tetap merupakan nominal satu periode, tanpa prorata otomatis. Untuk masuk/k
 | Anak goal | Bonus awal Rp100.000 per anak; 5 anak = Rp500.000 |
 | Transport | Diisi manual oleh admin |
 
-Admin memilih mode Fulltime/Mitra saat membuat kelas atau melalui tab **Tarif & otomatisasi → Mode mengajar per kelas**. Tidak ada pemeriksaan jam kerja atau overlap. Untuk pengecualian satu pertemuan, gunakan **Koreksi aktivitas** pada rincian periode.
+Admin memilih mode Fulltime/Mitra saat membuat kelas atau melalui tab **Tarif & otomatisasi → Mode kelas**. Tidak ada pemeriksaan jam kerja atau overlap. Untuk pengecualian satu pertemuan, gunakan **Koreksi aktivitas** pada rincian periode.
 
 Jumlah anak dihitung dari kepesertaan aktif pada tanggal sesi, bukan jumlah anak saat ini dan bukan jumlah anak yang mengisi kehadiran. Kategori tarifnya 1, 2, atau 3+ anak.
 
@@ -74,11 +84,13 @@ Tarif awal kelas Weekly dan Ekskul:
 
 Tarif awal event Rp180.000, training online Rp25.000, training offline Rp50.000, observasi online Rp25.000, dan observasi offline Rp50.000 per aktivitas. Admin dapat membuat kartu tarif baru dengan tanggal berlaku, termasuk mengubah observasi dan bonus goal untuk waktu berikutnya.
 
+Tab **Tarif & otomatisasi** hanya menampilkan pengaturan yang dipilih: **Tarif aktivitas** untuk nominal dan tanggal berlaku, **Mode kelas** untuk status mengajar, atau **Otomatisasi** untuk tanggal mulai pencatatan dan jadwal rekap.
+
 ## Aktivitas tambahan yang diajukan coach
 
 Pada halaman **Absensi & Slip Gaji**, coach mengisi jenis aktivitas, tanggal/jam WIB, nama kegiatan, serta rincian/lokasi/referensi bukti. Identitas mengikuti akun login; tidak perlu mengetik ID Telegram. Pengajuan hanya untuk kegiatan yang sudah berlangsung dan sebelum deadline reguler periode tersebut. Event, training, observasi online/offline, tersedia. Trial menggunakan modul Trial dan tidak dapat diajukan melalui form aktivitas tambahan.
 
-Pengajuan berstatus **Menunggu admin** dan belum menambah gaji. Admin membuka tab **Aktivitas coach**, memilih periode melalui Rekap & arsip, lalu **Tinjau aktivitas**. Periksa kegiatan dan buktinya, tentukan Setujui/Tolak, pilih mode Mitra/Fulltime untuk kegiatan tersebut, dan isi alasan. Klik **Hitung ulang** setelah keputusan disimpan. Coach mendapat notifikasi keputusan di LMS dan dapat melihat riwayat pengajuan sendiri.
+Pengajuan berstatus **Menunggu admin** dan belum menambah gaji. Admin membuka tab **Aktivitas coach**, memilih bulan/tahun langsung di bagian atas, lalu **Tinjau aktivitas**. Periksa kegiatan dan buktinya, tentukan Setujui/Tolak, pilih mode Mitra/Fulltime untuk kegiatan tersebut, dan isi alasan. Kembali ke **Rekap & arsip** dan klik **Hitung ulang** setelah keputusan disimpan. Coach mendapat notifikasi keputusan di LMS dan dapat melihat riwayat pengajuan sendiri.
 
 Pengajuan identik tidak dibuat dua kali. Trial tidak tersedia pada pengajuan coach untuk mencegah sumber absensi ganda. Admin dapat mengubah keputusan dengan alasan selama periode draft. Untuk periode final, buka revisi admin dahulu. Keputusan dan perubahan perhitungan dicatat bersama; versi final sebelumnya tetap utuh.
 
@@ -94,7 +106,7 @@ Tanggal sesi menentukan periode fee trial. Jika penilaian terlambat masuk dan pe
 
 Pilih penerima → **Rincian → Koreksi aktivitas**. Admin dapat memilih coach penerima, mode sesi, pembatalan hak fee, atau nominal paksa. Nominal paksa mengesampingkan tarif dan pembatalan; kosongkan jika ingin perhitungan normal. Isi alasan dan hitung ulang. Komponen manual dan aktivitas tambahan juga dapat dihapus dengan alasan, selama periode masih draft.
 
-Untuk periode final, klik **Buka revisi admin**, isi alasan, lakukan koreksi, lalu finalisasi lagi. Sistem menyimpan versi baru dan mempertahankan versi lama serta semua catatan transfer. Jika sebelumnya sudah ditransfer Rp500.000 dan hasil revisi Rp550.000, sisa yang ditandai berikutnya Rp50.000. Jika hasil revisi lebih rendah, kelebihan ditampilkan untuk penyelesaian admin; sistem tidak menarik uang secara otomatis.
+Untuk periode final, buka **Riwayat periode → Buka revisi admin**, isi alasan, lalu kembali ke **Rekap penerima** untuk melakukan koreksi dan finalisasi lagi. Sistem menyimpan versi baru dan mempertahankan versi lama serta semua catatan transfer. Jika sebelumnya sudah ditransfer Rp500.000 dan hasil revisi Rp550.000, sisa yang ditandai berikutnya Rp50.000. Jika hasil revisi lebih rendah, kelebihan ditampilkan untuk penyelesaian admin; sistem tidak menarik uang secara otomatis.
 
 ## WhatsApp, notifikasi LMS, dan PDF
 
@@ -116,7 +128,9 @@ Buka **Absensi & Slip Gaji** melalui menu coach. Pilih arsip bulan/tahun untuk m
 
 ## Arsip dan akses admin
 
-Tab **Rekap & arsip** menyediakan filter bulan/tahun, nama/jabatan, coach/staf, fulltime/mitra, penyelesaian transfer, serta status pengiriman. Total ringkasan mengikuti hasil filter. Popup Rincian menyediakan pratinjau versi final sebelumnya, riwayat transfer, dan audit perubahan periode. Admin melihat slip melalui popup; file PDF tetap dipakai sebagai lampiran slip yang dikirim melalui WA. Tabel di layar kecil dapat digeser ke samping untuk melihat kolom tindakan.
+Di **Rekap & arsip**, pilih bulan/tahun atau buka **Buka arsip bulan lain**. Pencarian nama/jabatan selalu terlihat; tombol **Filter** membuka pilihan coach/staf dan fulltime/mitra. Filter transfer dan status pengiriman tersedia di **Pembayaran & slip**. Total ringkasan mengikuti hasil filter; **Reset filter** mengembalikan daftar lengkap. Penjelasan periode tersedia di **Cutoff & batas koreksi**.
+
+Popup Rincian menyediakan **Pengiriman ulang & riwayat penerima** yang dapat dibuka untuk pratinjau versi final sebelumnya, riwayat transfer, dan pengiriman ulang. Audit seluruh periode ada di **Riwayat periode**. Admin melihat slip melalui popup; file PDF tetap dipakai sebagai lampiran slip yang dikirim melalui WA. Tabel di layar kecil dapat digeser ke samping untuk melihat kolom tindakan.
 
 Hanya admin yang mempunyai izin menu **Gaji & Slip Gaji** yang dapat mengelola modul. Notifikasi koreksi dan masalah pengiriman juga hanya ditujukan kepada admin yang mempunyai akses tersebut.
 

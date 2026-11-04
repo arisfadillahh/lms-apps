@@ -381,6 +381,9 @@ async function instantiateBlockFromTemplate({
   fallbackStartDate,
 }: InstantiateInput): Promise<void> {
   const templateLessons = await getLessonTemplates(template.id, lessonTemplateCache);
+  if (templateLessons.length === 0) {
+    throw new Error(`Blok "${template.name ?? template.id}" belum memiliki lesson template. Lengkapi materi sebelum membuat jadwal.`);
+  }
   const totalSessionCount = templateLessons.reduce(
     (sum, lesson) => sum + Math.max(1, lesson.estimated_meeting_count || 1),
     0,
@@ -409,18 +412,6 @@ async function instantiateBlockFromTemplate({
     pitchingDayDate: endDate,
     status,
   });
-
-  if (templateLessons.length === 0) {
-    const normalizedBlock: ClassBlockRow = {
-      ...block,
-      block_name: template.name ?? undefined,
-      block_order_index: template.order_index ?? null,
-      block_estimated_sessions: template.estimated_sessions ?? null,
-    };
-    lessonsByBlock.set(block.id, []);
-    blocks.push(normalizedBlock);
-    return;
-  }
 
   const createdLessonsPayload: TablesInsert<'class_lessons'>[] = [];
 

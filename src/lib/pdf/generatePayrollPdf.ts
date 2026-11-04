@@ -1,5 +1,6 @@
 import 'server-only';
 import fs from 'node:fs';
+import path from 'node:path';
 import puppeteer from 'puppeteer-core';
 import { renderPayrollHtml } from '@/lib/payroll/presentation';
 import type { PeriodDocument, Slip } from '@/lib/payroll/model';
@@ -14,7 +15,8 @@ export async function generatePayrollPdf(period: PeriodDocument, slip: Slip, ver
     await page.setJavaScriptEnabled(false);
     await page.setRequestInterception(true);
     page.on('request', request => request.url().startsWith('about:') || request.url().startsWith('data:') ? request.continue() : request.abort());
-    await page.setContent(renderPayrollHtml(period, slip, version), { waitUntil: 'load', timeout: 20000 });
+    const logo = 'data:image/png;base64,' + fs.readFileSync(path.join(process.cwd(), 'public/images/clevio-logo.png')).toString('base64');
+    await page.setContent(renderPayrollHtml(period, slip, version, logo), { waitUntil: 'load', timeout: 20000 });
     await page.emulateMediaType('print');
     const buffer = await page.pdf({ format: 'A4', printBackground: true, preferCSSPageSize: true, displayHeaderFooter: true,
       headerTemplate: '<span></span>', footerTemplate: '<div style="width:100%;text-align:center;font-size:8px;color:#51656f">Clevio LMS · <span class="pageNumber"></span> / <span class="totalPages"></span></div>', margin: { bottom: '18mm' } });

@@ -25,7 +25,7 @@ export async function executePayrollCommand(command: PayrollCommand, actor: stri
       const old = config.people.find(p => p.id === command.id);
       if (!old || old.kind !== command.kind || old.user_id !== (command.kind === 'COACH' ? command.userId : null)) throw new PayrollError('Identitas penerima tidak dapat dipindahkan; ubah kontraknya atau buat penerima baru.');
     }
-    const profileId = await dao.savePayrollProfile({ id: command.id, user_id: command.kind === 'COACH' ? command.userId : null, kind: command.kind, name, job_title: command.jobTitle, staff_phone: command.kind === 'STAFF' ? command.staffPhone : null, active: command.active }, { effective_from: command.effectiveFrom, contract: command.contract, base_salary: command.baseSalary }, actor);
+    const profileId = await dao.savePayrollProfile({ id: command.id, user_id: command.kind === 'COACH' ? command.userId : null, kind: command.kind, name, job_title: command.jobTitle, staff_phone: command.kind === 'STAFF' ? command.staffPhone : null, active: command.active }, { effective_from: command.effectiveFrom, contract: command.contract, base_salary: command.baseSalary, position_allowance: command.positionAllowance, other_allowances: command.otherAllowances }, actor);
     return { id: profileId };
   }
   if (command.action === 'rates') { await dao.savePayrollRates({ effective_from: command.effectiveFrom, rates: command.rates }, actor); return { success: true }; }
@@ -73,7 +73,7 @@ export async function executePayrollCommand(command: PayrollCommand, actor: stri
     }
     case 'override': {
       requireDraft(record);
-      if (!next.slips.some(s => s.lines.some(l => l.key === command.sourceKey && !['SALARY', 'ADJUSTMENT'].includes(l.kind)))) throw new PayrollError('Aktivitas sumber tidak ditemukan.');
+      if (!next.slips.some(s => s.lines.some(l => l.key === command.sourceKey && !['SALARY', 'ADJUSTMENT', 'ALLOWANCE'].includes(l.kind)))) throw new PayrollError('Aktivitas sumber tidak ditemukan.');
       if (command.profileId) {
         const config = await dao.getPayrollConfig();
         if (!config.people.some(p => p.id === command.profileId && p.active)) throw new PayrollError('Penerima pengganti tidak aktif.');

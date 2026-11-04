@@ -90,6 +90,7 @@ try {
   const sourceKey = initial.selected.document.slips.find(s => s.profile_id === coachId).lines[0].key;
   await correction.getByRole('button', { name: 'Simpan koreksi aktivitas' }).click();
   await page.getByText('Koreksi disimpan. Klik Hitung ulang.', { exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Tutup rincian', exact: true }).click();
   await page.getByRole('button', { name: 'Hitung ulang', exact: true }).click();
   await page.getByText('Rekap dihitung ulang; sumber yang sama tidak digandakan.', { exact: true }).waitFor();
   const changed = (await data()).selected.document;

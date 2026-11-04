@@ -22,7 +22,7 @@ for name in ['slip-v1.pdf', 'slip-multipage.pdf']:
             assert block[1] >= 0 and block[3] <= page.rect.height + 1, 'Text exceeds page height'
         page.get_pixmap(matrix=fitz.Matrix(1.2, 1.2)).save(folder / f'{name[:-4]}-page-{index + 1}.png')
     combined = '\n'.join(texts)
-    assert 'Total periode' in combined
+    assert 'Penghasilan bersih' in combined
     if name == 'slip-multipage.pdf':
         assert len(document) >= 2
         for i in range(1, 51):

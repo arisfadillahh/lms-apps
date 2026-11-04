@@ -9,6 +9,7 @@ export interface PayrollPerson {
 }
 export interface PayrollTerm {
   id?: string; profile_id: string; effective_from: string; contract: Contract; base_salary: number;
+  position_allowance?: number; other_allowances?: { label: string; amount: number }[];
 }
 export interface PayrollRates {
   WEEKLY_ONLINE: number[]; WEEKLY_OFFLINE: number[];
@@ -121,6 +122,12 @@ export function calculatePeriod(input: {
     if (!term) { warnings.add(`Kontrak belum diatur: ${person.name}`); continue; }
     const lines: PayrollLine[] = [];
     if (term.contract === 'FULLTIME') lines.push({ key: `salary:${person.id}`, date: dateForSalary, label: 'Gaji tetap', kind: 'SALARY', quantity: 1, rate: money(term.base_salary), amount: money(term.base_salary), details: `Kontrak berlaku ${term.effective_from}` });
+    const recurring = [{ label: 'Tunjangan jabatan', amount: term.position_allowance ?? 0 }, ...(term.other_allowances ?? [])];
+    recurring.forEach((allowance, index) => {
+      const amount = money(allowance.amount);
+      if (amount < 0) throw new PayrollError('Tunjangan rutin tidak boleh negatif. Gunakan potongan per periode.');
+      if (amount > 0) lines.push({ key: `allowance:${person.id}:${index}`, date: dateForSalary, label: allowance.label, kind: 'ALLOWANCE', quantity: 1, rate: amount, amount, details: `Tunjangan rutin · Berlaku ${term.effective_from}` });
+    });
     slips.set(person.id, { profile_id: person.id, user_id: person.user_id, kind: person.kind, name: person.name, job_title: person.job_title, contract: term.contract, lines, total: 0 });
   }
   const allActivities = [...input.activities];

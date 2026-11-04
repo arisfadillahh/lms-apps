@@ -5,7 +5,8 @@ const slip: Slip = { profile_id: 'p1', user_id: 'u1', name: '<script>alert(1)</s
 describe('private PDF presentation', () => {
   it('escapes every untrusted text field and uses the admin navy palette', () => {
     const html = renderPayrollHtml(createPeriod(2026, 10), slip);
-    expect(html).not.toContain('<script>'); expect(html).not.toContain('<img src='); expect(html).not.toContain('<iframe>');
+    expect(html).not.toContain('<script>'); expect(html).not.toContain('<img src=x'); expect(html).not.toContain('<iframe>');
+    expect(html).toContain('alt="Clevio Innovator Camp"');
     expect(html).toContain('&lt;script&gt;'); expect(html).toContain('Coach &amp; Mentor'); expect(html).toContain('#22367b');
   });
   it('states the deadline in text and distinguishes draft slip preview from final PDF', () => {

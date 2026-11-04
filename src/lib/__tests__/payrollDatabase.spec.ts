@@ -11,6 +11,7 @@ describe('real PostgreSQL payroll migration, privileges and atomic revisions', (
     db = new PGlite();
     await db.exec(readFileSync(path.join(process.cwd(), 'scripts/payroll-local-schema.sql'), 'utf8'));
     await db.exec(readFileSync(path.join(process.cwd(), 'supabase/migrations/20261104100000_payroll.sql'), 'utf8'));
+    await db.exec(readFileSync(path.join(process.cwd(), 'supabase/migrations/20261104160000_payroll_allowances.sql'), 'utf8'));
     await db.query("INSERT INTO users(id,username,full_name,role) VALUES ($1,'admin','Admin','ADMIN')", [admin]);
   }, 30000);
   afterAll(async () => { await db?.close(); });
@@ -84,5 +85,20 @@ describe('real PostgreSQL payroll migration, privileges and atomic revisions', (
     args[1] = 1;
     await expect(db.query('SELECT payroll_review_activity($1,$2,$3,$4,$5,$6,$7)', args)).rejects.toThrow(/Reopen payroll/);
     expect((await db.query<{ revision: number }>('SELECT revision FROM payroll_activity_requests WHERE id=$1', [id])).rows[0].revision).toBe(1);
+  });
+  it('saves dated recurring allowances and preserves them when an older client omits the fields', async () => {
+    const profile = { kind: 'STAFF', name: 'Staff with allowances', staff_phone: '08123456789', active: true };
+    const term = { effective_from:'2020-01-01',contract:'FULLTIME',base_salary:3000000,position_allowance:500000,other_allowances:[{label:'Tunjangan komunikasi',amount:100000}] };
+    const result = await db.query<{ payroll_save_profile:string }>('SELECT payroll_save_profile($1,$2,$3)', [JSON.stringify(profile),JSON.stringify(term),admin]);
+    const id = result.rows[0].payroll_save_profile;
+    await db.query('SELECT payroll_save_profile($1,$2,$3)', [JSON.stringify({...profile,id}),JSON.stringify({effective_from:'2026-11-01',contract:'FULLTIME',base_salary:3200000}),admin]);
+    const saved = await db.query<{position_allowance:number;other_allowances:unknown}>("SELECT position_allowance,other_allowances FROM payroll_terms WHERE profile_id=$1 ORDER BY effective_from DESC LIMIT 1",[id]);
+    expect(saved.rows[0]).toEqual({position_allowance:500000,other_allowances:[{label:'Tunjangan komunikasi',amount:100000}]});
+    expect((await db.query('SELECT user_id,staff_phone FROM payroll_profiles WHERE id=$1',[id])).rows[0]).toEqual({user_id:null,staff_phone:'08123456789'});
+  });
+  it('rolls back the profile edit and audit when a recurring allowance is invalid', async () => {
+    const profile = {kind:'STAFF',name:'Reject bad allowance',active:true};
+    await expect(db.query('SELECT payroll_save_profile($1,$2,$3)',[JSON.stringify(profile),JSON.stringify({effective_from:'2026-11-01',contract:'FULLTIME',base_salary:3000000,other_allowances:[{amount:-1}]}),admin])).rejects.toThrow(/Invalid recurring allowance/);
+    expect((await db.query("SELECT id FROM payroll_profiles WHERE name='Reject bad allowance'")).rows).toHaveLength(0);
   });
 });

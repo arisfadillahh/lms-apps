@@ -8,6 +8,9 @@ import { fileURLToPath } from 'node:url';
 import { PGlite } from '@electric-sql/pglite';
 import bcrypt from 'bcrypt';
 import { encode } from 'next-auth/jwt';
+import { ensureLocalAppSchema } from './lib/local-app-schema.mjs';
+import { seedLocalDashboard } from './lib/local-dashboard-seed.mjs';
+import { loadRestSchema, readLocalRows, localWhere } from './lib/local-rest.mjs';
 
 if (process.env.NODE_ENV === 'production') throw new Error('Local preview cannot run in production.');
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -29,7 +32,7 @@ const accounts = {
   coder: { id: '10000000-0000-4000-8000-000000000006', username: 'coder.demo', role: 'CODER', full_name: 'Coder Demo', permissions: null },
 };
 const ident = value => { if (!/^[a-z_][a-z0-9_]*$/i.test(value)) throw new Error('Invalid SQL identifier'); return `"${value}"`; };
-const serialize = value => value !== null && typeof value === 'object' ? JSON.stringify(value) : value;
+const serialize = (value, table, column) => value !== null && typeof value === 'object' ? Array.isArray(value) && restSchema.columns.find(c => c.table_name === table && c.column_name === column)?.udt_name.startsWith('_') ? value : JSON.stringify(value) : value;
 const monthParts = () => { const d = new Date(Date.now() + 7 * 3600000); let y = d.getUTCFullYear(), m = d.getUTCMonth() + 1; if (d.getUTCDate() >= 26) { m++; if (m > 12) { m = 1; y++; } } return { y, m }; };
 const periodShape = (y, m) => {
   const day = (year, month, date, clock = '00:00:00') => new Date(`${year}-${String(month).padStart(2, '0')}-${date}T${clock}+07:00`).toISOString();
@@ -83,26 +86,23 @@ if (!exists.rows[0].name) {
   await db.query('INSERT INTO payroll_periods(id,document) VALUES ($1,$2)', [old.id, JSON.stringify(old)]);
 }
 
+try {
+  await ensureLocalAppSchema(db, root);
+  await db.exec(fs.readFileSync(path.join(root, 'supabase/migrations/20261104160000_payroll_allowances.sql'), 'utf8'));
+  await seedLocalDashboard(db, appUrl);
+} catch (error) {
+  console.error('[Local setup]', error.message);
+  await db.close(); process.exit(1);
+}
+const restSchema = await loadRestSchema(db);
+
 async function cookieFor(name) {
   const a = accounts[name]; if (!a) throw new Error('Unknown preview account');
   return encode({ secret, maxAge: 24 * 3600, token: { userId: a.id, username: a.username, role: a.role, fullName: a.full_name, isActive: true, adminPermissions: a.permissions } });
 }
 async function bodyOf(req) { const pieces = []; let n = 0; for await (const b of req) { n += b.length; if (n > 4 * 1024 * 1024) throw new Error('Request too large'); pieces.push(b); } return pieces.length ? JSON.parse(Buffer.concat(pieces).toString()) : null; }
 function json(res, status, data, headers = {}) { res.writeHead(status, { 'Content-Type': 'application/json', ...headers }); res.end(JSON.stringify(data)); }
-function where(params, values) {
-  const clauses = [];
-  for (const [key, expression] of params) {
-    if (['select', 'order', 'limit', 'offset', 'on_conflict', 'columns'].includes(key)) continue;
-    const column = ident(key), dot = expression.indexOf('.'), op = expression.slice(0, dot), raw = expression.slice(dot + 1);
-    if (op === 'is' && raw === 'null') { clauses.push(`${column} IS NULL`); continue; }
-    if (op === 'not' && raw === 'is.null') { clauses.push(`${column} IS NOT NULL`); continue; }
-    if (op === 'in') { const items = raw.replace(/^\(|\)$/g, '').split(',').filter(Boolean); if (!items.length) { clauses.push('FALSE'); continue; } clauses.push(`${column} IN (${items.map(v => { values.push(v.replace(/^"|"$/g, '')); return '$' + values.length; }).join(',')})`); continue; }
-    const operators = { eq: '=', neq: '<>', gte: '>=', gt: '>', lte: '<=', lt: '<', like: 'LIKE', ilike: 'ILIKE' };
-    if (!operators[op]) throw new Error('Unsupported local filter: ' + op);
-    values.push(raw); clauses.push(`${column} ${operators[op]} $${values.length}`);
-  }
-  return clauses.length ? ' WHERE ' + clauses.join(' AND ') : '';
-}
+function where(params, values) { const conditions = localWhere(params, values); return conditions.length ? ' WHERE ' + conditions.join(' AND ') : ''; }
 const server = http.createServer(async (req, res) => {
   try {
     const u = new URL(req.url, backendUrl);
@@ -130,21 +130,11 @@ const server = http.createServer(async (req, res) => {
         const r = await tx.query(`SELECT public.${ident(fn)}(${args.join(',')}) AS result`, vals); return { rows: r.rows[0].result, scalar: true };
       }
       const table = ident(name), values = [], clause = where(u.searchParams, values);
-      if (req.method === 'GET' || req.method === 'HEAD') {
-        const select = u.searchParams.get('select') || '*';
-        const fields = select === '*' ? '*' : select.split(',').map(ident).join(',');
-        const order = (u.searchParams.get('order') || '').split(',').filter(Boolean).map(x => { const [k, dir] = x.split('.'); return ident(k) + (dir === 'desc' ? ' DESC' : ' ASC'); }).join(',');
-        const count = await tx.query(`SELECT count(*)::int AS n FROM public.${table}${clause}`, values);
-        const limit = Math.min(1000, Number(u.searchParams.get('limit') || 1000)), offset = Number(u.searchParams.get('offset') || 0);
-        const r = await tx.query(`SELECT ${fields} FROM public.${table}${clause}${order ? ' ORDER BY ' + order : ''} LIMIT ${limit} OFFSET ${offset}`, values);
-        const dateColumns = new Set(r.fields.filter(f => f.dataTypeID === 1082).map(f => f.name));
-        const rows = r.rows.map(row => Object.fromEntries(Object.entries(row).map(([key, value]) => [key, dateColumns.has(key) && value instanceof Date ? value.toISOString().slice(0, 10) : value])));
-        return { rows, count: count.rows[0].n };
-      }
+      if (req.method === 'GET' || req.method === 'HEAD') return readLocalRows(tx, restSchema, name, u.searchParams);
       if (req.method === 'POST') {
         const rows = Array.isArray(body) ? body : [body]; let returned = [];
         for (const row of rows) {
-          const keys = Object.keys(row), vals = keys.map(k => serialize(row[k]));
+          const keys = Object.keys(row), vals = keys.map(k => serialize(row[k], name, k));
           const conflict = u.searchParams.get('on_conflict');
           let sql = `INSERT INTO public.${table}(${keys.map(ident).join(',')}) VALUES (${keys.map((_,i)=>'$'+(i+1)).join(',')})`;
           if (conflict) sql += ` ON CONFLICT (${conflict.split(',').map(ident).join(',')}) ` + (String(req.headers.prefer).includes('ignore-duplicates') ? 'DO NOTHING' : `DO UPDATE SET ${keys.filter(k => !conflict.split(',').includes(k)).map(k=>`${ident(k)}=EXCLUDED.${ident(k)}`).join(',')}`);
@@ -153,10 +143,11 @@ const server = http.createServer(async (req, res) => {
         return { rows: returned };
       }
       if (req.method === 'PATCH') {
-        const vals = [], assignments = Object.keys(body).map(k => { vals.push(serialize(body[k])); return ident(k) + '=$' + vals.length; });
+        const vals = [], assignments = Object.keys(body).map(k => { vals.push(serialize(body[k], name, k)); return ident(k) + '=$' + vals.length; });
         const filter = where(u.searchParams, vals);
         return { rows: (await tx.query(`UPDATE public.${table} SET ${assignments.join(',')}${filter} RETURNING *`, vals)).rows };
       }
+      if (req.method === 'DELETE') return { rows: (await tx.query(`DELETE FROM public.${table}${clause} RETURNING *`, values)).rows };
       throw new Error('Unsupported local method');
     });
     const single = String(req.headers.accept || '').includes('vnd.pgrst.object');
@@ -164,7 +155,7 @@ const server = http.createServer(async (req, res) => {
     const count = result.count ?? (Array.isArray(result.rows) ? result.rows.length : 1);
     if (req.method === 'HEAD') { res.writeHead(200, { 'Content-Range': `0-${Math.max(0,count-1)}/${count}` }); return res.end(); }
     json(res, req.method === 'POST' ? 201 : 200, result.scalar ? result.rows : single ? result.rows[0] : result.rows, { 'Content-Range': `0-${Math.max(0,count-1)}/${count}` });
-  } catch (e) { json(res, e.code === '42501' ? 403 : 400, { code: e.code || 'LOCAL_ERROR', message: String(e.message), details: e.detail || '' }); }
+  } catch (e) { console.error('[Local REST]', req.method, new URL(req.url, backendUrl).pathname, e.code || 'LOCAL_ERROR', e.message); json(res, e.code === '42501' ? 403 : 400, { code: e.code || 'LOCAL_ERROR', message: String(e.message), details: e.detail || '' }); }
 });
 await new Promise((resolve, reject) => { server.once('error', reject); server.listen(backendPort, '127.0.0.1', resolve); });
 const log = fs.openSync(path.join(runtime, 'next.log'), 'a', 0o600);

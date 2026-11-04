@@ -9,12 +9,13 @@ const mode = z.enum(['FULLTIME', 'MITRA']);
 const period = { periodId: z.string().regex(/^20\d{2}-(0[1-9]|1[0-2])$/), revision: z.number().int().nonnegative() };
 const ids = z.array(id).min(1).max(20).refine(v => new Set(v).size === v.length, 'Penerima terpilih ganda');
 const triple = z.tuple([nonnegative, nonnegative, nonnegative]);
+const recurringAllowances = z.array(z.object({ label: z.string().trim().min(1).max(160), amount: nonnegative })).max(20);
 export const payrollRatesSchema = z.object({
   WEEKLY_ONLINE: triple, WEEKLY_OFFLINE: triple, EKSKUL_ONLINE: triple, EKSKUL_OFFLINE: triple,
   TRIAL: nonnegative, GOAL: nonnegative, EVENT: nonnegative, TRAINING_ONLINE: nonnegative, TRAINING_OFFLINE: nonnegative, OBSERVATION_ONLINE: nonnegative, OBSERVATION_OFFLINE: nonnegative,
 });
 export const payrollCommandSchema = z.discriminatedUnion('action', [
-  z.object({ action: z.literal('profile'), id: id.optional(), userId: id.nullable().optional(), kind: z.enum(['COACH', 'STAFF']), name: z.string().trim().min(1).max(160), jobTitle: z.string().trim().max(160).default(''), staffPhone: z.string().trim().max(30).nullable().default(null), active: z.boolean().default(true), contract: mode, baseSalary: nonnegative, effectiveFrom: date }),
+  z.object({ action: z.literal('profile'), id: id.optional(), userId: id.nullable().optional(), kind: z.enum(['COACH', 'STAFF']), name: z.string().trim().min(1).max(160), jobTitle: z.string().trim().max(160).default(''), staffPhone: z.string().trim().max(30).nullable().default(null), active: z.boolean().default(true), contract: mode, baseSalary: nonnegative, positionAllowance: nonnegative.optional(), otherAllowances: recurringAllowances.optional(), effectiveFrom: date }),
   z.object({ action: z.literal('rates'), effectiveFrom: date, rates: payrollRatesSchema }),
   z.object({ action: z.literal('settings'), activeFrom: date, automationEnabled: z.boolean() }),
   z.object({ action: z.literal('create'), year: z.number().int().min(2020).max(2099), month: z.number().int().min(1).max(12) }),

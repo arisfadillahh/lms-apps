@@ -1,6 +1,7 @@
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { sessionsDao } from '@/lib/dao';
 import { shortenReportDescription } from '@/lib/reportDescription';
+import { getReportPrintLayout } from '@/lib/reportPrintLayout';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 import { notFound } from 'next/navigation';
 import {
@@ -256,6 +257,7 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
   const lessonTitles = isEkskulReport
     ? ekskulLessonTitles
     : getUniqueLessonTitles(actualClassLessons?.length ? actualClassLessons : fallbackLessonTemplates || []);
+  const printLayout = getReportPrintLayout(lessonTitles.length);
 
   const pubDate = new Date(report.updated_at || report.created_at).toLocaleDateString('id-ID', {
     day: 'numeric', month: 'long', year: 'numeric',
@@ -303,11 +305,12 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
     : [];
 
   return (
-    <div className="report-root min-h-screen bg-[#eef6fb] font-sans text-[#17306b] antialiased">
+    <div className="report-root min-h-screen bg-[#eef6fb] font-sans text-[#17306b] antialiased" data-report-program={isEkskulReport ? 'ekskul' : 'weekly'} data-print-layout={printLayout} data-material-count={lessonTitles.length}>
       <style>{`
         .report-lessons-panel { break-inside: auto; }
         .report-lesson-card { min-width: 0; break-inside: avoid; }
         .report-lesson-card p { overflow-wrap: anywhere; }
+        .report-print-notes { display: none; }
         @media print {
           @page { size: A4; margin: 10mm; }
           html, body {
@@ -351,6 +354,13 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
             break-inside: avoid !important;
             page-break-inside: avoid !important;
           }
+          .report-section[data-purpose="competency-feedback"],
+          .report-section[data-purpose="competency-feedback"] .report-section-heading {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+            break-after: avoid !important;
+            page-break-after: avoid !important;
+          }
           .report-score-card { margin-top: 0 !important; }
           .report-hero-logo { display: block !important; }
           .report-competency-grid {
@@ -365,6 +375,97 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
           .report-section[data-purpose="lesson-list"] {
             break-before: auto !important;
             page-break-before: auto !important;
+          }
+          .report-root[data-report-program="ekskul"][data-print-layout="single-page"] .report-page {
+            width: 1024px !important;
+            zoom: 0.7 !important;
+          }
+          .report-root[data-report-program="ekskul"][data-print-layout="single-page"] .report-section {
+            margin-top: 22px !important;
+          }
+          .report-root[data-report-program="ekskul"][data-print-layout="single-page"] .report-section-heading {
+            margin-bottom: 9px !important;
+          }
+          .report-root[data-report-program="ekskul"][data-print-layout="single-page"] .report-hero {
+            padding: 20px !important;
+          }
+          .report-root[data-report-program="ekskul"][data-print-layout="single-page"] .report-competency-card {
+            padding: 12px !important;
+          }
+          .report-root[data-report-program="ekskul"][data-print-layout="single-page"] .report-competency-card p {
+            margin-top: 8px !important;
+            font-size: 11px !important;
+            line-height: 1.35 !important;
+          }
+          .report-root[data-report-program="ekskul"][data-print-layout="single-page"] .report-competency-card .mt-4 {
+            margin-top: 8px !important;
+          }
+          .report-root[data-report-program="ekskul"][data-print-layout="single-page"] .report-lessons-panel {
+            padding: 12px !important;
+          }
+          .report-root[data-report-program="ekskul"][data-print-layout="single-page"] .report-lesson-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 5px !important;
+          }
+          .report-root[data-report-program="ekskul"][data-print-layout="single-page"] .report-lesson-card {
+            padding: 6px !important;
+            gap: 7px !important;
+          }
+          .report-root[data-report-program="ekskul"][data-print-layout="single-page"] .report-lesson-card > span {
+            height: 22px !important;
+            min-width: 22px !important;
+            font-size: 10px !important;
+          }
+          .report-root[data-report-program="ekskul"][data-print-layout="single-page"] .report-lesson-card p {
+            padding-top: 2px !important;
+            font-size: 12px !important;
+            line-height: 1.25 !important;
+          }
+          .report-root[data-report-program="ekskul"][data-print-layout="two-page"] [data-purpose="lesson-list"] {
+            break-before: page !important;
+            page-break-before: always !important;
+          }
+          .report-root[data-report-program="ekskul"][data-print-layout="two-page"] .report-lesson-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 8px !important;
+          }
+          .report-root[data-report-program="ekskul"][data-print-layout="two-page"] .report-lesson-card {
+            padding: 9px !important;
+          }
+          .report-root[data-report-program="ekskul"][data-print-layout="two-page"] .report-print-notes {
+            display: grid !important;
+            grid-template-columns: minmax(0, 1.5fr) minmax(190px, 1fr) !important;
+            gap: 22px !important;
+            margin-top: 24px !important;
+            break-inside: avoid !important;
+            color: #17306b !important;
+          }
+          .report-print-note-box {
+            min-height: 118px !important;
+            padding: 12px 14px !important;
+            border: 1px solid #dbe7ef !important;
+            border-radius: 10px !important;
+            font-size: 12px !important;
+          }
+          .report-print-note-box span {
+            display: block !important;
+            height: 25px !important;
+            border-bottom: 1px solid #dbe7ef !important;
+          }
+          .report-print-signature {
+            display: flex !important;
+            min-height: 118px !important;
+            flex-direction: column !important;
+            justify-content: flex-end !important;
+            align-items: center !important;
+            gap: 5px !important;
+            padding: 12px !important;
+            border-bottom: 1px solid #7184a0 !important;
+            text-align: center !important;
+            font-size: 12px !important;
+          }
+          .report-print-signature small {
+            color: #7184a0 !important;
           }
           .report-section[data-purpose="lesson-list"] .report-section-heading {
             break-after: avoid !important;
@@ -517,6 +618,21 @@ export default async function PublicReportView({ params }: { params: Promise<{ i
                     </div>
                   ))}
                 </div>
+              </div>
+            </section>
+          )}
+
+          {isEkskulReport && (
+            <section className="report-print-notes" aria-label="Catatan dan pengesahan">
+              <div className="report-print-note-box">
+                <strong>Catatan untuk keluarga</strong>
+                <span />
+                <span />
+              </div>
+              <div className="report-print-signature">
+                <span>{pubDate}</span>
+                <strong>{reportCoachName}</strong>
+                <small>Coach</small>
               </div>
             </section>
           )}

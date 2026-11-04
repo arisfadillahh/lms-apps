@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
+import { getReportPrintLayout } from '@/lib/reportPrintLayout';
 
 const source = fs.readFileSync(
   path.join(process.cwd(), 'src/app/report/[id]/page.tsx'),
@@ -77,5 +78,20 @@ describe('A4 report print contract', () => {
     expect(source).toContain("const learningPeriodLabel = isEkskulReport ? 'semester' : 'block';");
     expect(source).toContain('selama {learningPeriodLabel} berlangsung.');
     expect(source).toContain('Perjalanan belajar dalam {learningPeriodLabel} ini');
+  });
+
+  it('chooses a deliberate page plan from the material count', () => {
+    expect(getReportPrintLayout(5)).toBe('single-page');
+    expect(getReportPrintLayout(17)).toBe('single-page');
+    expect(getReportPrintLayout(20)).toBe('single-page');
+    expect(getReportPrintLayout(21)).toBe('two-page');
+    expect(getReportPrintLayout(35)).toBe('two-page');
+    expect(source).toContain('data-report-program={isEkskulReport ? \'ekskul\' : \'weekly\'}');
+    expect(source).toContain('data-print-layout={printLayout}');
+    expect(source).toContain('data-material-count={lessonTitles.length}');
+    expect(source).toContain('data-print-layout="single-page"');
+    expect(source).toContain('.report-root[data-report-program="ekskul"][data-print-layout="two-page"] [data-purpose="lesson-list"]');
+    expect(source).toContain('grid-template-columns: repeat(3, minmax(0, 1fr)) !important;');
+    expect(source).toContain('className="report-print-notes"');
   });
 });

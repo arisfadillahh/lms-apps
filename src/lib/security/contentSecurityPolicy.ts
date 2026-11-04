@@ -19,9 +19,10 @@ export function shouldUpgradeInsecureRequests(appUrl: string | undefined): boole
   return !appUrl?.toLowerCase().startsWith('http://');
 }
 
-export function buildContentSecurityPolicy(options: { upgradeInsecureRequests?: boolean } = {}): string {
+export function buildContentSecurityPolicy(options: { upgradeInsecureRequests?: boolean; development?: boolean } = {}): string {
   const directives = options.upgradeInsecureRequests === false
     ? CONTENT_SECURITY_POLICY_DIRECTIVES.filter((directive) => directive !== 'upgrade-insecure-requests')
     : CONTENT_SECURITY_POLICY_DIRECTIVES;
-  return directives.join('; ');
+  return directives.map(directive => options.development && directive.startsWith('script-src ')
+    ? `${directive} 'unsafe-eval'` : directive).join('; ');
 }

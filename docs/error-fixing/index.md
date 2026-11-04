@@ -4,6 +4,7 @@ Search this file and the linked monthly log before changing related code.
 
 | Date | Reference | Area | Symptom | Monthly log |
 | --- | --- | --- | --- | --- |
+| 2026-11-04 | INTERNAL-20261104-01 | Payroll integration and local QA | New attendance/payroll module required isolated preview; local auth, CSP hydration, and mobile width prevented complete QA | [2026-11](./2026-11.md#internal-20261104-01-payroll-integration-and-local-qa) |
 | 2026-11-03 | INTERNAL-20261103-01 | Public EKSKUL report print | A 17-material report split items 11–17 onto a mostly empty second A4 page | [2026-11](./2026-11.md#internal-20261103-01-public-ekskul-report-a4-pagination) |
 | 2026-10-29 | INTERNAL-20261029-01 | Coach Ekskul reports | Final Ekskul report editor displayed coder reflection and blocked publish when reflection was incomplete | [2026-10](./2026-10.md#internal-20261029-01-ekskul-reports-do-not-require-coder-reflection) |
 | 2026-10-28 | INTERNAL-20261028-02 | VPS runtime security | Host/PM2 and active containers still used older Node; persistent recovery and actual test execution needed verification | [2026-10](./2026-10.md#internal-20261028-02-vps-wide-runtime-cutover-and-recovery-verification) |

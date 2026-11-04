@@ -5,6 +5,7 @@ const publicAppUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL
 const useHttpsHeaders = shouldUpgradeInsecureRequests(publicAppUrl);
 
 const nextConfig: NextConfig = {
+  agentRules: false,
   poweredByHeader: false,
   // Fix for Baileys/Pino in Next.js
   serverExternalPackages: [
@@ -34,7 +35,7 @@ const nextConfig: NextConfig = {
     return [{
       source: '/(.*)',
       headers: [
-        { key: 'Content-Security-Policy', value: buildContentSecurityPolicy({ upgradeInsecureRequests: useHttpsHeaders }) },
+        { key: 'Content-Security-Policy', value: buildContentSecurityPolicy({ upgradeInsecureRequests: useHttpsHeaders, development: process.env.NODE_ENV === 'development' }) },
         { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
         { key: 'X-Content-Type-Options', value: 'nosniff' },
         { key: 'X-Frame-Options', value: 'SAMEORIGIN' },

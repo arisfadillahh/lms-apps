@@ -39,6 +39,7 @@ export type CreateClassInput = {
   scheduleTime: string;
   zoomLink: string;
   deliveryMode: ClassRecord['delivery_mode'];
+  payrollMode?: 'MITRA' | 'FULLTIME' | null;
   locationName?: string | null;
   locationAddress?: string | null;
   locationMapsUrl?: string | null;
@@ -64,6 +65,7 @@ export async function createClass(input: CreateClassInput): Promise<ClassRecord>
     schedule_time: input.scheduleTime,
     zoom_link: input.zoomLink,
     delivery_mode: input.deliveryMode,
+    payroll_mode: input.payrollMode ?? null,
     location_name: input.locationName ?? null,
     location_address: input.locationAddress ?? null,
     location_maps_url: input.locationMapsUrl ?? null,
@@ -103,6 +105,7 @@ export async function updateClass(id: string, updates: Partial<Omit<CreateClassI
   if (updates.scheduleTime !== undefined) payload.schedule_time = updates.scheduleTime;
   if (updates.zoomLink !== undefined) payload.zoom_link = updates.zoomLink;
   if (updates.deliveryMode !== undefined) payload.delivery_mode = updates.deliveryMode;
+  if (updates.payrollMode !== undefined) payload.payroll_mode = updates.payrollMode;
   if (updates.locationName !== undefined) payload.location_name = updates.locationName;
   if (updates.locationAddress !== undefined) payload.location_address = updates.locationAddress;
   if (updates.locationMapsUrl !== undefined) payload.location_maps_url = updates.locationMapsUrl;

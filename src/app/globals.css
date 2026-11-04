@@ -852,7 +852,7 @@ html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-card-upcoming {
   left: 0;
   z-index: 80;
   display: none;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 0;
   padding: 7px 4px max(7px, env(safe-area-inset-bottom));
   border-top: 1px solid #dce4ef;

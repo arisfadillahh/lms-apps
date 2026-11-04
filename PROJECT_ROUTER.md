@@ -58,6 +58,7 @@ Open this file first. Use the smallest relevant route below; do not scan the who
 - Evaluation templates/questions: `src/app/(admin)/admin/evaluations/`.
 - Trial management/assessment: `src/app/(admin)/admin/free-trials/`, `src/app/(admin)/admin/trial-assessments/`.
 - Billing: `src/app/(admin)/admin/payments/`, `src/app/(admin)/admin/settings/invoice/`.
+- Coach/staff payroll, activity review, archives: `src/app/(admin)/admin/payroll/`; usage: `docs/payroll-user-guide.md`.
 - WhatsApp/broadcast: `src/app/(admin)/admin/whatsapp/`, `src/app/(admin)/admin/broadcast/`.
 - Issue reports: `src/app/(admin)/admin/issue-reports/`.
 - Software catalog: `src/app/(admin)/admin/software/`.
@@ -71,6 +72,7 @@ Open this file first. Use the smallest relevant route below; do not scan the who
 - Rubrics/evaluations: `src/app/(coach)/coach/rubrics/`.
 - Reports/review: `src/app/(coach)/coach/reports/`.
 - Trial workflow: `src/app/(coach)/coach/trials/[id]/`.
+- Own attendance/payroll and event/training/observation requests: `src/app/(coach)/coach/payroll/`.
 - Make-up, leave, profile: `src/app/(coach)/coach/makeup/`, `leave/`, `profile/`.
 
 ### Coder
@@ -106,6 +108,7 @@ All handlers live under `src/app/api/**/route.ts`. Start from the relevant group
 | Coder dashboard/material/reflection | `src/app/api/coder/` |
 | Trials | `src/app/api/free-trial/`, `src/app/api/admin/free-trials/`, `src/app/api/coach/trials/`, `src/app/api/trial-reports/` |
 | Billing/invoices/payment callbacks | `src/app/api/admin/invoices/`, `src/app/api/admin/payments/`, `src/app/api/invoices/`, `src/app/api/midtrans/` |
+| Payroll, own activity requests, private PDFs | `src/app/api/admin/payroll/`, `src/app/api/coach/payroll/`, `src/app/api/payroll/` |
 | Notifications and push | `src/app/api/notifications/`, `src/app/api/push/` |
 | WhatsApp | `src/app/api/admin/whatsapp/`, `src/app/api/whatsapp/` |
 | Scheduled jobs | `src/app/api/cron/` |
@@ -126,6 +129,7 @@ Search the exact endpoint name within `src/app/api` before opening unrelated rou
 | Reports/AI generation | `aiReports.ts`, `aiReportGuards.ts`, `reportWindows.ts` |
 | Trial lifecycle | `trialAvailability.ts`, `trialAssessmentContent.ts`, `trialClassNotifications.ts`, `trialConversion.ts`, `trialPricing.ts` |
 | Invoice generation/payment | `invoiceGenerator.ts`, `invoicePaymentConfirmation.ts`, `invoicePublicAccess.ts` |
+| Payroll/attendance/revisions/transfer/delivery | `payroll.ts`, `payrollCommands.ts`, `payrollActivityRequests.ts`, `payrollTrialSync.ts`, `payrollDelivery.ts`, `payrollCron.ts`; pure rules in `src/lib/payroll/`, storage in `src/lib/dao/payrollDao.ts` |
 | Reminders | `classReminderScheduler.ts`, `paymentReminderScheduler.ts`, `reminderIdempotency.ts`, `whatsappReminder.ts` |
 | WhatsApp runtime | `whatsappClient.ts`, `src/lib/whatsapp/` |
 | Push notifications | `src/lib/pushNotifications.ts`, `src/lib/dao/notificationsDao.ts` |

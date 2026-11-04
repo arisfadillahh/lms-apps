@@ -10,6 +10,7 @@ const NAV_LINKS = [
     { href: '/coach/rubrics', label: 'Rubrik & Penilaian', icon: 'analytics' },
     { href: '/coach/makeup', label: 'Tugas Susulan', icon: 'history_edu' },
     { href: '/coach/leave', label: 'Pengajuan Izin', icon: 'mail_lock' },
+    { href: '/coach/payroll', label: 'Absensi & Slip Gaji', icon: 'receipt_long' },
     { href: '/coach/portfolios', label: 'Review Portofolio', icon: 'photo_library' },
 ];
 

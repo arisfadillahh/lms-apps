@@ -14,12 +14,15 @@ type UserRecord = Pick<
 
 const normalizedNextAuthUrl = normalizeLocalhostUrl(process.env.NEXTAUTH_URL);
 if (normalizedNextAuthUrl) {
-  process.env.NEXTAUTH_URL = normalizedNextAuthUrl;
+  Reflect.set(process.env, 'NEXTAUTH_URL', normalizedNextAuthUrl);
 }
 
 const normalizedPublicAppUrl = normalizeLocalhostUrl(process.env.NEXT_PUBLIC_APP_URL);
 if (normalizedPublicAppUrl) {
-  process.env.NEXT_PUBLIC_APP_URL = normalizedPublicAppUrl;
+  // Next replaces direct NEXT_PUBLIC_* references at compile time. Mutating
+  // through Reflect preserves runtime normalization without a string-literal
+  // assignment in the development/server bundle.
+  Reflect.set(process.env, 'NEXT_PUBLIC_APP_URL', normalizedPublicAppUrl);
 }
 
 const nextAuthSecret = process.env.NEXTAUTH_SECRET;

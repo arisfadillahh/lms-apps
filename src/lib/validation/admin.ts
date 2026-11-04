@@ -55,6 +55,7 @@ export const createClassSchema = z.object({
   scheduleDay: z.string().min(2),
   scheduleTime: z.string().regex(/^\d{2}:\d{2}$/),
   deliveryMode: z.enum(['ONLINE', 'OFFLINE']).default('ONLINE'),
+  payrollMode: z.enum(['MITRA', 'FULLTIME']).optional(),
   zoomLink: z.string().trim().max(2048).optional().or(z.literal('')),
   locationName: z.string().trim().max(160).optional().or(z.literal('')),
   locationAddress: z.string().trim().max(500).optional().or(z.literal('')),

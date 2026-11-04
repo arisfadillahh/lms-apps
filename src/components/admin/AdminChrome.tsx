@@ -67,6 +67,7 @@ type MenuId =
   | 'reports'
   | 'payments'
   | 'invoices'
+  | 'payroll'
   | 'ccr'
   | 'ccrlist'
   | 'whatsapp'
@@ -120,6 +121,7 @@ const MENU: MenuItem[] = [
   { id: 'reports', href: '/admin/reports', label: 'Status Rapor', icon: FileText },
   { id: 'payments', href: '/admin/payments', label: 'Paket & Tarif', icon: Wallet },
   { id: 'invoices', href: '/admin/payments/invoices', label: 'Invoice', icon: Receipt },
+  { id: 'payroll', href: '/admin/payroll', label: 'Gaji & Slip Gaji', icon: Wallet },
   { id: 'ccr', href: '/admin/coders/assign-ccr', label: 'Assign ID Invoice', icon: UserCheck },
   { id: 'ccrlist', href: '/admin/coders/list-ccr', label: 'Daftar ID Invoice', icon: FileText },
   { id: 'whatsapp', href: '/admin/whatsapp', label: 'WhatsApp', icon: MessageCircle },
@@ -137,7 +139,7 @@ const MENU_SECTIONS: Array<{ label: string | null; items: MenuId[] }> = [
     label: 'Akademik',
     items: ['users', 'freeTrials', 'trialAssessments', 'classes', 'levelProgressions', 'curriculum', 'ekskul', 'lessonReports', 'evaluations', 'evaluationQuestions', 'reports'],
   },
-  { label: 'Keuangan', items: ['payments', 'invoices', 'ccr', 'ccrlist'] },
+  { label: 'Keuangan', items: ['payments', 'invoices', 'payroll', 'ccr', 'ccrlist'] },
   { label: 'Komunikasi', items: ['whatsapp', 'broadcast'] },
   { label: 'Sistem', items: ['software', 'banners', 'leave', 'issueReports', 'settings'] },
 ];
@@ -157,6 +159,7 @@ const SECTION_TABS = {
   payments: [
     { href: '/admin/payments', label: 'Paket & Tarif', menus: ['payments'] },
     { href: '/admin/payments/invoices', label: 'Invoice', menus: ['invoices'] },
+    { href: '/admin/payroll', label: 'Gaji & Slip Gaji', menus: ['payroll'] },
     { href: '/admin/payments/pricing', label: 'Harga Level', menus: ['payments'] },
     { href: '/admin/payments/registration', label: 'Registrasi', menus: ['payments', 'invoices'] },
     { href: '/admin/payments/coders', label: 'Periode Coder', menus: ['payments', 'invoices'] },

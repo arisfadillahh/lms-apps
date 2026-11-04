@@ -175,6 +175,7 @@ export async function POST(request: NextRequest) {
     scheduleTime: input.scheduleTime,
     zoomLink: zoomLink ?? '',
     deliveryMode: input.deliveryMode,
+    payrollMode: input.payrollMode ?? null,
     locationName: input.deliveryMode === 'OFFLINE' ? input.locationName ?? null : null,
     locationAddress: input.deliveryMode === 'OFFLINE' ? input.locationAddress ?? null : null,
     locationMapsUrl: input.deliveryMode === 'OFFLINE' ? input.locationMapsUrl ?? null : null,

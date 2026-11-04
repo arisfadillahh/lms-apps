@@ -30,6 +30,15 @@ export async function GET(request: Request) {
     try {
         console.log('[Cron] Running session auto-complete job');
 
+        // Reuse the installed hourly cron; payroll has its own persisted delivery
+        // deduplication and never finalizes salaries or marks bank transfers.
+        try {
+            const { runPayrollCron } = await import('@/lib/services/payrollCron');
+            await runPayrollCron();
+        } catch (payrollError) {
+            console.error('[Cron] Payroll reminder failed independently:', payrollError);
+        }
+
         const result = await autoCompletePastSessions();
 
         // After completing sessions, ensure rolling 12-week schedule for affected classes

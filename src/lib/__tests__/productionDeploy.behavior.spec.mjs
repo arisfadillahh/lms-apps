@@ -9,7 +9,7 @@ async function executable(file, code) { await fs.writeFile(file, `#!${process.ex
 afterEach(async () => { await Promise.all(temporary.splice(0).map(dir => fs.rm(dir, { recursive: true, force: true }))); });
 
 async function fixture(patch = {}) {
-  const root = await fs.mkdtemp(path.join(tmpdir(), 'lms-deploy-behavior-')); temporary.push(root);
+  const root = await fs.realpath(await fs.mkdtemp(path.join(tmpdir(), 'lms-deploy-behavior-'))); temporary.push(root);
   const bin = path.join(root, 'mock-bin'), runtime = path.join(root, 'runtimes/node-patched'), candidate = path.join(root, 'releases', target), old = path.join(root, 'releases', previous);
   for (const dir of [bin, runtime + '/bin', candidate + '/scripts', old, root + '/shared/.data', root + '/shared/baileys_auth_info', root + '/deploy-repo.git']) await fs.mkdir(dir, { recursive: true });
   // Only disposable synthetic fixtures. No application environment or credentials.
@@ -27,11 +27,11 @@ async function fixture(patch = {}) {
   await executable(runtime + '/bin/node', preamble + `
     if(args[0]?.endsWith('production-healthcheck.mjs')){
       const current=fs.realpathSync(process.env.LMS_DEPLOY_ROOT+'/current');event('health '+args[1]);
-      if(args[1].includes(':3010')){try{const pid=fs.readFileSync(process.env.LMS_DEPLOY_ROOT+'/deploy-logs/smoke-'+process.env.MOCK_TARGET+'.pid','utf8').trim();const cwd=fs.readlinkSync('/proc/'+pid+'/cwd');if(!fs.readFileSync(process.env.MOCK_TRACE,'utf8').includes('smoke '+cwd))process.exit(1);}catch{process.exit(1);}}
+      if(args[1].includes(':3010')){try{const pid=Number(fs.readFileSync(process.env.LMS_DEPLOY_ROOT+'/deploy-logs/smoke-'+process.env.MOCK_TARGET+'.pid','utf8').trim());process.kill(pid,0);const smoke=JSON.parse(fs.readFileSync(process.env.LMS_DEPLOY_ROOT+'/smoke-process.json','utf8'));if(smoke.pid!==pid||!fs.readFileSync(process.env.MOCK_TRACE,'utf8').includes('smoke '+smoke.cwd))process.exit(1);}catch{process.exit(1);}}
       if(process.env.MOCK_CANDIDATE_FAIL==='1'&&args[1].includes(':3010'))process.exit(1);
       if(process.env.MOCK_POST_FAIL==='1'&&current.endsWith(process.env.MOCK_TARGET)&&args[1].includes(':3005'))process.exit(1);
     }else if(args[0]?.includes('next/dist/bin/next')){
-      event('smoke '+process.cwd());const child=cp.spawn('/bin/sleep',['120'],{stdio:'ignore'});
+      event('smoke '+process.cwd());fs.writeFileSync(process.env.LMS_DEPLOY_ROOT+'/smoke-process.json',JSON.stringify({pid:process.pid,cwd:process.cwd()}));const child=cp.spawn('/bin/sleep',['120'],{stdio:'ignore'});
       process.on('SIGTERM',()=>{child.kill();process.exit(0);});child.on('exit',()=>process.exit(0));
     }else{const r=cp.spawnSync(process.env.MOCK_REAL_NODE,args,{stdio:'inherit'});process.exit(r.status??1);}
   `);
@@ -43,11 +43,17 @@ async function fixture(patch = {}) {
   await executable(bin + '/flock', preamble + `event('lock');if(process.env.MOCK_LOCK_BUSY==='1')process.exit(1);`);
   await executable(bin + '/ss', '');
   await executable(bin + '/sleep', '');
+  // GNU mv -T is Linux-only. Keep its atomic symlink replacement semantics in
+  // the synthetic fixture when this behavior suite is run on macOS.
+  if (process.platform === 'darwin') await executable(bin + '/mv', preamble + `const files=args.filter(a=>!a.startsWith('-'));fs.renameSync(files[0],files[1]);`);
   const env = { ...process.env, PATH: bin + ':' + process.env.PATH, LMS_DEPLOY_ROOT: root, MOCK_TARGET: target, MOCK_RUNTIME: runtime, MOCK_REAL_NODE: process.execPath, MOCK_TRACE: root + '/events', ...patch };
   // Map only the fixed host lock pathname into this disposable filesystem.
   // Production's mandatory lock remains fixed; every workflow operation is unchanged.
   const script = (await fs.readFile(repository + '/scripts/deploy-production.sh', 'utf8')).replace('/var/lock/lms-production-deploy.lock', root + '/deploy.lock');
-  await fs.writeFile(root + '/deploy-test.sh', script);
+  const macBashCompatibility = process.platform === 'darwin'
+    ? "mapfile() { local target=\"$2\" item n=0; while IFS= read -r item; do printf -v \"$target[$n]\" '%s' \"$item\"; n=$((n+1)); done; }\n"
+    : '';
+  await fs.writeFile(root + '/deploy-test.sh', macBashCompatibility + script);
   const result = spawnSync('bash', [root + '/deploy-test.sh', target], { env, encoding: 'utf8', timeout: 35000, maxBuffer: 1024 * 1024 });
   const trace = await fs.readFile(root + '/events', 'utf8').catch(() => '');
   return { root, runtime, candidate, old, result, trace, current: await fs.realpath(root + '/current') };

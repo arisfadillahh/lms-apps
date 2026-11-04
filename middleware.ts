@@ -34,6 +34,7 @@ type AdminMenuId =
   | 'reports'
   | 'payments'
   | 'invoices'
+  | 'payroll'
   | 'ccr'
   | 'ccrlist'
   | 'whatsapp'
@@ -76,6 +77,7 @@ const ADMIN_ACCESS_RULES: AdminAccessRule[] = [
   { prefix: '/admin/evaluations', menus: ['evaluations'] },
   { prefix: '/admin/reports', menus: ['reports'] },
   { prefix: '/admin/payments/invoices', menus: ['invoices'] },
+  { prefix: '/admin/payroll', menus: ['payroll'] },
   { prefix: '/admin/payments/registration', menus: ['payments', 'invoices'] },
   { prefix: '/admin/payments/coders', menus: ['payments', 'invoices'] },
   { prefix: '/admin/payments/expired', menus: ['payments', 'invoices'] },
@@ -110,6 +112,7 @@ const ADMIN_ACCESS_RULES: AdminAccessRule[] = [
   { prefix: '/api/admin/lesson-reports', menus: ['lessonReports'] },
   { prefix: '/api/admin/migrations', menus: [] },
   { prefix: '/api/admin/payments/plans', menus: ['payments', 'invoices'], methods: ['GET'] },
+  { prefix: '/api/admin/payroll', menus: ['payroll'] },
   { prefix: '/api/admin/payments/periods', menus: ['payments', 'invoices'] },
   { prefix: '/api/admin/payments/registration', menus: ['payments', 'invoices'] },
   { prefix: '/api/admin/payments/send-reminders', menus: ['payments', 'invoices'] },

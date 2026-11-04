@@ -332,6 +332,7 @@ export interface Database {
           schedule_time: string;
           zoom_link: string;
           delivery_mode: 'ONLINE' | 'OFFLINE';
+          payroll_mode?: 'MITRA' | 'FULLTIME' | null;
           location_name: string | null;
           location_address: string | null;
           location_maps_url: string | null;
@@ -359,6 +360,7 @@ export interface Database {
           schedule_time: string;
           zoom_link: string;
           delivery_mode?: 'ONLINE' | 'OFFLINE';
+          payroll_mode?: 'MITRA' | 'FULLTIME' | null;
           location_name?: string | null;
           location_address?: string | null;
           location_maps_url?: string | null;
@@ -479,6 +481,7 @@ export interface Database {
           zoom_link_snapshot: string;
           status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
           substitute_coach_id: string | null;
+          payroll_mode?: 'MITRA' | 'FULLTIME' | null;
           created_at: string;
           updated_at: string;
         };
@@ -489,6 +492,7 @@ export interface Database {
           zoom_link_snapshot: string;
           status?: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
           substitute_coach_id?: string | null;
+          payroll_mode?: 'MITRA' | 'FULLTIME' | null;
           created_at?: string;
           updated_at?: string;
         };

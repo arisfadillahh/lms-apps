@@ -60,6 +60,7 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
       scheduleDay: 'MONDAY',
       scheduleTime: '16:00',
       deliveryMode: 'ONLINE',
+      payrollMode: 'MITRA',
       zoomLink: '',
       locationName: DEFAULT_CLASS_LOCATION.name,
       locationAddress: DEFAULT_CLASS_LOCATION.address,
@@ -438,6 +439,15 @@ export default function CreateClassForm({ coaches, levels, levelBlocks, ekskulPl
               <label style={labelStyle}>Jam Jadwal</label>
               <input style={inputStyle} type="time" {...register('scheduleTime')} />
               {errors.scheduleTime ? <span style={errorStyle}>{errors.scheduleTime.message}</span> : null}
+            </div>
+
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Mode Mengajar untuk Gaji</label>
+              <select style={inputStyle} {...register('payrollMode')}>
+                <option value="MITRA">Mitra — mendapat fee per sesi</option>
+                <option value="FULLTIME">Fulltime — tercakup gaji tetap</option>
+              </select>
+              <span style={helpStyle}>Berlaku untuk coach fulltime yang ditugaskan. Coach berstatus mitra tetap mengikuti tarif mitra.</span>
             </div>
 
             <div style={fieldStyle}>

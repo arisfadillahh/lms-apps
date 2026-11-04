@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CalendarClock, ClipboardCheck, Images, LayoutDashboard, RefreshCw } from 'lucide-react';
+import { CalendarClock, ClipboardCheck, Images, LayoutDashboard, RefreshCw, Receipt } from 'lucide-react';
 
 const NAV_LINKS = [
     { href: '/coach/dashboard', label: 'Beranda', icon: LayoutDashboard },
@@ -10,6 +10,7 @@ const NAV_LINKS = [
     { href: '/coach/makeup', label: 'Susulan', icon: RefreshCw },
     { href: '/coach/leave', label: 'Izin', icon: CalendarClock },
     { href: '/coach/portfolios', label: 'Portofolio', icon: Images },
+    { href: '/coach/payroll', label: 'Slip Gaji', icon: Receipt },
 ];
 
 export default function CoachMobileNav() {

@@ -20,6 +20,7 @@ export const MENU_ITEMS: Record<string, { href: string; label: string; icon: Luc
     ekskul: { href: '/admin/ekskul', label: 'Ekskul Plans', icon: BookMarked },
     payments: { href: '/admin/payments', label: 'Paket & Tarif', icon: Wallet },
     invoices: { href: '/admin/payments/invoices', label: 'Invoice', icon: Receipt },
+    payroll: { href: '/admin/payroll', label: 'Gaji & Slip Gaji', icon: Wallet },
     ccr: { href: '/admin/coders/assign-ccr', label: 'Assign ID Invoice', icon: UserCheck },
     ccrlist: { href: '/admin/coders/list-ccr', label: 'Daftar ID Invoice', icon: FileText },
     software: { href: '/admin/software', label: 'Software', icon: Package },
@@ -63,7 +64,7 @@ export const SIDEBAR_STRUCTURE: (SidebarGroup | SidebarSingle)[] = [
         type: 'group',
         label: 'Keuangan',
         icon: Wallet,
-        children: ['payments', 'invoices', 'ccr', 'ccrlist']
+        children: ['payments', 'invoices', 'payroll', 'ccr', 'ccrlist']
     },
     {
         type: 'group',

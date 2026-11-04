@@ -99,6 +99,14 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       console.error('[TrialAssessment] Failed to notify admins', notificationError);
     }
 
+    try {
+      const { syncSubmittedTrialPayroll } = await import('@/lib/services/payrollTrialSync');
+      await syncSubmittedTrialPayroll(trial.id, trial.scheduled_at);
+    } catch (payrollError) {
+      // The assessment remains submitted. Scheduled payroll reconciliation can
+      // retry a transient conflict; payroll must not reject a valid assessment.
+      console.error('[TrialAssessment] Payroll reconciliation deferred', payrollError);
+    }
     return NextResponse.json({ ok: true, assessment: updated });
   } catch (error) {
     console.error('[TrialAssessment] Coach submit failed', error);

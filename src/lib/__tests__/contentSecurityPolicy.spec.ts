@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { buildContentSecurityPolicy, shouldUpgradeInsecureRequests } from '../security/contentSecurityPolicy';
 
 describe('content security policy for local HTTP', () => {
+  it('allows webpack eval only when development mode is explicitly enabled', () => {
+    expect(buildContentSecurityPolicy({ development: true })).toContain("'unsafe-eval'");
+    expect(buildContentSecurityPolicy()).not.toContain("'unsafe-eval'");
+    expect(buildContentSecurityPolicy({ development: false })).not.toContain("'unsafe-eval'");
+  });
   it('keeps HTTPS upgrade by default', () => {
     expect(buildContentSecurityPolicy()).toContain('upgrade-insecure-requests');
   });

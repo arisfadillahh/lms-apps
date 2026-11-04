@@ -1,6 +1,7 @@
 import { getSessionOrThrow } from '@/lib/auth';
 import { getUserById } from '@/lib/dao/usersDao';
 import ProfileForm from '@/components/profile/ProfileForm';
+import CoachPayrollStatus from '@/components/coach/CoachPayrollStatus';
 
 type CoachProfileFields = {
     coach_bio?: string | null;
@@ -35,5 +36,5 @@ export default async function CoachProfilePage() {
         notifSessionReminder: coachUser.notif_session_reminder ?? false,
     };
 
-    return <ProfileForm user={userProfile} />;
+    return <><CoachPayrollStatus userId={user.id} /><ProfileForm user={userProfile} /></>;
 }

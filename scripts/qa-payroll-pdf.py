@@ -9,7 +9,8 @@ import pymupdf as fitz
 
 folder = root / '.codex-payroll-local/qa'
 results = []
-for name in ['slip-v1.pdf', 'slip-multipage.pdf']:
+compact = '--compact' in sys.argv
+for name in (['slip-compact.pdf', 'slip-components.pdf'] if compact else ['slip-v1.pdf', 'slip-multipage.pdf']):
     document = fitz.open(folder / name)
     texts = []
     for index, page in enumerate(document):
@@ -23,11 +24,18 @@ for name in ['slip-v1.pdf', 'slip-multipage.pdf']:
         page.get_pixmap(matrix=fitz.Matrix(1.2, 1.2)).save(folder / f'{name[:-4]}-page-{index + 1}.png')
     combined = '\n'.join(texts)
     assert 'Penghasilan bersih' in combined
-    if name == 'slip-multipage.pdf':
+    if name in ['slip-multipage.pdf', 'slip-components.pdf']:
         assert len(document) >= 2
         for i in range(1, 51):
             assert f'Komponen uji PDF panjang {i}\n' in combined, f'Missing component {i}'
         assert '1.050.000' in combined
+    if name == 'slip-compact.pdf':
+        assert len(document) == 1, '100 class sessions should fit one concise salary slip'
+        for label in ['Fee mengajar kelas', '100 sesi', '2 sesi', '5 anak', 'Tunjangan jabatan', 'Tunjangan komunikasi', 'Transport November', 'Potongan November', '12.925.000']:
+            assert label in combined, f'Missing summary component {label}'
+        assert 'Sesi kelas rahasia' not in combined
+        assert 'Kelas dibatalkan' not in combined
+        assert combined.count('Fee mengajar kelas') == 1
     results.append({'file': name, 'pages': len(document), 'a4': True, 'textWithinPage': True})
-(folder / 'pdf-results.json').write_text(json.dumps(results, indent=2))
+(folder / ('compact-pdf-results.json' if compact else 'pdf-results.json')).write_text(json.dumps(results, indent=2))
 print(json.dumps(results, indent=2))

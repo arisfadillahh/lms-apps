@@ -14,14 +14,16 @@ Database demo tersimpan terpisah di `.codex-payroll-local/database`. Menjalankan
 
 1. Buka **Keuangan → Gaji & Slip Gaji**. Pilih bulan/tahun atau arsip tersimpan.
 2. Klik **Hitung ulang**. Periksa nama penerima, aktivitas, pengganti, nominal, dan peringatan. Sumber yang sama tidak dihitung dua kali.
-3. Buka **Rincian** untuk melihat tabel dalam popup, memperbaiki sesi, memindahkan fee ke coach pengganti, mengatur mode sesi, atau memberi nominal khusus untuk force majeure. Alasan wajib diisi. Setelah perubahan, tutup popup lalu klik **Hitung ulang**. **Pratinjau** membuka slip berlogo Clevio dalam popup tanpa mengunduh PDF.
+3. Buka **Rincian** untuk melihat tabel dalam popup, memperbaiki sesi, memindahkan fee ke coach pengganti, mengatur mode sesi, atau memberi nominal khusus untuk force majeure. Alasan wajib diisi. Setelah perubahan, tutup popup lalu klik **Hitung ulang**. **Pratinjau** membuka slip berlogo Clevio dalam popup tanpa mengunduh PDF. Slip merangkum seluruh fee kelas menjadi satu baris jumlah sesi dan total nominal; fee trial dan bonus goal juga diringkas. Gaji pokok, setiap tunjangan, potongan, dan komponen lain tetap tercantum masing-masing. Tanggal/nama sesi dan catatan koreksi lengkap tersedia di Rincian dan rekap absensi, bukan di slip.
 4. Tambahkan transport, tunjangan, atau potongan melalui **Tambahan / potongan manual**. Gunakan nominal negatif untuk potongan. Event dan training dapat dicatat melalui **Aktivitas tambahan**. Pencatatan trial manual hanya untuk pengecualian admin dengan alasan; jalur normalnya otomatis dari penilaian trial. Hindari menambahkan kegiatan yang sudah terhitung dari LMS.
 5. Tanggal 25, kirim rekap agar coach memeriksa datanya. Rekap WA berupa pesan teks rinci tanpa nominal dan tanpa lampiran; file hanya dipakai untuk slip gaji. Jika otomatisasi sudah diaktifkan, rekap dijadwalkan setelah 09.00 WIB dan pengingat terakhir setelah 16.00 WIB melalui cron LMS. Admin tetap dapat mengirim atau mengirim ulang rekap sendiri.
 6. Setelah seluruh tanggal 25 selesai, klik **Finalisasi**. Sistem menghitung ulang sumber terbaru sebelum menyimpan versi final. Periode berjalan tidak dapat difinalisasi sebelum tanggal 26 pukul 00.00 WIB. Peringatan harus diselesaikan dahulu.
-7. Lakukan transfer melalui bank. Setelah transfer benar-benar selesai, pilih penerima dan klik **Tandai sudah ditransfer**. Tombol ini mencatat penyelesaian transfer; tidak melakukan transfer bank.
-8. Klik **Kirim WA** per orang, atau centang beberapa penerima lalu **Kirim slip terpilih**. Slip hanya dapat dikirim setelah final dan tercatat sudah ditransfer. Periksa hasil setiap penerima; kegagalan satu pengiriman tidak membatalkan hasil penerima lainnya.
+7. Lakukan transfer melalui bank. Setelah transfer benar-benar selesai, pilih penerima dan klik **Tandai sudah transfer**. Tombol ini mencatat penyelesaian transfer; tidak melakukan transfer bank. Jika pilihan berisi penerima yang sudah dan belum ditransfer, hanya yang belum selesai yang ditandai.
+8. Pilihan penerima tetap tersimpan dan tombol utama berubah menjadi **Kirim slip gaji**. Klik untuk mengirim tanpa mencentang ulang. Untuk satu orang, tombol **Kirim WA** di baris penerima juga tersedia. Slip hanya dapat dikirim setelah final dan tercatat sudah ditransfer. Periksa hasil setiap penerima; kegagalan satu pengiriman tidak membatalkan hasil penerima lainnya.
 
 Perhitungan, transfer, dan pengiriman memiliki status terpisah. Mengirim ulang slip tidak menambah pembayaran. Menekan penanda transfer kembali juga tidak menggandakan transfer yang sudah dicatat.
+
+Saat draft, tindakan massal hanya menampilkan **Kirim rekap absensi**. Setelah final, tombol utama mengikuti tahap transfer/slip. Aksi **Kirim rekap absensi** tetap tersedia terpisah untuk mengirim pesan absensi tanpa nominal dan tanpa lampiran.
 
 ## Periode dan deadline koreksi
 

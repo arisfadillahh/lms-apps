@@ -75,7 +75,7 @@ try {
   pass('Name filtering and desktop rendering');
   await page.getByRole('checkbox', { name: 'Pilih Coach Mitra Demo', exact: true }).check();
   await page.getByRole('checkbox', { name: 'Pilih Coach Tanpa WA Demo', exact: true }).check();
-  await page.getByRole('button', { name: 'Kirim rekap terpilih', exact: true }).click();
+  await page.getByRole('button', { name: 'Kirim rekap absensi', exact: true }).click();
   await page.getByRole('status').filter({ hasText: 'Coach Mitra Demo: SIMULATED' }).waitFor();
   pass('Bulk attendance recap is text-only, with local WA simulation and LMS fallback');
   const coachId = '20000000-0000-4000-8000-000000000001', fulltimeId = '20000000-0000-4000-8000-000000000002', noWaId = '20000000-0000-4000-8000-000000000003';

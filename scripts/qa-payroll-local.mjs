@@ -208,9 +208,7 @@ try {
   pass('Coach submits event through UI; pending/rejected do not pay, approval adds fee once, duplicate and stale reviews blocked');
   await page.getByRole('button', { name: 'Rekap & arsip', exact: true }).click();
   await page.getByRole('button', { name: 'Muat ulang', exact: true }).click();
-  await page.locator('select[aria-label="Arsip periode"] option[value="2026-08"]').waitFor({ state: 'attached' });
-  await page.getByText('Buka arsip bulan lain', { exact: true }).click();
-  await page.getByRole('combobox', { name: 'Arsip periode' }).selectOption('2026-08');
+  await page.getByRole('combobox', { name: 'Bulan arsip' }).selectOption('8');
   await page.getByText('2026-08 · FINAL · v2', { exact: true }).waitFor();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: path.join(out, 'admin-mobile.png'), fullPage: true });

@@ -4,6 +4,7 @@ Search this file and the linked monthly log before changing related code.
 
 | Date | Reference | Area | Symptom | Monthly log |
 | --- | --- | --- | --- | --- |
+| 2026-11-04 | INTERNAL-20261104-05 | Compact payroll header | Stacked header panels pushed recipients below the fold; payment navigation and row sending repeated existing actions | [2026-11](./2026-11.md#internal-20261104-05-compact-payroll-header-and-single-send-action) |
 | 2026-11-04 | INTERNAL-20261104-04 | Guided payroll workspace | Stacked review/payment/audit tools, always-open forms and combined settings obscured the monthly flow; popup dimensions animated outside a resized mobile viewport | [2026-11](./2026-11.md#internal-20261104-04-guided-payroll-workspace-and-progressive-controls) |
 | 2026-11-04 | INTERNAL-20261104-03 | Salary slip summary and payroll actions | Per-session slip dates and three simultaneous bulk buttons made payroll review unnecessarily verbose | [2026-11](./2026-11.md#internal-20261104-03-compact-slip-and-contextual-payroll-actions) |
 | 2026-11-04 | INTERNAL-20261104-02 | Local admin dashboard and payroll UX | Incomplete local schema broke invoice joins; empty curriculum generated unbounded class blocks; payroll needed popup slips and recurring staff allowances | [2026-11](./2026-11.md#internal-20261104-02-local-admin-and-payroll-follow-up) |

@@ -70,7 +70,7 @@ try {
   await page.getByRole('tab', { name: 'Pembayaran & slip', exact: true }).click();
   await page.getByRole('heading', { name: 'Finalisasi rekap terlebih dahulu', exact: true }).waitFor();
   assert.equal(await page.getByRole('columnheader').count(), 0);
-  await page.getByRole('button', { name: 'Kembali ke rekap', exact: true }).click();
+  await page.getByRole('tab', { name: 'Rekap penerima', exact: true }).click();
   await page.getByRole('tab', { name: 'Riwayat periode', exact: true }).click();
   assert.equal(await page.getByPlaceholder('Nama atau jabatan').count(), 0);
   await page.getByRole('tab', { name: 'Rekap penerima', exact: true }).click();
@@ -108,6 +108,8 @@ try {
   await page.reload();
   await page.getByRole('tab', { name: 'Pembayaran & slip', exact: true }).waitFor();
   assert.equal(await page.getByRole('tab', { name: 'Pembayaran & slip', exact: true }).getAttribute('aria-selected'), 'true');
+  assert.equal(await page.getByRole('button', { name: 'Pembayaran & slip', exact: true }).count(), 0);
+  assert.equal(await page.getByRole('button', { name: 'Kirim WA', exact: true }).count(), 0);
   await page.getByRole('checkbox', { name: `Pilih ${sample.name}`, exact: true }).check();
   await page.getByRole('checkbox', { name: `Pilih ${other.name}`, exact: true }).check();
   await toolbar.getByRole('button', { name: 'Tandai sudah transfer', exact: true }).click();

@@ -15,6 +15,7 @@ export const payrollRatesSchema = z.object({
   TRIAL: nonnegative, GOAL: nonnegative, EVENT: nonnegative, TRAINING_ONLINE: nonnegative, TRAINING_OFFLINE: nonnegative, OBSERVATION_ONLINE: nonnegative, OBSERVATION_OFFLINE: nonnegative,
 });
 export const payrollCommandSchema = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('refreshSource'), ...period }),
   z.object({ action: z.literal('profile'), id: id.optional(), userId: id.nullable().optional(), kind: z.enum(['COACH', 'STAFF']), name: z.string().trim().min(1).max(160), jobTitle: z.string().trim().max(160).default(''), staffPhone: z.string().trim().max(30).nullable().default(null), active: z.boolean().default(true), contract: mode, baseSalary: nonnegative, positionAllowance: nonnegative.optional(), otherAllowances: recurringAllowances.optional(), effectiveFrom: date }),
   z.object({ action: z.literal('rates'), effectiveFrom: date, rates: payrollRatesSchema }),
   z.object({ action: z.literal('settings'), activeFrom: date, automationEnabled: z.boolean() }),

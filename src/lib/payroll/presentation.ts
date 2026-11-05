@@ -2,23 +2,27 @@ import { paidAmount, type PeriodDocument, type Slip } from './model';
 
 export const rupiah = (value: number) => `Rp${value.toLocaleString('id-ID')}`;
 export const dateWib = (value: string) => new Date(value).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', dateStyle: 'medium', timeStyle: 'short' });
-export const payrollCategory = (kind: string) => ({ SALARY: 'Gaji pokok', ALLOWANCE: 'Tunjangan rutin', ADJUSTMENT: 'Tambahan / potongan', WEEKLY: 'Kelas Weekly', EKSKUL: 'Kelas Ekskul', TRIAL: 'Trial', GOAL: 'Bonus goal', EVENT: 'Event', TRAINING_ONLINE: 'Training online', TRAINING_OFFLINE: 'Training offline', OBSERVATION_ONLINE: 'Observasi online', OBSERVATION_OFFLINE: 'Observasi offline' } as Record<string, string>)[kind] ?? kind;
+export function payrollActivitySummary(slip: Slip): string {
+  const count=(kinds:string[])=>slip.lines.filter(l=>kinds.includes(l.kind)&&!l.details.includes('dibatalkan')).reduce((n,l)=>n+l.quantity,0);
+  return [[count(['CLASS_SUMMARY','WEEKLY','EKSKUL']),'kelas'],[count(['TRIAL']),'trial'],[count(['EVENT','TRAINING_ONLINE','TRAINING_OFFLINE','OBSERVATION_ONLINE','OBSERVATION_OFFLINE']),'kegiatan']].filter(([n])=>Number(n)>0).map(([n,label])=>`${n} ${label}`).join(' · ') || 'Belum ada aktivitas';
+}
+export const payrollCategory = (kind: string) => ({ CLASS_SUMMARY: 'Kelas', SALARY: 'Gaji pokok', ALLOWANCE: 'Tunjangan rutin', ADJUSTMENT: 'Tambahan / potongan', WEEKLY: 'Kelas Weekly', EKSKUL: 'Kelas Ekskul', TRIAL: 'Trial', GOAL: 'Bonus goal', EVENT: 'Event', TRAINING_ONLINE: 'Training online', TRAINING_OFFLINE: 'Training offline', OBSERVATION_ONLINE: 'Observasi online', OBSERVATION_OFFLINE: 'Observasi offline' } as Record<string, string>)[kind] ?? kind;
 export function escapeHtml(value: unknown): string {
   return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]!));
 }
 export function payrollSlipRows(slip: Slip): { label: string; quantity: string; amount: number }[] {
   const groups = [
-    { kinds: ['WEEKLY', 'EKSKUL'], label: 'Fee mengajar kelas', unit: 'sesi' },
+    { kinds: ['CLASS_SUMMARY', 'WEEKLY', 'EKSKUL'], label: 'Fee mengajar kelas', unit: 'sesi' },
     { kinds: ['TRIAL'], label: 'Fee trial', unit: 'sesi' },
     { kinds: ['GOAL'], label: 'Bonus goal', unit: 'anak' },
   ];
   const groupedKinds = new Set(groups.flatMap(group => group.kinds));
-  const rows = slip.lines.filter(line => !groupedKinds.has(line.kind)).map(line => ({ label: line.label, quantity: '', amount: line.amount }));
+  const rows = slip.lines.filter(line => !groupedKinds.has(line.kind) && line.amount !== 0).map(line => ({ label: line.label, quantity: '', amount: line.amount }));
   for (const group of groups) {
     const lines = slip.lines.filter(line => group.kinds.includes(line.kind) && line.amount !== 0);
     if (lines.length) rows.push({
       label: group.label,
-      quantity: `${lines.reduce((sum, line) => sum + line.quantity, 0).toLocaleString('id-ID')} ${group.unit}`,
+      quantity: lines.reduce((sum, line) => sum + line.quantity, 0) ? `${lines.reduce((sum, line) => sum + line.quantity, 0).toLocaleString('id-ID')} ${group.unit}` : '',
       amount: lines.reduce((sum, line) => sum + line.amount, 0),
     });
   }
@@ -34,7 +38,7 @@ export function renderPayrollHtml(period: PeriodDocument, slip: Slip, version = 
   .header{padding:24px;border:0;border-bottom:4px solid #9dc83b;border-radius:12px;background:radial-gradient(circle at 90% 10%,#00b0d744,transparent 55%),linear-gradient(135deg,#172554,#22367b 65%,#1e40af);color:#fff;align-items:center;gap:20px}.brand img{width:155px;height:auto;display:block}.brandNote{font-size:8px;color:#dce8ff;letter-spacing:2px;margin-top:12px}.documentTitle{text-align:right}.documentTitle h1{color:#fff;margin:7px 0}.tag{border-color:#91b4df;color:#e8f5ff;font-size:8px}.identity{padding:18px 4px;gap:16px 28px;border-bottom:1px solid #dde2f0}.value{font-size:13px}.label{font-size:8px;letter-spacing:1px}.summary .totals{border:1px solid #dde2f0;border-radius:10px;overflow:hidden}.totalrow{padding:7px 12px}.totalrow.main{border-left:4px solid #9dc83b;background:#22367b}.number{font-variant-numeric:tabular-nums}thead th{background:#eef1fa;color:#22367b}h2{color:#22367b}body{font-family:Arial,Helvetica,sans-serif}td{padding:8px 7px}.details{font-size:9px}.footer{font-size:8px}@media screen{body{font-size:13px;padding:18px;background:#fff}.details{font-size:11px}th{font-size:11px}.label{font-size:10px}.value{font-size:15px}.brandNote{font-size:9px}.footer{font-size:11px}}@media screen and (max-width:520px){body{padding:10px;font-size:12px}.header{padding:18px;align-items:flex-start;flex-direction:column}.documentTitle{text-align:left}.identity{grid-template-columns:1fr 1fr;gap:18px 12px}.brand img{width:140px}.summary .totals{width:100%}td,th{padding:8px 4px}.details{font-size:10px}}
   @media print{td{padding:6px 7px}}
   </style></head><body><div class="header"><div class="brand"><img src="${escapeHtml(logoSrc)}" alt="Clevio Innovator Camp" /><div class="brandNote">PEOPLE &amp; FINANCE</div></div><div class="documentTitle"><span class="tag">${final ? 'FINAL' : 'DRAFT / SEMENTARA'}</span><h1>Slip gaji</h1><div>${escapeHtml(new Date(period.year, period.month - 1, 1).toLocaleString('id-ID', { month: 'long', year: 'numeric' }))} · Versi ${version}</div></div></div>
-  <div class="identity"><div><div class="label">Penerima</div><div class="value">${escapeHtml(slip.name)}</div><div>${escapeHtml(slip.job_title || slip.kind)}</div></div><div><div class="label">Kontrak</div><div class="value">${escapeHtml(slip.contract)}</div></div><div><div class="label">Rentang aktivitas</div><div>${escapeHtml(dateWib(period.starts_at))} WIB sampai akhir tanggal 25</div></div><div><div class="label">Status transfer</div><div>${transferred >= slip.total && period.transfers.some(t => t.profile_id === slip.profile_id && t.version <= version) ? 'Sudah ditransfer / diselesaikan' : 'Belum diselesaikan'}</div></div></div>
+  <div class="identity"><div><div class="label">Penerima</div><div class="value">${escapeHtml(slip.name)}</div><div>${escapeHtml(slip.job_title || slip.kind)}</div></div><div><div class="label">Kontrak</div><div class="value">${escapeHtml(slip.contract_unconfirmed ? '—' : slip.contract)}</div></div><div><div class="label">Rentang aktivitas</div><div>${escapeHtml(dateWib(period.starts_at))} WIB sampai akhir tanggal 25</div></div><div><div class="label">Status transfer</div><div>${transferred >= slip.total && period.transfers.some(t => t.profile_id === slip.profile_id && t.version <= version) ? 'Sudah ditransfer / diselesaikan' : 'Belum diselesaikan'}</div></div></div>
   ${!final ? '<div class="notice">Pratinjau draft. Nominal belum final dan dokumen ini bukan bukti transfer.</div>' : ''}
   <h2>Ringkasan penghasilan</h2><table><thead><tr><th style="width:70%">Komponen</th><th style="width:30%" class="number">Nominal</th></tr></thead><tbody>${rows.map(row => `<tr><td><strong>${escapeHtml(row.label)}</strong>${row.quantity ? `<div class="details">${escapeHtml(row.quantity)}</div>` : ''}</td><td class="number">${rupiah(row.amount)}</td></tr>`).join('') || '<tr><td colspan="2">Belum ada komponen penghasilan pada periode ini.</td></tr>'}</tbody></table>
   <div class="summary"><div class="totals"><div class="totalrow main"><span>Penghasilan bersih</span><span>${rupiah(slip.total)}</span></div></div></div>

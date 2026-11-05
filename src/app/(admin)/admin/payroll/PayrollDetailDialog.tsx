@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { isPaid, type PayrollLine, type PayrollPerson, type PeriodDocument, type Slip } from '@/lib/payroll/model';
 import { dateWib, payrollCategory, rupiah } from '@/lib/payroll/presentation';
 import PayrollCorrection from './PayrollCorrection';
+import PayrollDetailSummary from './PayrollDetailSummary';
 import styles from './PayrollAdmin.module.css';
 
 type View = 'overview' | 'component' | 'activity' | 'correction';
@@ -48,12 +49,12 @@ export default function PayrollDetailDialog({ period, slip, people, busy, error,
   function fields(event: FormEvent<HTMLFormElement>) { event.preventDefault(); return Object.fromEntries(new FormData(event.currentTarget)); }
 
   return <Dialog open onOpenChange={open => { if (!open && !previewOpen && !busy) close(); }}>
-    <DialogContent className={`${styles.modal} ${view !== 'overview' ? styles.formModal : ''}`} onEscapeKeyDown={event => {
+    <DialogContent className={`${styles.modal} ${view !== 'overview' ? styles.formModal : styles.recapModal}`} onEscapeKeyDown={event => {
       if (!previewOpen && view !== 'overview') { event.preventDefault(); if (!busy) changeView('overview'); }
     }}>
       <DialogHeader className={styles.modalHeader}>
         <DialogTitle>{title}</DialogTitle>
-        <DialogDescription>{view !== 'overview' && `${slip.name} · `}Periode {period.id} · {draft ? 'Rekap sementara' : 'Final'} · Total {rupiah(slip.total)}</DialogDescription>
+        <DialogDescription>{view !== 'overview' && `${slip.name} · `}{new Date(period.year,period.month-1).toLocaleDateString('id-ID',{month:'long',year:'numeric'})} · {draft ? 'Rekap sementara' : 'Final'}</DialogDescription>
       </DialogHeader>
       <nav className={styles.detailTools} aria-label="Tindakan rincian">
         {view === 'overview' ? <>
@@ -66,7 +67,7 @@ export default function PayrollDetailDialog({ period, slip, people, busy, error,
         {message && <p role="status" className={styles.success}>{message}</p>}
         {view === 'component' && draft && <form aria-label="Tambahan / potongan manual" onSubmit={event => {
           const f = fields(event);
-          void save('component', { profileId: slip.profile_id, date: f.date, label: f.label, amount: Number(f.amount), reason: f.reason }, 'Komponen disimpan. Tutup rincian lalu klik Hitung ulang untuk memperbarui total.');
+          void save('component', { profileId: slip.profile_id, date: f.date, label: f.label, amount: Number(f.amount), reason: f.reason }, 'Komponen disimpan dan total diperbarui.');
         }}><fieldset className={styles.form} disabled={busy}>
           <p className={`${styles.muted} ${styles.wide}`}>Khusus periode ini. Nominal negatif menjadi potongan; tunjangan rutin diatur lewat profil staf.</p>
           <label className={styles.field}>Tanggal<Input name="date" type="date" defaultValue={`${period.id}-25`} required /></label>
@@ -77,7 +78,7 @@ export default function PayrollDetailDialog({ period, slip, people, busy, error,
         </fieldset></form>}
         {view === 'activity' && draft && <form aria-label="Aktivitas tambahan" onSubmit={event => {
           const f = fields(event);
-          void save('activity', { profileId: slip.profile_id, date: f.date, label: f.label, kind: f.kind, mode: f.mode, delivery: f.delivery, students: Number(f.students), reason: f.reason }, 'Aktivitas disimpan. Tutup rincian lalu klik Hitung ulang.');
+          void save('activity', { profileId: slip.profile_id, date: f.date, label: f.label, kind: f.kind, mode: f.mode, delivery: f.delivery, students: Number(f.students), reason: f.reason }, 'Aktivitas disimpan dan total diperbarui.');
         }}><fieldset className={styles.form} disabled={busy}>
           <p className={`${styles.muted} ${styles.wide}`}>Catat hanya aktivitas yang belum ada, termasuk laporan lewat tanggal 25. Kalau aktivitas sudah tercatat, gunakan Koreksi aktivitas agar tidak dihitung ganda. Absensi trial normal berasal dari penilaian trial.</p>
           <label className={styles.field}>Tanggal<Input name="date" type="date" defaultValue={new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })} required /></label>
@@ -89,15 +90,16 @@ export default function PayrollDetailDialog({ period, slip, people, busy, error,
           <label className={`${styles.field} ${styles.wide}`}>Alasan / referensi<Input name="reason" minLength={5} required /></label>
           <Button type="submit">Catat aktivitas</Button>
         </fieldset></form>}
-        {view === 'correction' && draft && correction && <PayrollCorrection key={correction.key} line={correction} people={people} profileId={slip.profile_id} busy={busy} close={() => changeView('overview')} save={extra => { void save('override', extra, 'Koreksi disimpan. Tutup rincian lalu klik Hitung ulang.'); }} />}
+        {view === 'correction' && draft && correction && <PayrollCorrection key={correction.key} line={correction} people={people} profileId={slip.profile_id} busy={busy} close={() => changeView('overview')} save={extra => { void save('override', extra, 'Koreksi disimpan dan total diperbarui.'); }} />}
         {view === 'overview' && <section className={styles.detailPanel} aria-label={`Rincian ${slip.name}`}>
-          <div className={styles.lines}><Table><TableHeader><TableRow><TableHead>Tanggal / aktivitas</TableHead><TableHead>Jenis & perhitungan</TableHead><TableHead>Nominal</TableHead><TableHead>Tindakan</TableHead></TableRow></TableHeader><TableBody>{slip.lines.map(line => <TableRow key={line.key}>
+          <PayrollDetailSummary slip={slip} draft={draft} busy={busy} remove={id => { const reason = window.prompt('Alasan menghapus komponen:'); if (reason) void run('removeComponent', { id, reason }); }} correct={line => { setCorrection(line); changeView('correction'); }} />
+          {slip.lines.some(line => !line.summary && !['SALARY','ADJUSTMENT','ALLOWANCE'].includes(line.kind)) && <details className={styles.disclosure}><summary>Detail sesi &amp; koreksi aktivitas</summary>
+          <div className={styles.lines}><Table><TableHeader><TableRow><TableHead>Tanggal / aktivitas</TableHead><TableHead>Jenis & perhitungan</TableHead><TableHead>Nominal</TableHead><TableHead>Tindakan</TableHead></TableRow></TableHeader><TableBody>{slip.lines.filter(line => !line.summary && !['SALARY','ALLOWANCE','ADJUSTMENT'].includes(line.kind)).map(line => <TableRow key={line.key}>
             <TableCell>{dateWib(line.date)} WIB<div className={styles.rowname}>{line.label}</div><div className={styles.rowmeta}>{line.details}{line.override_reason && ` · Koreksi: ${line.override_reason}`}</div></TableCell>
             <TableCell><strong>{payrollCategory(line.kind)}</strong><div className={styles.rowmeta}>{line.mode === 'FULLTIME' ? 'Tercakup gaji pokok' : line.mode === 'MITRA' ? 'Fee mitra' : 'Komponen bulanan'}{line.students !== undefined && ['WEEKLY', 'EKSKUL', 'TRIAL'].includes(line.kind) && ` · ${line.students} anak`}</div></TableCell>
             <TableCell className={styles.money}>{rupiah(line.amount)}</TableCell><TableCell>{draft && !['SALARY', 'ADJUSTMENT', 'ALLOWANCE'].includes(line.kind) && <Button size="sm" variant="outline" disabled={busy} onClick={() => { setCorrection(line); changeView('correction'); }}>Koreksi aktivitas</Button>}</TableCell>
-          </TableRow>)}</TableBody></Table></div>
+          </TableRow>)}</TableBody></Table></div></details>}
           {period.activities.filter(a => a.profile_id === slip.profile_id).map(a => <div key={a.id} className={styles.toolbar}><span>{a.label}</span>{draft && <Button variant="ghost" size="sm" disabled={busy} onClick={() => { const reason = window.prompt('Alasan menghapus aktivitas manual:'); if (reason) void run('removeActivity', { id: a.id, reason }); }}>Hapus aktivitas</Button>}</div>)}
-          {period.manual.filter(m => m.profile_id === slip.profile_id).map(m => <div key={m.id} className={styles.toolbar}><span className={styles.muted}>{m.label}: {rupiah(m.amount)} · {m.reason}</span>{draft && <Button variant="ghost" size="sm" disabled={busy} onClick={() => { const reason = window.prompt('Alasan menghapus komponen:'); if (reason) void run('removeComponent', { id: m.id, reason }); }}>Hapus komponen</Button>}</div>)}
           <details className={styles.disclosure}><summary>Pengiriman ulang & riwayat penerima</summary><div className={styles.detailPanel}>
             <p className={styles.muted}>Rekap absensi dijadwalkan otomatis tanggal 25. Gunakan pengiriman manual hanya untuk koreksi atau kendala pengiriman.</p>
             <div className={styles.toolbar}>{slip.kind === 'COACH' && <Button variant="outline" disabled={busy || !period.calculated_at} onClick={() => { void resend('RECAP', slip.profile_id); }}>Kirim ulang rekap (manual)</Button>}<Button variant="outline" disabled={busy || !isPaid(period, slip.profile_id) || draft} onClick={() => { void resend('SLIP', slip.profile_id); }}>Kirim ulang slip final</Button></div>

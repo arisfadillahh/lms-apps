@@ -1,48 +1,27 @@
-# Rekap payroll dari sistem lama
+# Sinkronisasi data payroll ke rekap LMS
 
-Rekap hasil impor dibuka melalui **Gaji & Slip Gaji → Rekap & arsip → Rekap sistem lama**. Pilih bulan/tahun untuk melihat arsip, cari nama coach, lalu klik **Rincian** untuk melihat seluruh hitungan dan fee sumber dalam popup.
+Pengguna mengelola satu rekap melalui **Gaji & Slip Gaji → Rekap & arsip → Rekap penerima**. Data sinkronisasi menjadi komponen pada penerima dan periode yang sama. Tidak ada tab rekap pembanding. Popup Rincian menggabungkan aktivitas, jumlah dan nominal; komponen kosong tersembunyi sampai diminta, dan total terlihat di atas.
 
-Sistem lama tetap menjadi patokan selama November 2026. Rekap impor adalah salinan pada waktu pengambilan yang tercantum di layar, bukan sinkronisasi langsung. Menghitung ulang rekap LMS tidak menambah counter lama ke sesi LMS dan tidak mengganti salinan sumber. Otomasi payroll/WA tetap nonaktif selama impor.
+## Masa transisi
 
-## Cakupan dan interpretasi
+Selama November 2026, **Perbarui rekap** membaca data kumulatif terbaru yang dipakai alur n8n lalu memperbarui komponen di LMS. Komponen sinkronisasi diganti berdasarkan ID sumber, bukan ditambahkan setiap refresh. Tambahan/potongan dan koreksi admin tetap tersimpan. Pengiriman WA payroll tetap nonaktif. Koneksi sumber dibatasi sampai periode November; periode berikutnya memakai sumber aktivitas LMS normal setelah tanggal mulai diatur admin. Tidak ada perubahan workflow atau data n8n.
 
-- Folder n8n **Rekap Gaji Mitra** menyediakan arsip November 2025–Oktober 2026. Sumber aktif menyediakan November 2026: total 13 periode dan 15 salinan.
-- Desember 2025 memiliki tiga salinan. Pilih **Versi arsip sumber** untuk membandingkan; salinan penutupan tanggal 25 menjadi tampilan awal. Versi alternatif tidak dijumlahkan.
-- Semua counter serta fee sumber, termasuk transport dan fee join coder pada arsip lama, dipertahankan. Tarif LMS saat ini tidak diterapkan ulang ke riwayat.
-- Beberapa arsip awal tidak memiliki kolom total atau memiliki total kosong. Untuk baris tersebut aplikasi menjumlahkan fee yang terisi dan memberi label **Jumlah fee terisi**. Fee yang kosong tetap tampil **Kosong di sumber**.
-- Sumber lama berisi hitungan kumulatif, sehingga impor tidak membuat tanggal sesi atau bukti transfer. Pemetaan penerima dan status kontrak membutuhkan konfirmasi terpisah, bukan tebakan dari kemiripan nama.
-- Kolom AA Agustus 2026 tidak berjudul dan memuat empat rumus `Z - 25000`, sementara Total Estimasi menjumlahkan O:Y. Sesuai arahan pengguna, catatan manual tanpa judul ini diabaikan; total utama Agustus tetap mengikuti Z. Data mentah tetap tersimpan privat.
-- **Rekap LMS** tetap merupakan perhitungan operasional LMS tersendiri. Sebelum migrasi penuh, PIC perlu mengonfirmasi pemetaan identitas, kontrak, serta sumber aktivitas, lalu mencocokkan hasilnya dengan rekap lama.
-- Hanya admin/finance dengan izin payroll dapat membaca nominal impor. Respons coach dan coach lead tetap memakai daftar field operasional yang diizinkan dan tidak menyertakan arsip finansial.
+Arsip November 2025–Oktober 2026 memakai satu salinan penutupan per bulan; alternatif Desember 2025 tetap disimpan sebagai bukti internal dan tidak dijumlahkan. Nominal historis tidak dihitung ulang memakai tarif atau gaji pokok terbaru. Jumlah dan fee kumulatif ditampilkan sebagai rekap bulanan tanpa membuat tanggal sesi fiktif. Kolom manual tanpa judul Agustus tetap diabaikan sesuai keputusan pengguna.
 
-## Prosedur operator
+## Integritas dan akses
 
-Gunakan source Google Sheets yang diambil read-only, dengan metadata file dan CellData termasuk nilai efektif serta formula. File data dan backup tidak boleh masuk Git. Script berjalan dengan Node 24.22+ dan secara default hanya melakukan dry run:
+- Identitas dipasangkan dengan ID yang telah dikonfirmasi. Dua identitas Naufal menuju satu penerima. Identitas yang dikecualikan tetap ada dalam bukti mentah dan tidak masuk daftar penerima.
+- Tarif sumber dan jumlah aktivitas dipertahankan. Komponen yang belum memiliki nominal tidak dianggap sebagai nilai yang telah disetujui; admin dapat mengoreksi dengan alasan.
+- Gaji pokok/tunjangan rutin diterapkan satu kali pada periode berjalan. Gaji pokok fulltime yang belum diatur tetap menghalangi finalisasi. Gaji pokok sekarang tidak disisipkan ke arsip lama.
+- Sinkronisasi tidak membuat penanda transfer, mengirim pesan atau mengganti versi final. Periode final harus dibuka melalui revisi beralasan sebelum data diperbarui.
+- Coach dan coach lead hanya menerima aktivitas dan jumlah melalui proyeksi yang diizinkan, tanpa nominal atau detail koneksi sumber.
 
-```sh
-node scripts/import-payroll-legacy.mjs --input /private/source-archives.json.gz --current-period 2026-11 --ignore-unlabelled-extras
-```
+## Operasional teknis
 
-Setelah verifikasi, jalankan dari release production yang sudah disetujui:
+`legacy_imports` dan `legacy_links` tetap menjadi bukti internal pada dokumen periode. `calculateSynchronizedPeriod` mengubah bukti tersebut menjadi slip/komponen rekap LMS yang sama dengan alur pembayaran. Pada periode transisi, sumber kumulatif dan sesi otomatis LMS tidak dijumlahkan sebagai dua feed. Aktivitas/manual yang ditambahkan operator tetap terpisah sebagai koreksi eksplisit pada rekap yang sama.
 
-```sh
-node scripts/import-payroll-legacy.mjs --input /private/source-archives.json.gz --current-period 2026-11 --ignore-unlabelled-extras --apply --env /root/lms/shared/.env --backup-dir /root/lms/deploy-backups/payroll-import
-```
+`node scripts/unify-payroll-periods.mjs --env /private/.env` melakukan dry-run seluruh arsip. Tambahkan `--apply --backup-dir /private/backups` untuk menyimpan backup dan melakukan pembaruan dengan pemeriksaan revisi serta audit. `--period YYYY-MM` membatasi satu periode. Profil, kontrak, kontak, transfer dan riwayat final tidak ditimpa.
 
-Impor menolak otomasi yang aktif, struktur/angka tidak valid, ID duplikat, atau total yang tidak cocok dengan komponen sumber. Backup periode awal dibuat privat sebelum perubahan. Setiap periode memakai RPC compare-and-swap dan audit `IMPORT_N8N_ARCHIVE`; pekerjaan bisa dilanjutkan setelah kegagalan tanpa menambahkan salinan yang sama lagi. Ulangi input identik untuk memverifikasi status `UNCHANGED`.
+`scripts/sync-payroll-source.py --config /private/source-config.json --env /private/.env` memeriksa akses sumber secara read-only. `--apply` menyimpan salinan mentah privat, memperbarui bukti sumber dan menghitung ulang satu rekap LMS. Kredensial dibaca di tempat tanpa ditulis ulang. Koneksi ini dipanggil oleh tombol Perbarui rekap, terpisah dari pengaturan pengiriman otomatis.
 
-Data berada pada `payroll_periods.document.legacy_imports`, menggunakan kontrol akses dan audit periode yang sudah ada; tidak membutuhkan migration tabel baru. Importer mempertahankan seluruh field periode lain, termasuk PIC, koreksi, slip, transfer, aktivitas, dan riwayat final. Pengiriman serta transfer tidak dipanggil. Data mentah/cadangan perlu disimpan untuk penelusuran atau pemulihan melalui revisi beralasan.
-
-## Verifikasi
-
-Test regresi mencakup jumlah komponen, formula error, identitas/period mismatch, fee kosong, teks rupiah, versi arsip ganda, impor berulang, perhitungan LMS tanpa hitung ganda, dan pembatasan nominal coach/coach lead. QA browser lokal mencakup login finance, tabel 18 coach, popup rincian, filter periode, pergantian tiga versi Desember, pengabaian kolom manual Agustus, serta tampilan desktop/HP. Fixture browser tidak menulis database lokal.
-
-Pemeriksaan production setelah impor harus mencocokkan setiap coach, counter, fee, total, checksum, dan jumlah versi; memastikan field periode lama tidak berubah, ulang impor menghasilkan `UNCHANGED`, dan otomasi tetap nonaktif. Tidak menguji pengiriman WA atau transaksi bank nyata.
-
-## Penautan identitas yang sudah dikonfirmasi
-
-`legacy_links` menyimpan pasangan ID sumber ke profil penerima LMS, terpisah dari angka arsip. Dua identitas sumber historis boleh menuju satu coach yang sama jika telah dikonfirmasi. Staf dapat ditautkan tanpa akun LMS. Identitas yang dikecualikan ditandai **Arsip saja** dan tidak dihapus dari total sumber.
-
-Jalankan `scripts/link-payroll-legacy-identities.mjs --manifest /private/confirmed.json --env /private/.env` untuk dry-run. `--apply --backup-dir /private/backups` membuat backup privat, menambah profil yang belum ada, membuat kontrak awal yang telah dikonfirmasi, dan menautkan arsip dengan pemeriksaan revisi serta audit. Mode `--manifest -` menerima JSON lewat stdin. Manifest tidak boleh masuk Git.
-
-Profil, kontrak, dan tunjangan yang sudah diatur operator tidak ditimpa. Kontrak fulltime awal tanpa nominal gaji ditandai belum lengkap dan diblokir dari finalisasi sampai admin mengisi gaji pokok. Status aktif mengikuti akun asal; impor tidak mengaktifkan kembali coach nonaktif. Periode lama tetap memakai angka sumber, bukan dihitung ulang memakai kontrak/tarif baru. Operasi ini tidak menyalakan otomatisasi, mengirim pesan, atau menandai transfer.
+QA: uji unit penggantian nilai/idempotensi, pelestarian koreksi, satu salinan penutupan, penerima nonaktif, salary sekali per periode, penolakan final, serta privasi. QA browser memakai fixture privat tanpa menyimpan data sumber ke database lokal; memeriksa satu daftar, rincian ringkas, komponen kosong, total setelah koreksi, arsip dan desktop/HP.

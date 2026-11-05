@@ -42,6 +42,10 @@ export async function executePayrollCommand(command: PayrollCommand, actor: stri
   if (!record) throw new PayrollError('Periode tidak ditemukan.', 404);
   if (record.revision !== command.revision) throw new PayrollError('Data sudah berubah. Muat ulang terlebih dahulu.', 409);
   if (command.action === 'calculate') return calculatePayroll(record, now, actor);
+  if (command.action === 'refreshSource') {
+    const { refreshPayrollSource } = await import('./payrollSourceSync');
+    return refreshPayrollSource(record, actor);
+  }
   if (command.action === 'send') {
     const { sendPayrollBatch } = await import('./payrollDelivery');
     return sendPayrollBatch(record.id, command.profileIds, command.kind, actor, command.resend);

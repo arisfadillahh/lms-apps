@@ -67,6 +67,7 @@ if (!apply) {
     }
     const document=mergeLegacySnapshots(record.document,snapshots);
     if(JSON.stringify(document)===JSON.stringify(record.document)){results.push({period:id,status:'UNCHANGED'});continue;}
+    if(record.document.status==='FINAL')throw new Error(`Period ${id} is final. Reopen an audited revision before refreshing its source.`);
     await request('rpc/payroll_commit_period','POST',{p_id:id,p_expected_revision:record.revision,p_document:document,p_actor_id:null,p_action:'IMPORT_N8N_ARCHIVE',p_reason:'User-authorized legacy payroll import; source remains authoritative, no payment or delivery changes.'});
     const [saved]=await request(`payroll_periods?select=*&id=eq.${id}`);
     for(const snapshot of snapshots){const actual=saved.document.legacy_imports.find(s=>s.sourceId===snapshot.sourceId);if(actual?.checksum!==snapshot.checksum || actual.total!==snapshot.total || actual.rows.length!==snapshot.rows.length)throw new Error(`Import readback mismatch: ${id}`);}

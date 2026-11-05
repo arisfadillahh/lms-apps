@@ -5,11 +5,15 @@ import { buildPayrollActivities, type SessionSource, type ClassSource, type Enro
 import { calculatePeriod, createPeriod, currentPeriod, effective, inPeriod, PayrollError, wibDate, type PeriodRecord, type PeriodDocument } from '@/lib/payroll/model';
 import { approvedRequestActivities, type ActivityRequest } from '@/lib/payroll/activityRequests';
 import { attendanceAdmins } from './payrollNotifications';
-import { payrollLegacyBaseline } from './payrollLegacyBaseline';
+import { calculateSynchronizedPeriod } from '@/lib/payroll/synchronizedPeriod';
 
 export async function calculatePayroll(record: PeriodRecord, now = new Date(), actor: string | null = null): Promise<PeriodRecord> {
   requireDraft(record);
   const config = await dao.getPayrollConfig();
+  if (record.document.legacy_imports?.length) {
+    const next = calculateSynchronizedPeriod({ period: record.document, ...config, now, includeRecurring: record.id === currentPeriod(now).id });
+    return dao.commitPayrollPeriod(record, next, actor, 'CALCULATE');
+  }
   if (!config.settings.active_from) throw new PayrollError('Atur tanggal mulai pencatatan gaji terlebih dahulu.');
   if (config.people.filter(p => p.active).length === 0) throw new PayrollError('Tambahkan coach/staf dan kontraknya terlebih dahulu.');
   const [sessions, trials, assessments, requests] = await Promise.all([
@@ -53,7 +57,7 @@ export async function payrollBootstrap(year?: number, month?: number) {
   if (!selected && !year) selected = periods[0];
   const requestPeriod = selected?.document ?? (year && month ? createPeriod(year, month) : currentPeriod());
   const requests = await dao.payrollRows('payroll_activity_requests', '*', { gte: ['activity_at', requestPeriod.starts_at], lt: ['activity_at', requestPeriod.ends_at] });
-  return { ...config, legacyBaseline: await payrollLegacyBaseline(requestPeriod.id), admins: await attendanceAdmins(), requests: requests as unknown as ActivityRequest[], periods: periods.map(p => ({ id: p.id, status: p.document.status, version: p.document.version })), selected: selected ?? null, coaches: coaches.data ?? [], classes: classes.data ?? [], audit: selected ? await dao.getPayrollAudit(selected.id) : [] };
+  return { ...config, admins: await attendanceAdmins(), requests: requests as unknown as ActivityRequest[], periods: periods.map(p => ({ id: p.id, status: p.document.status, version: p.document.version })), selected: selected ?? null, coaches: coaches.data ?? [], classes: classes.data ?? [], audit: selected ? await dao.getPayrollAudit(selected.id) : [] };
 }
 
 export function requireDraft(record: PeriodRecord) {

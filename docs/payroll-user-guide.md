@@ -1,6 +1,6 @@
 # Panduan Absensi, Gaji, dan Slip Gaji Clevio
 
-Status: modul payroll sudah dideploy ke production pada 5 November 2026. Otomasi payroll/WA belum diaktifkan; sistem lama tetap menjadi patokan bulan ini. Panduan arsip sumber dan batas impor tersedia di [Rekap payroll dari sistem lama](./payroll-legacy-import.md).
+Status: modul payroll sudah dideploy ke production pada 5 November 2026. Otomasi payroll/WA belum diaktifkan. Data transisi dan arsip masuk satu rekap LMS; lihat [Sinkronisasi data payroll](./payroll-legacy-import.md).
 
 ## Mencoba di local
 
@@ -12,7 +12,7 @@ Database demo tersimpan terpisah di `.codex-payroll-local/database`. Menjalankan
 
 ## Alur bulanan admin
 
-Di **Rekap & arsip**, pilih bulan/tahun pada baris periode. **Hitung ulang** dan **Finalisasi** berada di baris yang sama untuk periode draft. Tabel penerima langsung terlihat di bawahnya; jumlah penerima dan total ditampilkan sebagai ringkasan pendek. Buka **Info periode** untuk cutoff, deadline koreksi, dan syarat finalisasi. Area kerjanya dipisah:
+Di **Rekap & arsip**, pilih bulan/tahun pada baris periode. **Perbarui rekap** dan **Finalisasi** berada di baris yang sama untuk periode draft. Tabel penerima langsung terlihat di bawahnya; jumlah penerima dan total ditampilkan sebagai ringkasan pendek. Buka **Info periode** untuk cutoff, deadline koreksi, dan syarat finalisasi. Area kerjanya dipisah:
 
 | Area | Dipakai untuk |
 | --- | --- |
@@ -23,11 +23,11 @@ Di **Rekap & arsip**, pilih bulan/tahun pada baris periode. **Hitung ulang** dan
 Periode draft langsung membuka Rekap penerima. Periode final langsung membuka Pembayaran & slip. Checkbox hanya ada di **Pembayaran & slip**: centang penerima agar tombol transfer/kirim slip muncul. **Batal pilih** mengosongkan pilihan. Pindah area kerja juga mengosongkan pilihan untuk mencegah tindakan pada pilihan sebelumnya.
 
 1. Buka **Keuangan → Gaji & Slip Gaji**. Pilih bulan/tahun; pilihan yang sama digunakan untuk membuka arsip bulan lama.
-2. Klik **Hitung ulang**. Periksa nama penerima, aktivitas, pengganti, nominal, dan peringatan. Sumber yang sama tidak dihitung dua kali.
-3. Buka **Rincian** untuk melihat tabel dalam popup, memperbaiki sesi, memindahkan fee ke coach pengganti, mengatur mode sesi, atau memberi nominal khusus untuk force majeure. Alasan wajib diisi. Setelah perubahan, tutup popup lalu klik **Hitung ulang**. **Pratinjau** membuka slip berlogo Clevio dalam popup tanpa mengunduh PDF. Slip merangkum seluruh fee kelas menjadi satu baris jumlah sesi dan total nominal; fee trial dan bonus goal juga diringkas. Gaji pokok, setiap tunjangan, potongan, dan komponen lain tetap tercantum masing-masing. Tanggal/nama sesi dan catatan koreksi lengkap tersedia di Rincian dan rekap absensi, bukan di slip.
+2. Klik **Perbarui rekap**. Periksa nama penerima, aktivitas, pengganti, nominal, dan peringatan. Sumber yang sama tidak dihitung dua kali.
+3. Buka **Rincian** untuk melihat tabel dalam popup, memperbaiki sesi, memindahkan fee ke coach pengganti, mengatur mode sesi, atau memberi nominal khusus untuk force majeure. Alasan wajib diisi. Total langsung diperbarui setelah perubahan disimpan. **Pratinjau** membuka slip berlogo Clevio dalam popup tanpa mengunduh PDF. Slip merangkum seluruh fee kelas menjadi satu baris jumlah sesi dan total nominal; fee trial dan bonus goal juga diringkas. Gaji pokok, setiap tunjangan, potongan, dan komponen lain tetap tercantum masing-masing. Tanggal/nama sesi dan catatan koreksi lengkap tersedia di Rincian dan rekap absensi, bukan di slip.
 4. Di popup Rincian, tombol **Tambahan / potongan** dan **Aktivitas manual** selalu berada di atas daftar. Klik untuk mengganti isi popup menjadi form khusus; tabel panjang disembunyikan sementara. Gunakan nominal negatif untuk potongan. **Kembali ke rincian** atau Escape kembali ke tabel. Penyimpanan berhasil otomatis kembali ke rincian; jika gagal, form dan isian tetap terlihat. Koreksi aktivitas memakai alur form yang sama. Pencatatan trial manual hanya untuk pengecualian admin dengan alasan; jalur normalnya otomatis dari penilaian trial. Hindari menambahkan kegiatan yang sudah terhitung dari LMS.
 5. **Rekap absensi otomatis tanggal 25**, mulai 09.00 WIB, dengan pengingat terakhir mulai 16.00 WIB dan deadline koreksi 17.00 WIB. Otomatisasi harus diaktifkan di **Tarif & otomatisasi → Otomatisasi**, dan cron LMS harus berjalan. Rekap WA berupa pesan teks rinci tanpa nominal atau lampiran, untuk pemeriksaan absensi oleh coach; ini tidak menandai pembayaran. Status aktivasi terlihat di Rekap penerima dan Info periode. Di local, WA tetap disimulasikan. Kirim ulang manual hanya untuk pengecualian lewat **Rincian → Pengiriman ulang & riwayat penerima → Kirim ulang rekap (manual)**. Pengiriman manual lebih awal tidak menggantikan jadwal tanggal 25.
-6. Setelah seluruh tanggal 25 selesai, klik **Finalisasi**. Sistem menghitung ulang sumber terbaru sebelum menyimpan versi final. Periode berjalan tidak dapat difinalisasi sebelum tanggal 26 pukul 00.00 WIB. Peringatan dan pengajuan koreksi berstatus Menunggu/Diproses harus diselesaikan dahulu.
+6. Setelah seluruh tanggal 25 selesai, klik **Finalisasi**. Sistem mengperbarui rekap sumber terbaru sebelum menyimpan versi final. Periode berjalan tidak dapat difinalisasi sebelum tanggal 26 pukul 00.00 WIB. Peringatan dan pengajuan koreksi berstatus Menunggu/Diproses harus diselesaikan dahulu.
 7. Buka **Pembayaran & slip**. Lakukan transfer melalui bank. Setelah transfer benar-benar selesai, pilih penerima dan klik **Tandai sudah transfer**. Tombol ini mencatat penyelesaian transfer; tidak melakukan transfer bank. Jika pilihan berisi penerima yang sudah dan belum ditransfer, hanya yang belum selesai yang ditandai.
 8. Pilihan penerima tetap tersimpan dan tombol utama berubah menjadi **Kirim slip gaji**. Klik untuk mengirim tanpa mencentang ulang. Untuk satu orang, cukup centang satu penerima; untuk massal, centang beberapa penerima atau semua hasil filter. Slip hanya dapat dikirim setelah final dan tercatat sudah ditransfer. Periksa hasil setiap penerima; kegagalan satu pengiriman tidak membatalkan hasil penerima lainnya.
 
@@ -49,7 +49,7 @@ Di tab **Coach & staf**, klik **Tambah penerima** untuk membuka form dalam popup
 
 Untuk karyawan lain, pilih **Staf non-coach**. Isi nama, jabatan, nomor WA pribadi jika tersedia, kontrak, serta gaji pokok. Staf tidak perlu akun LMS; admin mengelola nomor WA staf di sini. Gunakan Fulltime jika penerima mempunyai gaji tetap.
 
-Klik **Profil & tunjangan** di penerima untuk membuka popup pengaturan **Tunjangan jabatan** dan **Tambah tunjangan rutin lainnya**, misalnya komunikasi atau makan. Popup menutup setelah penyimpanan berhasil. Tunjangan rutin otomatis masuk satu kali setiap periode setelah **Hitung ulang**, mengikuti tanggal berlaku kontrak. Untuk perubahan ke depan, isi tanggal **Berlaku mulai** yang baru. Versi final bulan lama tetap tersimpan. Tunjangan rutin mengikuti nominal bulanan penuh, tanpa prorata otomatis.
+Klik **Profil & tunjangan** di penerima untuk membuka popup pengaturan **Tunjangan jabatan** dan **Tambah tunjangan rutin lainnya**, misalnya komunikasi atau makan. Popup menutup setelah penyimpanan berhasil. Tunjangan rutin otomatis masuk satu kali setiap periode setelah **Perbarui rekap**, mengikuti tanggal berlaku kontrak. Untuk perubahan ke depan, isi tanggal **Berlaku mulai** yang baru. Versi final bulan lama tetap tersimpan. Tunjangan rutin mengikuti nominal bulanan penuh, tanpa prorata otomatis.
 
 Untuk tunjangan atau potongan khusus satu bulan, buka **Rekap & arsip → pilih bulan → Rekap penerima → Rincian → Tambahan / potongan**. Isi label, nominal, dan alasan. Nominal negatif menjadi potongan. Komponen ini hanya berlaku pada periode yang dipilih; tidak berulang pada bulan berikutnya. Contoh: tunjangan jabatan rutin Rp500.000 disimpan di profil, sedangkan bantuan khusus November Rp250.000 ditambahkan di rincian November.
 
@@ -90,21 +90,21 @@ Tab **Tarif & otomatisasi** hanya menampilkan pengaturan yang dipilih: **Tarif a
 
 Pada halaman **Absensi & Slip Gaji**, coach mengisi jenis aktivitas, tanggal/jam WIB, nama kegiatan, serta rincian/lokasi/referensi bukti. Identitas mengikuti akun login; tidak perlu mengetik ID Telegram. Pengajuan hanya untuk kegiatan yang sudah berlangsung dan sebelum deadline reguler periode tersebut. Event, training, observasi online/offline, tersedia. Trial menggunakan modul Trial dan tidak dapat diajukan melalui form aktivitas tambahan.
 
-Pengajuan berstatus **Menunggu admin** dan belum menambah gaji. Admin membuka tab **Pengajuan coach → Event & kegiatan**, memilih bulan/tahun langsung di bagian atas, lalu **Tinjau aktivitas**. Periksa kegiatan dan buktinya, tentukan Setujui/Tolak, pilih mode Mitra/Fulltime untuk kegiatan tersebut, dan isi alasan. Kembali ke **Rekap & arsip** dan klik **Hitung ulang** setelah keputusan disimpan. Coach mendapat notifikasi keputusan di LMS dan dapat melihat riwayat pengajuan sendiri.
+Pengajuan berstatus **Menunggu admin** dan belum menambah gaji. Admin membuka tab **Pengajuan coach → Event & kegiatan**, memilih bulan/tahun langsung di bagian atas, lalu **Tinjau aktivitas**. Periksa kegiatan dan buktinya, tentukan Setujui/Tolak, pilih mode Mitra/Fulltime untuk kegiatan tersebut, dan isi alasan. Kembali ke **Rekap & arsip** dan klik **Perbarui rekap** setelah keputusan disimpan. Coach mendapat notifikasi keputusan di LMS dan dapat melihat riwayat pengajuan sendiri.
 
 Pengajuan identik tidak dibuat dua kali. Trial tidak tersedia pada pengajuan coach untuk mencegah sumber absensi ganda. Admin dapat mengubah keputusan dengan alasan selama periode draft. Untuk periode final, buka revisi admin dahulu. Keputusan dan perubahan perhitungan dicatat bersama; versi final sebelumnya tetap utuh.
 
-Konfirmasi invoice trial lunas yang sudah dipakai sistem pembayaran sekarang juga memicu sinkronisasi bonus goal. Bonus masuk ketika invoice pendaftaran berstatus **PAID** dan tanggal konfirmasi lunas tersedia. Callback berulang menghitung ulang sumber yang sama; tidak menambah bonus ganda. Gangguan penggajian tidak membatalkan konfirmasi pembayaran; Hitung ulang/cron memperbaiki sinkronisasi. Tanggal konfirmasi menentukan periode bonus. Bonus diberikan kepada coach assessment trial, satu kali per anak. Pencocokan anak menggunakan nama dan nomor kontak pendaftaran yang dinormalisasi. Pastikan data anak konsisten; untuk riwayat pembayaran yang tidak lengkap, periksa peringatan sebelum memberi tambahan manual.
+Konfirmasi invoice trial lunas yang sudah dipakai sistem pembayaran sekarang juga memicu sinkronisasi bonus goal. Bonus masuk ketika invoice pendaftaran berstatus **PAID** dan tanggal konfirmasi lunas tersedia. Callback berulang mengperbarui rekap sumber yang sama; tidak menambah bonus ganda. Gangguan penggajian tidak membatalkan konfirmasi pembayaran; Perbarui rekap/cron memperbaiki sinkronisasi. Tanggal konfirmasi menentukan periode bonus. Bonus diberikan kepada coach assessment trial, satu kali per anak. Pencocokan anak menggunakan nama dan nomor kontak pendaftaran yang dinormalisasi. Pastikan data anak konsisten; untuk riwayat pembayaran yang tidak lengkap, periksa peringatan sebelum memberi tambahan manual.
 
 ## Absensi trial otomatis
 
 Admin meng-assign coach melalui modul Trial yang sudah ada. Setelah trial berlangsung, coach membuka trial miliknya, melengkapi form penilaian, lalu mengirimkannya. **Draft belum dihitung**. Absensi otomatis baru valid ketika penilaian terkirim oleh coach yang ditugaskan; tidak perlu formulir absensi kedua. Pencatatan ini memperbarui rekap absensi/estimasi. Pembayaran tetap diproses finance pada akhir bulan, kemudian ditandai sudah ditransfer dan slip dikirim manual. Satu sesi bersama menghasilkan satu fee trial, meskipun penilaian beberapa anak dikirim pada waktu berbeda. Bonus goal tetap dihitung per anak. Jika satu sesi memiliki beberapa anak, satu penilaian valid cukup mencatat satu sesi, tetapi laporan anak lain yang belum lengkap ditandai sebagai peringatan admin. Lengkapi laporan atau catat hasil pemeriksaan melalui Koreksi aktivitas sebelum finalisasi.
 
-Tanggal sesi menentukan periode fee trial. Jika penilaian terlambat masuk dan periode sudah final, sistem memberi tahu admin tanpa mengubah slip final; admin membuka revisi jika perlu. Pengiriman penilaian memicu pencatatan absensi dan sinkronisasi rekap draft, dan cron/hitung ulang dapat mengulang sinkronisasi bila sempat terjadi gangguan.
+Tanggal sesi menentukan periode fee trial. Jika penilaian terlambat masuk dan periode sudah final, sistem memberi tahu admin tanpa mengubah slip final; admin membuka revisi jika perlu. Pengiriman penilaian memicu pencatatan absensi dan sinkronisasi rekap draft, dan cron/perbarui rekap dapat mengulang sinkronisasi bila sempat terjadi gangguan.
 
 ## Koreksi dan force majeure
 
-Pilih penerima → **Rincian → Koreksi aktivitas**. Admin dapat memilih coach penerima, mode sesi, pembatalan hak fee, atau nominal paksa. Nominal paksa mengesampingkan tarif dan pembatalan; kosongkan jika ingin perhitungan normal. Isi alasan dan hitung ulang. Komponen manual dan aktivitas tambahan juga dapat dihapus dengan alasan, selama periode masih draft.
+Pilih penerima → **Rincian → Koreksi aktivitas**. Admin dapat memilih coach penerima, mode sesi, pembatalan hak fee, atau nominal paksa. Nominal paksa mengesampingkan tarif dan pembatalan; kosongkan jika ingin perhitungan normal. Isi alasan; total langsung diperbarui setelah penyimpanan. Komponen manual dan aktivitas tambahan juga dapat dihapus dengan alasan, selama periode masih draft.
 
 Untuk periode final, buka **Riwayat periode → Buka revisi admin**, isi alasan, lalu kembali ke **Rekap penerima** untuk melakukan koreksi dan finalisasi lagi. Sistem menyimpan versi baru dan mempertahankan versi lama serta semua catatan transfer. Jika sebelumnya sudah ditransfer Rp500.000 dan hasil revisi Rp550.000, sisa yang ditandai berikutnya Rp50.000. Jika penyesuaian disepakati masuk bulan berikutnya, admin/finance menambah komponen berlabel, nominal, dan alasan pada periode berikutnya. Tidak ada modul cicilan, penagihan kembali, atau pemindahan saldo otomatis. Nominal negatif adalah potongan; positif adalah tambahan.
 
@@ -128,7 +128,7 @@ Buka **Absensi & Slip Gaji** melalui menu coach. Pilih arsip bulan/tahun untuk m
 
 ## Arsip dan akses admin
 
-Di **Rekap & arsip**, pilih bulan/tahun untuk membuka periode berjalan maupun arsip lama. Pencarian nama/jabatan berada di sebelah tab area kerja; tombol **Filter** membuka pilihan coach/staf dan fulltime/mitra. Filter transfer dan status pengiriman tersedia di **Pembayaran & slip**. Total ringkasan mengikuti hasil filter; **Reset filter** mengembalikan daftar lengkap. Penjelasan cutoff, koreksi, dan finalisasi tersedia di **Info periode**. Ikon panah melingkar di sebelah judul memuat ulang data tanpa menghitung ulang gaji.
+Di **Rekap & arsip**, pilih bulan/tahun untuk membuka periode berjalan maupun arsip lama. Pencarian nama/jabatan berada di sebelah tab area kerja; tombol **Filter** membuka pilihan coach/staf dan fulltime/mitra. Filter transfer dan status pengiriman tersedia di **Pembayaran & slip**. Total ringkasan mengikuti hasil filter; **Reset filter** mengembalikan daftar lengkap. Penjelasan cutoff, koreksi, dan finalisasi tersedia di **Info periode**. Ikon panah melingkar di sebelah judul memuat ulang data tanpa mengperbarui rekap gaji.
 
 Popup Rincian menyediakan **Pengiriman ulang & riwayat penerima** yang dapat dibuka untuk pratinjau versi final sebelumnya, riwayat transfer, dan pengiriman ulang. Audit seluruh periode ada di **Riwayat periode**. Admin melihat slip melalui popup; file PDF tetap dipakai sebagai lampiran slip yang dikirim melalui WA. Tabel di layar kecil dapat digeser ke samping untuk melihat kolom tindakan.
 
@@ -146,11 +146,9 @@ Di **Absensi & koreksi coach → Event & kegiatan**, tombol **Tinjau aktivitas**
 
 Jika salah menandai transfer: **Rincian → Pengiriman ulang & riwayat penerima → Riwayat transfer → Batalkan penandaan**. Isi alasan. Catatan transfer asli tetap ada dengan penanda pembatalan. Tindakan ini tidak menggerakkan uang bank. Penerima kembali belum dibayar, pengiriman slip diblokir, dan akses unduh coach dihentikan sampai penandaan yang benar dibuat. File yang sudah diterima sebelumnya tentu tidak dapat ditarik dari perangkat penerima.
 
-## Uji paralel sistem lama
+## Satu rekap selama transisi
 
-November masih memakai sistem lama sebagai patokan. Desember adalah target tentatif migrasi penuh setelah hasil disepakati. **Rekap & arsip → Rekap sistem lama** menampilkan salinan sumber n8n per bulan, termasuk 18 coach bulan berjalan dan arsip sebelumnya. Pilih bulan/tahun untuk membuka arsip; Desember 2025 mempunyai beberapa versi yang bisa dipilih tanpa dijumlahkan.
-
-Salinan mempertahankan angka/formula pada waktu baca, bukan sinkronisasi langsung. Hitungan kumulatif tidak diubah menjadi tanggal sesi dan tidak dijumlahkan lagi dengan aktivitas LMS. Pemetaan akun/kontrak perlu dikonfirmasi sebelum migrasi penuh. Transport lama tetap mengikuti sumber; transport operasional LMS manual. Rincian dan kasus arsip kosong dijelaskan di [panduan impor](./payroll-legacy-import.md).
+Buka **Rekap & arsip → Rekap penerima** untuk data berjalan dan arsip. **Perbarui rekap** mengambil data terbaru selama transisi. Rincian menampilkan aktivitas, jumlah, nominal dan total dalam satu popup. Tambahan/koreksi yang disimpan langsung memperbarui total; baris kosong dapat ditampilkan bila diperlukan. Data kumulatif diperbarui tanpa menambahkan salinan jumlah yang sama. Pengiriman WA tetap nonaktif.
 
 ## Flowchart per pengguna
 
@@ -175,7 +173,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-  A[Pilih periode dan PIC] --> B[Hitung ulang dan periksa rincian]
+  A[Pilih periode dan PIC] --> B[Perbarui rekap dan periksa rincian]
   B --> C[Tangani izin / pengganti / kegiatan / koreksi]
   C --> D{Aktivitas sudah ada?}
   D -->|Ya| E[Koreksi sumber yang sama dengan alasan]
@@ -183,7 +181,7 @@ flowchart TD
   E --> G[Selesaikan tanggapan pengajuan]
   F --> G
   G --> H[Tanggal 25 tetap mencakup aktivitas sampai 23.59.59]
-  H --> I[Tanggal 26: hitung ulang, bereskan peringatan, finalisasi]
+  H --> I[Tanggal 26: perbarui rekap, bereskan peringatan, finalisasi]
   I --> J[Serahkan ke finance]
   I --> K[Revisi terlambat: buka versi baru dengan alasan]
 ```

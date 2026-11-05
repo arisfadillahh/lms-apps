@@ -37,10 +37,11 @@ export interface ActivityOverride {
 export interface PayrollLine {
   key: string; date: string; label: string; kind: string; quantity: number; rate: number; amount: number;
   details: string; mode?: Contract; students?: number; override_reason?: string;
+  summary?: boolean; amount_pending?: boolean;
 }
 export interface Slip {
   profile_id: string; user_id: string | null; kind: PersonKind; name: string; job_title: string;
-  contract: Contract; lines: PayrollLine[]; total: number;
+  contract: Contract; lines: PayrollLine[]; total: number; contract_unconfirmed?: boolean;
 }
 export interface ManualComponent {
   id: string; profile_id: string; date: string; label: string; amount: number; reason: string;
@@ -74,11 +75,13 @@ export interface PeriodDocument {
   pic_id?: string | null; corrections?: CorrectionRequest[]; transfer_reversals?: TransferReversal[];
   legacy_imports?: LegacyPayrollSnapshot[];
   legacy_links?: Record<string, LegacyIdentityLink>;
+  synchronized_at?: string;
 }
 export interface PeriodRecord { id: string; revision: number; document: PeriodDocument; updated_at?: string }
 
 export class PayrollError extends Error {
-  constructor(message: string, public status = 400) { super(message); this.name = 'PayrollError'; }
+  status: number;
+  constructor(message: string, status = 400) { super(message); this.name = 'PayrollError'; this.status = status; }
 }
 export function money(value: number): number {
   if (!Number.isSafeInteger(value) || Math.abs(value) > 1_000_000_000_000) throw new PayrollError('Nominal rupiah harus bilangan bulat yang valid.');
@@ -122,19 +125,21 @@ export function validateRates(rates: PayrollRates): void {
 export function calculatePeriod(input: {
   period: PeriodDocument; people: PayrollPerson[]; terms: PayrollTerm[]; cards: RateCard[];
   activities: Activity[]; now?: Date; sourceWarnings?: string[];
+  seedSlips?: Slip[]; includeRecurring?: boolean;
 }): PeriodDocument {
   const { people, terms, cards } = input;
   const now = input.now ?? new Date();
   const p = structuredClone(input.period);
   if (p.status !== 'DRAFT') throw new PayrollError('Buka revisi sebelum menghitung ulang periode final.', 409);
   const warnings = new Set(input.sourceWarnings ?? []);
-  const slips = new Map<string, Slip>();
+  const slips = new Map<string, Slip>((input.seedSlips ?? []).map(s => [s.profile_id, structuredClone(s)]));
   const dateForSalary = wibDate(new Date(Math.min(now.getTime(), Date.parse(p.ends_at) - 1)));
   for (const person of people.filter(x => x.active)) {
+    if (input.includeRecurring === false) continue;
     const term = effective(terms.filter(t => t.profile_id === person.id), dateForSalary);
     if (!term) { warnings.add(`Kontrak belum diatur: ${person.name}`); continue; }
     if (term.contract === 'FULLTIME' && term.base_salary <= 0) warnings.add(`Gaji pokok fulltime belum diatur: ${person.name}`);
-    const lines: PayrollLine[] = [];
+    const lines: PayrollLine[] = slips.get(person.id)?.lines ?? [];
     if (term.contract === 'FULLTIME') lines.push({ key: `salary:${person.id}`, date: dateForSalary, label: 'Gaji tetap', kind: 'SALARY', quantity: 1, rate: money(term.base_salary), amount: money(term.base_salary), details: `Kontrak berlaku ${term.effective_from}` });
     const recurring = [{ label: 'Tunjangan jabatan', amount: term.position_allowance ?? 0 }, ...(term.other_allowances ?? [])];
     recurring.forEach((allowance, index) => {
@@ -257,9 +262,9 @@ export function reviewCorrection(p: PeriodDocument, id: string, status: 'IN_PROG
   return next;
 }
 export function recapMessage(p: PeriodDocument, slip: Slip, now = new Date()): string {
-  const labels: Record<string, string> = { WEEKLY: 'Weekly', EKSKUL: 'Ekskul', TRIAL: 'Trial', EVENT: 'Event', TRAINING_ONLINE: 'Training online', TRAINING_OFFLINE: 'Training offline', OBSERVATION_ONLINE: 'Observasi online', OBSERVATION_OFFLINE: 'Observasi offline' };
-  const lines = slip.lines.filter(l => Object.hasOwn(labels, l.kind));
-  const count = lines.filter(l => !l.details.includes('dibatalkan')).length;
-  const details = lines.map((l, i) => `${i + 1}. ${new Date(l.date).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', dateStyle: 'medium', timeStyle: 'short' })} WIB — ${l.label}\n   ${labels[l.kind]}${l.students !== undefined && ['WEEKLY','EKSKUL','TRIAL'].includes(l.kind) ? ` · ${l.students} anak` : ''}${l.details.includes('Coach pengganti') ? ' · Coach pengganti' : ''}${l.details.includes('dibatalkan') ? ' · DIBATALKAN' : ' · Tercatat'}`).join('\n');
+  const labels: Record<string, string> = { CLASS_SUMMARY: 'Kelas', WEEKLY: 'Weekly', EKSKUL: 'Ekskul', TRIAL: 'Trial', EVENT: 'Event', TRAINING_ONLINE: 'Training online', TRAINING_OFFLINE: 'Training offline', OBSERVATION_ONLINE: 'Observasi online', OBSERVATION_OFFLINE: 'Observasi offline' };
+  const lines = slip.lines.filter(l => Object.hasOwn(labels, l.kind) && (!l.summary || l.quantity > 0));
+  const count = lines.filter(l => !l.details.includes('dibatalkan')).reduce((n,l) => n+l.quantity,0);
+  const details = lines.map((l, i) => `${i + 1}. ${l.date ? new Date(l.date).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', dateStyle: 'medium', timeStyle: 'short' }) + ' WIB' : 'Rekap bulanan'} — ${l.label}\n   ${labels[l.kind]}${l.summary ? ` · ${l.quantity} sesi` : ''}${l.students !== undefined && ['WEEKLY','EKSKUL','TRIAL'].includes(l.kind) ? ` · ${l.students} anak` : ''}${l.details.includes('Coach pengganti') ? ' · Coach pengganti' : ''}${l.details.includes('dibatalkan') ? ' · DIBATALKAN' : ' · Tercatat'}`).join('\n');
   return `REKAP ABSENSI ${p.id}\nHalo ${slip.name}, berikut rincian absensi sementara sampai ${now.toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB.\n${count} aktivitas tercatat.\n\n${details || 'Belum ada aktivitas tercatat pada periode ini.'}\n\nBATAS KOREKSI: 25 ${new Date(p.correction_deadline).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', month: 'long', year: 'numeric' })} PUKUL 17.00 WIB.\nPeriksa tanggal, kelas, pengganti, dan aktivitas tambahan. Laporkan selisih kepada admin sebelum batas tersebut. Pengajuan koreksi ditutup tepat pukul 17.00 WIB. Pastikan seluruh aktivitas sudah diperiksa sebelum batas tersebut.\nAktivitas tanggal 25 setelah pesan ini tetap dicatat dalam periode berjalan. Pembayaran dan slip gaji diproses finance pada akhir bulan.`;
 }

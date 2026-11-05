@@ -1,3 +1,5 @@
+import type { LegacyPayrollSnapshot } from './legacyImport';
+
 export type Contract = 'MITRA' | 'FULLTIME';
 export type PersonKind = 'COACH' | 'STAFF';
 export type ActivityKind = 'WEEKLY' | 'EKSKUL' | 'TRIAL' | 'GOAL' | 'EVENT' | 'TRAINING_ONLINE' | 'TRAINING_OFFLINE' | 'OBSERVATION_ONLINE' | 'OBSERVATION_OFFLINE';
@@ -69,6 +71,7 @@ export interface PeriodDocument {
   transfers: Transfer[]; deliveries: Record<string, PayrollDelivery>; history: FinalVersion[];
   calculated_at: string | null; revision_reason?: string;
   pic_id?: string | null; corrections?: CorrectionRequest[]; transfer_reversals?: TransferReversal[];
+  legacy_imports?: LegacyPayrollSnapshot[];
 }
 export interface PeriodRecord { id: string; revision: number; document: PeriodDocument; updated_at?: string }
 

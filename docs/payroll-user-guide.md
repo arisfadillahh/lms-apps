@@ -1,6 +1,6 @@
 # Panduan Absensi, Gaji, dan Slip Gaji Clevio
 
-Status saat ini: implementasi dan data contoh berjalan **di local**. Belum dideploy, belum memigrasikan database production, dan belum mengganti otomasi n8n yang sedang aktif.
+Status: modul payroll sudah dideploy ke production pada 5 November 2026. Otomasi payroll/WA belum diaktifkan; sistem lama tetap menjadi patokan bulan ini. Panduan arsip sumber dan batas impor tersedia di [Rekap payroll dari sistem lama](./payroll-legacy-import.md).
 
 ## Mencoba di local
 
@@ -148,9 +148,9 @@ Jika salah menandai transfer: **Rincian → Pengiriman ulang & riwayat penerima 
 
 ## Uji paralel sistem lama
 
-November masih memakai sistem lama sebagai patokan. Desember adalah target tentatif migrasi penuh setelah hasil disepakati. Di local, **Pengajuan coach → Pembanding sistem lama** menampilkan snapshot sumber n8n tanggal 5 November: identitas 18 coach, progres hitungan, dan total estimasi. Jadwal dan izin sumber juga disimpan privat untuk persiapan pencocokan. Snapshot tidak dikirim ke GitHub dan tidak menjadi transaksi payroll demo.
+November masih memakai sistem lama sebagai patokan. Desember adalah target tentatif migrasi penuh setelah hasil disepakati. **Rekap & arsip → Rekap sistem lama** menampilkan salinan sumber n8n per bulan, termasuk 18 coach bulan berjalan dan arsip sebelumnya. Pilih bulan/tahun untuk membuka arsip; Desember 2025 mempunyai beberapa versi yang bisa dipilih tanpa dijumlahkan.
 
-Snapshot mempertahankan angka/formula sumber pada waktu baca, bukan sinkronisasi langsung. Sumber lama berisi hitungan kumulatif sehingga tanggal sesi tidak dapat direkonstruksi. Sebelum uji paralel operasional, cocokkan identitas coach, jadwal/kelas, kontrak, dan aktivitas LMS dengan sumber lama; ambil snapshot baru yang lengkap saat mulai. Belum ada pemetaan otomatis akun nyata ke akun demo dan belum ada impor kumulatif ke perhitungan pembayaran, untuk menghindari perhitungan ganda. Transport sumber tetap hanya pembanding; transport LMS manual.
+Salinan mempertahankan angka/formula pada waktu baca, bukan sinkronisasi langsung. Hitungan kumulatif tidak diubah menjadi tanggal sesi dan tidak dijumlahkan lagi dengan aktivitas LMS. Pemetaan akun/kontrak perlu dikonfirmasi sebelum migrasi penuh. Transport lama tetap mengikuti sumber; transport operasional LMS manual. Rincian dan kasus arsip kosong dijelaskan di [panduan impor](./payroll-legacy-import.md).
 
 ## Flowchart per pengguna
 
@@ -207,6 +207,6 @@ flowchart TD
   J --> K[Penyesuaian periode berikutnya: komponen manual]
 ```
 
-## Saat kelak akan digunakan di production
+## Sebelum aktivasi operasional penuh
 
-Aktivasi production belum dilakukan. Diperlukan instruksi terpisah untuk migrasi/deploy dan perpindahan dari n8n. Sebelum aktivasi: siapkan penerima serta kontrak, klasifikasikan kelas fulltime, tentukan tanggal mulai, cocokkan rekap contoh dengan pencatatan lama, lalu sepakati penghentian cabang absensi/gaji lama agar pesan tidak berlipat. Otomatisasi LMS baru aktif setelah admin mengaturnya; slip tetap dikirim manual setelah transfer.
+Deployment aplikasi tidak mengaktifkan otomasi. Sebelum beralih dari n8n: siapkan penerima serta kontrak, klasifikasikan kelas fulltime, tentukan tanggal mulai, cocokkan hasil LMS dengan arsip sumber, lalu sepakati penghentian cabang absensi/gaji lama agar pesan tidak berlipat. Otomatisasi tetap nonaktif selama masa transisi; slip LMS nantinya dikirim manual setelah transfer.

@@ -16,7 +16,8 @@ const [people,terms,cards,settings,records]=await Promise.all(['payroll_profiles
 if(settings[0]?.automation_enabled!==false)throw new Error('Payroll delivery must remain disabled during migration.');
 const now=new Date(),current=currentPeriod(now).id;
 const plans=records.filter(r=>r.document.legacy_imports?.length&&r.document.status==='DRAFT').map(record=>{
- const document=calculateSynchronizedPeriod({period:record.document,people,terms,cards,now,includeRecurring:record.id===current});
+ // Compare the JSON representation actually stored by Postgres, which omits optional undefined fields.
+ const document=JSON.parse(JSON.stringify(calculateSynchronizedPeriod({period:record.document,people,terms,cards,now,includeRecurring:record.id===current})));
  const previous=structuredClone(record.document),comparable=structuredClone(document);delete previous.calculated_at;delete comparable.calculated_at;
  return {record,document,changed:!isDeepStrictEqual(previous,comparable)};
 });

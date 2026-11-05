@@ -4,6 +4,7 @@ Search this file and the linked monthly log before changing related code.
 
 | Date | Reference | Area | Symptom | Monthly log |
 | --- | --- | --- | --- | --- |
+| 2026-11-05 | INTERNAL-20261105-07 | Payroll synchronization readback | A successful commit was reported as failed because optional undefined fields differ from persisted JSON | [2026-11](./2026-11.md#internal-20261105-07-payroll-sync-json-readback) |
 | 2026-11-05 | INTERNAL-20261105-06 | One payroll recap and compact details | Imported data appeared as a separate legacy recap and details repeated empty counters/fees in long tables | [2026-11](./2026-11.md#internal-20261105-06-one-payroll-recap-and-compact-details) |
 | 2026-11-05 | INTERNAL-20261105-05 | Payroll setup and tariff UX | Recipient setup was fragmented, dated tariffs opened defaults, and class mode lived in payroll | [2026-11](./2026-11.md#internal-20261105-05-payroll-recipient-setup-class-ownership-and-dated-tariff-ux) |
 | 2026-11-05 | INTERNAL-20261105-04 | Legacy payroll import and monthly archives | Production lacked source counters and prior-month archives; cumulative source cannot safely become dated/payable sessions | [2026-11](./2026-11.md#internal-20261105-04-legacy-payroll-import-and-monthly-archives) |

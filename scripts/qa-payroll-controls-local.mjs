@@ -30,7 +30,7 @@ try {
   assert.equal((await coach.request.get(base + '/api/admin/payroll')).status(), 403);
   let d = await get(); assert.equal(d.settings.automation_enabled, false); assert.equal(d.legacyBaseline.rows.length, 18);
   pass('Dedicated finance account can manage payroll; unrelated roles denied; automation disabled');
-  await command('assignPic', { userId: '10000000-0000-4000-8000-000000000007' });
+  await command('assignPic', { userId: '10000000-0000-4000-8000-000000000008' });
   await coach.page.goto(base + '/coach/payroll');
   const marker = 'QA koreksi ' + randomUUID().slice(0, 8);
   await coach.page.locator('textarea[name=message]').fill(marker + ' kelas tanggal 3 perlu diperiksa');

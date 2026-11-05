@@ -2,7 +2,7 @@ import 'server-only';
 import { getPayrollConfig, ensurePayrollPeriod } from '@/lib/dao/payrollDao';
 import { currentPeriod, wibDate } from '@/lib/payroll/model';
 import { calculatePayroll } from './payroll';
-import { createPayrollAdminNotifications } from './payrollNotifications';
+import { createPayrollAdminNotifications, createAttendanceAdminNotifications } from './payrollNotifications';
 
 export async function syncSubmittedTrialPayroll(trialId: string, scheduledAt: string | null) {
   if (!scheduledAt) return;
@@ -11,7 +11,7 @@ export async function syncSubmittedTrialPayroll(trialId: string, scheduledAt: st
   const period = currentPeriod(new Date(scheduledAt));
   const record = await ensurePayrollPeriod(period.year, period.month);
   if (record.document.status === 'FINAL') {
-    await createPayrollAdminNotifications({ title: 'Penilaian trial masuk setelah gaji final', message: `Periksa absensi trial periode ${period.id}. Buka revisi admin bila fee perlu diperbarui; versi final tidak diubah otomatis.`, actionUrl: `/admin/payroll?period=${period.id}`, dedupeKey: `payroll-late-trial:${trialId}:${period.id}` });
+    await createAttendanceAdminNotifications({ title: 'Penilaian trial masuk setelah periode final', message: `Periksa absensi trial periode ${period.id}. Minta admin membuka revisi bila aktivitas perlu diperbarui; versi final tidak diubah otomatis.`, actionUrl: `/admin/coach-attendance?period=${period.id}`, dedupeKey: `payroll-late-trial:${trialId}:${period.id}`, push: process.env.PAYROLL_LOCAL_PREVIEW !== 'true' }, record.document.pic_id);
     return;
   }
   await calculatePayroll(record);

@@ -30,6 +30,7 @@ const accounts = {
   noWa: { id: '10000000-0000-4000-8000-000000000004', username: 'tanpawa.demo', role: 'COACH', full_name: 'Coach Tanpa WA Demo', permissions: null },
   limited: { id: '10000000-0000-4000-8000-000000000005', username: 'limited.demo', role: 'ADMIN', full_name: 'Admin Tanpa Akses Gaji', permissions: { menus: ['classes'], is_superadmin: false } },
   finance: { id: '10000000-0000-4000-8000-000000000007', username: 'finance.demo', role: 'ADMIN', full_name: 'Finance Demo Lokal', permissions: { menus: ['payroll'], is_superadmin: false } },
+  coachLead: { id: '10000000-0000-4000-8000-000000000008', username: 'coachlead.demo', role: 'ADMIN', full_name: 'Coach Lead Demo Lokal', permissions: { menus: ['coachAttendance'], is_superadmin: false } },
   coder: { id: '10000000-0000-4000-8000-000000000006', username: 'coder.demo', role: 'CODER', full_name: 'Coder Demo', permissions: null },
 };
 const ident = value => { if (!/^[a-z_][a-z0-9_]*$/i.test(value)) throw new Error('Invalid SQL identifier'); return `"${value}"`; };
@@ -93,6 +94,8 @@ try {
   await db.exec(fs.readFileSync(path.join(root, 'supabase/migrations/20261105100000_payroll_controls.sql'), 'utf8'));
   const finance = accounts.finance;
   await db.query('INSERT INTO users(id,username,password_hash,full_name,role,admin_permissions) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (id) DO NOTHING', [finance.id, finance.username, await bcrypt.hash('DemoLokal2026!', 8), finance.full_name, finance.role, JSON.stringify(finance.permissions)]);
+  const lead = accounts.coachLead;
+  await db.query('INSERT INTO users(id,username,password_hash,full_name,role,admin_permissions) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (id) DO NOTHING', [lead.id, lead.username, await bcrypt.hash('DemoLokal2026!', 8), lead.full_name, lead.role, JSON.stringify(lead.permissions)]);
   await seedLocalDashboard(db, appUrl);
 } catch (error) {
   console.error('[Local setup]', error.message);
@@ -114,7 +117,7 @@ const server = http.createServer(async (req, res) => {
     if (u.pathname === '/preview') {
       const name = u.searchParams.get('as') || 'admin', a = accounts[name]; if (!a) return json(res, 404, { error: 'Unknown preview account' });
       const token = await cookieFor(name);
-      res.writeHead(302, { 'Set-Cookie': `next-auth.session-token=${token}; HttpOnly; SameSite=Lax; Path=/`, Location: appUrl + (a.role === 'COACH' ? '/coach/payroll' : '/admin/payroll') }); return res.end();
+      res.writeHead(302, { 'Set-Cookie': `next-auth.session-token=${token}; HttpOnly; SameSite=Lax; Path=/`, Location: appUrl + (name === 'coachLead' ? '/admin/coach-attendance' : a.role === 'COACH' ? '/coach/payroll' : '/admin/payroll') }); return res.end();
     }
     if (u.pathname === '/') {
       res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(`<!doctype html><html lang="id"><meta charset="utf-8"><title>Preview lokal payroll</title><style>body{font:17px/1.7 system-ui;max-width:700px;margin:60px auto;padding:20px}a{display:block;padding:12px;margin:10px 0;background:#eef4ff}p{color:#526}</style><h1>Preview lokal penggajian Clevio</h1><p>Data sintetis. Database terisolasi. WhatsApp hanya simulasi; tidak mengirim pesan sungguhan.</p>${Object.entries(accounts).filter(([key]) => !['limited', 'coder'].includes(key)).map(([k,a])=>`<a href="/preview?as=${k}">${a.full_name}</a>`).join('')}<p>Masuk sebagai admin untuk konfigurasi, arsip, dan slip; pilih coach untuk menguji akses rekap pribadi.</p></html>`);

@@ -42,6 +42,8 @@
 .adjustmentForm:empty{display:none}
 .adjustmentForm:has(form){background:var(--muted);padding:18px;border-radius:10px}
 .table{min-width:620px}
+.table th{white-space:nowrap}
+.table .rowname{min-width:170px}
 .modal .success{background:var(--muted);padding:12px;border-radius:8px}
 .modal .error{padding:12px;border:1px solid currentColor;border-radius:8px}
 @media(max-width:1000px){

@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { isCsrfFailure, signInWithCsrfRetry } from '@/lib/login';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -56,7 +55,6 @@ export default function LoginForm({ lang = 'id' }: { lang?: 'id' | 'en' }) {
     recoveryBtn: isEng ? 'Understood' : 'Mengerti'
   };
 
-  const router = useRouter();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showForgotModal, setShowForgotModal] = useState(false);
@@ -79,11 +77,12 @@ export default function LoginForm({ lang = 'id' }: { lang?: 'id' | 'en' }) {
     setErrorMessage(null);
 
     try {
-      const result = await signIn('credentials', {
-        username: values.username,
-        password: values.password,
-        redirect: false,
-      });
+      const result = await signInWithCsrfRetry(values);
+
+      if (isCsrfFailure(result)) {
+        setErrorMessage(isEng ? 'Sign-in could not be completed. Please press Log in again.' : 'Proses masuk belum berhasil. Silakan tekan Masuk lagi.');
+        return;
+      }
 
       if (!result || result.error) {
         setErrorMessage(resolveAuthErrorMessage(lang, result?.error));
@@ -96,13 +95,13 @@ export default function LoginForm({ lang = 'id' }: { lang?: 'id' | 'en' }) {
           const session = await sessionResponse.json();
           const role = session?.user?.role as Role | undefined;
           if (role) {
-            router.replace(getRoleDashboardPath(role));
-            router.refresh();
+            // Start the authenticated shell with the new session cookie. A
+            // concurrent replace + refresh can reuse the signed-out route tree.
+            window.location.replace(getRoleDashboardPath(role, session.user));
             return;
           }
         }
-        router.replace('/');
-        router.refresh();
+        setErrorMessage(isEng ? 'Your session is not ready. Please try signing in again.' : 'Sesi login belum terbentuk. Silakan coba masuk lagi.');
       }
     } catch (error) {
       console.error('Login error', error);

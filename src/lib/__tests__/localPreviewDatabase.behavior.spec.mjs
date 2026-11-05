@@ -43,6 +43,17 @@ describe('local app database supports normal dashboard queries', () => {
     await db.query('UPDATE users SET is_active=false WHERE id=$1',[coder]);
     expect((await readLocalRows(db,schema,'enrollments',new URLSearchParams({select:'id,coder:users!inner(id)','coder.is_active':'eq.true'}))).count).toBe(0);
   });
+  it('resolves coach dashboard FK-column embeds and applies nested filters', async () => {
+    const result = await readLocalRows(db,schema,'classes',new URLSearchParams({
+      select:'id,coach:coach_id!inner(id,full_name)', 'coach.id':'eq.' + coach,
+    }));
+    expect(result.rows).toEqual([{ id: klass, coach: { id: coach, full_name: 'Coach Demo' } }]);
+    expect((await readLocalRows(db,schema,'classes',new URLSearchParams({
+      select:'id,coach:coach_id!inner(id)', 'coach.id':'eq.' + coder,
+    }))).count).toBe(0);
+    await expect(readLocalRows(db,schema,'block_software',new URLSearchParams({select:'software:software_id(*)'}))).resolves.toMatchObject({rows: []});
+    await expect(readLocalRows(db,schema,'block_reports',new URLSearchParams({select:'id,class:class_id!inner(id,coach_id)', 'class.coach_id':'eq.'+coach}))).resolves.toMatchObject({rows: []});
+  });
   it('survives repeated startup without replacing users or financial documents', async () => {
     const document = {id:'2026-10',history:[{version:1}],transfers:[{id:'preserve-me'}]};
     await db.query('INSERT INTO payroll_periods(id,revision,document) VALUES ($1,7,$2)', [document.id,JSON.stringify(document)]);
@@ -60,6 +71,12 @@ describe('local app database supports normal dashboard queries', () => {
   });
   it('reports missing tables instead of masking failed queries as successful empty data', async () => {
     await expect(readLocalRows(db,schema,'nonexistent_table',new URLSearchParams({select:'*'}))).rejects.toThrow(/does not exist/);
+  });
+  it('supports the first-login coach portfolio review count without missing-table errors', async () => {
+    const result = await readLocalRows(db,schema,'coder_portfolios',new URLSearchParams({
+      select:'id', class_id:'in.(' + klass + ')', status:'eq.SUBMITTED',
+    }));
+    expect(result).toEqual({ rows: [], count: 0 });
   });
   it('seeds complete curriculum templates and preserves data on repeat startup', async () => {
     await seedLocalDashboard(db, 'http://127.0.0.1:3005');

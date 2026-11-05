@@ -6,7 +6,7 @@ Status saat ini: implementasi dan data contoh berjalan **di local**. Belum didep
 
 Jalankan `npm run dev:payroll-local`, lalu buka [pilihan akun demo](http://127.0.0.1:4055). Pilih Admin Demo Lokal, Coach Mitra, Coach Fulltime, atau Coach Tanpa WA. Data operasional demo adalah contoh. Pembanding n8n memakai snapshot baca saja yang dijelaskan di bagian uji paralel. Status **Simulasi local** berarti pengiriman teks rekap atau PDF slip disimulasikan tanpa mengirim WhatsApp sungguhan.
 
-Login admin biasa juga tersedia di [halaman login local](http://127.0.0.1:3005/login): username **admin**, password **DemoLokal2026!**. Akun finance terpisah: **finance.demo**, password **DemoLokal2026!**, dengan akses menu penggajian. Kredensial ini hanya untuk database contoh lokal.
+Login admin biasa juga tersedia di [halaman login local](http://127.0.0.1:3005/login): username **admin**, password **DemoLokal2026!**. Akun finance terpisah: **finance.demo**, password **DemoLokal2026!**, langsung membuka penggajian setelah login. Akun coach lead: **coachlead.demo**, password **DemoLokal2026!**, langsung membuka **Absensi & koreksi coach**; akun ini tidak mempunyai akses nominal gaji, transfer, atau PDF slip. Admin dengan beberapa tugas tetap membuka dashboard biasa. Kredensial ini hanya untuk database contoh lokal.
 
 Database demo tersimpan terpisah di `.codex-payroll-local/database`. Menjalankan kembali perintah yang sama mempertahankan data. Untuk mengembalikan contoh awal, hentikan server lalu jalankan `npm run dev:payroll-local -- --reset`. Reset ini hanya menghapus database demo tersebut.
 
@@ -132,13 +132,17 @@ Di **Rekap & arsip**, pilih bulan/tahun untuk membuka periode berjalan maupun ar
 
 Popup Rincian menyediakan **Pengiriman ulang & riwayat penerima** yang dapat dibuka untuk pratinjau versi final sebelumnya, riwayat transfer, dan pengiriman ulang. Audit seluruh periode ada di **Riwayat periode**. Admin melihat slip melalui popup; file PDF tetap dipakai sebagai lampiran slip yang dikirim melalui WA. Tabel di layar kecil dapat digeser ke samping untuk melihat kolom tindakan.
 
-Hanya admin yang mempunyai izin menu **Gaji & Slip Gaji** yang dapat mengelola modul. Notifikasi koreksi diarahkan ke PIC periode yang berwenang; jika PIC belum tersedia/aktif, seluruh admin dengan akses penggajian menjadi penerima fallback. Akun finance memakai identitas login tersendiri sehingga audit mencatat siapa melakukan tindakan. Pembagian admin operasional vs finance mengikuti SOP tim, tanpa lapisan persetujuan tambahan.
+Izin **Gaji & Slip Gaji** mengatur akses nominal, pembayaran, dan slip. Izin **Absensi & koreksi coach** memberi coach lead ruang kerja aktivitas tanpa nominal atau dokumen gaji. Coach lead memakai akun admin dengan izin menu terbatas ini, bukan superadmin. Admin dapat memberikan izin melalui pengaturan pengguna yang sudah ada.
+
+**PIC operasional koreksi adalah admin dan coach lead. Finance tetap boleh mengoreksi, termasuk force majeure, dengan alasan dan identitas tercatat di audit.** Notifikasi koreksi masuk ke PIC dari kelompok admin/coach lead; bila PIC tidak aktif atau belum ditetapkan, fallback hanya ke kelompok operasional tersebut. Finance tidak menjadi penerima antrean rutin hanya karena mempunyai izin penggajian.
 
 ## Menangani koreksi dan salah penandaan transfer
 
-Buka **Pengajuan coach → Koreksi absensi**. Pilih PIC periode dari akun admin/finance yang mempunyai akses. Penghitungan pertama oleh admin otomatis memilih akun tersebut sebagai PIC jika masih kosong. Filter **Perlu ditangani** menampilkan Menunggu/Diproses; pilih Semua pengajuan untuk arsip.
+Admin/coach lead membuka **Absensi & koreksi coach → Pengajuan koreksi**. Admin/finance juga dapat membukanya dari **Gaji & Slip Gaji → Pengajuan coach → Koreksi absensi**. Pilih PIC dari admin/coach lead yang mempunyai izin operasional. Perhitungan memilih aktor jika ia termasuk kelompok operasional; bila tidak, memilih PIC operasional yang tersedia. PIC finance lama diganti ke PIC operasional saat perhitungan berikutnya. Filter **Perlu ditangani** menampilkan Menunggu/Diproses; pilih Semua pengajuan untuk arsip.
 
-PIC mengubah status menjadi **Diproses**, memeriksa sumber dan memperbaiki aktivitas pada Rincian penerima, lalu menandai **Selesai** atau **Ditolak** dengan alasan. Tanggapan tampil di akun coach, jadi gunakan detail aktivitas tanpa nominal. Hasil disimpan dan coach menerima notifikasi LMS. Pengajuan selesai tidak dibuka ulang; perubahan berikutnya tetap dicatat lewat audit admin.
+PIC mengubah status menjadi **Diproses**, lalu klik **Periksa aktivitas coach** pada pengajuan. Daftar aktivitas langsung difilter ke coach tersebut. Pilih **Koreksi** untuk memeriksa penugasan/pengganti, mode, atau pengecualian aktivitas. Penyimpanan di ruang kerja absensi otomatis memperbarui daftar; **Perbarui absensi** digunakan bila ingin mengambil perubahan terbaru dari sumber. Aktivitas terlewat dapat ditambahkan dengan kategori, tanggal, jumlah anak, dan alasan. Setelah selesai memeriksa, PIC menandai pengajuan **Selesai** atau **Ditolak** dengan tanggapan. Di area penggajian, **Periksa aktivitas coach** membuka Rincian penerima; admin/finance tetap bisa melakukan koreksi beralasan. Tanggapan tampil di akun coach, jadi gunakan detail aktivitas tanpa nominal. Hasil disimpan dan coach menerima notifikasi LMS. Pengajuan selesai tidak dibuka ulang; perubahan berikutnya tetap dicatat lewat audit admin.
+
+Di **Absensi & koreksi coach → Event & kegiatan**, tombol **Tinjau aktivitas** membuka popup keputusan, sehingga form tidak tersembunyi di bawah daftar panjang. Daftar aktivitas diperbarui setelah keputusan disimpan. Jika penyimpanan gagal, popup tetap terbuka dan menampilkan masalahnya. Tab kegiatan, aktivitas, dan pengajuan koreksi semuanya terlihat pada layar HP.
 
 Jika salah menandai transfer: **Rincian → Pengiriman ulang & riwayat penerima → Riwayat transfer → Batalkan penandaan**. Isi alasan. Catatan transfer asli tetap ada dengan penanda pembatalan. Tindakan ini tidak menggerakkan uang bank. Penerima kembali belum dibayar, pengiriman slip diblokir, dan akses unduh coach dihentikan sampai penandaan yang benar dibuat. File yang sudah diterima sebelumnya tentu tidak dapat ditarik dari perangkat penerima.
 
@@ -167,7 +171,7 @@ flowchart TD
   J --> K[Finance catat transfer dan kirim slip]
 ```
 
-### Admin / PIC
+### Admin / coach lead (PIC operasional)
 
 ```mermaid
 flowchart TD
@@ -189,6 +193,8 @@ flowchart TD
 ```mermaid
 flowchart TD
   A[Login akun finance] --> B[Periksa komponen rutin dan per bulan]
+  A --> X[Koreksi pengecualian / force majeure dengan alasan dan audit]
+  X --> B
   B --> C[Pastikan periode final]
   C --> D[Transfer melalui bank]
   D --> E[Tandai penerima sudah ditransfer]

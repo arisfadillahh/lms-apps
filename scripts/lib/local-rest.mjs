@@ -25,7 +25,9 @@ export function parseSelect(source) {
   });
 }
 function relationship(schema, table, field) {
-  let candidates = schema.relations.flatMap(r => r.source === table && r.target === field.name
+  // PostgREST embeds accept either a table name or an outgoing FK column
+  // (e.g. software:software_id(*) and class:class_id!inner(*)).
+  let candidates = schema.relations.flatMap(r => r.source === table && (r.target === field.name || r.name === field.name || r.columns.includes(field.name))
     ? [{ ...r, many: false }] : r.target === table && r.source === field.name
       ? [{ source: table, target: field.name, name: r.name, columns: r.target_columns, target_columns: r.columns, many: true }] : []);
   if (field.hint) candidates = candidates.filter(r => r.name === field.hint || r.columns.includes(field.hint));
@@ -35,7 +37,7 @@ function relationship(schema, table, field) {
     const possible = [field.alias + '_id', singular(field.name) + '_id', field.hint?.replace(new RegExp('^' + table + '_'), '').replace(/_fkey$/, '')].filter(Boolean);
     const column = possible.find(c => schema.columns.some(x => x.table_name === table && x.column_name === c));
     const reverse = singular(table) + '_id';
-    if (column) return { source: table, target: field.name, columns: [column], target_columns: ['id'], many: false };
+    if (column && schema.columns.some(x => x.table_name === field.name)) return { source: table, target: field.name, columns: [column], target_columns: ['id'], many: false };
     if (schema.columns.some(x => x.table_name === field.name && x.column_name === reverse)) return { source: table, target: field.name, columns: ['id'], target_columns: [reverse], many: true };
     throw new Error(`Local relationship ${table} → ${field.name} is missing`);
   }

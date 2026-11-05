@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { getPayrollConfig, ensurePayrollPeriod } from '@/lib/dao/payrollDao';
 import { correctionOpen, currentPeriod, PayrollError, wibDate } from '@/lib/payroll/model';
-import { createPayrollAdminNotifications } from './payrollNotifications';
+import { createAttendanceAdminNotifications } from './payrollNotifications';
 import { createNotification } from '@/lib/dao/notificationsDao';
 import type { ActivityRequest } from '@/lib/payroll/activityRequests';
 
@@ -23,7 +23,7 @@ export async function submitActivityRequest(raw: unknown, coachId: string, now =
   if (error?.code === '23505') throw new PayrollError('Kegiatan yang sama sudah diajukan. Periksa riwayat pengajuan.', 409);
   if (error) throw new PayrollError('Gagal menyimpan pengajuan kegiatan.', 500);
   // The authoritative request remains saved if an optional notification fails.
-  await createPayrollAdminNotifications({ title: 'Pengajuan aktivitas coach', message: `${config.people.find(p => p.user_id === coachId)?.name}: ${input.label}. Periksa untuk menyetujui atau menolak.`, actionUrl: `/admin/payroll?period=${period.id}`, dedupeKey: `payroll-request:${input.id}` }).catch(e => console.error('[Payroll activity notification]', e));
+  await createAttendanceAdminNotifications({ title: 'Pengajuan aktivitas coach', message: `${config.people.find(p => p.user_id === coachId)?.name}: ${input.label}. Periksa untuk menyetujui atau menolak.`, actionUrl: `/admin/coach-attendance?period=${period.id}`, dedupeKey: `payroll-request:${input.id}`, push: process.env.PAYROLL_LOCAL_PREVIEW !== 'true' }).catch(e => console.error('[Payroll activity notification]', e));
   return { success: true, id: input.id };
 }
 export async function reviewActivityRequest(input: { id: string; requestRevision: number; status: 'APPROVED' | 'REJECTED'; mode: 'MITRA' | 'FULLTIME'; reason: string }, actor: string) {

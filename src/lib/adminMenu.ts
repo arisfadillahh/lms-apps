@@ -21,6 +21,7 @@ export const MENU_ITEMS: Record<string, { href: string; label: string; icon: Luc
     payments: { href: '/admin/payments', label: 'Paket & Tarif', icon: Wallet },
     invoices: { href: '/admin/payments/invoices', label: 'Invoice', icon: Receipt },
     payroll: { href: '/admin/payroll', label: 'Gaji & Slip Gaji', icon: Wallet },
+    coachAttendance: { href: '/admin/coach-attendance', label: 'Absensi & koreksi coach', icon: ClipboardList },
     ccr: { href: '/admin/coders/assign-ccr', label: 'Assign ID Invoice', icon: UserCheck },
     ccrlist: { href: '/admin/coders/list-ccr', label: 'Daftar ID Invoice', icon: FileText },
     software: { href: '/admin/software', label: 'Software', icon: Package },
@@ -58,7 +59,7 @@ export const SIDEBAR_STRUCTURE: (SidebarGroup | SidebarSingle)[] = [
         type: 'group',
         label: 'Akademik',
         icon: GraduationCap,
-        children: ['classes', 'blockPlacements', 'levelProgressions', 'curriculum', 'lessonReports', 'ekskul', 'evaluations', 'evaluationQuestions', 'reports', 'portfolios']
+        children: ['classes', 'coachAttendance', 'blockPlacements', 'levelProgressions', 'curriculum', 'lessonReports', 'ekskul', 'evaluations', 'evaluationQuestions', 'reports', 'portfolios']
     },
     {
         type: 'group',

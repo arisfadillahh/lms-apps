@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { buildPayrollActivities, type SessionSource, type ClassSource, type EnrollmentSource, type LeaveSource, type TrialSource, type AssessmentSource } from '@/lib/payroll/sources';
 import { calculatePeriod, createPeriod, currentPeriod, effective, inPeriod, PayrollError, wibDate, type PeriodRecord, type PeriodDocument } from '@/lib/payroll/model';
 import { approvedRequestActivities, type ActivityRequest } from '@/lib/payroll/activityRequests';
-import { payrollAdmins } from './payrollNotifications';
+import { attendanceAdmins } from './payrollNotifications';
 import { payrollLegacyBaseline } from './payrollLegacyBaseline';
 
 export async function calculatePayroll(record: PeriodRecord, now = new Date(), actor: string | null = null): Promise<PeriodRecord> {
@@ -37,7 +37,8 @@ export async function calculatePayroll(record: PeriodRecord, now = new Date(), a
     }
   }
   const next = calculatePeriod({ period: record.document, people: config.people, terms: config.terms, cards: config.cards, activities: active, sourceWarnings: built.warnings, now });
-  if (!next.pic_id && actor) next.pic_id = actor;
+  const eligiblePics = await attendanceAdmins();
+  if (!eligiblePics.some(a => a.id === next.pic_id)) next.pic_id = eligiblePics.find(a => a.id === actor)?.id ?? eligiblePics[0]?.id ?? null;
   return dao.commitPayrollPeriod(record, next, actor, 'CALCULATE');
 }
 
@@ -52,7 +53,7 @@ export async function payrollBootstrap(year?: number, month?: number) {
   if (!selected && !year) selected = periods[0];
   const requestPeriod = selected?.document ?? (year && month ? createPeriod(year, month) : currentPeriod());
   const requests = await dao.payrollRows('payroll_activity_requests', '*', { gte: ['activity_at', requestPeriod.starts_at], lt: ['activity_at', requestPeriod.ends_at] });
-  return { ...config, legacyBaseline: await payrollLegacyBaseline(requestPeriod.id), admins: await payrollAdmins(), requests: requests as unknown as ActivityRequest[], periods: periods.map(p => ({ id: p.id, status: p.document.status, version: p.document.version })), selected: selected ?? null, coaches: coaches.data ?? [], classes: classes.data ?? [], audit: selected ? await dao.getPayrollAudit(selected.id) : [] };
+  return { ...config, legacyBaseline: await payrollLegacyBaseline(requestPeriod.id), admins: await attendanceAdmins(), requests: requests as unknown as ActivityRequest[], periods: periods.map(p => ({ id: p.id, status: p.document.status, version: p.document.version })), selected: selected ?? null, coaches: coaches.data ?? [], classes: classes.data ?? [], audit: selected ? await dao.getPayrollAudit(selected.id) : [] };
 }
 
 export function requireDraft(record: PeriodRecord) {

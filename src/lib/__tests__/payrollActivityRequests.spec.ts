@@ -5,7 +5,7 @@ vi.mock('server-only', () => ({}));
 const mocks = vi.hoisted(() => ({ db: vi.fn(), insert: vi.fn(), config: vi.fn(), rows: vi.fn(), notify: vi.fn() }));
 vi.mock('@/lib/supabaseServer', () => ({ getSupabaseAdmin: mocks.db }));
 vi.mock('@/lib/dao/payrollDao', () => ({ getPayrollConfig: mocks.config, payrollRows: mocks.rows, ensurePayrollPeriod: vi.fn() }));
-vi.mock('@/lib/services/payrollNotifications', () => ({ createPayrollAdminNotifications: mocks.notify }));
+vi.mock('@/lib/services/payrollNotifications', () => ({ createAttendanceAdminNotifications: mocks.notify }));
 vi.mock('@/lib/dao/notificationsDao', () => ({ createNotification: vi.fn() }));
 import { submitActivityRequest } from '@/lib/services/payrollActivityRequests';
 const submitted = { id: '40000000-0000-4000-8000-000000000001', activityAt: '2026-11-03T12:00:00+07:00', kind: 'EVENT', label: 'Event pengujian', notes: 'Lokasi dan bukti kegiatan tersedia' };

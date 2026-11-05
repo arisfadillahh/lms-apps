@@ -68,6 +68,7 @@ type MenuId =
   | 'payments'
   | 'invoices'
   | 'payroll'
+  | 'coachAttendance'
   | 'ccr'
   | 'ccrlist'
   | 'whatsapp'
@@ -122,6 +123,7 @@ const MENU: MenuItem[] = [
   { id: 'payments', href: '/admin/payments', label: 'Paket & Tarif', icon: Wallet },
   { id: 'invoices', href: '/admin/payments/invoices', label: 'Invoice', icon: Receipt },
   { id: 'payroll', href: '/admin/payroll', label: 'Gaji & Slip Gaji', icon: Wallet },
+  { id: 'coachAttendance', href: '/admin/coach-attendance', label: 'Absensi & koreksi coach', icon: ClipboardList },
   { id: 'ccr', href: '/admin/coders/assign-ccr', label: 'Assign ID Invoice', icon: UserCheck },
   { id: 'ccrlist', href: '/admin/coders/list-ccr', label: 'Daftar ID Invoice', icon: FileText },
   { id: 'whatsapp', href: '/admin/whatsapp', label: 'WhatsApp', icon: MessageCircle },
@@ -137,7 +139,7 @@ const MENU_SECTIONS: Array<{ label: string | null; items: MenuId[] }> = [
   { label: null, items: ['dashboard'] },
   {
     label: 'Akademik',
-    items: ['users', 'freeTrials', 'trialAssessments', 'classes', 'levelProgressions', 'curriculum', 'ekskul', 'lessonReports', 'evaluations', 'evaluationQuestions', 'reports'],
+    items: ['users', 'freeTrials', 'trialAssessments', 'classes', 'coachAttendance', 'levelProgressions', 'curriculum', 'ekskul', 'lessonReports', 'evaluations', 'evaluationQuestions', 'reports'],
   },
   { label: 'Keuangan', items: ['payments', 'invoices', 'payroll', 'ccr', 'ccrlist'] },
   { label: 'Komunikasi', items: ['whatsapp', 'broadcast'] },
@@ -150,6 +152,7 @@ const SECTION_TABS = {
     { href: '/admin/free-trials', label: 'Free Trial', menus: ['freeTrials'] },
     { href: '/admin/trial-assessments', label: 'Review Trial', menus: ['trialAssessments'] },
     { href: '/admin/classes', label: 'Kelas', menus: ['classes'] },
+    { href: '/admin/coach-attendance', label: 'Absensi coach', menus: ['coachAttendance'] },
     { href: '/admin/level-progressions', label: 'Kenaikan Level', menus: ['levelProgressions'] },
     { href: '/admin/curriculum', label: 'Kurikulum', menus: ['curriculum'] },
     { href: '/admin/ekskul', label: 'Ekskul', menus: ['ekskul'] },

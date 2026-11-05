@@ -23,14 +23,18 @@ export default async function LoginPage(props: LoginPageProps) {
 
   const session = await getServerAuthSession();
   if (session?.user?.id) {
+    let destination: string | undefined;
     try {
       const user = await usersDao.getUserById(session.user.id);
       if (user) {
-        redirect(getRoleDashboardPath(user.role));
+        destination = getRoleDashboardPath(user.role, { username: user.username, adminPermissions: user.admin_permissions });
       }
     } catch (error) {
       console.warn('[LoginPage] Ignoring stale session during login render', error);
     }
+    // redirect throws Next's navigation signal; it must not be caught as a
+    // database/session failure, or an authenticated user stays on the login form.
+    if (destination) redirect(destination);
   }
 
   return (

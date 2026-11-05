@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import * as dao from '@/lib/dao/payrollDao';
 import { calculatePayroll, requireDraft, requireReason, assertComponentDate } from './payroll';
 import { finalize, reopen, markTransferred, reverseTransfer, reviewCorrection, PayrollError } from '@/lib/payroll/model';
-import { payrollAdmins } from './payrollNotifications';
+import { attendanceAdmins } from './payrollNotifications';
 import { createNotification } from '@/lib/dao/notificationsDao';
 import type { PayrollCommand } from '@/lib/payroll/validation';
 
@@ -51,7 +51,7 @@ export async function executePayrollCommand(command: PayrollCommand, actor: stri
   const reason = 'reason' in command ? command.reason : '';
   switch (command.action) {
     case 'assignPic': {
-      if (!(await payrollAdmins()).some(a => a.id === command.userId)) throw new PayrollError('PIC harus admin/finance aktif dengan akses penggajian.');
+      if (!(await attendanceAdmins()).some(a => a.id === command.userId)) throw new PayrollError('PIC harus admin atau coach lead aktif dengan izin koreksi absensi.');
       next.pic_id = command.userId; break;
     }
     case 'reviewCorrection': next = reviewCorrection(next, command.id, command.status, actor, command.reason, now); break;

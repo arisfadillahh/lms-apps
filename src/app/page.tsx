@@ -10,5 +10,5 @@ export default async function RootPage() {
     redirect('/login');
   }
 
-  redirect(getRoleDashboardPath(session.user.role));
+  redirect(getRoleDashboardPath(session.user.role, session.user));
 }

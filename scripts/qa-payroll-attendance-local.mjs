@@ -1,0 +1,75 @@
+/** Local role and privacy QA; no production writes or external delivery. */
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import { chromium } from 'playwright-core';
+const base = 'http://127.0.0.1:3005', backend = 'http://127.0.0.1:4055';
+assert.equal((await fetch(backend + '/health').then(r => r.json())).local, true);
+const browser = await chromium.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
+const out = path.resolve('.codex-payroll-local/qa-attendance'); fs.mkdirSync(out, { recursive: true });
+const contexts = [], errors = [], checks = []; const pass = s => { checks.push(s); console.log('PASS ' + s); };
+async function login(as) {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } }); contexts.push(context);
+  await context.request.get(backend + '/preview?as=' + as, { maxRedirects: 0 });
+  const page = await context.newPage(); page.on('pageerror', e => errors.push(e.message));
+  return { request: context.request, page };
+}
+try {
+  const lead = await login('coachLead'), finance = await login('finance'), coach = await login('coach'), limited = await login('limited');
+  const anon = await browser.newContext(); contexts.push(anon);
+  const url = base + '/api/admin/coach-attendance?period=2026-11';
+  assert.equal((await anon.request.get(url)).status(), 401);
+  for (const denied of [coach, limited]) assert.equal((await denied.request.get(url)).status(), 403);
+  assert.equal((await lead.request.get(base + '/api/admin/payroll')).status(), 403);
+  assert.equal((await lead.request.get(base + '/api/payroll/2026-10/20000000-0000-4000-8000-000000000001/pdf')).status(), 404);
+  const read = async () => { const r = await lead.request.get(url); assert.equal(r.status(), 200); return r.json(); };
+  const post = async (account, action, extra = {}, expected = 200, endpoint = '/api/admin/coach-attendance') => {
+    const d = await read(); const r = await account.request.post(base + endpoint, { data: { action, periodId: '2026-11', revision: d.selected.revision, ...extra } });
+    assert.equal(r.status(), expected, await r.text()); return r.json();
+  };
+  let d = await read(); assert(!/"(?:amount|rate|total|transfers|history|terms|slips|base_salary|manual)":/.test(JSON.stringify(d)));
+  assert(d.admins.some(a => a.username === 'coachlead.demo')); assert(!d.admins.some(a => a.username === 'finance.demo'));
+  await post(finance, 'assignPic', { userId: '10000000-0000-4000-8000-000000000007' }, 400, '/api/admin/payroll');
+  await post(finance, 'assignPic', { userId: '10000000-0000-4000-8000-000000000008' }, 200, '/api/admin/payroll');
+  pass('Coach lead reads operational data only; financial APIs/PDF denied; default PIC excludes finance');
+  await post(lead, 'transfer', { profileIds: ['20000000-0000-4000-8000-000000000001'] }, 403);
+  await post(lead, 'override', { sourceKey: 'session:fake', amount: 100, reason: 'Attempt numeric injection' }, 403);
+  await post(lead, 'finalize', {}, 403);
+  assert.deepEqual(await post(lead, 'calculate'), { success: true });
+  pass('Attendance command API rejects payment/amount injection and never returns salary calculation payloads');
+  const marker = 'QA lead ' + randomUUID().slice(0, 8);
+  const submission = await coach.request.post(base + '/api/coach/payroll', { data: { id: randomUUID(), periodId: '2026-11', message: marker + ' mohon cek kelas saya' } }); assert.equal(submission.status(), 200);
+  const leadNotifications = await (await lead.request.get(base + '/api/notifications')).json(), financeNotifications = await (await finance.request.get(base + '/api/notifications')).json();
+  assert(leadNotifications.data.some(n => n.message.includes(marker))); assert(!financeNotifications.data.some(n => n.message.includes(marker)));
+  await lead.page.goto(base + '/admin/coach-attendance');
+  await lead.page.getByRole('link', { name: 'Absensi & koreksi coach', exact: true }).waitFor();
+  const article = lead.page.locator('article').filter({ hasText: marker }); await article.waitFor();
+  await article.getByRole('combobox', { name: 'Keputusan' }).selectOption('IN_PROGRESS'); await article.locator('textarea').fill('Coach lead memeriksa aktivitas'); await article.getByRole('button', { name: 'Simpan tanggapan' }).click();
+  await article.getByText('Tanggapan: Coach lead memeriksa aktivitas').waitFor();
+  await lead.page.screenshot({ path: path.join(out, 'coachlead-corrections-desktop.png'), fullPage: true });
+  await lead.page.getByRole('tab', { name: 'Aktivitas coach', exact: true }).click();
+  await lead.page.getByRole('button', { name: 'Koreksi', exact: true }).first().click();
+  const dialog = lead.page.getByRole('dialog'); await dialog.getByLabel('Alasan koreksi').fill(marker + ' penugasan terverifikasi');
+  assert.equal(await dialog.locator('input[name=amount]').count(), 0);
+  await dialog.getByRole('button', { name: 'Simpan koreksi aktivitas' }).click(); await dialog.waitFor({ state: 'detached' });
+  await lead.page.getByRole('button', { name: 'Perbarui absensi' }).click(); await lead.page.getByText('Absensi diperbarui dari sumber terbaru.', { exact: true }).waitFor();
+  await lead.page.getByRole('tab', { name: 'Pengajuan koreksi', exact: true }).click();
+  await article.getByRole('combobox', { name: 'Keputusan' }).selectOption('DONE'); await article.locator('textarea').fill(marker + ' selesai diperiksa coach lead'); await article.getByRole('button', { name: 'Simpan tanggapan' }).click(); await article.waitFor({ state: 'detached' });
+  pass('Correction notification reaches coach lead PIC; lead corrects activity and completes request in UI');
+  d = await read(); const source = d.selected.activities[0];
+  const financeGet = await finance.request.get(base + '/api/admin/payroll?year=2026&month=11'); assert.equal(financeGet.status(), 200); const financial = await financeGet.json();
+  const original = financial.selected.document.overrides[source.key];
+  const amount = financial.selected.document.slips.flatMap(s => s.lines).find(l => l.key === source.key).amount;
+  await post(finance, 'override', { sourceKey: source.key, amount, reason: marker + ' force majeure finance' }, 200, '/api/admin/payroll');
+  let after = await (await finance.request.get(base + '/api/admin/payroll?year=2026&month=11')).json();
+  assert(after.audit.some(a => a.action === 'OVERRIDE' && a.actor_id === '10000000-0000-4000-8000-000000000007' && a.reason.includes('force majeure')));
+  await post(finance, 'override', { sourceKey: source.key, ...original, reason: marker + ' pulihkan data simulasi' }, 200, '/api/admin/payroll'); await post(lead, 'calculate');
+  pass('Finance retains force-majeure correction access with reason and individual audit identity');
+  await lead.page.setViewportSize({ width: 390, height: 844 }); await lead.page.reload(); await lead.page.getByRole('heading', { name: 'Absensi & koreksi coach' }).waitFor();
+  assert(await lead.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  await lead.page.screenshot({ path: path.join(out, 'coachlead-corrections-mobile.png'), fullPage: true });
+  await lead.page.getByRole('tab', { name: 'Aktivitas coach', exact: true }).click(); await lead.page.getByRole('button', { name: 'Koreksi', exact: true }).first().click();
+  await lead.page.getByRole('dialog').waitFor(); await lead.page.screenshot({ path: path.join(out, 'coachlead-activity-mobile.png'), fullPage: true });
+  assert.deepEqual(errors, []); pass('Desktop/mobile attendance UI and correction popup have no page overflow or browser exceptions');
+} finally { fs.writeFileSync(path.join(out, 'results.json'), JSON.stringify({ checks, errors }, null, 2)); for (const c of contexts) await c.close(); await browser.close(); }

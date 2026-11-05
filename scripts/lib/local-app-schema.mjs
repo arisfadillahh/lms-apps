@@ -97,6 +97,11 @@ export async function ensureLocalAppSchema(db, root) {
     const exists = await db.query('SELECT 1 FROM pg_constraint WHERE conrelid=$1::regclass AND conname=$2', [`public.${relation.table}`, relation.name]);
     if (!exists.rows.length) await db.exec(`ALTER TABLE public.${ident(relation.table)} ADD CONSTRAINT ${ident(relation.name)} FOREIGN KEY (${relation.columns.map(ident).join(',')}) REFERENCES public.${ident(relation.target)}(${relation.targetColumns.map(ident).join(',')}) NOT VALID`);
   }
+  // Portfolio tables are newer than the snapshot and absent from generated
+  // types. Load their canonical table DDL so the coach home review count works.
+  // No triggers, storage operations, production data or migration runner here.
+  const portfolio = fs.readFileSync(path.join(root, 'supabase/migrations/20260820090000_coder_portfolios.sql'), 'utf8');
+  for (const match of portfolio.matchAll(/create table if not exists public\.coder_portfolio\w*\s*\([\s\S]*?\n\);/gi)) await db.exec(match[0]);
   // Default UUIDs support the application's normal create forms on existing demo
   // tables as well as newly derived ones. No production schema is involved.
   const uuidIds = await db.query("SELECT table_name FROM information_schema.columns WHERE table_schema='public' AND column_name='id' AND data_type='uuid'");

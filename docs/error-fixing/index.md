@@ -4,6 +4,7 @@ Search this file and the linked monthly log before changing related code.
 
 | Date | Reference | Area | Symptom | Monthly log |
 | --- | --- | --- | --- | --- |
+| 2026-11-05 | INTERNAL-20261105-05 | Payroll setup and tariff UX | Recipient setup was fragmented, dated tariffs opened defaults, and class mode lived in payroll | [2026-11](./2026-11.md#internal-20261105-05-payroll-recipient-setup-class-ownership-and-dated-tariff-ux) |
 | 2026-11-05 | INTERNAL-20261105-04 | Legacy payroll import and monthly archives | Production lacked source counters and prior-month archives; cumulative source cannot safely become dated/payable sessions | [2026-11](./2026-11.md#internal-20261105-04-legacy-payroll-import-and-monthly-archives) |
 | 2026-11-05 | INTERNAL-20261105-03 | Payroll database privileges | Supabase default grants retained destructive service-role permissions despite narrower GRANT statements | [2026-11](./2026-11.md#internal-20261105-03-payroll-default-privilege-hardening) |
 | 2026-11-05 | INTERNAL-20261105-02 | Operational payroll roles and first-use UX | Correction work needed admin/coach lead ownership with finance exception; first-login navigation, hidden review forms and unclear next steps blocked discovery | [2026-11](./2026-11.md#internal-20261105-02-operational-payroll-roles-and-first-use-ux) |

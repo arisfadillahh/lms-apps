@@ -71,7 +71,7 @@ Gaji tetap merupakan nominal satu periode, tanpa prorata otomatis. Untuk masuk/k
 | Anak goal | Bonus awal Rp100.000 per anak; 5 anak = Rp500.000 |
 | Transport | Diisi manual oleh admin |
 
-Admin memilih mode Fulltime/Mitra saat membuat kelas atau melalui tab **Tarif & otomatisasi → Mode kelas**. Tidak ada pemeriksaan jam kerja atau overlap. Untuk pengecualian satu pertemuan, gunakan **Koreksi aktivitas** pada rincian periode.
+Admin memilih mode Fulltime/Mitra saat membuat kelas. Untuk kelas yang sudah ada, buka **Kelas → detail kelas → Ubah mode** di bawah informasi coach utama. Pengaturan ini tidak lagi berada di Gaji & Slip Gaji. Tidak ada pemeriksaan jam kerja atau overlap. Untuk pengecualian satu pertemuan, gunakan **Koreksi aktivitas** pada rincian periode.
 
 Jumlah anak dihitung dari kepesertaan aktif pada tanggal sesi, bukan jumlah anak saat ini dan bukan jumlah anak yang mengisi kehadiran. Kategori tarifnya 1, 2, atau 3+ anak.
 
@@ -210,3 +210,11 @@ flowchart TD
 ## Sebelum aktivasi operasional penuh
 
 Deployment aplikasi tidak mengaktifkan otomasi. Sebelum beralih dari n8n: siapkan penerima serta kontrak, klasifikasikan kelas fulltime, tentukan tanggal mulai, cocokkan hasil LMS dengan arsip sumber, lalu sepakati penghentian cabang absensi/gaji lama agar pesan tidak berlipat. Otomatisasi tetap nonaktif selama masa transisi; slip LMS nantinya dikirim manual setelah transfer.
+
+## Mengatur coach, staf, dan tarif
+
+- **Coach & staf** menampilkan satu daftar dengan pencarian, kategori Coach/Staf, dan filter status. Daftar awal hanya menampilkan penerima aktif. Pilih **Nonaktif** untuk melihat akun lama.
+- **Atur gaji** melengkapi profil yang belum siap; **Edit** mengubah profil, kontak, atau tunjangan rutin. Staf tidak perlu akun LMS dan nomor WA-nya dikelola di popup ini. Nomor WA coach tetap mengikuti profil coach.
+- Coach mitra mendapat fee aktivitas dan dapat memiliki tunjangan rutin. Coach fulltime wajib memiliki gaji pokok; penanda **Fulltime · lengkapi gaji pokok** berarti nominal belum diisi, bukan gaji nol yang sudah disetujui. Kondisi ini menghalangi finalisasi. Perubahan profil menggunakan tanggal berlaku; tambahan khusus satu bulan tetap di **Rekap & arsip → Rincian**.
+- **Tarif & otomatisasi → Tarif aktivitas** menampilkan tarif yang sedang berlaku. Tabel kelas membandingkan tarif untuk 1, 2, dan 3+ anak; tabel kegiatan menampilkan satuan per sesi, per anak, atau per kegiatan.
+- Pilih **Ubah tarif**, isi tanggal berlaku dan nominal, lalu **Simpan tarif**. Tarif bertanggal masa depan belum berlaku hari ini. Daftar riwayat menampilkan tarif lama/terjadwal; **Salin jadi tarif baru** memakai tarif terpilih sebagai awal form. Jika tanggal berlaku sudah ada, popup menjelaskan bahwa tarif pada tanggal tersebut akan diganti. Slip final lama tetap tersimpan.

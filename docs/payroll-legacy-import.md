@@ -10,7 +10,7 @@ Sistem lama tetap menjadi patokan selama November 2026. Rekap impor adalah salin
 - Desember 2025 memiliki tiga salinan. Pilih **Versi arsip sumber** untuk membandingkan; salinan penutupan tanggal 25 menjadi tampilan awal. Versi alternatif tidak dijumlahkan.
 - Semua counter serta fee sumber, termasuk transport dan fee join coder pada arsip lama, dipertahankan. Tarif LMS saat ini tidak diterapkan ulang ke riwayat.
 - Beberapa arsip awal tidak memiliki kolom total atau memiliki total kosong. Untuk baris tersebut aplikasi menjumlahkan fee yang terisi dan memberi label **Jumlah fee terisi**. Fee yang kosong tetap tampil **Kosong di sumber**.
-- Sumber lama berisi hitungan kumulatif, sehingga impor tidak membuat tanggal sesi, status kontrak, atau bukti transfer. Impor juga tidak membuat akun/profil kontrak coach berdasarkan kemiripan nama.
+- Sumber lama berisi hitungan kumulatif, sehingga impor tidak membuat tanggal sesi atau bukti transfer. Pemetaan penerima dan status kontrak membutuhkan konfirmasi terpisah, bukan tebakan dari kemiripan nama.
 - Kolom AA Agustus 2026 tidak berjudul dan memuat empat rumus `Z - 25000`, sementara Total Estimasi menjumlahkan O:Y. Sesuai arahan pengguna, catatan manual tanpa judul ini diabaikan; total utama Agustus tetap mengikuti Z. Data mentah tetap tersimpan privat.
 - **Rekap LMS** tetap merupakan perhitungan operasional LMS tersendiri. Sebelum migrasi penuh, PIC perlu mengonfirmasi pemetaan identitas, kontrak, serta sumber aktivitas, lalu mencocokkan hasilnya dengan rekap lama.
 - Hanya admin/finance dengan izin payroll dapat membaca nominal impor. Respons coach dan coach lead tetap memakai daftar field operasional yang diizinkan dan tidak menyertakan arsip finansial.
@@ -38,3 +38,11 @@ Data berada pada `payroll_periods.document.legacy_imports`, menggunakan kontrol 
 Test regresi mencakup jumlah komponen, formula error, identitas/period mismatch, fee kosong, teks rupiah, versi arsip ganda, impor berulang, perhitungan LMS tanpa hitung ganda, dan pembatasan nominal coach/coach lead. QA browser lokal mencakup login finance, tabel 18 coach, popup rincian, filter periode, pergantian tiga versi Desember, pengabaian kolom manual Agustus, serta tampilan desktop/HP. Fixture browser tidak menulis database lokal.
 
 Pemeriksaan production setelah impor harus mencocokkan setiap coach, counter, fee, total, checksum, dan jumlah versi; memastikan field periode lama tidak berubah, ulang impor menghasilkan `UNCHANGED`, dan otomasi tetap nonaktif. Tidak menguji pengiriman WA atau transaksi bank nyata.
+
+## Penautan identitas yang sudah dikonfirmasi
+
+`legacy_links` menyimpan pasangan ID sumber ke profil penerima LMS, terpisah dari angka arsip. Dua identitas sumber historis boleh menuju satu coach yang sama jika telah dikonfirmasi. Staf dapat ditautkan tanpa akun LMS. Identitas yang dikecualikan ditandai **Arsip saja** dan tidak dihapus dari total sumber.
+
+Jalankan `scripts/link-payroll-legacy-identities.mjs --manifest /private/confirmed.json --env /private/.env` untuk dry-run. `--apply --backup-dir /private/backups` membuat backup privat, menambah profil yang belum ada, membuat kontrak awal yang telah dikonfirmasi, dan menautkan arsip dengan pemeriksaan revisi serta audit. Mode `--manifest -` menerima JSON lewat stdin. Manifest tidak boleh masuk Git.
+
+Profil, kontrak, dan tunjangan yang sudah diatur operator tidak ditimpa. Kontrak fulltime awal tanpa nominal gaji ditandai belum lengkap dan diblokir dari finalisasi sampai admin mengisi gaji pokok. Status aktif mengikuti akun asal; impor tidak mengaktifkan kembali coach nonaktif. Periode lama tetap memakai angka sumber, bukan dihitung ulang memakai kontrak/tarif baru. Operasi ini tidak menyalakan otomatisasi, mengirim pesan, atau menandai transfer.

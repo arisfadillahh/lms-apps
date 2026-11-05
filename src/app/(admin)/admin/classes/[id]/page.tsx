@@ -24,6 +24,7 @@ import RemoveCoderButton from './RemoveCoderButton';
 import SetCoderStatusButton from './SetCoderStatusButton';
 import SessionsTable from './SessionsTable';
 import EditCoachForm from './EditCoachForm';
+import ClassPayrollMode from './ClassPayrollMode';
 import AttendanceRecapTable from './AttendanceRecapTable';
 import ChangeClassScheduleModal from './ChangeClassScheduleModal';
 import EditClassLinkModal from './EditClassLinkModal';
@@ -214,6 +215,7 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
             Jadwal: {scheduleDayLabel}, {klass.schedule_time ?? 'Belum diatur'} WIB
           </span>
         </div>
+        <ClassPayrollMode classId={klass.id} mode={klass.payroll_mode ?? null} />
       </header>
 
       <section style={scheduleCardStyle} aria-labelledby="class-lifecycle-title">

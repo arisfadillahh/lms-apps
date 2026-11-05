@@ -14,7 +14,7 @@ export async function submitActivityRequest(raw: unknown, coachId: string, now =
   if (!parsed.success) throw new PayrollError('Isi jenis, tanggal/jam WIB, nama kegiatan (min. 3 karakter), dan rincian (min. 10 karakter).');
   const input = parsed.data, period = currentPeriod(new Date(input.activityAt));
   if (Date.parse(input.activityAt) > now.getTime()) throw new PayrollError('Ajukan hanya kegiatan yang sudah berlangsung.');
-  if (!correctionOpen(period, now)) throw new PayrollError('Batas pengajuan/koreksi reguler tanggal 25 pukul 17.00 WIB telah lewat. Hubungi admin untuk pengecualian.');
+  if (!correctionOpen(period, now)) throw new PayrollError('Batas pengajuan tanggal 25 pukul 17.00 WIB telah lewat.');
   const config = await getPayrollConfig();
   if (!config.settings.active_from || wibDate(input.activityAt) < config.settings.active_from) throw new PayrollError('Kegiatan berada sebelum tanggal mulai pencatatan gaji.');
   if (!config.people.some(p => p.active && p.kind === 'COACH' && p.user_id === coachId)) throw new PayrollError('Profil penggajian coach belum diaktifkan admin.');

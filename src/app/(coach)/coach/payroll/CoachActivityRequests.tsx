@@ -26,14 +26,14 @@ export default function CoachActivityRequests() {
     finally { setBusy(false); }
   }
   return <section className={styles.panel} aria-label="Pengajuan aktivitas coach"><h2>Ajukan event, training, atau aktivitas tambahan</h2>
-    <p className={styles.muted}>Pengganti form absensi tambahan Telegram. Kelas terjadwal otomatis. Absensi trial otomatis tercatat setelah penilaian trial dikirim oleh coach yang ditugaskan. Pembayaran diproses finance di akhir bulan. Gunakan form ini untuk event, training, dan observasi. Batas pengajuan reguler tanggal 25 pukul 17.00 WIB. Setelah deadline, hubungi admin.</p>
+    <p className={styles.muted}>Pengganti form absensi tambahan Telegram. Kelas terjadwal otomatis. Absensi trial otomatis tercatat setelah penilaian trial dikirim oleh coach yang ditugaskan. Pembayaran diproses finance di akhir bulan. Gunakan form ini untuk event, training, dan observasi. Batas pengajuan reguler tanggal 25 pukul 17.00 WIB. Pengajuan ditutup tepat pukul 17.00 WIB.</p>
     {error && <p role="alert" className={styles.error}>{error}</p>}{success && <p role="status">{success}</p>}
     <form aria-label="Form aktivitas tambahan" onSubmit={submit}><fieldset className={styles.form} disabled={busy || !requestId}>
       <label className={styles.field}>Jenis aktivitas<select name="kind" className={styles.select}>{Object.entries(requestLabels).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
       <label className={styles.field}>Tanggal dan jam kegiatan (WIB)<Input name="activityAt" type="datetime-local" required /></label>
       <label className={`${styles.field} ${styles.wide}`}>Nama kegiatan<Input name="label" minLength={3} maxLength={160} required /></label>
       <label className={`${styles.field} ${styles.wide}`}>Rincian, lokasi, peserta, dan referensi bukti<textarea className="rounded-md border p-3" name="notes" minLength={10} maxLength={2000} rows={3} required /></label>
-      <p className={`${styles.muted} ${styles.wide}`}>Identitas mengikuti akun coach. Observasi memakai tarif online/offline yang berlaku pada tanggal kegiatan. Persetujuan admin menentukan mode fee; trial fulltime tetap tanpa fee trial.</p>
+      <p className={`${styles.muted} ${styles.wide}`}>Identitas mengikuti akun coach. Pilih jenis kegiatan dan pelaksanaan yang sesuai. Admin memeriksa pengajuan sebelum aktivitas masuk rekap.</p>
       <Button type="submit">{busy ? 'Mengajukan…' : 'Ajukan aktivitas ke admin'}</Button>
     </fieldset></form>
     <div className={styles.toolbar}><h2>Riwayat pengajuan</h2><Button variant="ghost" size="sm" disabled={busy} onClick={() => load().catch(e => setError(e.message))}>Muat riwayat aktivitas</Button></div>

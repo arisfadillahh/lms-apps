@@ -3,7 +3,9 @@ import { randomUUID } from 'node:crypto';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import * as dao from '@/lib/dao/payrollDao';
 import { calculatePayroll, requireDraft, requireReason, assertComponentDate } from './payroll';
-import { finalize, reopen, markTransferred, PayrollError } from '@/lib/payroll/model';
+import { finalize, reopen, markTransferred, reverseTransfer, reviewCorrection, PayrollError } from '@/lib/payroll/model';
+import { payrollAdmins } from './payrollNotifications';
+import { createNotification } from '@/lib/dao/notificationsDao';
 import type { PayrollCommand } from '@/lib/payroll/validation';
 
 export async function executePayrollCommand(command: PayrollCommand, actor: string, now = new Date()): Promise<unknown> {
@@ -48,6 +50,12 @@ export async function executePayrollCommand(command: PayrollCommand, actor: stri
   let next = structuredClone(record.document);
   const reason = 'reason' in command ? command.reason : '';
   switch (command.action) {
+    case 'assignPic': {
+      if (!(await payrollAdmins()).some(a => a.id === command.userId)) throw new PayrollError('PIC harus admin/finance aktif dengan akses penggajian.');
+      next.pic_id = command.userId; break;
+    }
+    case 'reviewCorrection': next = reviewCorrection(next, command.id, command.status, actor, command.reason, now); break;
+    case 'reverseTransfer': next = reverseTransfer(next, command.transferId, actor, command.reason, now); break;
     case 'finalize': next = finalize(next, actor, now); break;
     case 'reopen': next = reopen(next, command.reason); break;
     case 'transfer': next = markTransferred(next, command.profileIds, actor, command.reference, now); break;
@@ -61,7 +69,7 @@ export async function executePayrollCommand(command: PayrollCommand, actor: stri
     case 'removeComponent': requireDraft(record); next.manual = next.manual.filter(m => m.id !== command.id); next.calculated_at = null; break;
     case 'activity': {
       requireDraft(record); assertComponentDate(`${command.date}T12:00:00+07:00`, next);
-      next.activities.push({ id: randomUUID(), profile_id: command.profileId, date: `${command.date}T12:00:00+07:00`, kind: command.kind, mode: command.mode, label: `${command.label} — ${command.reason}` });
+      next.activities.push({ id: randomUUID(), profile_id: command.profileId, date: `${command.date}T12:00:00+07:00`, kind: command.kind, mode: command.mode, delivery: command.delivery, students: command.students, label: `${command.label} — ${command.reason}` });
       next.calculated_at = null; break;
     }
     case 'removeActivity': {
@@ -90,5 +98,10 @@ export async function executePayrollCommand(command: PayrollCommand, actor: stri
     default: throw new PayrollError('Tindakan tidak dikenal.');
   }
   if (reason) requireReason(reason);
-  return dao.commitPayrollPeriod(record, next, actor, command.action.toUpperCase(), reason);
+  const saved = await dao.commitPayrollPeriod(record, next, actor, command.action.toUpperCase(), reason);
+  if (command.action === 'reviewCorrection') {
+    const request = next.corrections!.find(r => r.id === command.id)!;
+    await createNotification(request.user_id, `Koreksi absensi ${next.id}`, `Status pengajuan: ${request.status === 'DONE' ? 'Selesai' : request.status === 'REJECTED' ? 'Ditolak' : 'Diproses'}. ${request.response}`, 'PAYROLL', { category: 'PAYROLL', actionUrl: '/coach/payroll', push: false }).catch(() => console.error('[Payroll] Notifikasi koreksi belum terkirim; hasil tersimpan.'));
+  }
+  return saved;
 }

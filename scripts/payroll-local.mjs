@@ -29,6 +29,7 @@ const accounts = {
   fulltime: { id: '10000000-0000-4000-8000-000000000003', username: 'fulltime.demo', role: 'COACH', full_name: 'Coach Fulltime Demo', permissions: null },
   noWa: { id: '10000000-0000-4000-8000-000000000004', username: 'tanpawa.demo', role: 'COACH', full_name: 'Coach Tanpa WA Demo', permissions: null },
   limited: { id: '10000000-0000-4000-8000-000000000005', username: 'limited.demo', role: 'ADMIN', full_name: 'Admin Tanpa Akses Gaji', permissions: { menus: ['classes'], is_superadmin: false } },
+  finance: { id: '10000000-0000-4000-8000-000000000007', username: 'finance.demo', role: 'ADMIN', full_name: 'Finance Demo Lokal', permissions: { menus: ['payroll'], is_superadmin: false } },
   coder: { id: '10000000-0000-4000-8000-000000000006', username: 'coder.demo', role: 'CODER', full_name: 'Coder Demo', permissions: null },
 };
 const ident = value => { if (!/^[a-z_][a-z0-9_]*$/i.test(value)) throw new Error('Invalid SQL identifier'); return `"${value}"`; };
@@ -89,6 +90,9 @@ if (!exists.rows[0].name) {
 try {
   await ensureLocalAppSchema(db, root);
   await db.exec(fs.readFileSync(path.join(root, 'supabase/migrations/20261104160000_payroll_allowances.sql'), 'utf8'));
+  await db.exec(fs.readFileSync(path.join(root, 'supabase/migrations/20261105100000_payroll_controls.sql'), 'utf8'));
+  const finance = accounts.finance;
+  await db.query('INSERT INTO users(id,username,password_hash,full_name,role,admin_permissions) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (id) DO NOTHING', [finance.id, finance.username, await bcrypt.hash('DemoLokal2026!', 8), finance.full_name, finance.role, JSON.stringify(finance.permissions)]);
   await seedLocalDashboard(db, appUrl);
 } catch (error) {
   console.error('[Local setup]', error.message);

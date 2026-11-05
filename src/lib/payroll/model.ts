@@ -44,6 +44,13 @@ export interface ManualComponent {
 }
 export interface ManualActivity {
   id: string; profile_id: string; date: string; kind: ActivityKind; mode: Contract; label: string;
+  delivery?: 'ONLINE' | 'OFFLINE'; students?: number;
+}
+export interface TransferReversal { id: string; transfer_id: string; at: string; by: string; reason: string }
+export interface CorrectionRequest {
+  id: string; user_id: string; message: string; at: string;
+  status: 'WAITING' | 'IN_PROGRESS' | 'DONE' | 'REJECTED';
+  response?: string; reviewed_by?: string; reviewed_at?: string;
 }
 export interface Transfer {
   id: string; profile_id: string; amount: number; at: string; by: string; reference: string; version: number;
@@ -61,6 +68,7 @@ export interface PeriodDocument {
   overrides: Record<string, ActivityOverride>; manual: ManualComponent[]; activities: ManualActivity[];
   transfers: Transfer[]; deliveries: Record<string, PayrollDelivery>; history: FinalVersion[];
   calculated_at: string | null; revision_reason?: string;
+  pic_id?: string | null; corrections?: CorrectionRequest[]; transfer_reversals?: TransferReversal[];
 }
 export interface PeriodRecord { id: string; revision: number; document: PeriodDocument; updated_at?: string }
 
@@ -133,7 +141,7 @@ export function calculatePeriod(input: {
   const allActivities = [...input.activities];
   for (const manual of p.activities) {
     const person = people.find(x => x.id === manual.profile_id);
-    allActivities.push({ key: `manual-activity:${manual.id}`, user_id: person?.user_id ?? `staff:${manual.profile_id}`, date: manual.date, label: manual.label, kind: manual.kind, mode: manual.mode, delivery: 'ONLINE', students: 1, cancelled: false });
+    allActivities.push({ key: `manual-activity:${manual.id}`, user_id: person?.user_id ?? `staff:${manual.profile_id}`, date: manual.date, label: manual.label, kind: manual.kind, mode: manual.mode, delivery: manual.delivery ?? 'ONLINE', students: manual.students ?? 1, cancelled: false });
   }
   const seen = new Set<string>();
   for (const a of allActivities) {
@@ -174,11 +182,11 @@ export function calculatePeriod(input: {
   return p;
 }
 export function paidAmount(p: PeriodDocument, personId: string): number {
-  return p.transfers.filter(t => t.profile_id === personId).reduce((sum, t) => money(sum + t.amount), 0);
+  return p.transfers.filter(t => t.profile_id === personId && !(p.transfer_reversals ?? []).some(r => r.transfer_id === t.id)).reduce((sum, t) => money(sum + t.amount), 0);
 }
 export function isPaid(p: PeriodDocument, personId: string, total?: number): boolean {
   const slip = p.slips.find(s => s.profile_id === personId);
-  return Boolean(slip && p.transfers.some(t => t.profile_id === personId) && paidAmount(p, personId) >= (total ?? slip.total));
+  return Boolean(slip && p.transfers.some(t => t.profile_id === personId && !(p.transfer_reversals ?? []).some(r => r.transfer_id === t.id)) && paidAmount(p, personId) >= (total ?? slip.total));
 }
 function idle(p: PeriodDocument) {
   if (Object.values(p.deliveries).some(d => d.status === 'SENDING')) throw new PayrollError('Ada pengiriman berlangsung. Selesaikan/statuskan pengiriman sebelum mengubah periode.', 409);
@@ -189,6 +197,7 @@ export function finalize(p: PeriodDocument, actor: string, now = new Date()): Pe
   if (now.getTime() < Date.parse(p.ends_at)) throw new PayrollError('Periode masih berjalan sampai akhir tanggal 25 WIB. Finalisasi tersedia tanggal 26.');
   if (!p.calculated_at || Date.parse(p.calculated_at) < Date.parse(p.ends_at)) throw new PayrollError('Hitung ulang setelah periode berakhir agar seluruh sesi tanggal 25 tercakup.');
   if (p.warnings.length) throw new PayrollError('Selesaikan peringatan perhitungan sebelum finalisasi.');
+  if ((p.corrections ?? []).some(r => r.status === 'WAITING' || r.status === 'IN_PROGRESS')) throw new PayrollError('Selesaikan pengajuan koreksi coach sebelum finalisasi.');
   const next = structuredClone(p);
   next.status = 'FINAL';
   next.history.push({ version: next.version, finalized_at: now.toISOString(), finalized_by: actor, slips: structuredClone(next.slips) });
@@ -208,15 +217,43 @@ export function markTransferred(p: PeriodDocument, profileIds: string[], actor: 
     if (!slip) throw new PayrollError('Penerima slip tidak ditemukan.');
     if (isPaid(next, id)) continue;
     const amount = Math.max(0, money(slip.total - paidAmount(next, id)));
-    next.transfers.push({ id: `${p.id}:${id}:${p.version}`, profile_id: id, version: p.version, amount, at: now.toISOString(), by: actor, reference });
+    const baseId = `${p.id}:${id}:${p.version}`;
+    next.transfers.push({ id: next.transfers.some(t => t.id === baseId) ? `${baseId}:${next.transfers.length + 1}` : baseId, profile_id: id, version: p.version, amount, at: now.toISOString(), by: actor, reference });
   }
   return next;
 }
 export function correctionOpen(p: PeriodDocument, now = new Date()): boolean { return now.getTime() < Date.parse(p.correction_deadline); }
+export function reverseTransfer(p: PeriodDocument, transferId: string, actor: string, reason: string, now = new Date()): PeriodDocument {
+  idle(p);
+  if (p.status !== 'FINAL') throw new PayrollError('Batalkan penandaan transfer pada periode final.');
+  if (reason.trim().length < 5) throw new PayrollError('Alasan pembatalan wajib diisi.');
+  if (!p.transfers.some(t => t.id === transferId)) throw new PayrollError('Penandaan transfer tidak ditemukan.');
+  if ((p.transfer_reversals ?? []).some(r => r.transfer_id === transferId)) throw new PayrollError('Penandaan ini sudah dibatalkan.', 409);
+  return { ...structuredClone(p), transfer_reversals: [...(p.transfer_reversals ?? []), { id: `reverse:${transferId}`, transfer_id: transferId, at: now.toISOString(), by: actor, reason: reason.trim() }] };
+}
+export function submitCorrection(p: PeriodDocument, input: { id: string; user_id: string; message: string }, now = new Date()): PeriodDocument {
+  if (!p.slips.some(s => s.user_id === input.user_id)) throw new PayrollError('Rekap tidak ditemukan.', 404);
+  const existing = p.corrections?.find(r => r.id === input.id);
+  if (existing) {
+    if (existing.user_id !== input.user_id || existing.message !== input.message.trim()) throw new PayrollError('ID pengajuan sudah digunakan.', 409);
+    return p;
+  }
+  if (!correctionOpen(p, now) || p.status !== 'DRAFT') throw new PayrollError('Batas koreksi tanggal 25 pukul 17.00 WIB telah lewat.');
+  if (input.message.trim().length < 10) throw new PayrollError('Tulis rincian koreksi minimal 10 karakter.');
+  return { ...structuredClone(p), corrections: [...(p.corrections ?? []), { ...input, message: input.message.trim(), at: now.toISOString(), status: 'WAITING' }] };
+}
+export function reviewCorrection(p: PeriodDocument, id: string, status: 'IN_PROGRESS' | 'DONE' | 'REJECTED', actor: string, response: string, now = new Date()): PeriodDocument {
+  const next = structuredClone(p), request = next.corrections?.find(r => r.id === id);
+  if (!request) throw new PayrollError('Pengajuan koreksi tidak ditemukan.', 404);
+  if (request.status === 'DONE' || request.status === 'REJECTED') throw new PayrollError('Pengajuan sudah diselesaikan.', 409);
+  if (response.trim().length < 5) throw new PayrollError('Tanggapan wajib diisi.');
+  Object.assign(request, { status, response: response.trim(), reviewed_by: actor, reviewed_at: now.toISOString() });
+  return next;
+}
 export function recapMessage(p: PeriodDocument, slip: Slip, now = new Date()): string {
   const labels: Record<string, string> = { WEEKLY: 'Weekly', EKSKUL: 'Ekskul', TRIAL: 'Trial', EVENT: 'Event', TRAINING_ONLINE: 'Training online', TRAINING_OFFLINE: 'Training offline', OBSERVATION_ONLINE: 'Observasi online', OBSERVATION_OFFLINE: 'Observasi offline' };
   const lines = slip.lines.filter(l => Object.hasOwn(labels, l.kind));
   const count = lines.filter(l => !l.details.includes('dibatalkan')).length;
   const details = lines.map((l, i) => `${i + 1}. ${new Date(l.date).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', dateStyle: 'medium', timeStyle: 'short' })} WIB — ${l.label}\n   ${labels[l.kind]}${l.students !== undefined && ['WEEKLY','EKSKUL','TRIAL'].includes(l.kind) ? ` · ${l.students} anak` : ''}${l.details.includes('Coach pengganti') ? ' · Coach pengganti' : ''}${l.details.includes('dibatalkan') ? ' · DIBATALKAN' : ' · Tercatat'}`).join('\n');
-  return `REKAP ABSENSI ${p.id}\nHalo ${slip.name}, berikut rincian absensi sementara sampai ${now.toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB.\n${count} aktivitas tercatat.\n\n${details || 'Belum ada aktivitas tercatat pada periode ini.'}\n\nBATAS KOREKSI REGULER: 25 ${new Date(p.correction_deadline).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', month: 'long', year: 'numeric' })} PUKUL 17.00 WIB.\nPeriksa tanggal, kelas, pengganti, dan aktivitas tambahan. Laporkan selisih kepada admin sebelum batas tersebut. Setelah deadline, koreksi reguler ditutup; pengecualian/revisi hanya oleh admin dengan alasan tercatat.\nAktivitas tanggal 25 setelah pesan ini tetap dicatat dalam periode berjalan. Pembayaran dan slip gaji diproses finance pada akhir bulan.`;
+  return `REKAP ABSENSI ${p.id}\nHalo ${slip.name}, berikut rincian absensi sementara sampai ${now.toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB.\n${count} aktivitas tercatat.\n\n${details || 'Belum ada aktivitas tercatat pada periode ini.'}\n\nBATAS KOREKSI: 25 ${new Date(p.correction_deadline).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', month: 'long', year: 'numeric' })} PUKUL 17.00 WIB.\nPeriksa tanggal, kelas, pengganti, dan aktivitas tambahan. Laporkan selisih kepada admin sebelum batas tersebut. Pengajuan koreksi ditutup tepat pukul 17.00 WIB. Pastikan seluruh aktivitas sudah diperiksa sebelum batas tersebut.\nAktivitas tanggal 25 setelah pesan ini tetap dicatat dalam periode berjalan. Pembayaran dan slip gaji diproses finance pada akhir bulan.`;
 }

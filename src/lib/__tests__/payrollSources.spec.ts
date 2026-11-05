@@ -25,6 +25,13 @@ describe('LMS operational sources feed payroll without coach check-in', () => {
   it('retains a cancelled source with zero-pay classification for possible documented admin compensation', () => { const b = base(); b.sessions[0].status = 'CANCELLED'; expect(buildPayrollActivities(b).activities[0].cancelled).toBe(true); });
   it('does not accrue future sessions', () => { const b = base(); b.sessions[0].date_time = '2026-11-27T01:00:00Z'; expect(buildPayrollActivities(b).activities).toHaveLength(0); });
   it('groups several assessed children sharing one coach/time into one trial session fee', () => { const b = base(); b.trials = [trial(), trial('t2', { student_name: 'Anak kedua' })]; b.assessments = [submitted(), submitted('t2')]; const a = buildPayrollActivities(b).activities.filter(a => a.kind === 'TRIAL'); expect(a).toHaveLength(1); expect(a[0].students).toBe(2); });
+  it('records one shared trial session while incomplete child reports require admin review', () => {
+    const b = { ...base(), period: createPeriod(2026, 11) }; b.trials = [trial(), trial('t2', { student_name: 'Anak kedua' })]; b.assessments = [submitted()];
+    const built = buildPayrollActivities(b), sessions = built.activities.filter(a => a.kind === 'TRIAL');
+    expect(sessions).toHaveLength(1); expect(sessions[0].students).toBe(2); expect(built.warnings.join(' ')).toContain('1/2 penilaian lengkap');
+    b.period.overrides[sessions[0].key] = { reason: 'Laporan kedua diperiksa oleh PIC' };
+    expect(buildPayrollActivities(b).warnings).toHaveLength(0);
+  });
   it('excludes cancelled trials even if an assessment was submitted', () => { const b = base(); b.trials = [trial('t1', { status: 'CANCELLED' }), trial('t2')]; b.assessments = [submitted(), submitted('t2')]; expect(buildPayrollActivities(b).activities.find(a => a.kind === 'TRIAL')?.students).toBe(1); });
   it('does not count trial attendance only because its scheduled time and duration have elapsed', () => { const b = base(); b.trials = [trial()]; expect(buildPayrollActivities(b).activities.filter(a => a.kind === 'TRIAL')).toHaveLength(0); });
   it('requires submitted assessment by the assigned coach, excluding drafts and another coach', () => {

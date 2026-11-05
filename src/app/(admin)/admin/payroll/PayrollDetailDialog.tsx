@@ -77,12 +77,14 @@ export default function PayrollDetailDialog({ period, slip, people, busy, error,
         </fieldset></form>}
         {view === 'activity' && draft && <form aria-label="Aktivitas tambahan" onSubmit={event => {
           const f = fields(event);
-          void save('activity', { profileId: slip.profile_id, date: f.date, label: f.label, kind: f.kind, mode: f.mode, reason: f.reason }, 'Aktivitas disimpan. Tutup rincian lalu klik Hitung ulang.');
+          void save('activity', { profileId: slip.profile_id, date: f.date, label: f.label, kind: f.kind, mode: f.mode, delivery: f.delivery, students: Number(f.students), reason: f.reason }, 'Aktivitas disimpan. Tutup rincian lalu klik Hitung ulang.');
         }}><fieldset className={styles.form} disabled={busy}>
-          <p className={`${styles.muted} ${styles.wide}`}>Catat kegiatan yang belum masuk dari LMS. Absensi trial normal tetap berasal dari penilaian trial.</p>
+          <p className={`${styles.muted} ${styles.wide}`}>Catat hanya aktivitas yang belum ada, termasuk laporan lewat tanggal 25. Kalau aktivitas sudah tercatat, gunakan Koreksi aktivitas agar tidak dihitung ganda. Absensi trial normal berasal dari penilaian trial.</p>
           <label className={styles.field}>Tanggal<Input name="date" type="date" defaultValue={new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })} required /></label>
-          <label className={styles.field}>Aktivitas<select name="kind" className={styles.select}><option value="EVENT">Event</option><option value="TRAINING_ONLINE">Training online</option><option value="TRAINING_OFFLINE">Training offline</option><option value="OBSERVATION_ONLINE">Observasi online</option><option value="OBSERVATION_OFFLINE">Observasi offline</option><option value="TRIAL">Trial — pengecualian admin</option></select></label>
+          <label className={styles.field}>Aktivitas<select name="kind" className={styles.select}><option value="WEEKLY">Weekly — aktivitas terlewat</option><option value="EKSKUL">Ekskul — aktivitas terlewat</option><option value="EVENT">Event</option><option value="TRAINING_ONLINE">Training online</option><option value="TRAINING_OFFLINE">Training offline</option><option value="OBSERVATION_ONLINE">Observasi online</option><option value="OBSERVATION_OFFLINE">Observasi offline</option><option value="TRIAL">Trial — pengecualian admin</option></select></label>
           <label className={styles.field}>Mode mengajar<select name="mode" className={styles.select}><option value="MITRA">Mitra</option><option value="FULLTIME">Fulltime</option></select></label>
+          <label className={styles.field}>Pelaksanaan<select name="delivery" className={styles.select}><option value="ONLINE">Online</option><option value="OFFLINE">Offline</option></select></label>
+          <label className={styles.field}>Jumlah anak<Input name="students" type="number" min={1} max={500} defaultValue={1} required /></label>
           <label className={styles.field}>Nama kegiatan<Input name="label" required /></label>
           <label className={`${styles.field} ${styles.wide}`}>Alasan / referensi<Input name="reason" minLength={5} required /></label>
           <Button type="submit">Catat aktivitas</Button>
@@ -100,7 +102,7 @@ export default function PayrollDetailDialog({ period, slip, people, busy, error,
             <p className={styles.muted}>Rekap absensi dijadwalkan otomatis tanggal 25. Gunakan pengiriman manual hanya untuk koreksi atau kendala pengiriman.</p>
             <div className={styles.toolbar}>{slip.kind === 'COACH' && <Button variant="outline" disabled={busy || !period.calculated_at} onClick={() => { void resend('RECAP', slip.profile_id); }}>Kirim ulang rekap (manual)</Button>}<Button variant="outline" disabled={busy || !isPaid(period, slip.profile_id) || draft} onClick={() => { void resend('SLIP', slip.profile_id); }}>Kirim ulang slip final</Button></div>
             <h2>Versi final tersimpan</h2><div className={styles.toolbar}>{period.history.map(h => <Button variant="outline" size="sm" key={h.version} onClick={() => preview(slip, h.version)}>Versi {h.version} · {dateWib(h.finalized_at)} WIB</Button>)}</div>
-            <h2>Riwayat transfer</h2>{period.transfers.filter(t => t.profile_id === slip.profile_id).map(t => <p key={t.id} className={styles.muted}>{dateWib(t.at)} WIB · {rupiah(t.amount)} · versi {t.version} {t.reference}</p>)}
+            <h2>Riwayat transfer</h2>{period.transfers.filter(t => t.profile_id === slip.profile_id).map(t => { const reversed = period.transfer_reversals?.find(r => r.transfer_id === t.id); return <div key={t.id} className={styles.toolbar}><span className={styles.muted}>{dateWib(t.at)} WIB · {rupiah(t.amount)} · versi {t.version} {t.reference}{reversed && ` · Dibatalkan: ${reversed.reason}`}</span>{!draft && !reversed && <Button size="sm" variant="outline" disabled={busy} onClick={() => { const reason = window.prompt('Alasan membatalkan penandaan transfer (uang bank tidak dibatalkan):'); if (reason) void run('reverseTransfer', { transferId: t.id, reason }, 'Penandaan dibatalkan. Riwayat asli tetap tersimpan.'); }}>Batalkan penandaan</Button>}</div>; })}
           </div></details>
         </section>}
       </div>

@@ -11,7 +11,7 @@ describe('private PDF presentation', () => {
   });
   it('states the deadline in text and distinguishes draft slip preview from final PDF', () => {
     const p = createPeriod(2026, 10); const html = renderPayrollHtml(p, slip);
-    expect(recapMessage(p, slip)).toContain('BATAS KOREKSI REGULER'); expect(recapMessage(p, slip)).toContain('17.00'); expect(html).toContain('DRAFT / SEMENTARA');
+    expect(recapMessage(p, slip)).toContain('BATAS KOREKSI:'); expect(recapMessage(p, slip)).toContain('17.00'); expect(recapMessage(p, slip)).not.toContain('pengecualian'); expect(html).toContain('DRAFT / SEMENTARA');
     p.history = [{ version: 1, finalized_at: p.ends_at, finalized_by: 'admin', slips: [slip] }];
     expect(renderPayrollHtml(p, slip)).toContain('>FINAL</span>');
   });

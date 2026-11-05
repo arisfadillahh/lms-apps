@@ -212,6 +212,7 @@ export async function markTrialConversionPaidFromInvoice(
   const assessment = await findAssessmentByInvoiceId(invoiceId);
   if (!assessment) return { updated: false, reason: 'not_trial_conversion' };
   if (assessment.status === 'PAID' || (assessment.status === 'CONVERTED' && assessment.converted_at)) {
+    await syncGoalPayroll(invoiceId, assessment.payment_confirmed_at ?? paidAt);
     return { updated: false, reason: 'already_paid' };
   }
   if (!assessment.pricing_id) {
@@ -232,6 +233,7 @@ export async function markTrialConversionPaidFromInvoice(
     converted_at: null,
   });
 
+  await syncGoalPayroll(invoiceId, paidAt);
   return {
     updated: true,
     assessmentId: assessment.id,
@@ -244,4 +246,10 @@ export async function markTrialConversionPaidFromInvoice(
     requiresAdminAccountCreation: true,
     awaitingManualClassAssignment: true,
   };
+}
+
+// Payment stays authoritative even when payroll is temporarily unavailable; recalculation repairs it.
+async function syncGoalPayroll(invoiceId: string, paidAt: string) {
+  try { const { syncPaidTrialGoalPayroll } = await import('./payrollTrialSync'); await syncPaidTrialGoalPayroll(invoiceId, paidAt); }
+  catch { console.error('[TrialConversion] Goal payroll sync pending; retry via payroll recalculation.'); }
 }

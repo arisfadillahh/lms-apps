@@ -167,8 +167,8 @@ try {
   assert(recapNotification); assert(recapNotification.message.includes('Weekly Dua Anak'));
   assert(!recapNotification.message.includes('Rp')); assert(!recapNotification.message.includes('465000'));
   fs.writeFileSync(path.join(out, 'recap-message.txt'), recapNotification.message);
-  assert(ownBody.periods.every(p => p.slip.user_id === '10000000-0000-4000-8000-000000000002'));
-  assert(ownBody.periods.every(p => p.history.every(h => h.slips.every(s => s.user_id === '10000000-0000-4000-8000-000000000002'))));
+  assert(ownBody.periods.every(p => Array.isArray(p.activities) && Array.isArray(p.corrections)));
+  assert(!/"(?:amount|rate|total|transfers|history|terms)":/.test(JSON.stringify(ownBody)));
   assert.equal((await coach.request.get(base + `/api/payroll/2026-10/${fulltimeId}/pdf`)).status(), 404);
   assert.equal((await coach.request.post(base + '/api/coach/payroll', { data: { periodId: '2026-11', message: 'Mohon cek sesi saya untuk contoh QA' } })).status(), 200);
   assert.equal((await coach.request.post(base + '/api/coach/payroll', { data: { periodId: '2026-10', message: 'Laporan ini sudah melewati deadline' } })).status(), 400);

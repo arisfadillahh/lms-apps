@@ -12,6 +12,7 @@ describe('real PostgreSQL payroll migration, privileges and atomic revisions', (
     await db.exec(readFileSync(path.join(process.cwd(), 'scripts/payroll-local-schema.sql'), 'utf8'));
     await db.exec(readFileSync(path.join(process.cwd(), 'supabase/migrations/20261104100000_payroll.sql'), 'utf8'));
     await db.exec(readFileSync(path.join(process.cwd(), 'supabase/migrations/20261104160000_payroll_allowances.sql'), 'utf8'));
+    await db.exec(readFileSync(path.join(process.cwd(), 'supabase/migrations/20261105100000_payroll_controls.sql'), 'utf8'));
     await db.query("INSERT INTO users(id,username,full_name,role) VALUES ($1,'admin','Admin','ADMIN')", [admin]);
   }, 30000);
   afterAll(async () => { await db?.close(); });
@@ -67,6 +68,16 @@ describe('real PostgreSQL payroll migration, privileges and atomic revisions', (
     await db.query('INSERT INTO payroll_periods(id,document) VALUES ($1,$2)', [p.id, JSON.stringify(p)]);
     for (const change of [{ history: [] }, { transfers: [] }, { starts_at: '2026-09-01' }]) {
       await expect(db.query('UPDATE payroll_periods SET document=$2 WHERE id=$1', [p.id, JSON.stringify({ ...p, ...change })])).rejects.toThrow(/immutable/);
+    }
+  });
+  it('keeps transfer reversals append-only and rejects duplicate or unknown references', async () => {
+    const p = createPeriod(2026, 8);
+    p.transfers = [{ id: 't', profile_id: admin, amount: 100, at: '2026-08-26', by: admin, version: 1, reference: '' }];
+    await db.query('INSERT INTO payroll_periods(id,document) VALUES ($1,$2)', [p.id, JSON.stringify(p)]);
+    p.transfer_reversals = [{ id: 'r', transfer_id: 't', at: '2026-08-26', by: admin, reason: 'Wrong marking' }];
+    await db.query('UPDATE payroll_periods SET document=$2 WHERE id=$1', [p.id, JSON.stringify(p)]);
+    for (const reversals of [[], [{ ...p.transfer_reversals[0], reason: 'Changed reason' }], [...p.transfer_reversals, { ...p.transfer_reversals[0], id: 'r2' }], [...p.transfer_reversals, { ...p.transfer_reversals[0], id: 'r2', transfer_id: 'missing' }]]) {
+      await expect(db.query('UPDATE payroll_periods SET document=$2 WHERE id=$1', [p.id, JSON.stringify({ ...p, transfer_reversals: reversals })])).rejects.toThrow(/immutable|Duplicate|Invalid/);
     }
   });
   it('reviews requests atomically, invalidates calculation and blocks stale/final-period reviews', async () => {

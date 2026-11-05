@@ -44,6 +44,7 @@ export function buildPayrollActivities(input: {
     const valid = group.filter(t => !['CANCELLED', 'FAILED'].includes(t.status));
     const submitted = valid.filter(t => assessments.some(a => a.trial_id === t.id && a.coach_id === t.coach_id && a.status !== 'DRAFT' && a.submitted_at && Date.parse(a.submitted_at) <= now.getTime()));
     if (!submitted.length) continue;
+    if (submitted.length < valid.length && !period.overrides[key]?.reason) warnings.push(`Trial ${valid.map(t => t.student_name).join(', ')}: ${submitted.length}/${valid.length} penilaian lengkap. Lengkapi laporan atau catat hasil pemeriksaan lewat Koreksi aktivitas sebelum finalisasi.`);
     const first = group[0];
     activities.push({ key, user_id: first.coach_id!, date: first.scheduled_at!, label: `Trial (${valid.length} anak)`,
       kind: 'TRIAL', mode: 'MITRA', delivery: first.trial_mode, students: valid.length, cancelled: valid.length === 0,

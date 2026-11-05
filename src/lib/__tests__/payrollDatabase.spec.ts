@@ -10,12 +10,28 @@ describe('real PostgreSQL payroll migration, privileges and atomic revisions', (
   beforeAll(async () => {
     db = new PGlite();
     await db.exec(readFileSync(path.join(process.cwd(), 'scripts/payroll-local-schema.sql'), 'utf8'));
+    // Match Supabase production: new tables inherit ALL for the server and
+    // browser roles unless a migration explicitly removes those defaults.
+    await db.exec('ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role; ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;');
     await db.exec(readFileSync(path.join(process.cwd(), 'supabase/migrations/20261104100000_payroll.sql'), 'utf8'));
     await db.exec(readFileSync(path.join(process.cwd(), 'supabase/migrations/20261104160000_payroll_allowances.sql'), 'utf8'));
     await db.exec(readFileSync(path.join(process.cwd(), 'supabase/migrations/20261105100000_payroll_controls.sql'), 'utf8'));
+    await db.exec(readFileSync(path.join(process.cwd(), 'supabase/migrations/20261105140000_payroll_privileges.sql'), 'utf8'));
     await db.query("INSERT INTO users(id,username,full_name,role) VALUES ($1,'admin','Admin','ADMIN')", [admin]);
   }, 30000);
   afterAll(async () => { await db?.close(); });
+  it('removes inherited destructive privileges from all payroll tables and audit sequences', async () => {
+    for (const table of ['payroll_profiles','payroll_terms','payroll_rate_cards','payroll_settings','payroll_periods','payroll_audit','payroll_activity_requests']) {
+      for (const privilege of ['DELETE','TRUNCATE','REFERENCES','TRIGGER']) {
+        const r = await db.query<{ allowed: boolean }>('SELECT has_table_privilege($1,$2,$3) AS allowed', ['service_role', table, privilege]);
+        expect(r.rows[0].allowed, `${table} ${privilege}`).toBe(false);
+      }
+    }
+    for (const role of ['anon','authenticated']) {
+      const r = await db.query<{ allowed: boolean }>("SELECT has_sequence_privilege($1,'payroll_audit_id_seq','USAGE') AS allowed", [role]);
+      expect(r.rows[0].allowed).toBe(false);
+    }
+  });
   it('adds nullable class mode without changing existing operational rows', async () => {
     const r = await db.query("SELECT column_name FROM information_schema.columns WHERE table_name='classes' AND column_name='payroll_mode'"); expect(r.rows).toHaveLength(1);
   });

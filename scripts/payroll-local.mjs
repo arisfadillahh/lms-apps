@@ -92,6 +92,7 @@ try {
   await ensureLocalAppSchema(db, root);
   await db.exec(fs.readFileSync(path.join(root, 'supabase/migrations/20261104160000_payroll_allowances.sql'), 'utf8'));
   await db.exec(fs.readFileSync(path.join(root, 'supabase/migrations/20261105100000_payroll_controls.sql'), 'utf8'));
+  await db.exec(fs.readFileSync(path.join(root, 'supabase/migrations/20261105140000_payroll_privileges.sql'), 'utf8'));
   const finance = accounts.finance;
   await db.query('INSERT INTO users(id,username,password_hash,full_name,role,admin_permissions) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (id) DO NOTHING', [finance.id, finance.username, await bcrypt.hash('DemoLokal2026!', 8), finance.full_name, finance.role, JSON.stringify(finance.permissions)]);
   const lead = accounts.coachLead;

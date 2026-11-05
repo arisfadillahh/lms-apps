@@ -4,6 +4,7 @@ Search this file and the linked monthly log before changing related code.
 
 | Date | Reference | Area | Symptom | Monthly log |
 | --- | --- | --- | --- | --- |
+| 2026-11-05 | INTERNAL-20261105-03 | Payroll database privileges | Supabase default grants retained destructive service-role permissions despite narrower GRANT statements | [2026-11](./2026-11.md#internal-20261105-03-payroll-default-privilege-hardening) |
 | 2026-11-05 | INTERNAL-20261105-02 | Operational payroll roles and first-use UX | Correction work needed admin/coach lead ownership with finance exception; first-login navigation, hidden review forms and unclear next steps blocked discovery | [2026-11](./2026-11.md#internal-20261105-02-operational-payroll-roles-and-first-use-ux) |
 | 2026-11-05 | INTERNAL-20261105-01 | Payroll controls and coach privacy | Correction notifications lacked status/PIC; coach API exposed amounts; mistaken transfer markers had no reversal and trial payment events did not reconcile goals | [2026-11](./2026-11.md#internal-20261105-01-payroll-correction-tracking-coach-privacy-and-transfer-reversals) |
 | 2026-11-04 | INTERNAL-20261104-06 | Payroll detail forms and scheduled recap | Forms appeared below long activity lists; manual recap looked like a payment step and could suppress the scheduled recap | [2026-11](./2026-11.md#internal-20261104-06-payroll-detail-forms-and-scheduled-recap) |

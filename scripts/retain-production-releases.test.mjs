@@ -19,7 +19,7 @@ function fixture(t, count = 5) {
   fs.mkdirSync(releases);
   git('init', '--quiet', source);
   git('init', '--quiet', '--bare', repo);
-  fs.writeFileSync(path.join(source, '.gitignore'), '.next/\nnode_modules/\n.env\n.data\n.uploads\nbaileys_auth_info\npublic/uploads\n');
+  fs.writeFileSync(path.join(source, '.gitignore'), '.next/\nnode_modules/\nnext-env.d.ts\n.env\n.data\n.uploads\nbaileys_auth_info\npublic/uploads\n');
   const shas = [];
   for (let i = 0; i < count; i++) {
     fs.writeFileSync(path.join(source, 'version.txt'), `${i}\n`);
@@ -67,6 +67,17 @@ test('dry-run plans by successful deployment order without any filesystem change
   assert.deepEqual(result.remove, f.shas.slice(0, 2), JSON.stringify(result));
   assert.equal(fs.readFileSync(f.state, 'utf8'), before);
   assert.equal(fs.readdirSync(f.releases).length, 5);
+});
+
+test('allows canonical Next generated types but protects custom content in that filename', t => {
+  const f=fixture(t); f.save(f.shas);
+  const generated=path.join(f.releases,f.shas[0],'next-env.d.ts');
+  fs.writeFileSync(generated,'/// <reference types="next" />\n/// <reference types="next/image-types/global" />\nimport "./.next/types/routes.d.ts";\nimport "./.next/types/root-params.d.ts";\n');
+  assert.ok(retainProductionReleases(f.activate(4)).remove.includes(f.shas[0]));
+  fs.appendFileSync(generated,'// Private custom configuration\n');
+  const report=retainProductionReleases(f.activate(4));
+  assert.ok(!report.remove.includes(f.shas[0]));
+  assert.ok(report.blocked.some(item=>item.sha===f.shas[0]));
 });
 
 test('apply removes only old registered successful releases and preserves shared sessions/data', t => {

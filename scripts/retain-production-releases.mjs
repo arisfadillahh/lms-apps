@@ -54,6 +54,13 @@ function validateDirectory(target) {
 }
 
 function unsafeContents(directory, shared) {
+  const generated = path.join(directory, 'next-env.d.ts');
+  if (fs.existsSync(generated)) {
+    const stat = fs.lstatSync(generated);
+    const lines = fs.readFileSync(generated, 'utf8').split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+    const allowed = new Set(['/// <reference types="next" />', '/// <reference types="next/image-types/global" />', '// NOTE: This file should not be edited', '// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.']);
+    if (!stat.isFile() || stat.isSymbolicLink() || !lines.includes('/// <reference types="next" />') || !lines.includes('/// <reference types="next/image-types/global" />') || lines.some(line => !allowed.has(line) && !/^import "\.\/\.next\/(dev\/)?types\/(routes|root-params)\.d\.ts";$/.test(line))) return 'Unexpected contents in generated next-env.d.ts';
+  }
   for (const [relative, sharedName] of Object.entries(RUNTIME_LINKS)) {
     const target = path.join(directory, relative);
     let stat;
@@ -70,7 +77,7 @@ function unsafeContents(directory, shared) {
   const statuses = execFileSync('git', ['-C', directory, 'status', '--porcelain=v1', '-z', '--ignored'], {
     encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
   }).split('\0').filter(Boolean);
-  const allowed = new Set(['.next/', 'node_modules/', 'tsconfig.tsbuildinfo', ...Object.keys(RUNTIME_LINKS)]);
+  const allowed = new Set(['.next/', 'node_modules/', 'tsconfig.tsbuildinfo', 'next-env.d.ts', ...Object.keys(RUNTIME_LINKS)]);
   for (const status of statuses) {
     if (!['??', '!!'].includes(status.slice(0, 2))) return 'Tracked source has local changes';
     if (!allowed.has(status.slice(3).replace(/\/$/, '')) && !allowed.has(status.slice(3))) {

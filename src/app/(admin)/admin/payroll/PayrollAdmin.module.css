@@ -124,3 +124,9 @@
   .correctionFooter>span{flex-basis:100%;max-width:none;margin:0}
   .meetingList{max-height:260px}
 }
+.automationStatus { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+.automationStatus h2 { margin:0 0 4px; }
+.automationStatus p { margin:0; }
+.automationDate { display:grid; gap:12px; padding:16px 0 0; border:0; max-width:560px; }
+.automationDate p { margin:0; }
+.automationDate button { justify-self:start; }

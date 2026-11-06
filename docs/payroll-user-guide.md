@@ -2,6 +2,12 @@
 
 Modul payroll tersedia di production. Jadwal WA mengikuti pengaturan otomatisasi admin. Data transisi dan arsip masuk satu rekap LMS; lihat [Sinkronisasi data payroll](./payroll-legacy-import.md).
 
+## Status otomatisasi dan jeda WA
+
+**Tarif & otomatisasi → Otomatisasi** menampilkan status WA dan jadwal tanggal 25. **Jeda WA otomatis** menjeda pesan terjadwal; pencatatan aktivitas, perhitungan payroll, dan sinkronisasi sumber tetap berjalan. Gunakan **Aktifkan WA otomatis** untuk melanjutkan jadwal. Tindakan ini tidak mengirim pesan langsung. Slip tetap dikirim manual setelah transfer.
+
+Tanggal mulai berada di **Pengaturan lanjutan** dan cukup diatur sekali. Pergantian periode tanggal 26 berjalan otomatis. Menyimpan tanggal tidak mengubah status jeda WA; menekan jeda/aktifkan WA tidak mengubah tanggal mulai. Sebelum tanggal mulai dan profil penerima tersedia, perhitungan belum dijalankan.
+
 ## Mencoba di local
 
 Jalankan `npm run dev:payroll-local`, lalu buka [pilihan akun demo](http://127.0.0.1:4055). Pilih Admin Demo Lokal, Coach Mitra, Coach Fulltime, atau Coach Tanpa WA. Data operasional demo adalah contoh. Pembanding n8n memakai snapshot baca saja yang dijelaskan di bagian uji paralel. Status **Simulasi local** berarti pengiriman teks rekap atau PDF slip disimulasikan tanpa mengirim WhatsApp sungguhan.

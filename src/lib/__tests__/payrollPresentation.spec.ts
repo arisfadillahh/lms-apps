@@ -50,7 +50,7 @@ describe('private PDF presentation', () => {
       { label: 'Bonus goal', quantity: '2 anak', amount: 200000 },
     ]);
     const html = renderPayrollHtml(createPeriod(2026, 10), summary);
-    for (const hidden of ['Kelas rahasia', '25 Okt', 'Aktivitas dibatalkan', 'onclick=', '<th style="width:20%">Tanggal']) expect(html).not.toContain(hidden);
+    for (const hidden of ['Kelas rahasia', '25 Okt 2026, 20.00', 'Aktivitas dibatalkan', 'onclick=', '<th style="width:20%">Tanggal']) expect(html).not.toContain(hidden);
     expect(html).toContain('Rp400.000');
     expect(JSON.stringify(summary)).toBe(snapshot);
   });

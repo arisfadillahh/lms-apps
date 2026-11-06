@@ -216,3 +216,7 @@ Deployment aplikasi tidak mengaktifkan otomasi. Sebelum beralih dari n8n: siapka
 - Coach mitra mendapat fee aktivitas dan dapat memiliki tunjangan rutin. Coach fulltime wajib memiliki gaji pokok; penanda **Fulltime · lengkapi gaji pokok** berarti nominal belum diisi, bukan gaji nol yang sudah disetujui. Kondisi ini menghalangi finalisasi. Perubahan profil menggunakan tanggal berlaku; tambahan khusus satu bulan tetap di **Rekap & arsip → Rincian**.
 - **Tarif & otomatisasi → Tarif aktivitas** menampilkan tarif yang sedang berlaku. Tabel kelas membandingkan tarif untuk 1, 2, dan 3+ anak; tabel kegiatan menampilkan satuan per sesi, per anak, atau per kegiatan.
 - Pilih **Ubah tarif**, isi tanggal berlaku dan nominal, lalu **Simpan tarif**. Tarif bertanggal masa depan belum berlaku hari ini. Daftar riwayat menampilkan tarif lama/terjadwal; **Salin jadi tarif baru** memakai tarif terpilih sebagai awal form. Jika tanggal berlaku sudah ada, popup menjelaskan bahwa tarif pada tanggal tersebut akan diganti. Slip final lama tetap tersimpan.
+
+## Tampilan slip gaji
+
+**Pratinjau** membuka dokumen dengan gaya invoice Clevio: identitas penerima dan penghasilan bersih di bagian atas, diikuti gaji pokok, setiap tunjangan/potongan dan ringkasan fee. Kelas tetap diringkas menjadi jumlah sesi dan total; tanggal setiap kelas tidak dimuat. Logo/header terlihat sejak dokumen dibuka. Status draft/final dan transfer ditampilkan pada slip. Desain yang sama dipakai pada PDF slip, dengan tata letak cetak A4.

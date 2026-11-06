@@ -13,7 +13,6 @@ DEPLOY_LOG_DIR="$APP_ROOT/deploy-logs"
 LOCK_FILE="/var/lock/lms-production-deploy.lock"
 APP_PORT="${LMS_APP_PORT:-3005}"
 SMOKE_PORT="${LMS_SMOKE_PORT:-3010}"
-KEEP_RELEASES="${LMS_KEEP_RELEASES:-5}"
 TARGET_REF="${1:-refs/remotes/origin/production}"
 
 mkdir -p "$RELEASES_DIR" "$SHARED_DIR" "$DEPLOY_LOG_DIR" "$WHATSAPP_AUTH_DIR"
@@ -238,18 +237,13 @@ printf '%s\n' "$NODE_VERSION" >"$SHARED_DIR/deployed-node-version"
 printf '%s\n' "$PREVIOUS_TARGET" >"$SHARED_DIR/previous-release"
 printf '%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$SHARED_DIR/deployed-at"
 
-mapfile -t OLD_RELEASES < <(
-  find "$RELEASES_DIR" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' \
-    | sort -nr \
-    | awk -v keep="$KEEP_RELEASES" 'NR > keep {print $2}'
-)
-
-for old_release in "${OLD_RELEASES[@]:-}"; do
-  [[ -z "$old_release" ]] && continue
-  [[ "$old_release" == "$RELEASE_DIR" ]] && continue
-  [[ "$old_release" == "$PREVIOUS_TARGET" ]] && continue
-  git --git-dir="$BARE_REPO" worktree remove --force "$old_release" || true
-done
+# Keep the active deployment plus two verified successful rollback releases.
+# The ledger adopts only current/previous on first use; older unknown checkouts
+# are reported for a separate cleanup review, never pruned by directory mtime.
+if ! pm2 jlist | "$NODE_BIN" "$RELEASE_DIR/scripts/retain-production-releases.mjs" \
+  --active "$TARGET_SHA" --previous "$PREVIOUS_TARGET" --apply; then
+  echo "Deployment sehat; retensi dilewati karena pemeriksaan keamanan gagal." >&2
+fi
 
 echo "Deployment berhasil: $TARGET_SHA"
 echo "Previous release: $PREVIOUS_TARGET"

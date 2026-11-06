@@ -2,7 +2,8 @@ import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import * as dao from '@/lib/dao/payrollDao';
-import { calculatePayroll, requireDraft, requireReason, assertComponentDate } from './payroll';
+import { calculatePayroll, payrollMeetingCandidates, requireDraft, requireReason, assertComponentDate } from './payroll';
+import { meetingMatchesLine } from '@/lib/payroll/attendanceDetails';
 import { finalize, reopen, markTransferred, reverseTransfer, reviewCorrection, PayrollError } from '@/lib/payroll/model';
 import { attendanceAdmins } from './payrollNotifications';
 import { createNotification } from '@/lib/dao/notificationsDao';
@@ -85,12 +86,31 @@ export async function executePayrollCommand(command: PayrollCommand, actor: stri
     }
     case 'override': {
       requireDraft(record);
-      if (!next.slips.some(s => s.lines.some(l => l.key === command.sourceKey && !['SALARY', 'ADJUSTMENT', 'ALLOWANCE'].includes(l.kind)))) throw new PayrollError('Aktivitas sumber tidak ditemukan.');
+      const originalSlip = next.slips.find(s => s.lines.some(l => l.key === command.sourceKey));
+      const line = originalSlip?.lines.find(l => l.key === command.sourceKey);
+      if (!line || ['SALARY', 'ADJUSTMENT', 'ALLOWANCE'].includes(line.kind)) throw new PayrollError('Aktivitas sumber tidak ditemukan.');
+      if ((command.quantity !== undefined || command.meetingKeys !== undefined) && !line.summary) throw new PayrollError('Untuk pertemuan tunggal, gunakan status dikecualikan atau pilih coach pengganti.');
+      const config = await dao.getPayrollConfig();
       if (command.profileId) {
-        const config = await dao.getPayrollConfig();
         if (!config.people.some(p => p.id === command.profileId && p.active)) throw new PayrollError('Penerima pengganti tidak aktif.');
       }
-      next.overrides[command.sourceKey] = { profile_id: command.profileId, amount: command.amount, excluded: command.excluded, mode: command.mode, reason: command.reason };
+      let quantity = command.quantity;
+      if (command.meetingKeys !== undefined) {
+        if (line.kind === 'GOAL' || line.kind === 'TRANSPORT') throw new PayrollError('Komponen ini dikoreksi melalui jumlah, bukan pertemuan.');
+        const keys = new Set(command.meetingKeys);
+        if (keys.size !== command.meetingKeys.length) throw new PayrollError('Pertemuan tidak boleh dipilih dua kali.');
+        const owner = config.people.find(p => p.id === (command.profileId ?? originalSlip!.profile_id));
+        const candidates = await payrollMeetingCandidates(next, now);
+        for (const key of keys) {
+          const meeting = candidates.find(m => m.key === key);
+          const meetingOwner = next.overrides[key]?.profile_id ? config.people.find(p => p.id === next.overrides[key].profile_id)?.user_id : meeting?.user_id;
+          if (!meeting || meeting.cancelled || next.overrides[key]?.excluded || meetingOwner !== owner?.user_id || !meetingMatchesLine(meeting, line)) throw new PayrollError('Pertemuan tidak sesuai coach, kategori, atau periode. Muat ulang daftar pertemuan.');
+          if (Object.entries(next.overrides).some(([other, override]) => other !== command.sourceKey && override.meeting_keys?.includes(key) && !override.excluded)) throw new PayrollError('Pertemuan sudah dipakai pada kategori lain.');
+        }
+        quantity = keys.size;
+        next.meeting_catalog = candidates;
+      }
+      next.overrides[command.sourceKey] = { profile_id: command.profileId, amount: command.amount, quantity, quantity_delta: quantity === undefined ? undefined : quantity-(line.source_quantity ?? line.quantity), meeting_keys: command.meetingKeys, selection_cutoff: command.meetingKeys === undefined ? undefined : now.toISOString(), excluded: line.summary && quantity !== undefined ? false : command.excluded, mode: command.mode, reason: command.reason };
       next.calculated_at = null; break;
     }
     case 'recoverDelivery': {

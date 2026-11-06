@@ -64,9 +64,9 @@ backup.mkdir(parents=True,mode=0o700)
 source=backup/'source.json.gz'
 with gzip.open(source,'wt') as handle:json.dump(bundle,handle)
 root=pathlib.Path(__file__).resolve().parent
-commands=[['node',str(root/'import-payroll-legacy.mjs'),'--input',str(source),'--current-period',period,'--ignore-unlabelled-extras','--apply','--env',args.env,'--backup-dir',str(backup/'import')],['node',str(root/'unify-payroll-periods.mjs'),'--period',period,'--apply','--env',args.env,'--backup-dir',str(backup/'ledger')]]
+commands=[['node',str(root/'import-payroll-legacy.mjs'),'--input',str(source),'--current-period',period,'--current-sync','--ignore-unlabelled-extras','--apply','--env',args.env,'--backup-dir',str(backup/'import')],['node',str(root/'unify-payroll-periods.mjs'),'--period',period,'--current-sync','--apply','--env',args.env,'--backup-dir',str(backup/'ledger')]]
 if args.actor:commands[-1].extend(['--actor',args.actor])
 for command in commands:
     result=subprocess.run(command,capture_output=True,text=True,timeout=60)
     if result.returncode:raise SystemExit('Payroll refresh stopped; previous records retained. '+result.stderr.strip()[-350:])
-print(json.dumps({'synced':True,'period':period,'backupDir':str(backup),'automationEnabled':False}))
+print(json.dumps({'synced':True,'period':period,'backupDir':str(backup),'automationSettingsChanged':False}))

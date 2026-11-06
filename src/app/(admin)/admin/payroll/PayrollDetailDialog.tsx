@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { isPaid, type PayrollLine, type PayrollPerson, type PeriodDocument, type Slip } from '@/lib/payroll/model';
+import { isPaid, type PayrollLine, type PayrollMeeting, type PayrollPerson, type PeriodDocument, type Slip } from '@/lib/payroll/model';
 import { dateWib, payrollCategory, rupiah } from '@/lib/payroll/presentation';
 import PayrollCorrection from './PayrollCorrection';
 import PayrollDetailSummary from './PayrollDetailSummary';
@@ -14,7 +14,7 @@ import styles from './PayrollAdmin.module.css';
 
 type View = 'overview' | 'component' | 'activity' | 'correction';
 type Props = {
-  period: PeriodDocument; slip: Slip; people: PayrollPerson[]; busy: boolean;
+  period: PeriodDocument; slip: Slip; people: PayrollPerson[]; meetingCandidates: PayrollMeeting[]; busy: boolean;
   error: string; message: string; previewOpen: boolean;
   close: () => void; clearFeedback: () => void;
   run: (action: string, extra: Record<string, unknown>, success?: string) => Promise<boolean>;
@@ -22,10 +22,13 @@ type Props = {
   resend: (kind: 'RECAP' | 'SLIP', profileId: string) => Promise<void>;
 };
 
-export default function PayrollDetailDialog({ period, slip, people, busy, error, message, previewOpen, close, clearFeedback, run, preview, resend }: Props) {
+export default function PayrollDetailDialog({ period, slip, people, meetingCandidates, busy, error, message, previewOpen, close, clearFeedback, run, preview, resend }: Props) {
   const [view, setView] = useState<View>('overview');
   const [correction, setCorrection] = useState<PayrollLine | null>(null);
+  const [sessionKind, setSessionKind] = useState<string | null>(null);
+  const [sessionsOpen, setSessionsOpen] = useState(false);
   const body = useRef<HTMLDivElement>(null), alert = useRef<HTMLParagraphElement>(null);
+  const sessions = useRef<HTMLDetailsElement>(null);
   const componentButton = useRef<HTMLButtonElement>(null), activityButton = useRef<HTMLButtonElement>(null);
   const previousView = useRef<View>('overview');
   const draft = period.status === 'DRAFT';
@@ -34,14 +37,18 @@ export default function PayrollDetailDialog({ period, slip, people, busy, error,
   useEffect(() => {
     body.current?.scrollTo(0, 0);
     if (view !== 'overview') body.current?.querySelector<HTMLElement>('input, select, textarea')?.focus();
+    else if (previousView.current === 'correction') body.current?.querySelector<HTMLElement>(`[data-correction-key="${CSS.escape(correction?.key ?? '')}"]`)?.focus();
     else if (previousView.current !== 'overview') (previousView.current === 'activity' ? activityButton : componentButton).current?.focus();
-  }, [view]);
+  }, [view, correction?.key]);
   useEffect(() => {
     if (error) { body.current?.scrollTo(0, 0); alert.current?.focus(); }
   }, [error]);
 
   function changeView(next: View) {
     clearFeedback(); previousView.current = view; setView(next);
+  }
+  function correct(line: PayrollLine) {
+    setCorrection(line); changeView('correction');
   }
   async function save(action: string, extra: Record<string, unknown>, success: string) {
     if (await run(action, extra, success)) { previousView.current = view; setView('overview'); }
@@ -90,14 +97,15 @@ export default function PayrollDetailDialog({ period, slip, people, busy, error,
           <label className={`${styles.field} ${styles.wide}`}>Alasan / referensi<Input name="reason" minLength={5} required /></label>
           <Button type="submit">Catat aktivitas</Button>
         </fieldset></form>}
-        {view === 'correction' && draft && correction && <PayrollCorrection key={correction.key} line={correction} people={people} profileId={slip.profile_id} busy={busy} close={() => changeView('overview')} save={extra => { void save('override', extra, 'Koreksi disimpan dan total diperbarui.'); }} />}
+        {view === 'correction' && draft && correction && <PayrollCorrection key={correction.key} line={correction} people={people} profileId={slip.profile_id} candidates={meetingCandidates} usedMeetingKeys={Object.entries(period.overrides).filter(([key]) => key !== correction.key).flatMap(([, entry]) => entry.meeting_keys ?? [])} override={period.overrides[correction.key]} busy={busy} close={() => changeView('overview')} save={extra => { void save('override', extra, 'Koreksi disimpan dan total diperbarui.'); }} />}
         {view === 'overview' && <section className={styles.detailPanel} aria-label={`Rincian ${slip.name}`}>
-          <PayrollDetailSummary slip={slip} draft={draft} busy={busy} remove={id => { const reason = window.prompt('Alasan menghapus komponen:'); if (reason) void run('removeComponent', { id, reason }); }} correct={line => { setCorrection(line); changeView('correction'); }} />
-          {slip.lines.some(line => !line.summary && !['SALARY','ADJUSTMENT','ALLOWANCE'].includes(line.kind)) && <details className={styles.disclosure}><summary>Detail sesi &amp; koreksi aktivitas</summary>
-          <div className={styles.lines}><Table><TableHeader><TableRow><TableHead>Tanggal / aktivitas</TableHead><TableHead>Jenis & perhitungan</TableHead><TableHead>Nominal</TableHead><TableHead>Tindakan</TableHead></TableRow></TableHeader><TableBody>{slip.lines.filter(line => !line.summary && !['SALARY','ALLOWANCE','ADJUSTMENT'].includes(line.kind)).map(line => <TableRow key={line.key}>
+          <PayrollDetailSummary slip={slip} draft={draft} busy={busy} remove={id => { const reason = window.prompt('Alasan menghapus komponen:'); if (reason) void run('removeComponent', { id, reason }); }} correct={correct} inspect={kind => { setSessionKind(kind); setSessionsOpen(true); if (sessions.current) { sessions.current.open = true; sessions.current.scrollIntoView({ block: 'start', behavior: 'smooth' }); sessions.current.querySelector('summary')?.focus(); } }} />
+          {slip.lines.some(line => !line.summary && !['SALARY','ADJUSTMENT','ALLOWANCE'].includes(line.kind)) && <details ref={sessions} open={sessionsOpen} onToggle={event => setSessionsOpen(event.currentTarget.open)} className={styles.disclosure}><summary>{draft ? 'Pilih sesi yang perlu dikoreksi' : 'Detail sesi'}</summary>
+          {sessionKind && <div className={styles.toolbar}><span>{payrollCategory(sessionKind)}</span><Button type="button" variant="ghost" size="sm" onClick={() => setSessionKind(null)}>Lihat semua aktivitas</Button></div>}
+          <div className={styles.lines}><Table><TableHeader><TableRow><TableHead>Tanggal / aktivitas</TableHead><TableHead>Jenis & perhitungan</TableHead><TableHead>Nominal</TableHead><TableHead>Tindakan</TableHead></TableRow></TableHeader><TableBody>{slip.lines.filter(line => !line.summary && !['SALARY','ALLOWANCE','ADJUSTMENT'].includes(line.kind) && (!sessionKind || line.kind === sessionKind)).map(line => <TableRow key={line.key}>
             <TableCell>{dateWib(line.date)} WIB<div className={styles.rowname}>{line.label}</div><div className={styles.rowmeta}>{line.details}{line.override_reason && ` · Koreksi: ${line.override_reason}`}</div></TableCell>
             <TableCell><strong>{payrollCategory(line.kind)}</strong><div className={styles.rowmeta}>{line.mode === 'FULLTIME' ? 'Tercakup gaji pokok' : line.mode === 'MITRA' ? 'Fee mitra' : 'Komponen bulanan'}{line.students !== undefined && ['WEEKLY', 'EKSKUL', 'TRIAL'].includes(line.kind) && ` · ${line.students} anak`}</div></TableCell>
-            <TableCell className={styles.money}>{rupiah(line.amount)}</TableCell><TableCell>{draft && !['SALARY', 'ADJUSTMENT', 'ALLOWANCE'].includes(line.kind) && <Button size="sm" variant="outline" disabled={busy} onClick={() => { setCorrection(line); changeView('correction'); }}>Koreksi aktivitas</Button>}</TableCell>
+            <TableCell className={styles.money}>{rupiah(line.amount)}</TableCell><TableCell>{draft && !['SALARY', 'ADJUSTMENT', 'ALLOWANCE'].includes(line.kind) && <Button data-correction-key={line.key} size="sm" variant="outline" disabled={busy} onClick={() => correct(line)}>Koreksi sesi</Button>}</TableCell>
           </TableRow>)}</TableBody></Table></div></details>}
           {period.activities.filter(a => a.profile_id === slip.profile_id).map(a => <div key={a.id} className={styles.toolbar}><span>{a.label}</span>{draft && <Button variant="ghost" size="sm" disabled={busy} onClick={() => { const reason = window.prompt('Alasan menghapus aktivitas manual:'); if (reason) void run('removeActivity', { id: a.id, reason }); }}>Hapus aktivitas</Button>}</div>)}
           <details className={styles.disclosure}><summary>Pengiriman ulang & riwayat penerima</summary><div className={styles.detailPanel}>

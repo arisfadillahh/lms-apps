@@ -30,7 +30,7 @@ export const payrollCommandSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('removeComponent'), ...period, id, reason }),
   z.object({ action: z.literal('activity'), ...period, profileId: id, date, kind: z.enum(['WEEKLY', 'EKSKUL', 'TRIAL', 'EVENT', 'TRAINING_ONLINE', 'TRAINING_OFFLINE', 'OBSERVATION_ONLINE', 'OBSERVATION_OFFLINE']), mode, delivery: z.enum(['ONLINE', 'OFFLINE']).default('ONLINE'), students: z.number().int().min(1).max(500).default(1), label: z.string().trim().min(1).max(160), reason }),
   z.object({ action: z.literal('removeActivity'), ...period, id, reason }),
-  z.object({ action: z.literal('override'), ...period, sourceKey: z.string().min(1).max(300), profileId: id.optional(), amount: nonnegative.optional(), excluded: z.boolean().optional(), mode: mode.optional(), reason }),
+  z.object({ action: z.literal('override'), ...period, sourceKey: z.string().min(1).max(300), profileId: id.optional(), amount: nonnegative.optional(), quantity: z.number().int().min(0).max(10000).optional(), meetingKeys: z.array(z.string().min(1).max(300)).max(500).optional(), excluded: z.boolean().optional(), mode: mode.optional(), reason }),
   z.object({ action: z.literal('transfer'), ...period, profileIds: ids, reference: z.string().trim().max(300).default('') }),
   z.object({ action: z.literal('send'), ...period, profileIds: ids, kind: z.enum(['RECAP', 'SLIP']), resend: z.boolean().default(false) }),
   z.object({ action: z.literal('recoverDelivery'), ...period, key: z.string().min(1).max(300), reason }),

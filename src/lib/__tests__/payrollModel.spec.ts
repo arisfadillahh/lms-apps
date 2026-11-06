@@ -95,6 +95,6 @@ describe('monthly final versions and bank transfer ledger', () => {
   it('closes regular coach reports exactly at 17.00 but allows admin revision afterward', () => {
     const p = calc(); expect(correctionOpen(p, new Date('2026-11-25T16:59:59+07:00'))).toBe(true); expect(correctionOpen(p, new Date('2026-11-25T17:00:00+07:00'))).toBe(false);
     expect(reopen(finalize(p, 'admin', now), 'Revisi admin akhir bulan').status).toBe('DRAFT');
-    expect(recapMessage(p, p.slips[0], now)).toContain('PUKUL 17.00 WIB');
+    expect(recapMessage(p, p.slips[0], now)).toContain('pukul 17.00 WIB');
   });
 });

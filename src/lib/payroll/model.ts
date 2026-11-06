@@ -1,5 +1,7 @@
 import type { LegacyPayrollSnapshot } from './legacyImport';
 import type { LegacyIdentityLink } from './legacyIdentity';
+import { attachAttendanceDetails } from './attendanceDetails.ts';
+import { formatAttendanceRecap } from './attendanceMessage.ts';
 
 export type Contract = 'MITRA' | 'FULLTIME';
 export type PersonKind = 'COACH' | 'STAFF';
@@ -33,15 +35,25 @@ export interface Activity {
 }
 export interface ActivityOverride {
   profile_id?: string; amount?: number; excluded?: boolean; mode?: Contract; reason: string;
+  quantity?: number; quantity_delta?: number; meeting_keys?: string[]; selection_cutoff?: string;
+}
+export interface PayrollMeeting {
+  key: string; date: string; label: string; user_id: string; kind: ActivityKind;
+  delivery: 'ONLINE' | 'OFFLINE'; students: number; cancelled: boolean;
+  mode?: Contract; substitute?: boolean; fee_eligible?: boolean;
+  origin?: 'SOURCE'; source_identity?: string; source_counter?: string;
+  provenance?: { execution_id: string; source_row: number; workflow_hash: string };
 }
 export interface PayrollLine {
   key: string; date: string; label: string; kind: string; quantity: number; rate: number; amount: number;
   details: string; mode?: Contract; students?: number; override_reason?: string;
-  summary?: boolean; amount_pending?: boolean;
+  summary?: boolean; amount_pending?: boolean; quantity_rate?: number;
+  source_identity?: string; source_counter?: string; source_quantity?: number;
 }
 export interface Slip {
   profile_id: string; user_id: string | null; kind: PersonKind; name: string; job_title: string;
   contract: Contract; lines: PayrollLine[]; total: number; contract_unconfirmed?: boolean;
+  attendance_details?: PayrollMeeting[]; unresolved_attendance?: number;
 }
 export interface ManualComponent {
   id: string; profile_id: string; date: string; label: string; amount: number; reason: string;
@@ -60,7 +72,7 @@ export interface Transfer {
   id: string; profile_id: string; amount: number; at: string; by: string; reference: string; version: number;
 }
 export interface PayrollDelivery {
-  token: string; profile_id: string; kind: 'RECAP' | 'SLIP' | 'REMINDER'; version: number;
+  token: string; profile_id: string; kind: 'RECAP' | 'SLIP' | 'REMINDER' | 'REIMBURSEMENT'; version: number;
   status: DeliveryStatus; at: string; error?: string; channel?: string;
 }
 export interface FinalVersion {
@@ -76,6 +88,10 @@ export interface PeriodDocument {
   legacy_imports?: LegacyPayrollSnapshot[];
   legacy_links?: Record<string, LegacyIdentityLink>;
   synchronized_at?: string;
+  source_refreshed_at?: string;
+  meeting_catalog?: PayrollMeeting[];
+  source_meetings_checked_at?: string;
+  source_meetings_fingerprint?: string;
 }
 export interface PeriodRecord { id: string; revision: number; document: PeriodDocument; updated_at?: string }
 
@@ -190,6 +206,7 @@ export function calculatePeriod(input: {
   p.slips = [...slips.values()].map(s => ({ ...s, lines: s.lines.sort((a, b) => a.date.localeCompare(b.date) || a.key.localeCompare(b.key)), total: money(s.lines.reduce((sum, line) => money(sum + line.amount), 0)) })).sort((a, b) => a.name.localeCompare(b.name));
   for (const s of p.slips) if (s.total < 0) warnings.add(`Total negatif: ${s.name}. Sesuaikan potongan sebelum finalisasi.`);
   p.warnings = [...warnings]; p.calculated_at = now.toISOString();
+  attachAttendanceDetails(p, allActivities, people, now);
   return p;
 }
 export function paidAmount(p: PeriodDocument, personId: string): number {
@@ -261,10 +278,6 @@ export function reviewCorrection(p: PeriodDocument, id: string, status: 'IN_PROG
   Object.assign(request, { status, response: response.trim(), reviewed_by: actor, reviewed_at: now.toISOString() });
   return next;
 }
-export function recapMessage(p: PeriodDocument, slip: Slip, now = new Date()): string {
-  const labels: Record<string, string> = { CLASS_SUMMARY: 'Kelas', WEEKLY: 'Weekly', EKSKUL: 'Ekskul', TRIAL: 'Trial', EVENT: 'Event', TRAINING_ONLINE: 'Training online', TRAINING_OFFLINE: 'Training offline', OBSERVATION_ONLINE: 'Observasi online', OBSERVATION_OFFLINE: 'Observasi offline' };
-  const lines = slip.lines.filter(l => Object.hasOwn(labels, l.kind) && (!l.summary || l.quantity > 0));
-  const count = lines.filter(l => !l.details.includes('dibatalkan')).reduce((n,l) => n+l.quantity,0);
-  const details = lines.map((l, i) => `${i + 1}. ${l.date ? new Date(l.date).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', dateStyle: 'medium', timeStyle: 'short' }) + ' WIB' : 'Rekap bulanan'} — ${l.label}\n   ${labels[l.kind]}${l.summary ? ` · ${l.quantity} sesi` : ''}${l.students !== undefined && ['WEEKLY','EKSKUL','TRIAL'].includes(l.kind) ? ` · ${l.students} anak` : ''}${l.details.includes('Coach pengganti') ? ' · Coach pengganti' : ''}${l.details.includes('dibatalkan') ? ' · DIBATALKAN' : ' · Tercatat'}`).join('\n');
-  return `REKAP ABSENSI ${p.id}\nHalo ${slip.name}, berikut rincian absensi sementara sampai ${now.toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB.\n${count} aktivitas tercatat.\n\n${details || 'Belum ada aktivitas tercatat pada periode ini.'}\n\nBATAS KOREKSI: 25 ${new Date(p.correction_deadline).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', month: 'long', year: 'numeric' })} PUKUL 17.00 WIB.\nPeriksa tanggal, kelas, pengganti, dan aktivitas tambahan. Laporkan selisih kepada admin sebelum batas tersebut. Pengajuan koreksi ditutup tepat pukul 17.00 WIB. Pastikan seluruh aktivitas sudah diperiksa sebelum batas tersebut.\nAktivitas tanggal 25 setelah pesan ini tetap dicatat dalam periode berjalan. Pembayaran dan slip gaji diproses finance pada akhir bulan.`;
+export function recapMessage(p: PeriodDocument, slip: Slip, now = new Date(), appUrl?: string): string {
+  return formatAttendanceRecap(p, slip, now, appUrl);
 }

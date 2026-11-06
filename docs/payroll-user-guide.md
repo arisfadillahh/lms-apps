@@ -1,6 +1,6 @@
 # Panduan Absensi, Gaji, dan Slip Gaji Clevio
 
-Status: modul payroll sudah dideploy ke production pada 5 November 2026. Otomasi payroll/WA belum diaktifkan. Data transisi dan arsip masuk satu rekap LMS; lihat [Sinkronisasi data payroll](./payroll-legacy-import.md).
+Modul payroll tersedia di production. Jadwal WA mengikuti pengaturan otomatisasi admin. Data transisi dan arsip masuk satu rekap LMS; lihat [Sinkronisasi data payroll](./payroll-legacy-import.md).
 
 ## Mencoba di local
 
@@ -104,7 +104,11 @@ Tanggal sesi menentukan periode fee trial. Jika penilaian terlambat masuk dan pe
 
 ## Koreksi dan force majeure
 
-Pilih penerima → **Rincian → Koreksi aktivitas**. Admin dapat memilih coach penerima, mode sesi, pembatalan hak fee, atau nominal paksa. Nominal paksa mengesampingkan tarif dan pembatalan; kosongkan jika ingin perhitungan normal. Isi alasan; total langsung diperbarui setelah penyimpanan. Komponen manual dan aktivitas tambahan juga dapat dihapus dengan alasan, selama periode masih draft.
+Pilih penerima → **Rincian → Koreksi**. Untuk rekap jumlah, pilih **Ubah jumlah**, isi jumlah sesi yang benar, lalu alasan. Nominal mengikuti tarif secara otomatis; isi **0** jika seluruh sesi dibatalkan. Atau pilih **Pilih pertemuan**, centang tanggal/nama kelas yang benar, lalu simpan. Jumlah mengikuti pertemuan yang dicentang. Sesi batal tidak dapat dipilih, kategori kelas dibatasi sesuai online/offline dan jumlah anak, dan pertemuan yang sama tidak dapat dipakai dua kali.
+
+Untuk sesi individual, buka **Pilih sesi** dari rincian kelas, cari pertemuannya, lalu **Koreksi**. Pilih dihitung/tidak dihitung atau coach pengganti. Mode dan nominal khusus ada di **Pengaturan lanjutan**. Nominal khusus milik finance tetap dipertahankan saat coach lead memperbaiki absensi; admin/finance dapat memilih kembali **Otomatis sesuai tarif**. Alasan wajib dan total langsung diperbarui setelah disimpan.
+
+Rekap kumulatif yang belum memiliki tanggal/nama kelas tidak diberi tanggal perkiraan. Pertemuan yang dapat dilacak dari riwayat pencatatan diverifikasi otomatis. Lengkapi sisanya sebelum rekap detail dikirim. Jika belum lengkap saat jadwal pengiriman, admin diberi notifikasi dan rekap coach itu ditunda; tautan reimbursement tetap dikirim. Periode final harus dibuka revisi sebelum koreksi. Koreksi jumlah menyimpan selisih terhadap data saat dikoreksi, sehingga sesi baru berikutnya tetap ikut masuk; nominal khusus Finance tetap dipertahankan sampai diubah kembali ke tarif otomatis.
 
 Untuk periode final, buka **Riwayat periode → Buka revisi admin**, isi alasan, lalu kembali ke **Rekap penerima** untuk melakukan koreksi dan finalisasi lagi. Sistem menyimpan versi baru dan mempertahankan versi lama serta semua catatan transfer. Jika sebelumnya sudah ditransfer Rp500.000 dan hasil revisi Rp550.000, sisa yang ditandai berikutnya Rp50.000. Jika penyesuaian disepakati masuk bulan berikutnya, admin/finance menambah komponen berlabel, nominal, dan alasan pada periode berikutnya. Tidak ada modul cicilan, penagihan kembali, atau pemindahan saldo otomatis. Nominal negatif adalah potongan; positif adalah tambahan.
 
@@ -120,7 +124,28 @@ Untuk periode final, buka **Riwayat periode → Buka revisi admin**, isi alasan,
 | Sedang dikirim / SENDING | Tunggu hasil; hindari menekan ulang |
 | Simulasi local / SIMULATED | Khusus preview local: PDF dibuat, tidak ada pesan WA sungguhan |
 
-Rekap dan pengingat dikirim sebagai pesan teks berisi tanggal, kelas/kegiatan, jenis aktivitas, jumlah anak jika relevan, status pengganti/pembatalan, serta deadline. Pesan ini tidak memuat nominal, gaji tetap, bonus, potongan, atau lampiran. File PDF hanya digunakan untuk slip gaji setelah finance menandai transfer, langsung ke nomor pribadi tanpa tautan publik. Pengiriman ulang normal tidak menggandakan hasil yang sudah berhasil. Jika proses menggantung lebih dari 10 menit, admin dapat memulihkan status dengan alasan; periksa WA terlebih dahulu untuk memastikan dokumen belum terkirim sebelum mencoba ulang.
+Rekap berupa pesan ringkas: dikelompokkan per tanggal, berisi jam dan nama kelas/kegiatan, penanda pengganti/pembatalan, jumlah aktivitas, dan satu deadline tegas. Pengingat sore lebih singkat. Pesan tidak memuat nominal gaji atau lampiran; tautan form reimbursement pribadi disertakan sebelum deadline. File PDF hanya untuk slip gaji setelah finance menandai transfer, langsung ke nomor pribadi. Pengiriman ulang normal tidak menggandakan hasil yang sudah berhasil. Jika proses menggantung lebih dari 10 menit, admin dapat memulihkan status dengan alasan; periksa WA sebelum mencoba ulang.
+
+## Reimbursement coach dan staf
+
+Tanggal 25 mulai pukul 09.00 WIB, coach menerima tautan form bersama rekap. Staf non-coach menerima pesan khusus ke nomor WA pada profil staf. Coach tanpa nomor WA menerima tautan melalui notifikasi LMS; staf tanpa nomor WA ditandai agar admin melengkapi kontaknya.
+
+1. Karyawan membuka tautan pribadinya tanpa login. Nama dan periode sudah ditentukan sistem; tautan tidak dapat dipakai memilih orang atau bulan lain.
+2. Isi **judul pengeluaran**, **nominal rupiah**, dan unggah **foto bukti** JPG/PNG/WebP maksimal 5 MB. Foto dikompres menjadi WebP, maksimal 1600 piksel, dan metadata lokasi dibuang. Foto disimpan privat.
+3. Pengajuan berstatus **Menunggu**. Pengiriman ulang identik tidak menggandakan pengajuan. Form ditutup tanggal 25 pukul 17.00 WIB; tautan pribadi jangan dibagikan ke orang lain.
+4. Admin/finance membuka **Gaji & Slip Gaji → pilih periode → Reimbursement → Tinjau**. Periksa bukti lalu setujui/tolak dengan alasan. Persetujuan menambah satu komponen reimbursement pada gaji periode itu dan total dihitung ulang. Perubahan keputusan memperbarui komponen yang sama, bukan membuat salinan. Coach lead tidak mendapat akses nominal/bukti reimbursement.
+
+Reimbursement yang disetujui tetap terlihat sebagai komponen tersendiri di slip. Pembayaran mengikuti alur finalisasi → transfer bank → tandai transfer → kirim slip. Persetujuan tidak melakukan transfer. Untuk mengubah keputusan periode final, buka revisi dahulu; arsip versi final sebelumnya tetap utuh.
+
+```mermaid
+flowchart LR
+  A[Pesan pribadi tanggal 25] --> B[Form tanpa login: judul, nominal, foto]
+  B --> C[Menunggu Admin / Finance]
+  C -->|Setujui| D[Komponen reimbursement periode yang sama]
+  C -->|Tolak| E[Tidak masuk gaji]
+  D --> F[Finalisasi lalu transfer bank]
+  F --> G[Tandai transfer lalu kirim slip]
+```
 
 ## Penggunaan oleh coach
 
@@ -148,7 +173,7 @@ Jika salah menandai transfer: **Rincian → Pengiriman ulang & riwayat penerima 
 
 ## Satu rekap selama transisi
 
-Buka **Rekap & arsip → Rekap penerima** untuk data berjalan dan arsip. **Perbarui rekap** mengambil data terbaru selama transisi. Rincian menampilkan aktivitas, jumlah, nominal dan total dalam satu popup. Tambahan/koreksi yang disimpan langsung memperbarui total; baris kosong dapat ditampilkan bila diperlukan. Data kumulatif diperbarui tanpa menambahkan salinan jumlah yang sama. Pengiriman WA tetap nonaktif.
+Buka **Rekap & arsip → Rekap penerima** untuk data berjalan dan arsip. **Perbarui rekap** mengambil data terbaru selama transisi. Ketika otomatisasi aktif, pembaruan sumber periode berjalan juga diperiksa setiap jam sebelum jadwal pesan; kegagalan pembaruan menunda pengiriman agar data lama tidak dikirim sebagai data terbaru. Rincian menampilkan aktivitas, jumlah, nominal dan total dalam satu popup. Tambahan/koreksi yang disimpan langsung memperbarui total; baris kosong dapat ditampilkan bila diperlukan. Data kumulatif diperbarui tanpa menambahkan salinan jumlah yang sama. Bonus goal dari invoice dan observasi yang belum tercakup sumber tetap dihitung melalui aktivitas LMS, tanpa menggandakan kelas/trial yang sudah direkap.
 
 ## Flowchart per pengguna
 

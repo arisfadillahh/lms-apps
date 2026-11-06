@@ -7,6 +7,7 @@ import { payrollCommandSchema, type PayrollCommand } from '@/lib/payroll/validat
 import { attendanceAdmins } from './payrollNotifications';
 import { executePayrollCommand } from './payrollCommands';
 import type { ActivityRequest } from '@/lib/payroll/activityRequests';
+import { payrollMeetingCandidates } from './payroll';
 
 export const attendancePeriodQuery = z.string().regex(/^20\d{2}-(0[1-9]|1[0-2])$/);
 export async function attendanceBootstrap(id = currentPeriod().id) {
@@ -16,6 +17,7 @@ export async function attendanceBootstrap(id = currentPeriod().id) {
   const people = config.people.filter(p => p.kind === 'COACH').map(p => ({ id: p.id, user_id: p.user_id, name: p.name, active: p.active }));
   const requests = await dao.payrollRows('payroll_activity_requests', '*', { gte: ['activity_at', period.starts_at], lt: ['activity_at', period.ends_at] }) as unknown as ActivityRequest[];
   return {
+    meetingCandidates: await payrollMeetingCandidates(period),
     selected: record ? attendancePeriodView(record) : null,
     periods: records.map(r => ({ id: r.id, status: r.document.status })), people,
     coaches: people.filter(p => p.user_id).map(p => ({ id: p.user_id!, full_name: p.name })),

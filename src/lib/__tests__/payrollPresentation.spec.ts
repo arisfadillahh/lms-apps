@@ -24,9 +24,9 @@ describe('private PDF presentation', () => {
       { ...slip.lines[0], key: 'transport', kind: 'ADJUSTMENT', label: 'Transport manual', amount: 95000 },
     ] };
     const text = recapMessage(p, s);
-    expect(text).toContain('Weekly kelas A'); expect(text).toContain('2 anak'); expect(text).toContain('Coach pengganti');
+    expect(text).toContain('Weekly kelas A'); expect(text).not.toContain('2 anak'); expect(text).toContain('(pengganti)');
     for (const forbidden of ['Rp', '80000', '4.000.000', '4275000', 'Gaji tetap', 'Bonus goal', 'Transport manual']) expect(text).not.toContain(forbidden);
-    expect(text).toContain('PUKUL 17.00 WIB');
+    expect(text).toContain('pukul 17.00 WIB');
   });
   it('shows additional transfer needed and overpayment without deleting history', () => {
     const p = createPeriod(2026, 10);

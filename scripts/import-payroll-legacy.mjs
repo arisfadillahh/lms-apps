@@ -5,6 +5,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import { parseLegacySheet, mergeLegacySnapshots, latestLegacySnapshot, withoutUnlabelledExtras } from '../src/lib/payroll/legacyImport.ts';
+import { currentPeriod as actualCurrentPeriod } from '../src/lib/payroll/model.ts';
 
 const args = process.argv.slice(2);
 const option = name => { const i = args.indexOf(name); return i < 0 ? undefined : args[i + 1]; };
@@ -12,6 +13,7 @@ const input = option('--input');
 const apply = args.includes('--apply');
 const currentPeriod = option('--current-period');
 const ignoreUnlabelled = args.includes('--ignore-unlabelled-extras');
+const currentSync = args.includes('--current-sync');
 if (!input || !/^20\d{2}-(0[1-9]|1[0-2])$/.test(currentPeriod ?? '')) throw new Error('Usage: --input private-source.json[.gz] --current-period YYYY-MM [--apply --env /private/.env --backup-dir /private/backups]');
 const bytes = await fs.readFile(input);
 const bundle = JSON.parse((input.endsWith('.gz') ? gunzipSync(bytes) : bytes).toString('utf8'));
@@ -30,6 +32,7 @@ const summary = [...groups].sort(([a],[b])=>a.localeCompare(b)).map(([period,sna
   const chosen = latestLegacySnapshot(snapshots);
   return { period, snapshots: snapshots.length, coaches: chosen.rows.length, total: chosen.total, totalBasis: chosen.totalBasis, extraCells: chosen.rows.reduce((n,r)=>n+r.extras.length,0) };
 });
+if (currentSync && (currentPeriod !== actualCurrentPeriod().id || groups.size !== 1 || !groups.has(currentPeriod))) throw new Error('Current sync is restricted to the actual current payroll period.');
 if (!apply) {
   console.log(JSON.stringify({ mode:'DRY_RUN', periods:groups.size, snapshots:bundle.snapshots.length, summary },null,2));
 } else {
@@ -44,12 +47,12 @@ if (!apply) {
     if(!response.ok) throw new Error(`Database ${method} ${resource.split('?')[0]} failed: HTTP ${response.status}`);
     return response.status===204?null:response.json();
   }
-  async function assertDisabled() {
+  async function assertDeliverySettings() {
     const [settings]=await request('payroll_settings?select=automation_enabled,active_from&id=eq.1');
-    if(!settings || settings.automation_enabled!==false) throw new Error('Payroll automation must stay disabled throughout this import.');
+    if(!settings || (settings.automation_enabled!==false && !currentSync)) throw new Error('Payroll automation must stay disabled throughout archive import.');
     return settings;
   }
-  const settings=await assertDisabled();
+  const settings=await assertDeliverySettings();
   const before=await request('payroll_periods?select=*&order=id');
   process.umask(0o077);
   const backupDir=path.join(backupRoot,new Date().toISOString().replaceAll(':','-'));
@@ -57,7 +60,7 @@ if (!apply) {
   await fs.writeFile(path.join(backupDir,'periods-before.json.gz'),gzipSync(JSON.stringify({settings,periods:before})),{mode:0o600,flag:'wx'});
   const results=[];
   for(const [id,snapshots] of [...groups].sort(([a],[b])=>a.localeCompare(b))) {
-    await assertDisabled();
+    await assertDeliverySettings();
     let [record]=await request(`payroll_periods?select=*&id=eq.${id}`);
     if(!record) {
       const [year,month]=id.split('-').map(Number);
@@ -66,6 +69,7 @@ if (!apply) {
       [record]=await request(`payroll_periods?select=*&id=eq.${id}`);
     }
     const document=mergeLegacySnapshots(record.document,snapshots);
+    if(Object.values(record.document.deliveries??{}).some(d=>d.status==='SENDING'))throw new Error('Payroll delivery is in progress; retry synchronization later.');
     if(JSON.stringify(document)===JSON.stringify(record.document)){results.push({period:id,status:'UNCHANGED'});continue;}
     if(record.document.status==='FINAL')throw new Error(`Period ${id} is final. Reopen an audited revision before refreshing its source.`);
     await request('rpc/payroll_commit_period','POST',{p_id:id,p_expected_revision:record.revision,p_document:document,p_actor_id:null,p_action:'IMPORT_N8N_ARCHIVE',p_reason:'User-authorized legacy payroll import; source remains authoritative, no payment or delivery changes.'});
@@ -78,7 +82,7 @@ if (!apply) {
     }
     results.push({period:id,status:'IMPORTED',revision:saved.revision});
   }
-  const afterSettings=await assertDisabled();
-  if(afterSettings.active_from!==settings.active_from)throw new Error('Payroll activation date changed during import.');
-  console.log(JSON.stringify({mode:'APPLIED',backupDir,periods:groups.size,snapshots:bundle.snapshots.length,summary,results,automationEnabled:false},null,2));
+  const afterSettings=await assertDeliverySettings();
+  if(afterSettings.active_from!==settings.active_from || afterSettings.automation_enabled!==settings.automation_enabled)throw new Error('Payroll settings changed during import.');
+  console.log(JSON.stringify({mode:'APPLIED',backupDir,periods:groups.size,snapshots:bundle.snapshots.length,summary,results,automationEnabled:settings.automation_enabled},null,2));
 }

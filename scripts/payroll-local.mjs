@@ -11,6 +11,7 @@ import { encode } from 'next-auth/jwt';
 import { ensureLocalAppSchema } from './lib/local-app-schema.mjs';
 import { seedLocalDashboard } from './lib/local-dashboard-seed.mjs';
 import { loadRestSchema, readLocalRows, localWhere } from './lib/local-rest.mjs';
+import { ensureLocalReimbursements, handleLocalReimbursementStorage, localReimbursementLink } from './lib/local-reimbursement.mjs';
 
 if (process.env.NODE_ENV === 'production') throw new Error('Local preview cannot run in production.');
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -93,6 +94,7 @@ try {
   await db.exec(fs.readFileSync(path.join(root, 'supabase/migrations/20261104160000_payroll_allowances.sql'), 'utf8'));
   await db.exec(fs.readFileSync(path.join(root, 'supabase/migrations/20261105100000_payroll_controls.sql'), 'utf8'));
   await db.exec(fs.readFileSync(path.join(root, 'supabase/migrations/20261105140000_payroll_privileges.sql'), 'utf8'));
+  await ensureLocalReimbursements(db, root);
   const finance = accounts.finance;
   await db.query('INSERT INTO users(id,username,password_hash,full_name,role,admin_permissions) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (id) DO NOTHING', [finance.id, finance.username, await bcrypt.hash('DemoLokal2026!', 8), finance.full_name, finance.role, JSON.stringify(finance.permissions)]);
   const lead = accounts.coachLead;
@@ -114,7 +116,17 @@ function where(params, values) { const conditions = localWhere(params, values); 
 const server = http.createServer(async (req, res) => {
   try {
     const u = new URL(req.url, backendUrl);
+    if (await handleLocalReimbursementStorage(req, res, { db, runtime, serviceKey, backendUrl })) return;
     if (u.pathname === '/health') return json(res, 200, { local: true });
+    if (u.pathname === '/preview/reimbursement') {
+      const as = u.searchParams.get('as') || 'staff';
+      const user = accounts[as];
+      const profile = as === 'staff' ? (await db.query("SELECT id FROM payroll_profiles WHERE id='20000000-0000-4000-8000-000000000004' AND active")).rows[0] : user?.role === 'COACH' ? (await db.query('SELECT id FROM payroll_profiles WHERE user_id=$1 AND active', [user.id])).rows[0] : null;
+      const { y, m } = monthParts(), period = (await db.query('SELECT document FROM payroll_periods WHERE id=$1', [`${y}-${String(m).padStart(2, '0')}`])).rows[0]?.document;
+      const link = profile && period ? localReimbursementLink(profile.id, period, secret, appUrl) : null;
+      if (!link) return json(res, 410, { error: 'Synthetic recipient/period unavailable or the 25th17WIB deadline has passed' });
+      res.writeHead(302, { Location: link, 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' }); return res.end();
+    }
     if (u.pathname === '/preview') {
       const name = u.searchParams.get('as') || 'admin', a = accounts[name]; if (!a) return json(res, 404, { error: 'Unknown preview account' });
       const token = await cookieFor(name);
@@ -131,7 +143,7 @@ const server = http.createServer(async (req, res) => {
     const result = await db.transaction(async tx => {
       await tx.exec(`SET LOCAL ROLE ${role}`);
       if (name.startsWith('rpc/')) {
-        const fn = name.slice(4); if (!['payroll_commit_period', 'payroll_save_profile', 'payroll_set_class_mode', 'payroll_review_activity'].includes(fn)) throw new Error('Unsupported local RPC');
+        const fn = name.slice(4); if (!['payroll_commit_period', 'payroll_save_profile', 'payroll_set_class_mode', 'payroll_review_activity', 'payroll_submit_reimbursement', 'payroll_review_reimbursement', 'consume_api_rate_limit'].includes(fn)) throw new Error('Unsupported local RPC');
         const meta = await tx.query('SELECT proargnames, oidvectortypes(proargtypes) AS types FROM pg_proc WHERE proname=$1', [fn]);
         const m = meta.rows[0], types = m.types.split(', '), args = [], vals = [];
         for (let i = 0; i < m.proargnames.length; i++) if (Object.hasOwn(body || {}, m.proargnames[i])) { vals.push(serialize(body[m.proargnames[i]])); args.push(`${ident(m.proargnames[i])} => $${vals.length}::${types[i]}`); }

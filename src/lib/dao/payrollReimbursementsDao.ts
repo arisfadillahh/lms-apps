@@ -5,9 +5,9 @@ import { PayrollError } from '@/lib/payroll/model';
 import { REIMBURSEMENT_BUCKET, type ReimbursementRequest } from '@/lib/payroll/reimbursementTypes';
 
 const db = () => getSupabaseAdmin() as SupabaseClient;
-function fail(error: { message: string; code?: string } | null) {
+function fail(error: { message: string; code?: string; status?: number } | null) {
   if (!error) return;
-  if (error.code === '40001' || error.code === '23505') throw new PayrollError('Pengajuan sudah berubah atau terkirim. Muat ulang sebelum mencoba lagi.', 409);
+  if (error.code === 'PT409' || error.code === '40001' || error.code === '23505' || error.status === 409 || error.message.includes('PAYROLL_CONFLICT')) throw new PayrollError('Pengajuan sudah berubah atau terkirim. Muat ulang sebelum mencoba lagi.', 409);
   if (error.message.includes('REIMBURSEMENT_CLOSED')) throw new PayrollError('Pengajuan ditutup tanggal 25 pukul 17.00 WIB atau periode sudah final.', 410);
   if (error.message.includes('REIMBURSEMENT_REOPEN')) throw new PayrollError('Buka revisi periode final sebelum mengubah persetujuan. Tunggu jika pengiriman sedang berlangsung.', 409);
   if (error.message.includes('REIMBURSEMENT_LIMIT')) throw new PayrollError('Batas 30 pengajuan per periode tercapai. Hubungi admin.', 429);

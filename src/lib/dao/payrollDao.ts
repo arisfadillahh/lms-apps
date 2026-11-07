@@ -5,9 +5,9 @@ import { createPeriod, PayrollError, type PayrollPerson, type PayrollTerm, type 
 
 // Additive tables have local domain types until the next generated DB type refresh.
 function db(): SupabaseClient { return getSupabaseAdmin() as SupabaseClient; }
-function fail(error: { message: string; code?: string } | null) {
+function fail(error: { message: string; code?: string; status?: number } | null) {
   if (!error) return;
-  if (error.code === '40001' || error.message.includes('PAYROLL_CONFLICT')) throw new PayrollError('Data sudah berubah. Muat ulang sebelum mengulang tindakan.', 409);
+  if (error.code === 'PT409' || error.code === '40001' || error.status === 409 || error.message.includes('PAYROLL_CONFLICT')) throw new PayrollError('Data sudah berubah. Muat ulang sebelum mengulang tindakan.', 409);
   if (error.code === '23505') throw new PayrollError('Data dengan identitas/tanggal berlaku tersebut sudah ada.', 409);
   throw new PayrollError(error.message, 500);
 }

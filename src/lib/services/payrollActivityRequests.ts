@@ -34,7 +34,10 @@ export async function reviewActivityRequest(input: { id: string; requestRevision
   const period = currentPeriod(new Date(request.activity_at));
   await ensurePayrollPeriod(period.year, period.month);
   const result = await db.rpc('payroll_review_activity' as never, { p_id: input.id, p_expected_revision: input.requestRevision, p_status: input.status, p_mode: input.mode, p_reason: input.reason, p_period_id: period.id, p_actor_id: actor } as never);
-  if (result.error) throw new PayrollError(result.error.code === '40001' ? 'Pengajuan sudah berubah. Muat ulang.' : 'Periode harus draft dan tidak sedang mengirim. Buka revisi admin jika periode sudah final.', 409);
+  if (result.error) {
+    const conflict = ['PT409', '40001'].includes(result.error.code) || (result.error as typeof result.error & { status?: number }).status === 409 || result.error.message.includes('PAYROLL_CONFLICT');
+    throw new PayrollError(conflict ? 'Pengajuan sudah berubah. Muat ulang.' : 'Periode harus draft dan tidak sedang mengirim. Buka revisi admin jika periode sudah final.', 409);
+  }
   await createNotification(request.coach_id, input.status === 'APPROVED' ? 'Aktivitas disetujui admin' : 'Aktivitas ditolak admin', `${request.label}: ${input.reason}`, 'PAYROLL', { actionUrl: `/coach/payroll?period=${period.id}`, dedupeKey: `payroll-request-review:${request.id}:${input.requestRevision + 1}`, push: true }).catch(e => console.error('[Payroll review notification]', e));
   return { success: true };
 }

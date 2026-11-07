@@ -4,6 +4,7 @@ Search this file and the linked monthly log before changing related code.
 
 | Date | Reference | Area | Symptom | Monthly log |
 | --- | --- | --- | --- | --- |
+| 2026-11-07 | INTERNAL-20261107-01 | Payroll RPC conflict outage | Custom serialization SQLSTATE caused PostgREST retries and exhausted the connection pool | [2026-11](./2026-11.md#internal-20261107-01-payroll-rpc-conflict-outage) |
 | 2026-11-06 | INTERNAL-20261106-03 | Payroll automation status | Large setup form remained visible and pausing WhatsApp also stopped calculation | [2026-11](./2026-11.md#internal-20261106-03-compact-automation-status-and-independent-calculation) |
 | 2026-11-06 | INTERNAL-20261106-02 | Payroll correction, coach messages and reimbursement | Aggregate sessions required manual amounts, dates lacked evidence, activation blocked source refresh, and employees lacked a private receipt form | [2026-11](./2026-11.md#internal-20261106-02-session-correction-dated-coach-recap-and-private-reimbursement) |
 | 2026-11-06 | INTERNAL-20261106-01 | Salary slip presentation | Payslip preview used a dated table layout and could reopen with the document header scrolled out of view | [2026-11](./2026-11.md#internal-20261106-01-invoice-style-payroll-slip) |

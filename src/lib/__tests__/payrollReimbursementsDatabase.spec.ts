@@ -21,7 +21,7 @@ describe('reimbursement migration, private storage and atomic payroll approval',
       CREATE TABLE storage.objects(id integer PRIMARY KEY,bucket_id text); ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
       GRANT USAGE ON SCHEMA storage TO anon,authenticated; GRANT SELECT,INSERT ON storage.objects TO anon,authenticated;
       CREATE POLICY existing_broad_policy ON storage.objects FOR ALL TO anon,authenticated USING(true) WITH CHECK(true);`);
-    for (const migration of ['20261104100000_payroll.sql', '20261104160000_payroll_allowances.sql', '20261105100000_payroll_controls.sql', '20261105140000_payroll_privileges.sql', '20261106100000_payroll_reimbursements.sql']) await db.exec(readFileSync(`supabase/migrations/${migration}`, 'utf8'));
+    for (const migration of ['20261104100000_payroll.sql', '20261104160000_payroll_allowances.sql', '20261105100000_payroll_controls.sql', '20261105140000_payroll_privileges.sql', '20261106100000_payroll_reimbursements.sql', '20261107080000_payroll_conflict_pt409.sql']) await db.exec(readFileSync(`supabase/migrations/${migration}`, 'utf8'));
     await db.query("INSERT INTO users(id,username,full_name,role) VALUES($1,'admin','Admin','ADMIN')", [admin]);
     await db.query("INSERT INTO payroll_profiles(id,name,kind) VALUES($1,'Staff Uji','STAFF')", [profile]);
     await db.query('INSERT INTO payroll_periods(id,document) VALUES($1,$2)', [period.id, JSON.stringify({ ...period, calculated_at: '2098-11-01T00:00:00Z', manual: [{ id: 'unrelated', profile_id: profile, label: 'Tunjangan', amount: 300000, date: period.correction_deadline, reason: 'Existing allowance' }] })]);
@@ -57,7 +57,7 @@ describe('reimbursement migration, private storage and atomic payroll approval',
     expect((await submit()).rows[0].result.id).toBe(request);
     expect((await submit(args(other))).rows[0].result.id).toBe(request);
     const changed = args(); changed[4] = 250000; changed[7] = 'b'.repeat(64);
-    await expect(submit(changed)).rejects.toThrow(/PAYROLL_CONFLICT/);
+    await expect(submit(changed)).rejects.toMatchObject({ message: expect.stringMatching(/PAYROLL_CONFLICT/), code: 'PT409' });
     expect((await db.query('SELECT id FROM payroll_reimbursements')).rows).toHaveLength(1);
     const state = (await db.query<{ document: { manual: unknown[] } }>('SELECT document FROM payroll_periods WHERE id=$1', [period.id])).rows[0].document;
     expect(state.manual).toHaveLength(1);
@@ -72,7 +72,7 @@ describe('reimbursement migration, private storage and atomic payroll approval',
     expect(result.rows[0].document.manual).toHaveLength(2);
     expect(result.rows[0].document.manual.find(component => component.id === `reimbursement:${request}`)).toMatchObject({ amount: 125000, profile_id: profile });
     expect((await db.query("SELECT id FROM payroll_audit WHERE action='REIMBURSEMENT_REVIEW'")).rows).toHaveLength(2);
-    await expect(review(0, 'REJECTED', 'Keputusan stale browser')).rejects.toThrow(/PAYROLL_CONFLICT/);
+    await expect(review(0, 'REJECTED', 'Keputusan stale browser')).rejects.toMatchObject({ message: expect.stringMatching(/PAYROLL_CONFLICT/), code: 'PT409' });
     await db.exec('RESET ROLE');
   });
   it('audits a revised rejection, removes only its own component, and preserves the unrelated allowance', async () => {

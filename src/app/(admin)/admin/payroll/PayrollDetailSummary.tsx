@@ -12,7 +12,7 @@ export default function PayrollDetailSummary({ slip, draft, busy, correct, inspe
   for (const line of slip.lines) {
     const key = line.summary || ['SALARY','ALLOWANCE','ADJUSTMENT'].includes(line.kind) ? line.key : line.kind;
     const group = groups.get(key) ?? { label: line.summary || ['SALARY','ALLOWANCE','ADJUSTMENT'].includes(line.kind) ? line.label : payrollCategory(line.kind), kind: line.kind, quantity: 0, amount: 0, line: line.summary || ['SALARY','ALLOWANCE','ADJUSTMENT'].includes(line.kind) ? line : undefined, pending: line.kind === 'SALARY' && line.amount === 0 };
-    group.quantity += line.quantity; group.amount += line.amount; group.pending ||= Boolean(line.amount_pending && line.quantity);
+    group.quantity += line.fee_eligible===false || line.details.includes('dibatalkan') ? 0 : line.quantity; group.amount += line.amount; group.pending ||= Boolean(line.amount_pending && line.quantity);
     groups.set(key,group);
   }
   const all = [...groups.values()], visible = all.filter(r => showEmpty || r.quantity !== 0 || r.amount !== 0), empty = all.length-visible.length;

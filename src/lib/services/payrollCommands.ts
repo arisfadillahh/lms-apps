@@ -89,6 +89,7 @@ export async function executePayrollCommand(command: PayrollCommand, actor: stri
       const originalSlip = next.slips.find(s => s.lines.some(l => l.key === command.sourceKey));
       const line = originalSlip?.lines.find(l => l.key === command.sourceKey);
       if (!line || ['SALARY', 'ADJUSTMENT', 'ALLOWANCE'].includes(line.kind)) throw new PayrollError('Aktivitas sumber tidak ditemukan.');
+      if(command.teachingConfirmed!==undefined && (line.summary || !['WEEKLY','EKSKUL'].includes(line.kind)))throw new PayrollError('Konfirmasi mengajar hanya untuk pertemuan kelas individual.');
       if ((command.quantity !== undefined || command.meetingKeys !== undefined) && !line.summary) throw new PayrollError('Untuk pertemuan tunggal, gunakan status dikecualikan atau pilih coach pengganti.');
       const config = await dao.getPayrollConfig();
       if (command.profileId) {
@@ -104,13 +105,13 @@ export async function executePayrollCommand(command: PayrollCommand, actor: stri
         for (const key of keys) {
           const meeting = candidates.find(m => m.key === key);
           const meetingOwner = next.overrides[key]?.profile_id ? config.people.find(p => p.id === next.overrides[key].profile_id)?.user_id : meeting?.user_id;
-          if (!meeting || meeting.cancelled || next.overrides[key]?.excluded || meetingOwner !== owner?.user_id || !meetingMatchesLine(meeting, line)) throw new PayrollError('Pertemuan tidak sesuai coach, kategori, atau periode. Muat ulang daftar pertemuan.');
+          if (!meeting || meeting.cancelled || (meeting.attendance_status && meeting.fee_eligible===false) || next.overrides[key]?.excluded || meetingOwner !== owner?.user_id || !meetingMatchesLine(meeting, line)) throw new PayrollError('Pertemuan tidak sesuai coach, kategori, atau periode. Muat ulang daftar pertemuan.');
           if (Object.entries(next.overrides).some(([other, override]) => other !== command.sourceKey && override.meeting_keys?.includes(key) && !override.excluded)) throw new PayrollError('Pertemuan sudah dipakai pada kategori lain.');
         }
         quantity = keys.size;
         next.meeting_catalog = candidates;
       }
-      next.overrides[command.sourceKey] = { profile_id: command.profileId, amount: command.amount, quantity, quantity_delta: quantity === undefined ? undefined : quantity-(line.source_quantity ?? line.quantity), meeting_keys: command.meetingKeys, selection_cutoff: command.meetingKeys === undefined ? undefined : now.toISOString(), excluded: line.summary && quantity !== undefined ? false : command.excluded, mode: command.mode, reason: command.reason };
+      next.overrides[command.sourceKey] = { profile_id: command.profileId, amount: command.amount, teaching_confirmed:command.teachingConfirmed, quantity, quantity_delta: quantity === undefined ? undefined : quantity-(line.source_quantity ?? line.quantity), meeting_keys: command.meetingKeys, selection_cutoff: command.meetingKeys === undefined ? undefined : now.toISOString(), excluded: line.summary && quantity !== undefined ? false : command.excluded, mode: command.mode, reason: command.reason };
       next.calculated_at = null; break;
     }
     case 'recoverDelivery': {

@@ -42,7 +42,7 @@ describe('Coach attendance start-time guard', () => {
     const statusApi = readSource('src/app/api/coach/sessions/[id]/status/route.ts');
 
     expect(page).toContain('canMarkAttendance={canMarkAttendance}');
-    expect(list).toContain('disabled={!canEdit}');
+    expect(list).toContain('disabled={!canEdit || isSaving}');
     expect(attendanceApi).toContain('if (!hasSessionStarted(sessionRecord.date_time))');
     expect(statusApi).toContain("parsed.data.status === 'COMPLETED'");
     expect(statusApi).toContain('hasSessionStarted(sessionRecord.date_time)');

@@ -2,6 +2,8 @@
 
 import { useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { useRouter } from 'next/navigation';
+import { evaluateStudentAttendance, type StudentAttendanceState } from '@/lib/payroll/studentAttendanceState';
+import { saveStudentAttendanceRows } from '@/lib/studentAttendanceSave';
 
 export type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'EXCUSED' | 'LATE';
 
@@ -23,6 +25,7 @@ interface AttendanceListProps {
 export type AttendanceListHandle = {
   save: () => Promise<void>;
   isSaving: boolean;
+  getState: () => StudentAttendanceState;
 };
 
 type RecordState = {
@@ -55,7 +58,7 @@ function getInitials(name: string) {
 
 // Helper to determine the UI state from db status + reason
 function getUiState(status: AttendanceStatus | null, reason: string | null) {
-  if (status === 'PRESENT') return 'HADIR';
+  if (status === 'PRESENT' || status === 'LATE') return 'HADIR';
   // ABSENT with specific reasons (Izin / Sakit saved as ABSENT since DB only has 2 enums)
   if (status === 'ABSENT' && reason === 'Izin') return 'IZIN';
   if (status === 'ABSENT' && reason === 'Sakit') return 'SAKIT';
@@ -102,6 +105,7 @@ const AttendanceList = forwardRef<AttendanceListHandle, AttendanceListProps>(
     const [isSaving, setIsSaving] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState(false);
+    const getState = useCallback(() => evaluateStudentAttendance(records.map(record => record.coderId), records.filter(record => record.status !== null).map(record => ({ coder_id: record.coderId, status: record.status! }))), [records]);
 
     const mark = useCallback((coderId: string, status: AttendanceStatus, reason = '') => {
       if (!canEdit) return;
@@ -109,6 +113,7 @@ const AttendanceList = forwardRef<AttendanceListHandle, AttendanceListProps>(
         prev.map((r) => (r.coderId === coderId ? { ...r, status, reason, dirty: true } : r))
       );
       setSaveSuccess(false);
+      setErrorMessage(null);
     }, [canEdit]);
 
     const save = useCallback(async () => {
@@ -123,6 +128,11 @@ const AttendanceList = forwardRef<AttendanceListHandle, AttendanceListProps>(
         setErrorMessage(message);
         throw new Error(message);
       }
+      if (!records.length) {
+        const message = 'Belum ada peserta untuk sesi ini. Hubungi admin untuk memeriksa daftar coder.';
+        setErrorMessage(message);
+        throw new Error(message);
+      }
 
       const dirty = records.filter((r) => r.dirty && r.status !== null);
       if (dirty.length === 0) {
@@ -134,28 +144,9 @@ const AttendanceList = forwardRef<AttendanceListHandle, AttendanceListProps>(
 
       setIsSaving(true);
       try {
-        await Promise.all(
-          dirty.map((r) =>
-            fetch('/api/coach/attendance', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                sessionId,
-                coderId: r.coderId,
-                status: r.status,
-                reason: r.reason.trim(),
-              }),
-            }).then(async (res) => {
-              if (!res.ok) {
-                const payload = await res.json().catch(() => ({}));
-                throw new Error(payload.error ?? `Gagal menyimpan presensi ${r.fullName}`);
-              }
-              return res;
-            })
-          )
-        );
-
-        setRecords((prev) => prev.map((r) => ({ ...r, dirty: false })));
+        await saveStudentAttendanceRows(sessionId, dirty.map(record => ({ ...record, status: record.status! })), coderId => {
+          setRecords(previous => previous.map(row => row.coderId === coderId ? { ...row, dirty: false } : row));
+        });
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
         router.refresh();
@@ -169,20 +160,25 @@ const AttendanceList = forwardRef<AttendanceListHandle, AttendanceListProps>(
     }, [canEdit, records, sessionId, router]);
 
     // Expose save fn to parent via ref
-    useImperativeHandle(ref, () => ({ save, isSaving }), [save, isSaving]);
+    useImperativeHandle(ref, () => ({ save, isSaving, getState }), [save, isSaving, getState]);
 
     const dirtyCount = records.filter((r) => r.dirty).length;
+    const attendanceState = getState();
 
     return (
       <div className="space-y-3">
+        <p className="rounded-xl bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-600" aria-live="polite">
+          {attendanceState.recorded}/{attendanceState.expected} presensi terisi · {attendanceState.present} coder hadir
+          {attendanceState.recorded < attendanceState.expected && ' · Presensi belum lengkap; coder yang belum diisi tidak dianggap absen.'}
+        </p>
         {/* Toast notifications */}
         {errorMessage && (
-          <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm font-medium text-center">
+          <div role="alert" className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm font-medium text-center">
             {errorMessage}
           </div>
         )}
         {saveSuccess && (
-          <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-sm font-medium text-center flex items-center justify-center gap-2">
+          <div role="status" className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-sm font-medium text-center flex items-center justify-center gap-2">
             <span className="material-symbols-outlined text-base">task_alt</span>
             Presensi berhasil disimpan!
           </div>
@@ -232,7 +228,9 @@ const AttendanceList = forwardRef<AttendanceListHandle, AttendanceListProps>(
                     <button
                       key={option}
                       type="button"
-                      disabled={!canEdit}
+                      disabled={!canEdit || isSaving}
+                      aria-label={`${option === 'HADIR' ? 'Hadir' : option === 'IZIN' ? 'Izin' : option === 'SAKIT' ? 'Sakit' : 'Alpha'} — ${record.fullName}`}
+                      aria-pressed={isActive}
                       onClick={() => {
                         const statusMap: Record<string, { status: AttendanceStatus; reason: string }> = {
                           HADIR: { status: 'PRESENT', reason: '' },

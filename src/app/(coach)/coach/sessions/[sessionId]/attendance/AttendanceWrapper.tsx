@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import type { AttendanceListHandle } from './AttendanceList';
 import AttendanceList from './AttendanceList';
 import type { AttendanceStatus } from './AttendanceList';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 interface Attendee {
     coderId: string;
@@ -67,15 +69,26 @@ export default function AttendanceWrapper({
     const [extensionError, setExtensionError] = useState<string | null>(null);
 
     const [isSaving, setIsSaving] = useState(false);
+    const [confirmAllAbsent, setConfirmAllAbsent] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
 
-    const handleSave = async () => {
+    const handleSave = async (allAbsentConfirmed = false) => {
+        if (isSaving || !listRef.current) return;
         if (!canMarkAttendance) {
-            alert('Presensi baru dapat diisi setelah sesi dimulai.');
+            setSaveError('Presensi tersedia setelah sesi dimulai dan tidak dibatalkan.');
             return;
         }
+        if (!allAbsentConfirmed && listRef.current.getState().status === 'ALL_ABSENT') {
+            setConfirmAllAbsent(true);
+            return;
+        }
+        setConfirmAllAbsent(false);
+        setSaveError(null);
         setIsSaving(true);
+        let attendanceSaved = false;
         try {
-            await listRef.current?.save();
+            await listRef.current.save();
+            attendanceSaved = true;
             
             // Auto complete session if it is not completed yet
             if (canComplete) {
@@ -91,7 +104,7 @@ export default function AttendanceWrapper({
                 router.refresh();
             }
         } catch (err) {
-            alert(err instanceof Error ? err.message : 'Gagal menyimpan presensi.');
+            if (attendanceSaved) setSaveError(err instanceof Error ? err.message : 'Gagal menyelesaikan sesi. Presensi yang tersimpan tetap aman.');
         } finally {
             setIsSaving(false);
         }
@@ -192,6 +205,19 @@ export default function AttendanceWrapper({
                 </div>
             )}
             <AttendanceList ref={listRef} sessionId={sessionId} attendees={attendees} canEdit={canMarkAttendance} />
+            {saveError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{saveError}</p>}
+            <Dialog open={confirmAllAbsent} onOpenChange={setConfirmAllAbsent}>
+                <DialogContent className="max-w-md rounded-2xl bg-white p-5 sm:p-6">
+                    <DialogHeader>
+                        <DialogTitle>Semua coder tidak hadir?</DialogTitle>
+                        <DialogDescription>Presensi ini akan disimpan tanpa mencatat sesi mengajar coach. Tugas susulan untuk coder tetap dibuat sesuai alur yang berlaku.</DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2">
+                        <Button type="button" variant="outline" onClick={() => setConfirmAllAbsent(false)}>Periksa kembali</Button>
+                        <Button type="button" onClick={() => { void handleSave(true); }}>Ya, simpan presensi</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Slide Modal */}
             {isSlideOpen && slideUrl && (
@@ -279,7 +305,7 @@ export default function AttendanceWrapper({
             <div className="coach-attendance-action-strip fixed bottom-0 left-0 md:left-[260px] right-0 bg-white border-t border-slate-200 px-3 sm:px-6 py-3 flex items-center justify-between z-30 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
                 <div className="flex items-center gap-2 min-w-0">
                     <span className="material-symbols-outlined text-slate-400 text-base shrink-0">info</span>
-                    <p className="text-xs text-slate-500 font-medium whitespace-nowrap hidden sm:block">Auto-save aktif.</p>
+                    <p className="text-xs text-slate-500 font-medium whitespace-nowrap hidden sm:block">Simpan setelah semua coder terisi.</p>
                 </div>
                 <div className="flex max-w-full items-center gap-2 overflow-x-auto sm:gap-3 shrink-0">
                     {canExtendLesson && (
@@ -331,7 +357,7 @@ export default function AttendanceWrapper({
                             Lihat Slide
                         </button>
                     )}
-                    <button type="button" onClick={handleSave} disabled={isSaving || !canMarkAttendance} title={!canMarkAttendance ? 'Presensi tersedia setelah sesi dimulai.' : undefined} className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 disabled:opacity-100">
+                    <button type="button" onClick={() => { void handleSave(); }} disabled={isSaving || !canMarkAttendance} title={!canMarkAttendance ? 'Presensi tersedia setelah sesi dimulai dan tidak dibatalkan.' : undefined} className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 disabled:opacity-100">
                         {isSaving ? 'Menyimpan...' : canMarkAttendance ? 'Simpan Presensi' : 'Belum Dimulai'}
                         {!isSaving && <span className="material-symbols-outlined text-lg">{canMarkAttendance ? 'check_circle' : 'lock_clock'}</span>}
                     </button>

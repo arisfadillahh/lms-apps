@@ -11,6 +11,7 @@ import {
   sessionsDao,
   usersDao,
   notificationsDao,
+  coachLeaveDao,
 } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
 import { getAppBaseUrl } from '@/lib/env';
@@ -19,6 +20,10 @@ import { sendAbsentNotification } from '@/lib/services/whatsappClient';
 import { getInvoiceSettings } from '@/lib/dao/invoicesDao';
 import { shouldSendParentWhatsappForClass } from '@/lib/classReminderEligibility';
 import { hasSessionStarted, SESSION_NOT_STARTED_MESSAGE } from '@/lib/sessionTiming';
+import { isEnrollmentAtSession } from '@/lib/payroll/studentAttendanceState';
+import { assignedSessionCoachId } from '@/lib/coachSessionAccess';
+import { syncStudentAttendancePayroll } from '@/lib/services/payrollStudentAttendanceSync';
+import type { Json } from '@/types/supabase';
 
 const markAttendanceSchema = z.object({
   sessionId: z.string().uuid(),
@@ -67,20 +72,24 @@ export async function POST(request: Request) {
   if (!hasSessionStarted(sessionRecord.date_time)) {
     return NextResponse.json({ error: SESSION_NOT_STARTED_MESSAGE }, { status: 409 });
   }
+  if (sessionRecord.status === 'CANCELLED') {
+    return NextResponse.json({ error: 'Sesi dibatalkan. Presensi tidak dapat diubah.' }, { status: 409 });
+  }
 
   const classRecord = await classesDao.getClassById(sessionRecord.class_id);
   if (!classRecord) {
     return NextResponse.json({ error: 'Class not found' }, { status: 404 });
   }
 
-  const allowedCoachIds = new Set<string>();
-  allowedCoachIds.add(classRecord.coach_id);
-  if (sessionRecord.substitute_coach_id) {
-    allowedCoachIds.add(sessionRecord.substitute_coach_id);
+  const approvedLeave = await coachLeaveDao.getApprovedLeaveForSession(sessionId);
+  const assignedCoachId = assignedSessionCoachId(classRecord.coach_id, sessionRecord.substitute_coach_id, approvedLeave);
+  if (assignedCoachId !== coachSession.user.id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  if (!allowedCoachIds.has(coachSession.user.id)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const enrollments = await classesDao.listEnrollmentsByClass(classRecord.id, { includeInactive: true });
+  if (!enrollments.some(enrollment => enrollment.coder_id === coderId && isEnrollmentAtSession(enrollment, sessionRecord.date_time))) {
+    return NextResponse.json({ error: 'Coder bukan peserta sesi ini.' }, { status: 403 });
   }
 
   const sessionDate = new Date(sessionRecord.date_time);
@@ -141,6 +150,11 @@ export async function POST(request: Request) {
     instructions: makeUpInstructions ?? undefined,
   });
 
+  if (sessionRecord.status === 'COMPLETED') {
+    try { await syncStudentAttendancePayroll(sessionId, sessionRecord.date_time); }
+    catch { console.error('[Payroll] Attendance saved; sync will retry via cron'); }
+  }
+
   if ((status === 'ABSENT' || status === 'EXCUSED') && result.makeUpTask) {
     const coder = await usersDao.getUserById(coderId);
     try {
@@ -197,9 +211,9 @@ export async function POST(request: Request) {
             instructions: makeUpInstructions ?? undefined,
             dueDate: result.makeUpTask.due_date,
           });
-          await reportsDao.updateWhatsappLogStatus(logEntry.id, response.success ? 'SENT' : 'FAILED', response as any);
-        } catch (error: any) {
-          await reportsDao.updateWhatsappLogStatus(logEntry.id, 'FAILED', { message: error.message ?? 'Failed' });
+          await reportsDao.updateWhatsappLogStatus(logEntry.id, response.success ? 'SENT' : 'FAILED', response as Json);
+        } catch (error) {
+          await reportsDao.updateWhatsappLogStatus(logEntry.id, 'FAILED', { message: error instanceof Error ? error.message : 'Failed' });
         }
       }
     } else if (parentPhone) {

@@ -22,6 +22,7 @@ export default function CoachAttendance({ initialPeriod }: { initialPeriod?: str
   const [data, setData] = useState<Data | null>(null), [busy, setBusy] = useState(false), [error, setError] = useState(''), [message, setMessage] = useState('');
   const [search, setSearch] = useState(''), [tab, setTab] = useState('corrections'), [editing, setEditing] = useState<Activity | 'new' | null>(null);
   const [coachFilter, setCoachFilter] = useState('ALL');
+  const [pendingOnly,setPendingOnly]=useState(false);
   async function fetchData(id: string): Promise<Data> {
     const r = await fetch(`/api/admin/coach-attendance?period=${id}`, { cache: 'no-store' }), d = await r.json();
     if (!r.ok) throw new Error(d.error); return d;
@@ -45,13 +46,15 @@ export default function CoachAttendance({ initialPeriod }: { initialPeriod?: str
     } catch (e) { setError(saved ? 'Perubahan sudah tersimpan; jangan input ulang. Gunakan Perbarui absensi untuk memuat hasil terbaru.' : e instanceof Error ? e.message : 'Perubahan gagal.'); setData(await fetchData(periodId).catch(() => data)); return saved; }
     finally { setBusy(false); }
   }
-  const rows = (p?.activities ?? []).filter(a => (coachFilter === 'ALL' || a.profile_id === coachFilter) && (!search || `${a.coach_name} ${a.label}`.toLowerCase().includes(search.toLowerCase())));
+  const pendingCount=(p?.activities ?? []).filter(a=>['PENDING','PARTIAL'].includes(a.attendance_status ?? '') && !a.attendance_override).length;
+  const rows = (p?.activities ?? []).filter(a => (!pendingOnly || (['PENDING','PARTIAL'].includes(a.attendance_status ?? '') && !a.attendance_override)) && (coachFilter === 'ALL' || a.profile_id === coachFilter) && (!search || `${a.coach_name} ${a.label}`.toLowerCase().includes(search.toLowerCase())));
   return <main className={styles.root}>
     <header className={styles.header}><div><h1 className={styles.title}>Absensi &amp; koreksi coach</h1><p className={styles.muted}>Admin dan coach lead memeriksa aktivitas serta menangani pengajuan koreksi.</p></div></header>
     {!editing && error && <p role="alert" className={styles.error}>{error}</p>}{message && <p role="status" className={styles.success}>{message}</p>}
     <section className={`${styles.panel} ${styles.periodBar}`}><label className={styles.field}>Periode<Input aria-label="Periode absensi" type="month" min="2020-01" max="2099-12" value={periodId} onChange={e => { if (e.target.value) { setPeriodId(e.target.value); setEditing(null); setError(''); setMessage(''); } }} /></label>{p && <Badge variant="secondary">{p.status === 'FINAL' ? 'Final' : 'Berjalan'}</Badge>}<div className={styles.actions}>{p?.status === 'DRAFT' && <Button variant="outline" disabled={busy} onClick={() => { void run('calculate', {}, 'Absensi diperbarui dari sumber terbaru.'); }}>Perbarui absensi</Button>}{data && !p && <Button disabled={busy} onClick={() => { void run('create', { year: Number(periodId.slice(0, 4)), month: Number(periodId.slice(5)) }); }}>Buat periode</Button>}</div></section>
     {!data ? <p>Memuat absensi…</p> : <>
       {p?.status === 'FINAL' && <p className={styles.notice}>Periode sudah final. Minta admin membuka revisi periode sebelum memperbaiki aktivitas; riwayat lama tetap tersimpan.</p>}
+      {pendingCount>0 && <div className={styles.notice}><strong>{pendingCount} sesi perlu konfirmasi absensi siswa.</strong> Lengkapi absensi di kelas atau gunakan koreksi beralasan untuk pengecualian. <Button variant="outline" size="sm" onClick={()=>{setTab('activities');setCoachFilter('ALL');setSearch('');setPendingOnly(!pendingOnly);}}>{pendingOnly?'Tampilkan semua aktivitas':'Periksa sesi belum lengkap'}</Button></div>}
       {!!p?.warnings.length && <div className={styles.notice}>{p.warnings.map(w => <p key={w}>{w}</p>)}</div>}
       <Tabs value={tab} onValueChange={setTab}><TabsList aria-label="Area absensi" className="grid h-auto w-full grid-cols-3 sm:w-fit"><TabsTrigger className="h-full whitespace-normal text-xs sm:text-sm" value="corrections">Pengajuan koreksi</TabsTrigger><TabsTrigger className="h-full whitespace-normal text-xs sm:text-sm" value="activities">Aktivitas coach</TabsTrigger><TabsTrigger className="h-full whitespace-normal text-xs sm:text-sm" value="requests">Event &amp; kegiatan</TabsTrigger></TabsList>
         <TabsContent value="corrections"><PayrollCorrections period={p ?? undefined} admins={data.admins} coaches={data.coaches} busy={busy} run={run} inspect={userId => { setCoachFilter(data.people.find(c => c.user_id === userId)?.id ?? 'ALL'); setSearch(''); setTab('activities'); }} /></TabsContent>

@@ -2,6 +2,7 @@ import type { LegacyPayrollSnapshot } from './legacyImport';
 import type { LegacyIdentityLink } from './legacyIdentity';
 import { attachAttendanceDetails } from './attendanceDetails.ts';
 import { formatAttendanceRecap } from './attendanceMessage.ts';
+import { attendanceValidationWarning, hasReasonedAttendanceOverride, type StudentAttendanceMetadata } from './studentAttendanceState.ts';
 
 export type Contract = 'MITRA' | 'FULLTIME';
 export type PersonKind = 'COACH' | 'STAFF';
@@ -28,7 +29,7 @@ export const DEFAULT_RATES: PayrollRates = {
   TRIAL: 25000, GOAL: 100000, EVENT: 180000, TRAINING_ONLINE: 25000, TRAINING_OFFLINE: 50000, OBSERVATION_ONLINE: 25000, OBSERVATION_OFFLINE: 50000,
 };
 export interface PayrollSettings { active_from: string | null; automation_enabled: boolean }
-export interface Activity {
+export interface Activity extends StudentAttendanceMetadata {
   key: string; user_id: string; date: string; label: string; kind: ActivityKind;
   mode: Contract; delivery: 'ONLINE' | 'OFFLINE'; students: number; cancelled: boolean;
   details?: string;
@@ -36,18 +37,19 @@ export interface Activity {
 export interface ActivityOverride {
   profile_id?: string; amount?: number; excluded?: boolean; mode?: Contract; reason: string;
   quantity?: number; quantity_delta?: number; meeting_keys?: string[]; selection_cutoff?: string;
+  teaching_confirmed?: boolean;
 }
-export interface PayrollMeeting {
+export interface PayrollMeeting extends StudentAttendanceMetadata {
   key: string; date: string; label: string; user_id: string; kind: ActivityKind;
   delivery: 'ONLINE' | 'OFFLINE'; students: number; cancelled: boolean;
   mode?: Contract; substitute?: boolean; fee_eligible?: boolean;
   origin?: 'SOURCE'; source_identity?: string; source_counter?: string;
   provenance?: { execution_id: string; source_row: number; workflow_hash: string };
 }
-export interface PayrollLine {
+export interface PayrollLine extends StudentAttendanceMetadata {
   key: string; date: string; label: string; kind: string; quantity: number; rate: number; amount: number;
   details: string; mode?: Contract; students?: number; override_reason?: string;
-  summary?: boolean; amount_pending?: boolean; quantity_rate?: number;
+  summary?: boolean; summary_before?: string; amount_pending?: boolean; quantity_rate?: number;
   source_identity?: string; source_counter?: string; source_quantity?: number;
 }
 export interface Slip {
@@ -92,6 +94,8 @@ export interface PeriodDocument {
   meeting_catalog?: PayrollMeeting[];
   source_meetings_checked_at?: string;
   source_meetings_fingerprint?: string;
+  class_attendance_from?: string;
+  legacy_class_baseline?: LegacyPayrollSnapshot;
 }
 export interface PeriodRecord { id: string; revision: number; document: PeriodDocument; updated_at?: string }
 
@@ -183,14 +187,28 @@ export function calculatePeriod(input: {
     if (!slip || !term || !card) { warnings.add(`Kontrak/tarif belum berlaku: ${person.name}, ${wibDate(a.date)}`); continue; }
     validateRates(card.rates);
     const mode: Contract = term.contract === 'MITRA' ? 'MITRA' : override?.mode ?? a.mode;
-    const nonPayable = a.cancelled || override?.excluded === true || (a.kind !== 'GOAL' && ((a.kind === 'TRIAL' && term.contract === 'FULLTIME') || mode === 'FULLTIME'));
+    const attendanceApplies = ['WEEKLY', 'EKSKUL'].includes(a.kind) && a.attendance_status !== undefined;
+    const attendanceOverride = hasReasonedAttendanceOverride(override);
+    const teachingDecision = attendanceApplies && attendanceOverride && typeof override?.teaching_confirmed === 'boolean' ? override.teaching_confirmed : undefined;
+    const financialDecision = override?.amount !== undefined && (!attendanceApplies || attendanceOverride);
+    const feeEligible = teachingDecision ?? a.fee_eligible;
+    const pendingWarning = attendanceValidationWarning(a.label, a.date, a);
+    if (!a.cancelled && pendingWarning && !attendanceOverride) warnings.add(pendingWarning);
+    const nonPayable = a.cancelled || override?.excluded === true || feeEligible === false || (a.kind !== 'GOAL' && ((a.kind === 'TRIAL' && term.contract === 'FULLTIME') || mode === 'FULLTIME'));
     let rate = 0;
     if (a.kind === 'WEEKLY' || a.kind === 'EKSKUL') {
-      if (a.students <= 0 && !a.cancelled && !override?.excluded && override?.amount === undefined) warnings.add(`Tidak ada peserta aktif: ${a.label}`);
+      if (a.students <= 0 && !a.cancelled && !override?.excluded && teachingDecision !== false && override?.amount === undefined) warnings.add(`Tidak ada peserta aktif: ${a.label}`);
       rate = a.students > 0 ? card.rates[`${a.kind}_${a.delivery}`][Math.min(a.students, 3) - 1] : 0;
     } else rate = card.rates[a.kind];
-    const amount = override?.amount !== undefined ? money(override.amount) : nonPayable ? 0 : rate;
+    const amount = financialDecision ? money(override!.amount!) : nonPayable ? 0 : rate;
+    const attendanceMetadata: StudentAttendanceMetadata = attendanceApplies ? {
+      attendance_status: teachingDecision === undefined ? a.attendance_status : teachingDecision ? 'CONFIRMED' : 'ALL_ABSENT',
+      attendance_expected: a.attendance_expected, attendance_recorded: a.attendance_recorded, attendance_present: a.attendance_present,
+      fee_eligible: a.cancelled || override?.excluded ? false : teachingDecision ?? (financialDecision ? amount > 0 : a.fee_eligible),
+      ...(teachingDecision === undefined ? {} : { teaching_confirmed: teachingDecision }),
+    } : {};
     slip.lines.push({ key: a.key, date: a.date, label: a.label, kind: a.kind, quantity: 1, rate, amount, mode, students: a.students,
+      ...attendanceMetadata,
       details: [a.details, a.cancelled ? 'Aktivitas dibatalkan' : '', nonPayable && !a.cancelled ? 'Tidak menghasilkan tambahan fee' : ''].filter(Boolean).join(' · '), override_reason: override?.reason });
   }
   for (const m of p.manual) {

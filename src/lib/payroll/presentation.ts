@@ -4,7 +4,7 @@ import { payrollDocumentStyle } from './documentStyle';
 export const rupiah = (value: number) => `Rp${value.toLocaleString('id-ID')}`;
 export const dateWib = (value: string) => new Date(value).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', dateStyle: 'medium', timeStyle: 'short' });
 export function payrollActivitySummary(slip: Slip): string {
-  const count=(kinds:string[])=>slip.lines.filter(l=>kinds.includes(l.kind)&&!l.details.includes('dibatalkan')).reduce((n,l)=>n+l.quantity,0);
+  const count=(kinds:string[])=>slip.lines.filter(l=>kinds.includes(l.kind)&&!l.details.includes('dibatalkan')&&l.fee_eligible!==false).reduce((n,l)=>n+l.quantity,0);
   return [[count(['CLASS_SUMMARY','WEEKLY','EKSKUL']),'kelas'],[count(['TRIAL']),'trial'],[count(['EVENT','TRAINING_ONLINE','TRAINING_OFFLINE','OBSERVATION_ONLINE','OBSERVATION_OFFLINE']),'kegiatan']].filter(([n])=>Number(n)>0).map(([n,label])=>`${n} ${label}`).join(' · ') || 'Belum ada aktivitas';
 }
 export const payrollCategory = (kind: string) => ({ CLASS_SUMMARY: 'Kelas', SALARY: 'Gaji pokok', ALLOWANCE: 'Tunjangan rutin', ADJUSTMENT: 'Tambahan / potongan', WEEKLY: 'Kelas Weekly', EKSKUL: 'Kelas Ekskul', TRIAL: 'Trial', GOAL: 'Bonus goal', EVENT: 'Event', TRAINING_ONLINE: 'Training online', TRAINING_OFFLINE: 'Training offline', OBSERVATION_ONLINE: 'Observasi online', OBSERVATION_OFFLINE: 'Observasi offline' } as Record<string, string>)[kind] ?? kind;
@@ -23,7 +23,7 @@ export function payrollSlipRows(slip: Slip): { label: string; quantity: string; 
     const lines = slip.lines.filter(line => group.kinds.includes(line.kind) && line.amount !== 0);
     if (lines.length) rows.push({
       label: group.label,
-      quantity: lines.reduce((sum, line) => sum + line.quantity, 0) ? `${lines.reduce((sum, line) => sum + line.quantity, 0).toLocaleString('id-ID')} ${group.unit}` : '',
+      quantity: lines.reduce((sum, line) => sum + (line.fee_eligible === false || line.details.includes('dibatalkan') ? 0 : line.quantity), 0) ? `${lines.reduce((sum, line) => sum + (line.fee_eligible === false || line.details.includes('dibatalkan') ? 0 : line.quantity), 0).toLocaleString('id-ID')} ${group.unit}` : '',
       amount: lines.reduce((sum, line) => sum + line.amount, 0),
     });
   }

@@ -1,9 +1,11 @@
 import { createHash } from 'node:crypto';
-import { inPeriod, type Activity, type PeriodDocument, type PayrollPerson } from './model';
+import { inPeriod, PayrollError, type Activity, type PeriodDocument, type PayrollPerson } from './model';
+import { attendanceValidationWarning, evaluateStudentAttendance, hasReasonedAttendanceOverride, isEnrollmentAtSession } from './studentAttendanceState';
 
 export interface ClassSource { id: string; name: string; type: 'WEEKLY' | 'EKSKUL'; coach_id: string; delivery_mode: 'ONLINE' | 'OFFLINE'; payroll_mode?: 'FULLTIME' | 'MITRA' | null }
 export interface SessionSource { id: string; class_id: string; date_time: string; status: string; substitute_coach_id: string | null; payroll_mode?: 'FULLTIME' | 'MITRA' | null }
 export interface EnrollmentSource { class_id: string; coder_id: string; enrolled_at: string; ended_at: string | null; status: string }
+export interface AttendanceSource { session_id: string; coder_id: string; status: string }
 export interface LeaveSource { session_id: string; status: string; substitute_coach_id: string | null }
 export interface TrialSource { id: string; student_name: string; phone: string; trial_mode: 'ONLINE' | 'OFFLINE'; status: string; coach_id: string | null; scheduled_at: string | null; duration_minutes: number }
 export interface AssessmentSource { id: string; trial_id: string; coach_id: string; status: string; submitted_at: string | null; invoice_id: string | null; payment_confirmed_at: string | null; coder_id: string | null }
@@ -12,11 +14,14 @@ export function buildPayrollActivities(input: {
   period: PeriodDocument; sessions: SessionSource[]; classes: ClassSource[]; enrollments: EnrollmentSource[];
   leaves: LeaveSource[]; trials: TrialSource[]; assessments: AssessmentSource[];
   invoices: { id: string; status: string }[]; now?: Date;
+  attendance?: AttendanceSource[]; attendanceRequiredFrom?: string;
 }) {
   const { period, sessions, classes, enrollments, leaves, trials, assessments, invoices } = input;
   const now = input.now ?? new Date();
   const activities: Activity[] = [];
   const warnings: string[] = [];
+  const cutoff = input.attendanceRequiredFrom === undefined ? null : Date.parse(input.attendanceRequiredFrom);
+  if (cutoff !== null && !Number.isFinite(cutoff)) throw new PayrollError('Tanggal mulai validasi absensi siswa tidak valid.');
   for (const s of sessions) {
     if (!inPeriod(s.date_time, period) || Date.parse(s.date_time) > now.getTime()) continue;
     const klass = classes.find(c => c.id === s.class_id);
@@ -24,10 +29,15 @@ export function buildPayrollActivities(input: {
     const approved = leaves.find(l => l.session_id === s.id && l.status === 'APPROVED');
     const payee = s.substitute_coach_id || approved?.substitute_coach_id || klass.coach_id;
     const cancelled = s.status === 'CANCELLED' || Boolean(approved && !approved.substitute_coach_id && !s.substitute_coach_id);
-    const students = new Set(enrollments.filter(e => e.class_id === klass.id && Date.parse(e.enrolled_at) <= Date.parse(s.date_time) &&
-      (e.ended_at ? Date.parse(s.date_time) <= Date.parse(e.ended_at) : e.status === 'ACTIVE')).map(e => e.coder_id)).size;
+    const roster = new Set(enrollments.filter(e => e.class_id === klass.id && isEnrollmentAtSession(e, s.date_time)).map(e => e.coder_id));
+    const students = roster.size;
+    const state = !cancelled && cutoff !== null && Date.parse(s.date_time) >= cutoff
+      ? evaluateStudentAttendance(roster, (input.attendance ?? []).filter(row => row.session_id === s.id)) : null;
+    const validation = state ? { attendance_status: state.status, attendance_expected: state.expected, attendance_recorded: state.recorded, attendance_present: state.present, fee_eligible: state.present > 0 } : {};
+    const warning = attendanceValidationWarning(klass.name, s.date_time, validation);
+    if (warning && !hasReasonedAttendanceOverride(period.overrides[`session:${s.id}`])) warnings.push(warning);
     activities.push({ key: `session:${s.id}`, user_id: payee, date: s.date_time, label: klass.name,
-      kind: klass.type, delivery: klass.delivery_mode, mode: s.payroll_mode ?? klass.payroll_mode ?? 'FULLTIME', students, cancelled,
+      kind: klass.type, delivery: klass.delivery_mode, mode: s.payroll_mode ?? klass.payroll_mode ?? 'FULLTIME', students, cancelled, ...validation,
       details: [klass.type, klass.delivery_mode, `${students} anak aktif`, payee !== klass.coach_id ? 'Coach pengganti' : 'Coach utama',
         !s.payroll_mode && !klass.payroll_mode ? 'Mode belum ditetapkan admin' : ''].filter(Boolean).join(' · ') });
   }

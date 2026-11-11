@@ -3,9 +3,12 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 
 import { getSessionOrThrow } from '@/lib/auth';
-import { classLessonsDao, classesDao, sessionsDao } from '@/lib/dao';
+import { attendanceDao, classLessonsDao, classesDao, coachLeaveDao, sessionsDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
 import { hasSessionStarted, SESSION_NOT_STARTED_MESSAGE } from '@/lib/sessionTiming';
+import { evaluateStudentAttendance, isEnrollmentAtSession } from '@/lib/payroll/studentAttendanceState';
+import { assignedSessionCoachId } from '@/lib/coachSessionAccess';
+import { syncStudentAttendancePayroll } from '@/lib/services/payrollStudentAttendanceSync';
 
 const updateStatusSchema = z.object({
   status: z.enum(['COMPLETED', 'CANCELLED']),
@@ -38,8 +41,8 @@ export async function PATCH(request: Request, context: RouteContext) {
       return NextResponse.json({ error: 'Class not found' }, { status: 404 });
     }
 
-    const isAssignedCoach =
-      classRecord.coach_id === coachSession.user.id || sessionRecord.substitute_coach_id === coachSession.user.id;
+    const approvedLeave = await coachLeaveDao.getApprovedLeaveForSession(sessionId);
+    const isAssignedCoach = assignedSessionCoachId(classRecord.coach_id, sessionRecord.substitute_coach_id, approvedLeave) === coachSession.user.id;
 
     if (!isAssignedCoach) {
       return NextResponse.json({ error: 'Forbidden: Not your class' }, { status: 403 });
@@ -59,6 +62,21 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     if (parsed.data.status === 'COMPLETED' && !hasSessionStarted(sessionRecord.date_time)) {
       return NextResponse.json({ error: SESSION_NOT_STARTED_MESSAGE }, { status: 409 });
+    }
+
+    if (parsed.data.status === 'COMPLETED') {
+      if (sessionRecord.status === 'CANCELLED') {
+        return NextResponse.json({ error: 'Sesi dibatalkan. Hubungi admin untuk mengaktifkan kembali sesi.' }, { status: 409 });
+      }
+      const [enrollments, attendance] = await Promise.all([
+        classesDao.listEnrollmentsByClass(classRecord.id, { includeInactive: true }),
+        attendanceDao.listAttendanceBySession(sessionId),
+      ]);
+      const expected = enrollments.filter(enrollment => isEnrollmentAtSession(enrollment, sessionRecord.date_time)).map(enrollment => enrollment.coder_id);
+      const state = evaluateStudentAttendance(expected, attendance);
+      if (!state.expected || state.recorded !== state.expected) {
+        return NextResponse.json({ error: 'Lengkapi dan simpan presensi semua coder sebelum menyelesaikan sesi.' }, { status: 409 });
+      }
     }
 
     await sessionsDao.updateSessionStatus(sessionId, parsed.data.status);
@@ -89,6 +107,11 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     revalidatePath('/coach/classes/[id]', 'page');
     revalidatePath('/coach/classes');
+
+    if (parsed.data.status === 'COMPLETED') {
+      try { await syncStudentAttendancePayroll(sessionId, sessionRecord.date_time); }
+      catch { console.error('[Payroll] Attendance saved; sync will retry via cron'); }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

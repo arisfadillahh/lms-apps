@@ -11,6 +11,7 @@ import { dateWib, payrollCategory, rupiah } from '@/lib/payroll/presentation';
 import PayrollCorrection from './PayrollCorrection';
 import PayrollDetailSummary from './PayrollDetailSummary';
 import styles from './PayrollAdmin.module.css';
+import { attendanceStatusLabel,hasReasonedAttendanceOverride } from '@/lib/payroll/studentAttendanceState';
 
 type View = 'overview' | 'component' | 'activity' | 'correction';
 type Props = {
@@ -70,6 +71,7 @@ export default function PayrollDetailDialog({ period, slip, people, meetingCandi
         </> : <Button variant="ghost" disabled={busy} onClick={() => changeView('overview')}><ArrowLeft data-icon="inline-start" />Kembali ke rincian</Button>}
       </nav>
       <div ref={body} className={styles.modalBody}>
+        {view==='overview' && slip.lines.some(l=>['PENDING','PARTIAL'].includes(l.attendance_status ?? '') && !hasReasonedAttendanceOverride(period.overrides[l.key])) && <div className={styles.notice}>Ada absensi siswa yang belum lengkap. Lengkapi sebelum finalisasi. <Button variant="outline" size="sm" onClick={()=>{setSessionsOpen(true);setSessionKind(null);setTimeout(()=>sessions.current?.scrollIntoView({block:'start',behavior:'smooth'}),0);}}>Periksa sesi</Button></div>}
         {error && <p ref={alert} tabIndex={-1} role="alert" className={styles.error}>{error}</p>}
         {message && <p role="status" className={styles.success}>{message}</p>}
         {view === 'component' && draft && <form aria-label="Tambahan / potongan manual" onSubmit={event => {
@@ -103,7 +105,7 @@ export default function PayrollDetailDialog({ period, slip, people, meetingCandi
           {slip.lines.some(line => !line.summary && !['SALARY','ADJUSTMENT','ALLOWANCE'].includes(line.kind)) && <details ref={sessions} open={sessionsOpen} onToggle={event => setSessionsOpen(event.currentTarget.open)} className={styles.disclosure}><summary>{draft ? 'Pilih sesi yang perlu dikoreksi' : 'Detail sesi'}</summary>
           {sessionKind && <div className={styles.toolbar}><span>{payrollCategory(sessionKind)}</span><Button type="button" variant="ghost" size="sm" onClick={() => setSessionKind(null)}>Lihat semua aktivitas</Button></div>}
           <div className={styles.lines}><Table><TableHeader><TableRow><TableHead>Tanggal / aktivitas</TableHead><TableHead>Jenis & perhitungan</TableHead><TableHead>Nominal</TableHead><TableHead>Tindakan</TableHead></TableRow></TableHeader><TableBody>{slip.lines.filter(line => !line.summary && !['SALARY','ALLOWANCE','ADJUSTMENT'].includes(line.kind) && (!sessionKind || line.kind === sessionKind)).map(line => <TableRow key={line.key}>
-            <TableCell>{dateWib(line.date)} WIB<div className={styles.rowname}>{line.label}</div><div className={styles.rowmeta}>{line.details}{line.override_reason && ` · Koreksi: ${line.override_reason}`}</div></TableCell>
+            <TableCell>{dateWib(line.date)} WIB<div className={styles.rowname}>{line.label}</div>{line.attendance_status && <div>{attendanceStatusLabel(line) ?? 'Mengajar terkonfirmasi'} · {line.attendance_recorded}/{line.attendance_expected} absensi terisi</div>}<div className={styles.rowmeta}>{line.details}{line.override_reason && ` · Koreksi: ${line.override_reason}`}</div></TableCell>
             <TableCell><strong>{payrollCategory(line.kind)}</strong><div className={styles.rowmeta}>{line.mode === 'FULLTIME' ? 'Tercakup gaji pokok' : line.mode === 'MITRA' ? 'Fee mitra' : 'Komponen bulanan'}{line.students !== undefined && ['WEEKLY', 'EKSKUL', 'TRIAL'].includes(line.kind) && ` · ${line.students} anak`}</div></TableCell>
             <TableCell className={styles.money}>{rupiah(line.amount)}</TableCell><TableCell>{draft && !['SALARY', 'ADJUSTMENT', 'ALLOWANCE'].includes(line.kind) && <Button data-correction-key={line.key} size="sm" variant="outline" disabled={busy} onClick={() => correct(line)}>Koreksi sesi</Button>}</TableCell>
           </TableRow>)}</TableBody></Table></div></details>}

@@ -1,10 +1,12 @@
 import Link from 'next/link';
 import { getSessionOrThrow } from '@/lib/auth';
-import { attendanceDao, classesDao, sessionsDao, usersDao } from '@/lib/dao';
+import { attendanceDao, classesDao, coachLeaveDao, sessionsDao, usersDao } from '@/lib/dao';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 import { canExtendBeforeNextLessonSession } from '@/lib/services/lessonExtensionBoundary';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { hasSessionStarted } from '@/lib/sessionTiming';
+import { isEnrollmentAtSession } from '@/lib/payroll/studentAttendanceState';
+import { assignedSessionCoachId } from '@/lib/coachSessionAccess';
 
 import AttendanceWrapper from './AttendanceWrapper';
 import type { AttendanceStatus } from './AttendanceList';
@@ -41,7 +43,8 @@ export default async function SessionAttendancePage({ params }: PageProps) {
     return renderError('Kelas tidak ditemukan', 'Data kelas hilang.');
   }
 
-  if (classRecord.coach_id !== session.user.id && sessionRecord.substitute_coach_id !== session.user.id) {
+  const approvedLeave = await coachLeaveDao.getApprovedLeaveForSession(sessionId);
+  if (assignedSessionCoachId(classRecord.coach_id, sessionRecord.substitute_coach_id, approvedLeave) !== session.user.id) {
     return renderError('Akses Ditolak', 'Anda bukan coach untuk sesi ini.');
   }
 
@@ -78,9 +81,9 @@ export default async function SessionAttendancePage({ params }: PageProps) {
   const currentSessionMap =
     attendanceBySession.get(sessionRecord.id) ?? new Map<string, { status: string; reason: string | null }>();
 
-  // Filter active coders only unless they have attendance record
+  // Keep the roster at the session date, including students who have since left.
   const attendees = enrollments
-    .filter(e => e.status === 'ACTIVE' || currentSessionMap.has(e.coder_id))
+    .filter(e => isEnrollmentAtSession(e, sessionRecord.date_time))
     .map((enrollment) => ({
       coderId: enrollment.coder_id,
       fullName: coderMap.get(enrollment.coder_id) ?? 'Unknown Coder',
@@ -126,7 +129,7 @@ export default async function SessionAttendancePage({ params }: PageProps) {
   // Compute attendance stats
   const totalCoders = attendees.length;
   const markedCoders = attendees.filter((a) => a.attendance !== null).length;
-  const presentCoders = attendees.filter((a) => a.attendance?.status === 'PRESENT').length;
+  const presentCoders = attendees.filter((a) => ['PRESENT', 'LATE'].includes(a.attendance?.status ?? '')).length;
   const attendancePercentage = totalCoders > 0 ? Math.round((presentCoders / totalCoders) * 100) : 0;
 
   // Compute block name
@@ -250,7 +253,7 @@ export default async function SessionAttendancePage({ params }: PageProps) {
   }
 
   const sessionStart = new Date(sessionRecord.date_time);
-  const canMarkAttendance = hasSessionStarted(sessionRecord.date_time);
+  const canMarkAttendance = sessionRecord.status !== 'CANCELLED' && hasSessionStarted(sessionRecord.date_time);
   const sessionEnd = new Date(sessionStart.getTime() + 90 * 60000);
   const formattedDate = sessionStart.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
   const formattedTime = `${sessionStart.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} - ${sessionEnd.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`;

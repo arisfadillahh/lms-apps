@@ -33,7 +33,7 @@ export async function createLeaveRequest({ coachId, sessionId, note }: CreateLea
     .single();
 
   if (error) {
-    if ((error as any)?.code === '23505') {
+    if (error.code === '23505') {
       throw new Error('Leave request already exists for this session');
     }
     throw new Error(`Failed to create leave request: ${error.message}`);
@@ -60,7 +60,7 @@ export async function listLeaveRequestsForCoach(coachId: string): Promise<CoachL
     throw new Error(`Failed to list leave requests: ${error.message}`);
   }
 
-  return (data ?? []).map((row: any) => ({
+  return (data ?? []).map((row) => ({
     ...(row as CoachLeaveRequestRecord),
     session: row.session
       ? {
@@ -92,7 +92,7 @@ export async function listLeaveRequestsWithCoach(): Promise<CoachLeaveRequestWit
     throw new Error(`Failed to list leave requests: ${error.message}`);
   }
 
-  return (data ?? []).map((row: any) => ({
+  return (data ?? []).map((row) => ({
     ...(row as CoachLeaveRequestRecord),
     coach: row.coach ?? null,
     session: row.session
@@ -147,6 +147,14 @@ export async function getLeaveRequestById(id: string): Promise<CoachLeaveRequest
   return data;
 }
 
+export async function getApprovedLeaveForSession(sessionId: string): Promise<CoachLeaveRequestRecord | null> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase.from('coach_leave_requests').select('*')
+    .eq('session_id', sessionId).eq('status', 'APPROVED').maybeSingle();
+  if (error) throw new Error(`Failed to fetch approved session leave: ${error.message}`);
+  return data;
+}
+
 export type CreateEmergencyLeaveInput = {
   coachId: string;
   sessionId: string;
@@ -174,7 +182,7 @@ export async function createEmergencyLeaveRequest(input: CreateEmergencyLeaveInp
     .single();
 
   if (error) {
-    if ((error as any)?.code === '23505') {
+    if (error.code === '23505') {
       throw new Error('Leave request already exists for this session');
     }
     throw new Error(`Failed to create emergency leave: ${error.message}`);

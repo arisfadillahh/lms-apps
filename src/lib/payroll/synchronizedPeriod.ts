@@ -40,10 +40,13 @@ export function calculateSynchronizedPeriod(input: {
   const source = latestLegacySnapshot(period.legacy_imports ?? []);
   if (!source) throw new PayrollError('Data sinkronisasi periode tidak ditemukan.');
   const represented = new Set(source.rows.flatMap(row=>row.fees.map(fee=>summaryActivity(fee.label).kind)));
-  const nativeOnly = (kind: string) => ['GOAL','OBSERVATION_ONLINE','OBSERVATION_OFFLINE'].includes(kind) && !represented.has(kind);
+  if(period.class_attendance_from && !period.legacy_class_baseline)throw new PayrollError('Baseline kelas sebelum perubahan absensi belum tersedia.');
+  const nativeOnly = (kind: string) => (Boolean(period.class_attendance_from) && ['WEEKLY','EKSKUL'].includes(kind)) || (['GOAL','OBSERVATION_ONLINE','OBSERVATION_OFFLINE'].includes(kind) && !represented.has(kind));
   const slips = new Map<string, Slip>(), warnings: string[] = [...input.sourceWarnings ?? []];
   const date = wibDate(new Date(Math.min((input.now ?? new Date()).getTime(),Date.parse(period.ends_at)-1)));
-  for (const row of source.rows) {
+  const rows=[...source.rows];
+  if(period.class_attendance_from)for(const row of period.legacy_class_baseline!.rows)if(!rows.some(r=>r.sourceId===row.sourceId))rows.push({...row,fees:row.fees.filter(f=>summaryActivity(f.label).kind==='CLASS_SUMMARY')});
+  for (const row of rows) {
     const link = period.legacy_links?.[row.sourceId];
     if (link?.status === 'IGNORED') continue;
     if (!link) throw new PayrollError('Identitas penerima belum dipasangkan. Hubungi admin untuk melengkapi data.');
@@ -52,9 +55,14 @@ export function calculateSynchronizedPeriod(input: {
     const term = effective(terms.filter(t => t.profile_id === person.id), date);
     const slip = slips.get(person.id) ?? { profile_id: person.id, user_id: person.user_id, name: person.name, job_title: person.job_title, kind: person.kind, contract: term?.contract ?? 'MITRA', contract_unconfirmed: !term, lines: [], total: 0 };
     slips.set(person.id, slip);
-    for (const fee of row.fees) {
-      const activity = summaryActivity(fee.label);
-      const originalQuantity = row.counters.find(c => c.label.toLowerCase() === activity.counter.toLowerCase())?.value ?? 0;
+    const fees=[...row.fees];
+    if(period.class_attendance_from)for(const fee of period.legacy_class_baseline!.rows.find(r=>r.sourceId===row.sourceId)?.fees ?? [])if(summaryActivity(fee.label).kind==='CLASS_SUMMARY' && !fees.some(f=>f.label===fee.label))fees.push(fee);
+    for (const incomingFee of fees) {
+      const activity = summaryActivity(incomingFee.label);
+      const baselineRow=activity.kind==='CLASS_SUMMARY' && period.class_attendance_from ? period.legacy_class_baseline!.rows.find(r=>r.sourceId===row.sourceId) : undefined;
+      const fee=activity.kind==='CLASS_SUMMARY' && period.class_attendance_from ? baselineRow?.fees.find(f=>f.label===incomingFee.label) ?? {...incomingFee,value:0} : incomingFee;
+      const counters=activity.kind==='CLASS_SUMMARY' && period.class_attendance_from ? baselineRow?.counters ?? [] : row.counters;
+      const originalQuantity = counters.find(c => c.label.toLowerCase() === activity.counter.toLowerCase())?.value ?? 0;
       const key = `summary:${row.sourceId}:${fee.label}`;
       const override = period.overrides[key];
       const quantity = override?.quantity_delta !== undefined ? Math.max(0,originalQuantity+override.quantity_delta) : override?.meeting_keys ? override.meeting_keys.length : override?.quantity ?? originalQuantity;
@@ -71,6 +79,7 @@ export function calculateSynchronizedPeriod(input: {
       if (fee.value === null && quantity > 0 && override?.amount === undefined && !override?.excluded && !quantityChanged) warnings.push(`Nominal belum diisi: ${person.name}, ${activity.label}`);
       targetSlip.lines.push({ key, date: '', label: activity.label, kind: activity.kind, quantity, rate: Math.round(unit), quantity_rate: unit,
         source_identity: row.sourceId, source_counter: activity.counter, source_quantity: originalQuantity,
+        ...(activity.kind==='CLASS_SUMMARY' && period.class_attendance_from ? {summary_before:period.class_attendance_from}:{}),
         amount: override?.amount ?? (override?.excluded ? 0 : quantityChanged ? Math.round(unit * quantity) : fee.value ?? 0), details: override?.excluded ? 'Aktivitas dibatalkan' : '', summary: true, amount_pending: fee.value === null && override?.amount === undefined && !quantityChanged, override_reason: override?.reason });
     }
   }
@@ -85,7 +94,7 @@ export function calculateSynchronizedPeriod(input: {
     const slip = slips.get(previous.profile_id) ?? { ...previous, lines: [], total: 0 };
     slip.lines.push(...structuredClone(lines));slips.set(previous.profile_id,slip);
   }
-  const result = calculatePeriod({ ...input, activities: (input.activities ?? []).filter(a=>nativeOnly(a.kind)), seedSlips: [...slips.values()], includeRecurring, sourceWarnings: warnings });
+  const result = calculatePeriod({ ...input, activities: (input.activities ?? []).filter(a=>nativeOnly(a.kind) && (!['WEEKLY','EKSKUL'].includes(a.kind) || Date.parse(a.date)>=Date.parse(period.class_attendance_from!))), seedSlips: [...slips.values()], includeRecurring, sourceWarnings: warnings });
   result.synchronized_at = source.capturedAt;
   return result;
 }

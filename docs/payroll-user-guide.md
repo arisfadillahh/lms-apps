@@ -63,9 +63,33 @@ Gaji tetap merupakan nominal satu periode, tanpa prorata otomatis. Untuk masuk/k
 
 ## Cara menentukan hak fee
 
+### Validasi mengajar dari absensi siswa — mulai 12 November 2026
+
+Coach yang ditugaskan mengisi absensi siswa seperti biasa; tidak perlu check-in coach terpisah. Jika ada pengganti, hanya coach pengganti yang mengisi absensi sesi tersebut. Minimal satu siswa **Hadir/Terlambat** memvalidasi sesi mengajar. Tarif tetap berdasarkan jumlah siswa aktif terdaftar pada tanggal sesi, bukan jumlah yang hadir.
+
+- **Semua siswa Tidak hadir/Izin:** coach mengonfirmasi sebelum menyimpan. Sesi tetap ditutup sesuai alur kelas dan tugas susulan tetap dibuat. Sesi tidak dihitung mengajar dan tidak menghasilkan fee untuk coach utama maupun pengganti.
+- **Belum ada absensi:** tampil **Menunggu absensi siswa**, fee sesi belum dihitung.
+- **Absensi baru sebagian:** tampil **Absensi siswa belum lengkap**. Jika sudah ada yang hadir, estimasi fee dapat terlihat, tetapi finalisasi tetap ditahan sampai lengkap atau ada keputusan beralasan.
+- **Absensi lengkap dan ada siswa hadir:** sesi dihitung untuk coach yang benar-benar ditugaskan; ketentuan Fulltime/Mitra tetap berlaku. Gaji pokok fulltime tidak dipotong otomatis.
+
+Admin/Coach Lead membuka **Absensi & koreksi coach → Periksa sesi belum lengkap**. Minta coach melengkapi absensi atau buka **Koreksi → Pengaturan lanjutan → Validasi sesi mengajar** untuk pengecualian **sesi benar-benar diajar / sesi tidak berlangsung**, dengan alasan wajib. Finance mempunyai akses pengecualian yang sama. Mengubah penerima atau mode saja tidak melewati validasi. Nominal khusus Finance tetap dipertahankan saat koreksi operasional; bukti absensi siswa tidak ditimpa oleh keputusan payroll.
+
+Sesi tanggal 11 November dan sebelumnya mempertahankan rekap transisi. Komponen kelas sumber lama dibekukan sebagai baseline; sesi mulai 12 November dihitung satu kali dari LMS dengan validasi absensi siswa. Komponen non-kelas yang masih disinkronkan tetap mengikuti sumbernya. Arsip lama dan versi final tidak dihitung ulang otomatis. Jika absensi diubah setelah final, admin mendapat pemberitahuan untuk memeriksa revisi.
+
+```mermaid
+flowchart TD
+ A[Coach yang ditugaskan isi absensi siswa] --> B{Sudah lengkap?}
+ B -->|Belum| C[Antrean konfirmasi; finalisasi ditahan]
+ B -->|Ya| D{Ada siswa Hadir / Terlambat?}
+ D -->|Ya| E[Absen mengajar valid; fee sesuai kontrak dan kelas]
+ D -->|Tidak| F[Tidak dihitung mengajar; fee sesi nol]
+ F --> G[Sesi ditutup; tugas susulan tetap diproses]
+ C --> H[Coach lengkapi atau Admin / Coach Lead beri keputusan beralasan]
+```
+
 | Aktivitas / keadaan | Perhitungan |
 | --- | --- |
-| Sesi kelas yang berjalan | Otomatis masuk rekap sesuai jadwal; coach tidak perlu check-in |
+| Sesi kelas yang berjalan | Mulai 12 November: divalidasi dari absensi siswa; coach tidak perlu check-in terpisah |
 | Aktivitas dibatalkan | Tidak dibayar |
 | Izin coach disetujui tanpa pengganti | Tidak ada fee untuk coach yang izin |
 | Ada coach pengganti | Fee masuk ke coach pengganti, bukan coach utama |

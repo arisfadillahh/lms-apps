@@ -1,4 +1,5 @@
 import type { PayrollMeeting, PeriodDocument, Slip } from './model';
+import { attendanceStatusLabel, projectStudentAttendance } from './studentAttendanceState.ts';
 
 const attendanceKinds = new Set(['WEEKLY', 'EKSKUL', 'TRIAL', 'EVENT', 'TRAINING_ONLINE', 'TRAINING_OFFLINE', 'OBSERVATION_ONLINE', 'OBSERVATION_OFFLINE', 'CLASS_SUMMARY']);
 const timeZone = 'Asia/Jakarta';
@@ -35,7 +36,7 @@ export function attendanceRecapBlockReason(slip: Slip): string | null {
 function meetingsForMessage(slip: Slip): PayrollMeeting[] {
   const meetings = slip.attendance_details ?? fallbackLines(slip)
     .filter(line => !line.summary && line.kind !== 'CLASS_SUMMARY' && line.quantity === 1)
-    .map(line => ({ key: line.key, date: line.date, label: line.label, user_id: slip.user_id ?? '', kind: line.kind as PayrollMeeting['kind'], delivery: 'ONLINE' as const, students: line.students ?? 0, cancelled: /dibatalkan/i.test(line.details), substitute: /coach pengganti/i.test(line.details) }));
+    .map(line => ({ key: line.key, date: line.date, label: line.label, user_id: slip.user_id ?? '', kind: line.kind as PayrollMeeting['kind'], delivery: 'ONLINE' as const, students: line.students ?? 0, cancelled: /dibatalkan/i.test(line.details), substitute: /coach pengganti/i.test(line.details), ...projectStudentAttendance(line) }));
   const seen = new Set<string>();
   return meetings.filter(meeting => {
     if (seen.has(meeting.key) || !activityDate(meeting.date) || !clean(meeting.label)) return false;
@@ -67,7 +68,7 @@ export function formatAttendanceRecap(period: PeriodDocument, slip: Slip, _now?:
   const blocked = attendanceRecapBlockReason(slip);
   if (blocked) return blocked;
   const meetings = meetingsForMessage(slip);
-  const count = meetings.filter(meeting => !meeting.cancelled).length;
+  const count = meetings.filter(meeting => !meeting.cancelled && meeting.fee_eligible !== false).length;
   let lastDay = '';
   const rows: string[] = [];
   for (const meeting of meetings) {
@@ -75,7 +76,8 @@ export function formatAttendanceRecap(period: PeriodDocument, slip: Slip, _now?:
     const day = date.toLocaleDateString('id-ID', { timeZone, day: 'numeric', month: 'short' });
     if (day !== lastDay) { rows.push(`${rows.length ? '\n' : ''}${day}`); lastDay = day; }
     const time = meeting.date.length === 10 ? '' : `${date.toLocaleTimeString('id-ID', { timeZone, hour: '2-digit', minute: '2-digit' })} - `;
-    const status = meeting.cancelled ? ' (dibatalkan)' : meeting.substitute ? ' (pengganti)' : '';
+    const attendanceLabel = attendanceStatusLabel(meeting);
+    const status = meeting.cancelled ? ' (dibatalkan)' : [meeting.substitute ? 'pengganti' : '', attendanceLabel?.toLocaleLowerCase('id-ID') ?? ''].filter(Boolean).map(label => ` (${label})`).join('');
     rows.push(`• ${time}${clean(meeting.label)}${status}`);
   }
   return `Rekap mengajar - ${monthLabel(period)}\nHalo ${clean(slip.name)}, ini aktivitas yang tercatat di LMS.\n\n${rows.join('\n') || 'Belum ada aktivitas tercatat.'}\n\nTotal: ${count} aktivitas.\n\nBATAS KOREKSI: ${deadlineLabel(period)} pukul 17.00 WIB.\nKalau ada yang perlu dikoreksi, ajukan di LMS sebelum batas itu.\nKelas tanggal 25 yang berjalan setelah pesan ini tetap masuk periode ini.${coachLink(period, appUrl)}`;

@@ -56,7 +56,7 @@ describe('prospective student attendance cutover policy', () => {
     expect(new Date(STUDENT_ATTENDANCE_FROM).toISOString()).toBe('2026-11-11T17:00:00.000Z');
   });
 
-  it('captures the latest verified pre-cutover snapshot once without mutating the input', () => {
+  it('captures the latest verified pre-cutover snapshot without mutating the input', () => {
     const period = importedPeriod(), original = structuredClone(period);
     const older = { ...snapshot(), sourceId: 'older-sheet', sourceCreatedAt: '2026-10-01T00:00:00Z', checksum: 'c'.repeat(64) };
     period.legacy_imports!.unshift(older);
@@ -67,6 +67,15 @@ describe('prospective student attendance cutover policy', () => {
     expect(result.legacy_class_baseline).not.toBe(period.legacy_imports![1]);
     expect(period).toEqual(expected);
     expect(original.legacy_class_baseline).toBeUndefined();
+  });
+
+  it('advances the baseline while source snapshots are still pre-cutover', () => {
+    const first = applyAttendancePolicy(importedPeriod(), beforeCutover);
+    const refreshed = refreshCounters(first);
+    refreshed.legacy_imports![0].capturedAt = '2026-11-11T16:59:00Z';
+    const latest = applyAttendancePolicy(refreshed, new Date('2026-11-11T16:59:30Z'));
+    expect(latest.legacy_class_baseline).toEqual(refreshed.legacy_imports![0]);
+    expect(applyAttendancePolicy(latest, afterCutover).legacy_class_baseline).toEqual(latest.legacy_class_baseline);
   });
 
   it('preserves the frozen baseline on repeated calculations and later source refreshes', () => {

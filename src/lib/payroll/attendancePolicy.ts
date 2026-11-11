@@ -8,11 +8,15 @@ export function applyAttendancePolicy(period: PeriodDocument, now = new Date()):
   const next=structuredClone(period);
   if(next.status!=='DRAFT' || Date.parse(next.ends_at)<=Date.parse(STUDENT_ATTENDANCE_FROM))return next;
   if(!next.class_attendance_from)next.class_attendance_from=STUDENT_ATTENDANCE_FROM;
-  if(next.legacy_imports?.length && !next.legacy_class_baseline){
+  const cutoff=Date.parse(next.class_attendance_from);
+  const beforeCutoff=now.getTime()<cutoff;
+  if(next.legacy_imports?.length && (beforeCutoff || !next.legacy_class_baseline)){
     const snapshot=latestLegacySnapshot(next.legacy_imports);
     if(!snapshot)throw new Error('Baseline kelas belum tersedia.');
-    if(Date.parse(snapshot.capturedAt)>=Date.parse(next.class_attendance_from) || now.getTime()>=Date.parse(next.class_attendance_from))throw new Error('Baseline sebelum perubahan absensi belum tersimpan. Hubungi admin sebelum menghitung ulang.');
-    next.legacy_class_baseline=structuredClone(snapshot);
+    if(Date.parse(snapshot.capturedAt)>=cutoff || !beforeCutoff)throw new Error('Baseline sebelum perubahan absensi belum tersimpan. Hubungi admin sebelum menghitung ulang.');
+    if(!next.legacy_class_baseline || Date.parse(snapshot.capturedAt)>Date.parse(next.legacy_class_baseline.capturedAt)){
+      next.legacy_class_baseline=structuredClone(snapshot);
+    }
   }
   return next;
 }

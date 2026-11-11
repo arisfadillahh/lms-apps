@@ -17,7 +17,7 @@ import styles from '../payroll/PayrollAdmin.module.css';
 
 type Data = Awaited<ReturnType<typeof attendanceBootstrap>>;
 type Activity = AttendancePeriodView['activities'][number];
-export default function CoachAttendance({ initialPeriod }: { initialPeriod?: string }) {
+export default function CoachAttendance({ initialPeriod, embedded = false, onChanged }: { initialPeriod?: string; embedded?: boolean; onChanged?: () => void }) {
   const [periodId, setPeriodId] = useState(/^20\d{2}-(0[1-9]|1[0-2])$/.test(initialPeriod ?? '') ? initialPeriod! : currentPeriod().id);
   const [data, setData] = useState<Data | null>(null), [busy, setBusy] = useState(false), [error, setError] = useState(''), [message, setMessage] = useState('');
   const [search, setSearch] = useState(''), [tab, setTab] = useState('corrections'), [editing, setEditing] = useState<Activity | 'new' | null>(null);
@@ -42,14 +42,14 @@ export default function CoachAttendance({ initialPeriod }: { initialPeriod?: str
         if (!refreshed.ok) throw new Error('Gunakan Perbarui absensi untuk memuat hasil terbaru.');
         latest = await fetchData(periodId); success = 'Perubahan disimpan dan daftar aktivitas diperbarui.';
       }
-      setData(latest); setMessage(success); return true;
+      setData(latest); setMessage(success); onChanged?.(); return true;
     } catch (e) { setError(saved ? 'Perubahan sudah tersimpan; jangan input ulang. Gunakan Perbarui absensi untuk memuat hasil terbaru.' : e instanceof Error ? e.message : 'Perubahan gagal.'); setData(await fetchData(periodId).catch(() => data)); return saved; }
     finally { setBusy(false); }
   }
   const pendingCount=(p?.activities ?? []).filter(a=>['PENDING','PARTIAL'].includes(a.attendance_status ?? '') && !a.attendance_override).length;
   const rows = (p?.activities ?? []).filter(a => (!pendingOnly || (['PENDING','PARTIAL'].includes(a.attendance_status ?? '') && !a.attendance_override)) && (coachFilter === 'ALL' || a.profile_id === coachFilter) && (!search || `${a.coach_name} ${a.label}`.toLowerCase().includes(search.toLowerCase())));
-  return <main className={styles.root}>
-    <header className={styles.header}><div><h1 className={styles.title}>Absensi &amp; koreksi coach</h1><p className={styles.muted}>Admin dan coach lead memeriksa aktivitas serta menangani pengajuan koreksi.</p></div></header>
+  return <section className={embedded ? styles.detailPanel : styles.root}>
+    <header className={styles.header}><div><h1 className={styles.title}>{embedded ? 'Absensi & koreksi' : 'Absensi & Gaji'}</h1><p className={styles.muted}>Admin dan coach lead memeriksa aktivitas serta menangani pengajuan koreksi.</p></div></header>
     {!editing && error && <p role="alert" className={styles.error}>{error}</p>}{message && <p role="status" className={styles.success}>{message}</p>}
     <section className={`${styles.panel} ${styles.periodBar}`}><label className={styles.field}>Periode<Input aria-label="Periode absensi" type="month" min="2020-01" max="2099-12" value={periodId} onChange={e => { if (e.target.value) { setPeriodId(e.target.value); setEditing(null); setError(''); setMessage(''); } }} /></label>{p && <Badge variant="secondary">{p.status === 'FINAL' ? 'Final' : 'Berjalan'}</Badge>}<div className={styles.actions}>{p?.status === 'DRAFT' && <Button variant="outline" disabled={busy} onClick={() => { void run('calculate', {}, 'Absensi diperbarui dari sumber terbaru.'); }}>Perbarui absensi</Button>}{data && !p && <Button disabled={busy} onClick={() => { void run('create', { year: Number(periodId.slice(0, 4)), month: Number(periodId.slice(5)) }); }}>Buat periode</Button>}</div></section>
     {!data ? <p>Memuat absensi…</p> : <>
@@ -81,5 +81,5 @@ export default function CoachAttendance({ initialPeriod }: { initialPeriod?: str
         </>}
       </div></DialogContent></Dialog>
     </>}
-  </main>;
+  </section>;
 }

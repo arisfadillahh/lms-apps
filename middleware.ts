@@ -78,7 +78,7 @@ const ADMIN_ACCESS_RULES: AdminAccessRule[] = [
   { prefix: '/admin/evaluations', menus: ['evaluations'] },
   { prefix: '/admin/reports', menus: ['reports'] },
   { prefix: '/admin/payments/invoices', menus: ['invoices'] },
-  { prefix: '/admin/payroll', menus: ['payroll'] },
+  { prefix: '/admin/payroll', menus: ['payroll', 'coachAttendance'] },
   { prefix: '/admin/coach-attendance', menus: ['coachAttendance', 'payroll'] },
   { prefix: '/admin/payments/registration', menus: ['payments', 'invoices'] },
   { prefix: '/admin/payments/coders', menus: ['payments', 'invoices'] },

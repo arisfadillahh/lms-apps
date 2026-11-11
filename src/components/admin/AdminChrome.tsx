@@ -122,7 +122,7 @@ const MENU: MenuItem[] = [
   { id: 'reports', href: '/admin/reports', label: 'Status Rapor', icon: FileText },
   { id: 'payments', href: '/admin/payments', label: 'Paket & Tarif', icon: Wallet },
   { id: 'invoices', href: '/admin/payments/invoices', label: 'Invoice', icon: Receipt },
-  { id: 'payroll', href: '/admin/payroll', label: 'Gaji & Slip Gaji', icon: Wallet },
+  { id: 'payroll', href: '/admin/payroll', label: 'Absensi & Gaji', icon: Wallet },
   { id: 'coachAttendance', href: '/admin/coach-attendance', label: 'Absensi & koreksi coach', icon: ClipboardList },
   { id: 'ccr', href: '/admin/coders/assign-ccr', label: 'Assign ID Invoice', icon: UserCheck },
   { id: 'ccrlist', href: '/admin/coders/list-ccr', label: 'Daftar ID Invoice', icon: FileText },
@@ -152,7 +152,6 @@ const SECTION_TABS = {
     { href: '/admin/free-trials', label: 'Free Trial', menus: ['freeTrials'] },
     { href: '/admin/trial-assessments', label: 'Review Trial', menus: ['trialAssessments'] },
     { href: '/admin/classes', label: 'Kelas', menus: ['classes'] },
-    { href: '/admin/coach-attendance', label: 'Absensi coach', menus: ['coachAttendance'] },
     { href: '/admin/level-progressions', label: 'Kenaikan Level', menus: ['levelProgressions'] },
     { href: '/admin/curriculum', label: 'Kurikulum', menus: ['curriculum'] },
     { href: '/admin/ekskul', label: 'Ekskul', menus: ['ekskul'] },
@@ -162,7 +161,7 @@ const SECTION_TABS = {
   payments: [
     { href: '/admin/payments', label: 'Paket & Tarif', menus: ['payments'] },
     { href: '/admin/payments/invoices', label: 'Invoice', menus: ['invoices'] },
-    { href: '/admin/payroll', label: 'Gaji & Slip Gaji', menus: ['payroll'] },
+    { href: '/admin/payroll', label: 'Absensi & Gaji', menus: ['payroll'] },
     { href: '/admin/payments/pricing', label: 'Harga Level', menus: ['payments'] },
     { href: '/admin/payments/registration', label: 'Registrasi', menus: ['payments', 'invoices'] },
     { href: '/admin/payments/coders', label: 'Periode Coder', menus: ['payments', 'invoices'] },
@@ -510,6 +509,8 @@ export default function AdminChrome({ children, user }: AdminChromeProps) {
   const visibleMenu = useMemo(
     () =>
       MENU.filter((item) => {
+        if (item.id === 'coachAttendance') return false;
+        if (item.id === 'payroll' && permissions?.menus?.includes('coachAttendance')) return true;
         if (item.id === 'dashboard') return true;
         if (superAdmin) return true;
         return permissions?.menus?.includes(item.id) ?? false;

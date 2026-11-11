@@ -1,4 +1,5 @@
 import { latestLegacySnapshot } from './legacyImport.ts';
+import { usesLmsAttendanceForEntirePeriod } from './attendancePolicy.ts';
 import { calculatePeriod, effective, wibDate, PayrollError, type Activity, type PayrollPerson, type PayrollTerm, type RateCard, type PeriodDocument, type Slip } from './model.ts';
 
 function fallbackRate(kind: string, label: string, cards: RateCard[], date: string): number {
@@ -40,12 +41,16 @@ export function calculateSynchronizedPeriod(input: {
   const source = latestLegacySnapshot(period.legacy_imports ?? []);
   if (!source) throw new PayrollError('Data sinkronisasi periode tidak ditemukan.');
   const represented = new Set(source.rows.flatMap(row=>row.fees.map(fee=>summaryActivity(fee.label).kind)));
-  if(period.class_attendance_from && !period.legacy_class_baseline)throw new PayrollError('Baseline kelas sebelum perubahan absensi belum tersedia.');
-  const nativeOnly = (kind: string) => (Boolean(period.class_attendance_from) && ['WEEKLY','EKSKUL'].includes(kind)) || (['GOAL','OBSERVATION_ONLINE','OBSERVATION_OFFLINE'].includes(kind) && !represented.has(kind));
+  const lmsAttendance = usesLmsAttendanceForEntirePeriod(period);
+  const baseline = lmsAttendance ? undefined : period.legacy_class_baseline;
+  if(period.class_attendance_from && !lmsAttendance && !baseline)throw new PayrollError('Baseline kelas sebelum perubahan absensi belum tersedia.');
+  const nativeOnly = (kind: string) => (Boolean(period.class_attendance_from) && ['WEEKLY','EKSKUL'].includes(kind))
+    || (lmsAttendance && ['TRIAL','GOAL'].includes(kind))
+    || (['GOAL','OBSERVATION_ONLINE','OBSERVATION_OFFLINE'].includes(kind) && !represented.has(kind));
   const slips = new Map<string, Slip>(), warnings: string[] = [...input.sourceWarnings ?? []];
   const date = wibDate(new Date(Math.min((input.now ?? new Date()).getTime(),Date.parse(period.ends_at)-1)));
   const rows=[...source.rows];
-  if(period.class_attendance_from)for(const row of period.legacy_class_baseline!.rows)if(!rows.some(r=>r.sourceId===row.sourceId))rows.push({...row,fees:row.fees.filter(f=>summaryActivity(f.label).kind==='CLASS_SUMMARY')});
+  for(const row of baseline?.rows ?? [])if(!rows.some(r=>r.sourceId===row.sourceId))rows.push({...row,fees:row.fees.filter(f=>summaryActivity(f.label).kind==='CLASS_SUMMARY')});
   for (const row of rows) {
     const link = period.legacy_links?.[row.sourceId];
     if (link?.status === 'IGNORED') continue;
@@ -56,12 +61,14 @@ export function calculateSynchronizedPeriod(input: {
     const slip = slips.get(person.id) ?? { profile_id: person.id, user_id: person.user_id, name: person.name, job_title: person.job_title, kind: person.kind, contract: term?.contract ?? 'MITRA', contract_unconfirmed: !term, lines: [], total: 0 };
     slips.set(person.id, slip);
     const fees=[...row.fees];
-    if(period.class_attendance_from)for(const fee of period.legacy_class_baseline!.rows.find(r=>r.sourceId===row.sourceId)?.fees ?? [])if(summaryActivity(fee.label).kind==='CLASS_SUMMARY' && !fees.some(f=>f.label===fee.label))fees.push(fee);
+    const baselineRow = baseline?.rows.find(r=>r.sourceId===row.sourceId);
+    for(const fee of baselineRow?.fees ?? [])if(summaryActivity(fee.label).kind==='CLASS_SUMMARY' && !fees.some(f=>f.label===fee.label))fees.push(fee);
     for (const incomingFee of fees) {
       const activity = summaryActivity(incomingFee.label);
-      const baselineRow=activity.kind==='CLASS_SUMMARY' && period.class_attendance_from ? period.legacy_class_baseline!.rows.find(r=>r.sourceId===row.sourceId) : undefined;
-      const fee=activity.kind==='CLASS_SUMMARY' && period.class_attendance_from ? baselineRow?.fees.find(f=>f.label===incomingFee.label) ?? {...incomingFee,value:0} : incomingFee;
-      const counters=activity.kind==='CLASS_SUMMARY' && period.class_attendance_from ? baselineRow?.counters ?? [] : row.counters;
+      if(lmsAttendance && ['CLASS_SUMMARY','TRIAL','GOAL'].includes(activity.kind))continue;
+      const useBaseline = activity.kind==='CLASS_SUMMARY' && Boolean(period.class_attendance_from);
+      const fee=useBaseline ? baselineRow?.fees.find(f=>f.label===incomingFee.label) ?? {...incomingFee,value:0} : incomingFee;
+      const counters=useBaseline ? baselineRow?.counters ?? [] : row.counters;
       const originalQuantity = counters.find(c => c.label.toLowerCase() === activity.counter.toLowerCase())?.value ?? 0;
       const key = `summary:${row.sourceId}:${fee.label}`;
       const override = period.overrides[key];

@@ -8,7 +8,7 @@ import { attendanceAdmins } from './payrollNotifications';
 import { calculateSynchronizedPeriod } from '@/lib/payroll/synchronizedPeriod';
 import { canonicalMeetingCandidates, meetingFromActivity } from '@/lib/payroll/attendanceDetails';
 import { refreshAttendanceSource } from './payrollAttendanceSource';
-import { applyAttendancePolicy, STUDENT_ATTENDANCE_FROM } from '@/lib/payroll/attendancePolicy';
+import { applyAttendancePolicy, STUDENT_ATTENDANCE_FROM, usesLmsAttendanceForEntirePeriod } from '@/lib/payroll/attendancePolicy';
 
 export async function calculatePayroll(record: PeriodRecord, now = new Date(), actor: string | null = null): Promise<PeriodRecord> {
   requireDraft(record);
@@ -20,7 +20,7 @@ export async function calculatePayroll(record: PeriodRecord, now = new Date(), a
     const pastMeetings = await payrollMeetingCandidates(sourced, now,native.activities);
     const catalog = new Map((sourced.meeting_catalog ?? []).filter(m=>m.origin==='SOURCE' && (!sourced.class_attendance_from || Date.parse(m.date)<Date.parse(sourced.class_attendance_from))).map(m=>[m.key,m]));
     for(const m of pastMeetings)catalog.set(m.key,m);
-    const isCurrent = record.id === currentPeriod(now).id;
+    const isCurrent = record.id === currentPeriod(now).id || usesLmsAttendanceForEntirePeriod(sourced);
     if(isCurrent)for(const a of native.activities.filter(a=>['WEEKLY','EKSKUL'].includes(a.kind) && Date.parse(a.date)>=Date.parse(sourced.class_attendance_from!))){
       const override=sourced.overrides[a.key];
       const person=override?.profile_id?config.people.find(p=>p.id===override.profile_id):config.people.find(p=>p.user_id===a.user_id);

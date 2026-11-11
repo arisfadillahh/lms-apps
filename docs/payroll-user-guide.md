@@ -63,7 +63,7 @@ Gaji tetap merupakan nominal satu periode, tanpa prorata otomatis. Untuk masuk/k
 
 ## Cara menentukan hak fee
 
-### Validasi mengajar dari absensi siswa — mulai 12 November 2026
+### Validasi mengajar dari absensi siswa
 
 Coach yang ditugaskan mengisi absensi siswa seperti biasa; tidak perlu check-in coach terpisah. Jika ada pengganti, hanya coach pengganti yang mengisi absensi sesi tersebut. Minimal satu siswa **Hadir/Terlambat** memvalidasi sesi mengajar. Tarif tetap berdasarkan jumlah siswa aktif terdaftar pada tanggal sesi, bukan jumlah yang hadir.
 
@@ -74,7 +74,7 @@ Coach yang ditugaskan mengisi absensi siswa seperti biasa; tidak perlu check-in 
 
 Admin/Coach Lead membuka **Absensi & koreksi coach → Periksa sesi belum lengkap**. Minta coach melengkapi absensi atau buka **Koreksi → Pengaturan lanjutan → Validasi sesi mengajar** untuk pengecualian **sesi benar-benar diajar / sesi tidak berlangsung**, dengan alasan wajib. Finance mempunyai akses pengecualian yang sama. Mengubah penerima atau mode saja tidak melewati validasi. Nominal khusus Finance tetap dipertahankan saat koreksi operasional; bukti absensi siswa tidak ditimpa oleh keputusan payroll.
 
-Sesi tanggal 11 November dan sebelumnya mempertahankan rekap transisi. Komponen kelas sumber lama dibekukan sebagai baseline; sesi mulai 12 November dihitung satu kali dari LMS dengan validasi absensi siswa. Komponen non-kelas yang masih disinkronkan tetap mengikuti sumbernya. Arsip lama dan versi final tidak dihitung ulang otomatis. Jika absensi diubah setelah final, admin mendapat pemberitahuan untuk memeriksa revisi.
+Periode November 2026 memakai presensi LMS untuk seluruh sesi kelas mulai 26 Oktober. Trial diambil dari form yang dikirim coach dan bonus goal dari invoice lunas yang terverifikasi. Komponen lain yang masih disinkronkan tetap mengikuti sumbernya. Arsip lama dan versi final tidak dihitung ulang otomatis. Jika absensi diubah setelah final, admin mendapat pemberitahuan untuk memeriksa revisi.
 
 ```mermaid
 flowchart TD
@@ -89,7 +89,7 @@ flowchart TD
 
 | Aktivitas / keadaan | Perhitungan |
 | --- | --- |
-| Sesi kelas yang berjalan | Mulai 12 November: divalidasi dari absensi siswa; coach tidak perlu check-in terpisah |
+| Sesi kelas yang berjalan | Divalidasi dari absensi siswa. Coach tidak perlu check-in terpisah. |
 | Aktivitas dibatalkan | Tidak dibayar |
 | Izin coach disetujui tanpa pengganti | Tidak ada fee untuk coach yang izin |
 | Ada coach pengganti | Fee masuk ke coach pengganti, bukan coach utama |

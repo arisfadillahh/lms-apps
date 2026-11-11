@@ -119,6 +119,21 @@ describe('prospective student attendance cutover policy', () => {
 });
 
 describe('frozen imported class baseline with prospective native attendance', () => {
+  it('replaces imported classes and trials for an entire period while retaining event amounts', () => {
+    const imported = importedPeriod();
+    const period = applyAttendancePolicy({ ...imported, class_attendance_from: imported.starts_at }, afterCutover);
+    const lesson = meeting({ date: '2026-11-01T08:00:00Z' });
+    const trial = meeting({ key: 'trial:form', date: lesson.date, kind: 'TRIAL' });
+    const result = calculate(period, [lesson, trial]);
+    const lines = result.slips[0].lines;
+    expect(lines.some(line => line.kind === 'CLASS_SUMMARY')).toBe(false);
+    expect(lines.filter(line => line.kind === 'TRIAL')).toMatchObject([{ key: trial.key, amount: 25000 }]);
+    expect(lines.find(line => line.key === lesson.key)?.amount).toBe(100000);
+    expect(lines.find(line => line.kind === 'EVENT')?.amount).toBe(180000);
+    expect(calculateSynchronizedPeriod({ period: result, people: [person], terms: [term], cards: [{ effective_from: '2026-10-26', rates: DEFAULT_RATES }], now: afterCutover, includeRecurring: true }).slips[0].lines)
+      .toEqual(lines);
+  });
+
   it('freezes class quantity/amount while trial and event counters continue to refresh', () => {
     const result = calculate(refreshCounters(applyAttendancePolicy(importedPeriod(), beforeCutover)), []);
     const lines = result.slips[0].lines;

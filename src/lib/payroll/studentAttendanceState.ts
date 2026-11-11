@@ -10,11 +10,11 @@ export interface StudentAttendanceMetadata {
 }
 const recognized = new Set(['PRESENT', 'LATE', 'ABSENT', 'EXCUSED']);
 
-/** The roster is evaluated at the meeting date, including historical enrollments. */
+/** Only active enrollments within their enrollment window belong to the roster. */
 export function isEnrollmentAtSession(enrollment: { enrolled_at: string; ended_at: string | null; status: string }, dateTime: string): boolean {
   const stamp = Date.parse(dateTime), enrolled = Date.parse(enrollment.enrolled_at);
-  return Number.isFinite(stamp) && Number.isFinite(enrolled) && enrolled <= stamp &&
-    (enrollment.ended_at ? Number.isFinite(Date.parse(enrollment.ended_at)) && stamp <= Date.parse(enrollment.ended_at) : enrollment.status === 'ACTIVE');
+  return enrollment.status === 'ACTIVE' && Number.isFinite(stamp) && Number.isFinite(enrolled) && enrolled <= stamp &&
+    (!enrollment.ended_at || stamp <= Date.parse(enrollment.ended_at));
 }
 
 /** Explicit roster attendance only; outsiders and conflicting duplicate rows do not validate a class. */

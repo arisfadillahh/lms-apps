@@ -42,10 +42,11 @@ describe('shared student attendance state and historical roster', () => {
     expect(evaluateStudentAttendance(['a'], [{ coder_id: 'a', status: 'PRESENT' }, { coder_id: 'a', status: 'ABSENT' }])).toEqual({ status: 'PENDING', expected: 1, recorded: 0, present: 0 });
     expect(evaluateStudentAttendance([], [{ coder_id: 'outside', status: 'PRESENT' }])).toEqual({ status: 'PENDING', expected: 0, recorded: 0, present: 0 });
   });
-  it('retains enrollment-at-session behavior and ignores invalid dates', () => {
-    const enrollment = { enrolled_at: '2026-11-01T00:00:00+07:00', ended_at: '2026-11-12T10:00:00+07:00', status: 'INACTIVE' };
+  it('uses the enrollment window only for active students and ignores invalid dates', () => {
+    const enrollment = { enrolled_at: '2026-11-01T00:00:00+07:00', ended_at: '2026-11-12T10:00:00+07:00', status: 'ACTIVE' };
     expect(isEnrollmentAtSession(enrollment, '2026-11-12T10:00:00+07:00')).toBe(true);
     expect(isEnrollmentAtSession(enrollment, '2026-11-12T10:00:01+07:00')).toBe(false);
+    expect(isEnrollmentAtSession({ ...enrollment, status: 'INACTIVE' }, '2026-11-12T09:00:00+07:00')).toBe(false);
     expect(isEnrollmentAtSession({ ...enrollment, enrolled_at: 'invalid' }, '2026-11-12T10:00:00+07:00')).toBe(false);
   });
 });

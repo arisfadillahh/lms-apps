@@ -52,7 +52,7 @@ export default async function SessionAttendancePage({ params }: PageProps) {
     (classRecord as { ekskul_lesson_plan_id?: string | null }).ekskul_lesson_plan_id ?? null;
 
   const [enrollments, classSessions, lessonScheduleMap] = await Promise.all([
-    classesDao.listEnrollmentsByClass(classRecord.id, { includeInactive: true }),
+    classesDao.listEnrollmentsByClass(classRecord.id, { activeCodersOnly: true }),
     sessionsDao.listSessionsByClass(classRecord.id),
     computeLessonSchedule(
       classRecord.id,
@@ -81,7 +81,7 @@ export default async function SessionAttendancePage({ params }: PageProps) {
   const currentSessionMap =
     attendanceBySession.get(sessionRecord.id) ?? new Map<string, { status: string; reason: string | null }>();
 
-  // Keep the roster at the session date, including students who have since left.
+  // Restrict the roster to active students who were enrolled on the session date.
   const attendees = enrollments
     .filter(e => isEnrollmentAtSession(e, sessionRecord.date_time))
     .map((enrollment) => ({

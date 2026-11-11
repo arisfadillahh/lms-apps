@@ -87,7 +87,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const enrollments = await classesDao.listEnrollmentsByClass(classRecord.id, { includeInactive: true });
+  const enrollments = await classesDao.listEnrollmentsByClass(classRecord.id, { activeCodersOnly: true });
   if (!enrollments.some(enrollment => enrollment.coder_id === coderId && isEnrollmentAtSession(enrollment, sessionRecord.date_time))) {
     return NextResponse.json({ error: 'Coder bukan peserta sesi ini.' }, { status: 403 });
   }

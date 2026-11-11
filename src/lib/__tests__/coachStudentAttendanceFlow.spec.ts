@@ -70,9 +70,9 @@ describe('student attendance save and session completion', () => {
     expect((await mark({ coderId: otherCoder })).status).toBe(403);
     expect(mock.mark).not.toHaveBeenCalled();
   });
-  it('uses historical enrollment dates rather than today’s active list', async () => {
+  it('requires an active enrollment within the session date range', async () => {
     mock.enrollments.mockResolvedValue([enrollment(coderId, { status: 'INACTIVE', ended_at: '2026-12-01T00:00:00Z' })]);
-    expect((await mark()).status).toBe(200);
+    expect((await mark()).status).toBe(403);
     mock.enrollments.mockResolvedValue([enrollment(coderId, { enrolled_at: '2026-11-13T00:00:00Z' })]);
     expect((await mark()).status).toBe(403);
     mock.enrollments.mockResolvedValue([enrollment(coderId, { status: 'INACTIVE', ended_at: '2026-11-11T00:00:00Z' })]);

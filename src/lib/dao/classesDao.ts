@@ -377,18 +377,21 @@ export async function enrollCoder(input: EnrollCoderInput): Promise<EnrollmentRe
 
 type ListEnrollmentOptions = {
   includeInactive?: boolean;
+  activeCodersOnly?: boolean;
 };
 
 export async function listEnrollmentsByClass(classId: string, options: ListEnrollmentOptions = {}): Promise<EnrollmentRecord[]> {
   const supabase = getSupabaseAdmin();
-  let query = supabase
-    .from('enrollments')
-    .select('*')
+  const table = supabase.from('enrollments');
+  let query = (options.activeCodersOnly ? table.select('*,users!inner()') : table.select('*'))
     .eq('class_id', classId)
     .order('enrolled_at', { ascending: true });
 
   if (!options.includeInactive) {
     query = query.eq('status', 'ACTIVE');
+  }
+  if (options.activeCodersOnly) {
+    query = query.eq('users.is_active', true);
   }
 
   const { data, error } = await query;

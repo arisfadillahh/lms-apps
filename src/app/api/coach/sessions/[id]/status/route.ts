@@ -69,7 +69,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         return NextResponse.json({ error: 'Sesi dibatalkan. Hubungi admin untuk mengaktifkan kembali sesi.' }, { status: 409 });
       }
       const [enrollments, attendance] = await Promise.all([
-        classesDao.listEnrollmentsByClass(classRecord.id, { includeInactive: true }),
+        classesDao.listEnrollmentsByClass(classRecord.id, { activeCodersOnly: true }),
         attendanceDao.listAttendanceBySession(sessionId),
       ]);
       const expected = enrollments.filter(enrollment => isEnrollmentAtSession(enrollment, sessionRecord.date_time)).map(enrollment => enrollment.coder_id);

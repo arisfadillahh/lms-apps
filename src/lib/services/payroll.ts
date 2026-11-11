@@ -57,7 +57,7 @@ async function payrollSourceActivities(period: PeriodDocument, now: Date) {
   const invoiceIds = [...new Set(assessments.map(a => a.invoice_id as string).filter(Boolean))];
   const [classes, enrollments, leaves, invoices, attendance] = await Promise.all([
     dao.payrollRows('classes', 'id,name,type,coach_id,delivery_mode,payroll_mode', { in: ['id', classIds] }),
-    dao.payrollRows('enrollments', 'id,class_id,coder_id,enrolled_at,ended_at,status', { in: ['class_id', classIds] }),
+    dao.payrollRows('enrollments', 'id,class_id,coder_id,enrolled_at,ended_at,status,users!inner()', { eq: ['users.is_active', 'true'], in: ['class_id', classIds] }),
     dao.payrollRows('coach_leave_requests', 'id,session_id,status,substitute_coach_id', { in: ['session_id', sessions.map(s => s.id as string)] }),
     dao.payrollRows('invoices', 'id,status', { in: ['id', invoiceIds] }),
     dao.payrollRows('attendance', 'session_id,coder_id,status', { in: ['session_id', sessions.map(s=>s.id as string)] }),

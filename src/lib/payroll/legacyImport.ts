@@ -60,6 +60,13 @@ export function parseLegacySheet(source: LegacySheetSource, checksum: string, cu
     const c = row.values ?? [];
     if (!c.some(cell => cell.effectiveValue !== undefined)) continue;
     const sourceId = value(c[0]), name = value(c[1]);
+    // The source sheet has standalone count checks that sum an existing coach row.
+    const countCheck = /^=sum\(D(\d+):M\1\)$/i.exec(c[3]?.userEnteredValue?.formulaValue ?? '');
+    const checkedRow = countCheck ? Number(countCheck[1]) : 0;
+    const checkedCoachId = value(cells[checkedRow - 1]?.values?.[0]);
+    if (!sourceId && !name && checkedRow >= 2 && checkedRow < index + 2
+      && seen.has(checkedCoachId) && typeof c[3]?.effectiveValue?.numberValue === 'number'
+      && c.every((cell, column) => column === 3 || (!cell.effectiveValue && !cell.userEnteredValue))) continue;
     if (!sourceId || !name || seen.has(sourceId)) throw new Error(`Identitas kosong/duplikat pada baris ${index + 2}.`);
     seen.add(sourceId);
     const counters = header.slice(3, firstFee).map((label, i) => ({ label, value: number(c[i + 3], `${name}: ${label}`) }));

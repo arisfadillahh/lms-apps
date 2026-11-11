@@ -24,6 +24,16 @@ describe('legacy payroll import',()=>{
     expect(()=>parseLegacySheet(dup,checksum)).toThrow('duplikat');
     const wrong=source(); wrong.cells.spreadsheetId='other'; expect(()=>parseLegacySheet(wrong,checksum)).toThrow('Identitas file');
   });
+  it('skips standalone count checks and still refuses orphan payroll amounts', () => {
+    const input = source();
+    const rows = input.cells.sheets[0].data![0].rowData!;
+    const values = [{}, {}, {}, { effectiveValue: { numberValue: 3 }, userEnteredValue: { formulaValue: '=sum(D2:M2)' } }];
+    const checkRow = { values };
+    rows.push(checkRow);
+    expect(parseLegacySheet(input, checksum).rows).toHaveLength(1);
+    rows.at(-1)!.values!.push({ effectiveValue: { numberValue: 25000 } });
+    expect(() => parseLegacySheet(input, checksum)).toThrow('Identitas kosong');
+  });
   it('preserves blank amounts and explicitly derives a total only from recorded fees',()=>{
     const s=source(), rows=s.cells.sheets[0].data![0].rowData!;
     rows.forEach(row=>row.values!.pop()); rows[1].values![6]={};

@@ -25,18 +25,18 @@ export default function CoachActivityRequests() {
     } catch (e) { setError(e instanceof Error ? e.message : 'Pengajuan gagal.'); }
     finally { setBusy(false); }
   }
-  return <section className={styles.panel} aria-label="Pengajuan aktivitas coach"><h2>Ajukan event, training, atau aktivitas tambahan</h2>
-    <p className={styles.muted}>Pengganti form absensi tambahan Telegram. Kelas terjadwal otomatis. Absensi trial otomatis tercatat setelah penilaian trial dikirim oleh coach yang ditugaskan. Pembayaran diproses finance di akhir bulan. Gunakan form ini untuk event, training, dan observasi. Batas pengajuan reguler tanggal 25 pukul 17.00 WIB. Pengajuan ditutup tepat pukul 17.00 WIB.</p>
+  return <section className={styles.panel} aria-label="Pengajuan aktivitas coach"><h2>Absen event, training, atau observasi</h2>
+    <p className={styles.muted}>Batas pengajuan tanggal 25 pukul 17.00 WIB. Setelah admin menyetujui, kegiatan masuk ke rekap absensi.</p>
     {error && <p role="alert" className={styles.error}>{error}</p>}{success && <p role="status">{success}</p>}
     <form aria-label="Form aktivitas tambahan" onSubmit={submit}><fieldset className={styles.form} disabled={busy || !requestId}>
       <label className={styles.field}>Jenis aktivitas<select name="kind" className={styles.select}>{Object.entries(requestLabels).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
       <label className={styles.field}>Tanggal dan jam kegiatan (WIB)<Input name="activityAt" type="datetime-local" required /></label>
       <label className={`${styles.field} ${styles.wide}`}>Nama kegiatan<Input name="label" minLength={3} maxLength={160} required /></label>
       <label className={`${styles.field} ${styles.wide}`}>Rincian, lokasi, peserta, dan referensi bukti<textarea className="rounded-md border p-3" name="notes" minLength={10} maxLength={2000} rows={3} required /></label>
-      <p className={`${styles.muted} ${styles.wide}`}>Identitas mengikuti akun coach. Pilih jenis kegiatan dan pelaksanaan yang sesuai. Admin memeriksa pengajuan sebelum aktivitas masuk rekap.</p>
+      <p className={`${styles.muted} ${styles.wide}`}>Kelas terjadwal tercatat otomatis. Trial tercatat setelah coach yang ditugaskan mengirim penilaian.</p>
       <Button type="submit">{busy ? 'Mengajukan…' : 'Ajukan aktivitas ke admin'}</Button>
     </fieldset></form>
-    <div className={styles.toolbar}><h2>Riwayat pengajuan</h2><Button variant="ghost" size="sm" disabled={busy} onClick={() => load().catch(e => setError(e.message))}>Muat riwayat aktivitas</Button></div>
+    <div className={styles.toolbar}><h2>Riwayat pengajuan</h2><Button variant="ghost" size="sm" disabled={busy} onClick={() => load().catch(e => setError(e.message))}>Perbarui riwayat</Button></div>
     {requests.length ? <div className={styles.audit}>{[...requests].sort((a, b) => b.activity_at.localeCompare(a.activity_at)).map(r => <div key={r.id} className={styles.notice}><strong>{r.label}</strong> · {requestLabels[r.kind as RequestKind]}<br />{dateWib(r.activity_at)} WIB · {({ PENDING: 'Menunggu admin', APPROVED: 'Disetujui', REJECTED: 'Ditolak' })[r.status]}{r.review_reason && <p>Catatan admin: {r.review_reason}</p>}</div>)}</div> : <p className={styles.muted}>Belum ada pengajuan aktivitas tambahan.</p>}
   </section>;
 }

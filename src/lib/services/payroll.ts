@@ -2,7 +2,7 @@ import 'server-only';
 import * as dao from '@/lib/dao/payrollDao';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { buildPayrollActivities, type AttendanceSource, type SessionSource, type ClassSource, type EnrollmentSource, type LeaveSource, type TrialSource, type AssessmentSource } from '@/lib/payroll/sources';
-import { calculatePeriod, createPeriod, currentPeriod, effective, inPeriod, PayrollError, wibDate, type Activity, type PeriodRecord, type PeriodDocument } from '@/lib/payroll/model';
+import { calculatePeriod, createPeriod, currentPeriod, effective, inPeriod, PayrollError, wibDate, resolveTeachingMode, type Activity, type PeriodRecord, type PeriodDocument } from '@/lib/payroll/model';
 import { approvedRequestActivities, type ActivityRequest } from '@/lib/payroll/activityRequests';
 import { attendanceAdmins } from './payrollNotifications';
 import { calculateSynchronizedPeriod } from '@/lib/payroll/synchronizedPeriod';
@@ -25,7 +25,7 @@ export async function calculatePayroll(record: PeriodRecord, now = new Date(), a
       const override=sourced.overrides[a.key];
       const person=override?.profile_id?config.people.find(p=>p.id===override.profile_id):config.people.find(p=>p.user_id===a.user_id);
       const term=person && effective(config.terms.filter(t=>t.profile_id===person.id),wibDate(a.date));
-      if(term?.contract==='FULLTIME' && a.fee_eligible!==false && a.details?.includes('Mode belum ditetapkan admin') && !override?.mode && override?.amount===undefined && !override?.excluded && !a.cancelled)native.warnings.push(`Pilih mode fulltime/mitra untuk ${a.label} (${wibDate(a.date)}) atau beri override beralasan.`);
+      if(term?.contract==='FULLTIME' && !term.working_days?.length && a.fee_eligible!==false && a.details?.includes('Mode belum ditetapkan admin') && !override?.mode && override?.amount===undefined && !override?.excluded && !a.cancelled)native.warnings.push(`Pilih mode fulltime/mitra untuk ${a.label} (${wibDate(a.date)}) atau beri override beralasan.`);
     }
     const next = calculateSynchronizedPeriod({ period: { ...sourced, meeting_catalog: [...catalog.values()] }, ...config, activities:isCurrent ? native.activities : [], sourceWarnings:isCurrent ? native.warnings.filter(w=>w.startsWith('Tanggal konfirmasi lunas trial') || w.startsWith('Absensi siswa') || w.startsWith('Pilih mode fulltime')) : [], now, includeRecurring: isCurrent });
     return dao.commitPayrollPeriod(record, next, actor, 'CALCULATE');
@@ -38,7 +38,7 @@ export async function calculatePayroll(record: PeriodRecord, now = new Date(), a
     const override = record.document.overrides[a.key];
     const profile = override?.profile_id ? config.people.find(p => p.id === override.profile_id) : config.people.find(p => p.user_id === a.user_id);
     const term = profile && effective(config.terms.filter(t => t.profile_id === profile.id), wibDate(a.date));
-    if (term?.contract === 'FULLTIME' && a.fee_eligible!==false && a.details?.includes('Mode belum ditetapkan admin') && !override?.mode && override?.amount === undefined && !override?.excluded && !a.cancelled) built.warnings.push(`Pilih mode fulltime/mitra untuk ${a.label} (${wibDate(a.date)}) atau beri override beralasan.`);
+    if (term?.contract === 'FULLTIME' && !term.working_days?.length && a.fee_eligible!==false && a.details?.includes('Mode belum ditetapkan admin') && !override?.mode && override?.amount === undefined && !override?.excluded && !a.cancelled) built.warnings.push(`Pilih mode fulltime/mitra untuk ${a.label} (${wibDate(a.date)}) atau beri override beralasan.`);
   }
   const next = calculatePeriod({ period: record.document, people: config.people, terms: config.terms, cards: config.cards, activities: active, sourceWarnings: built.warnings, now });
   const eligiblePics = await attendanceAdmins();
@@ -74,7 +74,7 @@ export async function payrollMeetingCandidates(period: PeriodDocument, now = new
     const override = period.overrides[m.key];
     const person = override?.profile_id ? config.people.find(p => p.id === override.profile_id) : config.people.find(p => p.user_id === m.user_id);
     const term = person && effective(config.terms.filter(t => t.profile_id === person.id),wibDate(m.date));
-    return { ...m, fee_eligible: m.fee_eligible !== false && (term?.contract === 'MITRA' || (term?.contract === 'FULLTIME' && m.kind !== 'TRIAL' && (override?.mode ?? m.mode) === 'MITRA')) };
+    return { ...m, fee_eligible: m.fee_eligible !== false && (term?.contract === 'MITRA' || (term?.contract === 'FULLTIME' && m.kind !== 'TRIAL' && resolveTeachingMode(term, m, override) === 'MITRA')) };
   });
 }
 

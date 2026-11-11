@@ -16,7 +16,7 @@ export const payrollRatesSchema = z.object({
 });
 export const payrollCommandSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('refreshSource'), ...period }),
-  z.object({ action: z.literal('profile'), id: id.optional(), userId: id.nullable().optional(), kind: z.enum(['COACH', 'STAFF']), name: z.string().trim().min(1).max(160), jobTitle: z.string().trim().max(160).default(''), staffPhone: z.string().trim().max(30).nullable().default(null), active: z.boolean().default(true), contract: mode, baseSalary: nonnegative, positionAllowance: nonnegative.optional(), otherAllowances: recurringAllowances.optional(), effectiveFrom: date }),
+  z.object({ action: z.literal('profile'), id: id.optional(), userId: id.nullable().optional(), kind: z.enum(['COACH', 'STAFF']), name: z.string().trim().min(1).max(160), jobTitle: z.string().trim().max(160).default(''), staffPhone: z.string().trim().max(30).nullable().default(null), active: z.boolean().default(true), contract: mode, baseSalary: nonnegative, workingDays: z.array(z.number().int().min(0).max(6)).min(1).max(7).refine(days => new Set(days).size === days.length).optional(), positionAllowance: nonnegative.optional(), otherAllowances: recurringAllowances.optional(), effectiveFrom: date }),
   z.object({ action: z.literal('rates'), effectiveFrom: date, rates: payrollRatesSchema }),
   z.object({ action: z.literal('settings'), activeFrom: date, automationEnabled: z.boolean() }),
   z.object({ action: z.literal('create'), year: z.number().int().min(2020).max(2099), month: z.number().int().min(1).max(12) }),

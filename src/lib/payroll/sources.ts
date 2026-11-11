@@ -37,7 +37,7 @@ export function buildPayrollActivities(input: {
     const warning = attendanceValidationWarning(klass.name, s.date_time, validation);
     if (warning && !hasReasonedAttendanceOverride(period.overrides[`session:${s.id}`])) warnings.push(warning);
     activities.push({ key: `session:${s.id}`, user_id: payee, date: s.date_time, label: klass.name,
-      kind: klass.type, delivery: klass.delivery_mode, mode: s.payroll_mode ?? klass.payroll_mode ?? 'FULLTIME', students, cancelled, ...validation,
+      kind: klass.type, delivery: klass.delivery_mode, mode: s.payroll_mode ?? klass.payroll_mode ?? 'FULLTIME', ...(s.payroll_mode ? { session_mode: s.payroll_mode } : {}), students, cancelled, ...validation,
       details: [klass.type, klass.delivery_mode, `${students} anak aktif`, payee !== klass.coach_id ? 'Coach pengganti' : 'Coach utama',
         !s.payroll_mode && !klass.payroll_mode ? 'Mode belum ditetapkan admin' : ''].filter(Boolean).join(' · ') });
   }

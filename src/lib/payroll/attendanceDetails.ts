@@ -13,7 +13,7 @@ export function canonicalMeetingCandidates(meetings: PayrollMeeting[]): PayrollM
   return [...physical.values()];
 }
 export function meetingFromActivity(a: Activity): PayrollMeeting {
-  return { key: a.key, date: a.date, label: a.label.split(' — ')[0], user_id: a.user_id, kind: a.kind, delivery: a.delivery, students: a.students, cancelled: a.cancelled, mode: a.mode, substitute: a.details?.includes('Coach pengganti') || undefined, ...projectStudentAttendance(a) };
+  return { key: a.key, date: a.date, label: a.label.split(' — ')[0], user_id: a.user_id, kind: a.kind, delivery: a.delivery, students: a.students, cancelled: a.cancelled, mode: a.mode, ...(a.session_mode ? { session_mode: a.session_mode } : {}), substitute: a.details?.includes('Coach pengganti') || undefined, ...projectStudentAttendance(a) };
 }
 export function meetingMatchesLine(m: PayrollMeeting, line: Pick<PayrollLine, 'kind' | 'label' | 'source_identity' | 'source_counter' | 'summary_before'>): boolean {
   if (line.summary_before && Date.parse(m.date) >= Date.parse(line.summary_before)) return false;

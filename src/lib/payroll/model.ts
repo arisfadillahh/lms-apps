@@ -15,6 +15,7 @@ export interface PayrollPerson {
 }
 export interface PayrollTerm {
   id?: string; profile_id: string; effective_from: string; contract: Contract; base_salary: number;
+  working_days?: number[] | null;
   position_allowance?: number; other_allowances?: { label: string; amount: number }[];
 }
 export interface PayrollRates {
@@ -31,7 +32,7 @@ export const DEFAULT_RATES: PayrollRates = {
 export interface PayrollSettings { active_from: string | null; automation_enabled: boolean }
 export interface Activity extends StudentAttendanceMetadata {
   key: string; user_id: string; date: string; label: string; kind: ActivityKind;
-  mode: Contract; delivery: 'ONLINE' | 'OFFLINE'; students: number; cancelled: boolean;
+  mode: Contract; session_mode?: Contract; delivery: 'ONLINE' | 'OFFLINE'; students: number; cancelled: boolean;
   details?: string;
 }
 export interface ActivityOverride {
@@ -42,7 +43,7 @@ export interface ActivityOverride {
 export interface PayrollMeeting extends StudentAttendanceMetadata {
   key: string; date: string; label: string; user_id: string; kind: ActivityKind;
   delivery: 'ONLINE' | 'OFFLINE'; students: number; cancelled: boolean;
-  mode?: Contract; substitute?: boolean; fee_eligible?: boolean;
+  mode?: Contract; session_mode?: Contract; substitute?: boolean; fee_eligible?: boolean;
   origin?: 'SOURCE'; source_identity?: string; source_counter?: string;
   provenance?: { execution_id: string; source_row: number; workflow_hash: string };
 }
@@ -142,6 +143,18 @@ export function validateRates(rates: PayrollRates): void {
     for (const amount of values) if (money(amount) < 0) throw new PayrollError('Tarif tidak boleh negatif.');
   }
 }
+export const DEFAULT_COACH_WORKING_DAYS = [1, 2, 3, 4, 5];
+export function resolveTeachingMode(term: PayrollTerm, activity: { kind: string; date: string; mode?: Contract; session_mode?: Contract }, override?: ActivityOverride): Contract {
+  if (term.contract === 'MITRA') return 'MITRA';
+  if (override?.mode) return override.mode;
+  if (activity.session_mode) return activity.session_mode;
+  if (term.working_days?.length && ['WEEKLY', 'EKSKUL'].includes(activity.kind)) {
+    const weekday = new Date(`${wibDate(activity.date)}T00:00:00Z`).getUTCDay();
+    if (!term.working_days.includes(weekday)) return 'MITRA';
+  }
+  return activity.mode ?? 'FULLTIME';
+}
+
 export function calculatePeriod(input: {
   period: PeriodDocument; people: PayrollPerson[]; terms: PayrollTerm[]; cards: RateCard[];
   activities: Activity[]; now?: Date; sourceWarnings?: string[];
@@ -186,7 +199,7 @@ export function calculatePeriod(input: {
     const card = effective(cards, wibDate(a.date));
     if (!slip || !term || !card) { warnings.add(`Kontrak/tarif belum berlaku: ${person.name}, ${wibDate(a.date)}`); continue; }
     validateRates(card.rates);
-    const mode: Contract = term.contract === 'MITRA' ? 'MITRA' : override?.mode ?? a.mode;
+    const mode: Contract = resolveTeachingMode(term, a, override);
     const attendanceApplies = ['WEEKLY', 'EKSKUL'].includes(a.kind) && a.attendance_status !== undefined;
     const attendanceOverride = hasReasonedAttendanceOverride(override);
     const teachingDecision = attendanceApplies && attendanceOverride && typeof override?.teaching_confirmed === 'boolean' ? override.teaching_confirmed : undefined;

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { evaluateStudentAttendance, isEnrollmentAtSession } from '@/lib/payroll/studentAttendanceState';
 import { buildPayrollActivities, type AttendanceSource, type AssessmentSource, type TrialSource } from '@/lib/payroll/sources';
-import { calculatePeriod, createPeriod, DEFAULT_RATES, finalize, type ActivityOverride, type PayrollPerson, type Slip } from '@/lib/payroll/model';
+import { calculatePeriod, createPeriod, DEFAULT_RATES, finalize, resolveTeachingMode, type ActivityOverride, type PayrollPerson, type Slip } from '@/lib/payroll/model';
 import { payrollActivitySummary, payrollSessionLabel, payrollSlipRows } from '@/lib/payroll/presentation';
 import { formatAttendanceRecap } from '@/lib/payroll/attendanceMessage';
 import { coachPeriodView } from '@/lib/payroll/coachView';
@@ -52,6 +52,16 @@ describe('shared student attendance state and historical roster', () => {
 });
 
 describe('attendance validated coach class fees with explicit cutover', () => {
+  it('uses the Jakarta working day and respects an explicit per-session correction', () => {
+    const term = { profile_id: 'coach', effective_from: '2026-10-26', contract: 'FULLTIME' as const, base_salary: 1, working_days: [1, 2, 3, 4, 5] };
+    const session = { kind: 'WEEKLY', date: '2026-10-30T17:30:00Z', mode: 'FULLTIME' as const };
+    expect(resolveTeachingMode(term, session)).toBe('MITRA');
+    expect(resolveTeachingMode(term, { ...session, date: '2026-10-30T16:30:00Z' })).toBe('FULLTIME');
+    expect(resolveTeachingMode(term, { ...session, session_mode: 'FULLTIME' })).toBe('FULLTIME');
+    expect(resolveTeachingMode(term, session, { mode: 'FULLTIME', reason: 'Koreksi sesi' })).toBe('FULLTIME');
+    expect(resolveTeachingMode({ ...term, contract: 'MITRA' }, session, { mode: 'FULLTIME', reason: 'Koreksi sesi' })).toBe('MITRA');
+  });
+
   it.each(['WEEKLY', 'EKSKUL'] as const)('keeps missing %s student attendance pending at zero fee and blocks finalization', kind => {
     const input = fixture(); input.classes[0].type = kind;
     const { p, line } = calculate(input);

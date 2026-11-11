@@ -12,7 +12,7 @@ import PayrollDetailSummary from './PayrollDetailSummary';
 import styles from './PayrollAdmin.module.css';
 import { attendanceStatusLabel,hasReasonedAttendanceOverride } from '@/lib/payroll/studentAttendanceState';
 
-type View = 'overview' | 'component' | 'activity' | 'correction';
+type View = 'overview' | 'sessions' | 'component' | 'activity' | 'correction';
 type Props = {
   period: PeriodDocument; slip: Slip; people: PayrollPerson[]; meetingCandidates: PayrollMeeting[]; busy: boolean;
   error: string; message: string; previewOpen: boolean;
@@ -25,20 +25,30 @@ type Props = {
 export default function PayrollDetailDialog({ period, slip, people, meetingCandidates, busy, error, message, previewOpen, close, clearFeedback, run, preview, resend }: Props) {
   const [view, setView] = useState<View>('overview');
   const [correction, setCorrection] = useState<PayrollLine | null>(null);
-  const [sessionFilter, setSessionFilter] = useState<{ kind: string; label: string } | null>(null);
-  const [sessionsOpen, setSessionsOpen] = useState(false);
+  const [sessionFilter, setSessionFilter] = useState<{ kind: string; label: string } | 'pending' | null>(null);
+  const correctionBack = useRef<View>('overview');
+  const backButton = useRef<HTMLButtonElement>(null);
   const body = useRef<HTMLDivElement>(null), alert = useRef<HTMLParagraphElement>(null);
-  const sessions = useRef<HTMLDetailsElement>(null);
   const componentButton = useRef<HTMLButtonElement>(null), activityButton = useRef<HTMLButtonElement>(null);
   const previousView = useRef<View>('overview');
   const draft = period.status === 'DRAFT';
-  const title = { overview: `Rincian ${slip.name}`, component: 'Tambahan / potongan', activity: 'Aktivitas manual', correction: 'Koreksi aktivitas' }[view];
+  const needsAttendance = (line: PayrollLine) => ['PENDING', 'PARTIAL'].includes(line.attendance_status ?? '') && !hasReasonedAttendanceOverride(period.overrides[line.key]);
+  const sessionLines = slip.lines.filter(line => !line.summary && !['SALARY','ALLOWANCE','ADJUSTMENT'].includes(line.kind));
+  const visibleSessions = sessionLines.filter(line => sessionFilter === 'pending' ? needsAttendance(line)
+    : !sessionFilter || (line.kind === sessionFilter.kind && payrollSessionLabel(slip, line) === sessionFilter.label));
+  const backView = view === 'correction' ? correctionBack.current : 'overview';
+  const title = { sessions: sessionFilter === 'pending' ? 'Absensi belum lengkap' : sessionFilter?.label ?? 'Daftar sesi', overview: `Rincian ${slip.name}`, component: 'Tambahan / potongan', activity: 'Aktivitas manual', correction: 'Koreksi aktivitas' }[view];
 
   useEffect(() => {
     body.current?.scrollTo(0, 0);
-    if (view !== 'overview') body.current?.querySelector<HTMLElement>('input, select, textarea')?.focus();
+    if (view === 'sessions') {
+      const trigger = previousView.current === 'correction' && body.current?.querySelector<HTMLElement>(`[data-correction-key="${CSS.escape(correction?.key ?? '')}"]`);
+      (trigger || backButton.current)?.focus();
+    } else if (view !== 'overview') body.current?.querySelector<HTMLElement>('input, select, textarea')?.focus();
     else if (previousView.current === 'correction') body.current?.querySelector<HTMLElement>(`[data-correction-key="${CSS.escape(correction?.key ?? '')}"]`)?.focus();
-    else if (previousView.current !== 'overview') (previousView.current === 'activity' ? activityButton : componentButton).current?.focus();
+    else if (previousView.current === 'activity') activityButton.current?.focus();
+    else if (previousView.current === 'component') componentButton.current?.focus();
+    else if (previousView.current === 'sessions') body.current?.querySelector<HTMLElement>('[data-session-list]')?.focus();
   }, [view, correction?.key]);
   useEffect(() => {
     if (error) { body.current?.scrollTo(0, 0); alert.current?.focus(); }
@@ -48,16 +58,16 @@ export default function PayrollDetailDialog({ period, slip, people, meetingCandi
     clearFeedback(); previousView.current = view; setView(next);
   }
   function correct(line: PayrollLine) {
-    setCorrection(line); changeView('correction');
+    correctionBack.current = view; setCorrection(line); changeView('correction');
   }
   async function save(action: string, extra: Record<string, unknown>, success: string) {
-    if (await run(action, extra, success)) { previousView.current = view; setView('overview'); }
+    if (await run(action, extra, success)) { previousView.current = view; setView(backView); }
   }
   function fields(event: FormEvent<HTMLFormElement>) { event.preventDefault(); return Object.fromEntries(new FormData(event.currentTarget)); }
 
   return <Dialog open onOpenChange={open => { if (!open && !previewOpen && !busy) close(); }}>
-    <DialogContent className={`${styles.modal} ${view !== 'overview' ? styles.formModal : styles.recapModal}`} onEscapeKeyDown={event => {
-      if (!previewOpen && view !== 'overview') { event.preventDefault(); if (!busy) changeView('overview'); }
+    <DialogContent className={`${styles.modal} ${view === 'overview' || view === 'sessions' ? styles.recapModal : styles.formModal}`} onEscapeKeyDown={event => {
+      if (!previewOpen && view !== 'overview') { event.preventDefault(); if (!busy) changeView(backView); }
     }}>
       <DialogHeader className={styles.modalHeader}>
         <DialogTitle>{title}</DialogTitle>
@@ -67,10 +77,10 @@ export default function PayrollDetailDialog({ period, slip, people, meetingCandi
         {view === 'overview' ? <>
           {draft && <><Button ref={componentButton} variant="outline" disabled={busy} onClick={() => changeView('component')}>Tambahan / potongan</Button><Button ref={activityButton} variant="outline" disabled={busy} onClick={() => changeView('activity')}>Aktivitas manual</Button></>}
           <Button variant="ghost" disabled={busy} onClick={() => preview(slip)}><FileText data-icon="inline-start" />Pratinjau slip</Button>
-        </> : <Button variant="ghost" disabled={busy} onClick={() => changeView('overview')}><ArrowLeft data-icon="inline-start" />Kembali ke rincian</Button>}
+        </> : <Button ref={backButton} variant="ghost" disabled={busy} onClick={() => changeView(backView)}><ArrowLeft data-icon="inline-start" />{backView === 'sessions' ? 'Kembali ke daftar sesi' : 'Kembali ke rincian'}</Button>}
       </nav>
       <div ref={body} className={styles.modalBody}>
-        {view==='overview' && slip.lines.some(l=>['PENDING','PARTIAL'].includes(l.attendance_status ?? '') && !hasReasonedAttendanceOverride(period.overrides[l.key])) && <div className={styles.notice}>Ada absensi siswa yang belum lengkap. Lengkapi sebelum finalisasi. <Button variant="outline" size="sm" onClick={()=>{setSessionsOpen(true);setSessionFilter(null);setTimeout(()=>sessions.current?.scrollIntoView({block:'start',behavior:'smooth'}),0);}}>Periksa sesi</Button></div>}
+        {view === 'overview' && sessionLines.some(needsAttendance) && <div className={styles.notice}>Ada absensi siswa yang belum lengkap. Lengkapi sebelum finalisasi. <Button variant="outline" size="sm" onClick={() => { setSessionFilter('pending'); changeView('sessions'); }}>Periksa sesi</Button></div>}
         {error && <p ref={alert} tabIndex={-1} role="alert" className={styles.error}>{error}</p>}
         {message && <p role="status" className={styles.success}>{message}</p>}
         {view === 'component' && draft && <form aria-label="Tambahan / potongan manual" onSubmit={event => {
@@ -98,14 +108,11 @@ export default function PayrollDetailDialog({ period, slip, people, meetingCandi
           <label className={`${styles.field} ${styles.wide}`}>Alasan / referensi<Input name="reason" minLength={5} required /></label>
           <Button type="submit">Catat aktivitas</Button>
         </fieldset></form>}
-        {view === 'correction' && draft && correction && <PayrollCorrection key={correction.key} line={correction} people={people} profileId={slip.profile_id} candidates={meetingCandidates} usedMeetingKeys={Object.entries(period.overrides).filter(([key]) => key !== correction.key).flatMap(([, entry]) => entry.meeting_keys ?? [])} override={period.overrides[correction.key]} busy={busy} close={() => changeView('overview')} save={extra => { void save('override', extra, 'Koreksi disimpan dan total diperbarui.'); }} />}
-        {view === 'overview' && <section className={styles.detailPanel} aria-label={`Rincian ${slip.name}`}>
-          <PayrollDetailSummary slip={slip} draft={draft} busy={busy} remove={id => { const reason = window.prompt('Alasan menghapus komponen:'); if (reason) void run('removeComponent', { id, reason }); }} correct={correct} inspect={(kind, label) => { setSessionFilter({ kind, label }); setSessionsOpen(true); if (sessions.current) { sessions.current.open = true; sessions.current.scrollIntoView({ block: 'start', behavior: 'smooth' }); sessions.current.querySelector('summary')?.focus(); } }} />
-          {slip.lines.some(line => !line.summary && !['SALARY','ADJUSTMENT','ALLOWANCE'].includes(line.kind)) && <details ref={sessions} open={sessionsOpen} onToggle={event => setSessionsOpen(event.currentTarget.open)} className={styles.disclosure}><summary>{draft ? 'Pilih sesi yang perlu dikoreksi' : 'Detail sesi'}</summary>
-          {sessionFilter && <div className={styles.toolbar}><strong>{sessionFilter.label}</strong><Button type="button" variant="ghost" size="sm" onClick={() => setSessionFilter(null)}>Lihat semua aktivitas</Button></div>}
+        {view === 'correction' && draft && correction && <PayrollCorrection key={correction.key} line={correction} people={people} profileId={slip.profile_id} candidates={meetingCandidates} usedMeetingKeys={Object.entries(period.overrides).filter(([key]) => key !== correction.key).flatMap(([, entry]) => entry.meeting_keys ?? [])} override={period.overrides[correction.key]} busy={busy} close={() => changeView(backView)} save={extra => { void save('override', extra, 'Koreksi disimpan dan total diperbarui.'); }} />}
+        {view === 'sessions' && <section aria-label="Daftar sesi">
+          {visibleSessions.length === 0 && <p className={styles.muted}>Tidak ada sesi dalam daftar ini.</p>}
           <ul className={styles.sessionList}>
-            {slip.lines.filter(line => !line.summary && !['SALARY','ALLOWANCE','ADJUSTMENT'].includes(line.kind)
-              && (!sessionFilter || (line.kind === sessionFilter.kind && payrollSessionLabel(slip, line) === sessionFilter.label))).map(line => <li key={line.key}>
+            {visibleSessions.map(line => <li key={line.key}>
               <div>
                 <strong className={styles.rowname}>{line.label}</strong>
                 <div className={styles.rowmeta}>{dateWib(line.date)} WIB · {payrollSessionLabel(slip, line)}</div>
@@ -121,7 +128,11 @@ export default function PayrollDetailDialog({ period, slip, people, meetingCandi
                 {draft && <Button data-correction-key={line.key} size="sm" variant="outline" disabled={busy} onClick={() => correct(line)}>Koreksi sesi</Button>}
               </div>
             </li>)}
-          </ul></details>}
+          </ul>
+        </section>}
+        {view === 'overview' && <section className={styles.detailPanel} aria-label={`Rincian ${slip.name}`}>
+          <PayrollDetailSummary slip={slip} draft={draft} busy={busy} remove={id => { const reason = window.prompt('Alasan menghapus komponen:'); if (reason) void run('removeComponent', { id, reason }); }} correct={correct} inspect={(kind, label) => { setSessionFilter({ kind, label }); changeView('sessions'); }} />
+          {sessionLines.length > 0 && <Button data-session-list variant="outline" size="sm" onClick={() => { setSessionFilter(null); changeView('sessions'); }}>Lihat semua sesi</Button>}
           {period.activities.filter(a => a.profile_id === slip.profile_id).map(a => <div key={a.id} className={styles.toolbar}><span>{a.label}</span>{draft && <Button variant="ghost" size="sm" disabled={busy} onClick={() => { const reason = window.prompt('Alasan menghapus aktivitas manual:'); if (reason) void run('removeActivity', { id: a.id, reason }); }}>Hapus aktivitas</Button>}</div>)}
           <details className={styles.disclosure}><summary>Pengiriman ulang & riwayat penerima</summary><div className={styles.detailPanel}>
             <p className={styles.muted}>Rekap absensi dijadwalkan otomatis tanggal 25. Gunakan pengiriman manual hanya untuk koreksi atau kendala pengiriman.</p>

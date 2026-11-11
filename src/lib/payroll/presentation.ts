@@ -1,11 +1,32 @@
-import { paidAmount, type PeriodDocument, type Slip } from './model';
+import { paidAmount, type PayrollLine, type PeriodDocument, type Slip } from './model';
 import { payrollDocumentStyle } from './documentStyle';
 
 export const rupiah = (value: number) => `Rp${value.toLocaleString('id-ID')}`;
 export const dateWib = (value: string) => new Date(value).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', dateStyle: 'medium', timeStyle: 'short' });
+export function payrollSessionLabel(slip: Slip, line: PayrollLine, showStudents = true): string {
+  if (!['CLASS_SUMMARY', 'WEEKLY', 'EKSKUL', 'TRIAL'].includes(line.kind)) return payrollCategory(line.kind);
+  if (line.summary) {
+    if (showStudents || line.kind !== 'CLASS_SUMMARY') return line.label;
+    return line.label.split(' · ')[0];
+  }
+  const delivery = slip.attendance_details?.find(meeting => meeting.key === line.key)?.delivery
+    ?? /^(?:WEEKLY|EKSKUL) · (ONLINE|OFFLINE) ·/.exec(line.details)?.[1];
+  const label = line.kind === 'EKSKUL' ? 'Ekskul' : line.kind === 'TRIAL' ? 'Trial' : 'Kelas';
+  const category = delivery ? `${label} ${delivery.toLowerCase()}` : label;
+  return showStudents && line.kind !== 'TRIAL' && line.students !== undefined
+    ? `${category} · ${line.students} anak` : category;
+}
+
 export function payrollActivitySummary(slip: Slip): string {
-  const count=(kinds:string[])=>slip.lines.filter(l=>kinds.includes(l.kind)&&!l.details.includes('dibatalkan')&&l.fee_eligible!==false).reduce((n,l)=>n+l.quantity,0);
-  return [[count(['CLASS_SUMMARY','WEEKLY','EKSKUL']),'kelas'],[count(['TRIAL']),'trial'],[count(['EVENT','TRAINING_ONLINE','TRAINING_OFFLINE','OBSERVATION_ONLINE','OBSERVATION_OFFLINE']),'kegiatan']].filter(([n])=>Number(n)>0).map(([n,label])=>`${n} ${label}`).join(' · ') || 'Belum ada aktivitas';
+  const counts = new Map<string, number>();
+  for (const line of slip.lines) {
+    if (!line.quantity || line.fee_eligible === false || line.details.includes('dibatalkan')) continue;
+    const label = ['CLASS_SUMMARY','WEEKLY','EKSKUL','TRIAL'].includes(line.kind)
+      ? payrollSessionLabel(slip, line, false).toLowerCase()
+      : ['EVENT','TRAINING_ONLINE','TRAINING_OFFLINE','OBSERVATION_ONLINE','OBSERVATION_OFFLINE'].includes(line.kind) ? 'kegiatan' : null;
+    if (label) counts.set(label, (counts.get(label) ?? 0) + line.quantity);
+  }
+  return [...counts].sort(([a], [b]) => a.localeCompare(b, 'id')).map(([label, count]) => `${count} ${label}`).join(' · ') || 'Belum ada aktivitas';
 }
 export const payrollCategory = (kind: string) => ({ CLASS_SUMMARY: 'Kelas', SALARY: 'Gaji pokok', ALLOWANCE: 'Tunjangan rutin', ADJUSTMENT: 'Tambahan / potongan', WEEKLY: 'Kelas Weekly', EKSKUL: 'Kelas Ekskul', TRIAL: 'Trial', GOAL: 'Bonus goal', EVENT: 'Event', TRAINING_ONLINE: 'Training online', TRAINING_OFFLINE: 'Training offline', OBSERVATION_ONLINE: 'Observasi online', OBSERVATION_OFFLINE: 'Observasi offline' } as Record<string, string>)[kind] ?? kind;
 export function escapeHtml(value: unknown): string {

@@ -31,6 +31,27 @@ async function fetchPayrollData(year: number, month: number): Promise<Data> {
 }
 const today = () => new Date(Date.now() + 7 * 3600000).toISOString().slice(0, 10);
 const deliveryLabels: Record<string, string> = { BELUM: 'Belum dikirim', SENT: 'Terkirim WA', FAILED: 'Gagal dikirim', LMS_ONLY: 'Terkirim di LMS', NO_CONTACT: 'Nomor WA belum ada', SENDING: 'Sedang dikirim', SIMULATED: 'Simulasi local' };
+function PayrollReviewWarnings({ warnings }: { warnings: string[] }) {
+  const attendance = warnings.filter(warning => warning.startsWith('Absensi siswa '));
+  const mode = warnings.filter(warning => warning.startsWith('Pilih mode fulltime/mitra '));
+  const other = warnings.filter(warning => !attendance.includes(warning) && !mode.includes(warning));
+  const groups = [
+    { label: 'Absensi siswa belum lengkap', count: 'absensi belum lengkap', entries: attendance.map(warning => warning.replace(/^Absensi siswa /, '').split('. Lengkapi absensi')[0]), instruction: 'Lengkapi presensi siswa atau buka Rincian → Koreksi sesi untuk mencatat hasil pemeriksaan.' },
+    { label: 'Mode mengajar belum dipilih', count: 'mode mengajar belum dipilih', entries: mode.map(warning => warning.replace(/^Pilih mode fulltime\/mitra untuk /, '').replace(/ atau beri override beralasan\.$/, '')), instruction: 'Pilih Fulltime atau Mitra di kelas, atau koreksi mode untuk sesi tertentu melalui Rincian.' },
+    { label: 'Pemeriksaan lain', count: 'perlu diperiksa', entries: other },
+  ].filter(group => group.entries.length > 0);
+  return <details className={`${styles.notice} ${styles.reviewWarnings}`}>
+    <summary><strong>Periksa sebelum finalisasi</strong><span>{groups.map(group => `${group.entries.length} ${group.count}`).join(' · ')}</span></summary>
+    <div className={styles.warningGroups}>
+      {groups.map(group => <section key={group.label}>
+        <h3>{group.label}</h3>
+        {group.instruction && <p>{group.instruction}</p>}
+        <ul>{group.entries.map((entry, index) => <li key={index}>{entry}</li>)}</ul>
+      </section>)}
+    </div>
+  </details>;
+}
+
 export default function PayrollAdmin({ initialPeriod }: { initialPeriod?: string }) {
   const [clock, setClock] = useState(() => Date.now());
   useEffect(() => { const timer = setInterval(() => setClock(Date.now()), 30000); return () => clearInterval(timer); }, []);
@@ -131,7 +152,7 @@ export default function PayrollAdmin({ initialPeriod }: { initialPeriod?: string
       <>
       {screen === 'payment' && period.status === 'DRAFT' ? <section className={styles.panel}><h2>Finalisasi rekap terlebih dahulu</h2><p className={styles.muted}>Penanda transfer tersedia setelah periode final. Finalisasi periode ini dapat dilakukan setelah {dateWib(period.ends_at)} WIB, sesudah Perbarui rekap dan seluruh peringatan selesai.</p><ol className={styles.paymentSteps}><li>Periksa Rekap penerima, lalu Finalisasi.</li><li>Setelah transfer bank selesai, centang penerima dan klik <strong>Tandai sudah transfer</strong>.</li><li>Penerima tetap dipilih; lanjutkan dengan <strong>Kirim slip gaji</strong>.</li></ol></section> : screen !== 'history' && <section className={styles.panel}>
         <div className={styles.periodSummary} role="region" aria-label="Ringkasan hasil filter"><span><strong>{visible.length}</strong> penerima</span><span>Total <strong>{rupiah(visible.reduce((n, s) => n + s.total, 0))}</strong></span>{period.synchronized_at && <span>Data diperbarui <strong>{dateWib(period.synchronized_at)} WIB</strong></span>}{screen === 'review' && <span>WA tanggal 25: <strong>{data.settings.automation_enabled ? 'Aktif' : 'Dijeda'}</strong></span>}{screen === 'payment' && <><span>Ditransfer <strong>{rupiah(visible.reduce((n, s) => n + paidAmount(period, s.profile_id), 0))}</strong></span><span>Sisa <strong>{rupiah(visible.reduce((n, s) => n + Math.max(0, s.total - paidAmount(period, s.profile_id)), 0))}</strong></span></>}</div>
-        {period.warnings.length > 0 && <div role="alert" className={styles.notice}><strong>Periksa sebelum finalisasi:</strong><ul>{period.warnings.map(w => <li key={w}>{w}</li>)}</ul></div>}
+        {screen === 'review' && period.warnings.length > 0 && <PayrollReviewWarnings warnings={period.warnings} />}
         {showFilters && <div className={styles.filters}><label className={styles.field}>Kategori<select aria-label="Kategori penerima" className={styles.select} value={kindFilter} onChange={e => { setKindFilter(e.target.value); setSelected([]); }}><option value="ALL">Semua penerima</option><option value="COACH">Coach</option><option value="STAFF">Staf</option><option value="FULLTIME">Fulltime</option><option value="MITRA">Mitra</option></select></label>{screen === 'payment' && <><label className={styles.field}>Transfer<select aria-label="Status transfer" className={styles.select} value={paidFilter} onChange={e => { setPaidFilter(e.target.value); setSelected([]); }}><option value="ALL">Semua status</option><option value="PAID">Sudah ditransfer</option><option value="UNPAID">Belum selesai</option></select></label><label className={styles.field}>Slip WA<select aria-label="Status pengiriman slip" className={styles.select} value={deliveryFilter} onChange={e => { setDeliveryFilter(e.target.value); setSelected([]); }}>{['ALL', 'BELUM', 'SENT', 'FAILED', 'LMS_ONLY', 'NO_CONTACT', 'SENDING', 'SIMULATED'].map(v => <option key={v} value={v}>{({ ALL: 'Semua status', BELUM: 'Belum dikirim', SENT: 'Terkirim WA', FAILED: 'Gagal', LMS_ONLY: 'Hanya LMS', NO_CONTACT: 'Tanpa kontak', SIMULATED: 'Simulasi local', SENDING: 'Sedang dikirim' } as Record<string, string>)[v]}</option>)}</select></label></>}<Button variant="ghost" onClick={() => { setSearch(''); setKindFilter('ALL'); setPaidFilter('ALL'); setDeliveryFilter('ALL'); setSelected([]); }}>Reset filter</Button></div>}
         {screen === 'payment' && selected.length > 0 ? <section className={styles.selectionBar} aria-label="Tindakan penerima terpilih"><div className={styles.actions}><span className={styles.muted}>{selected.length} dipilih</span><Button disabled={Boolean(busy) || !selected.length} onClick={() => unpaidSelected.length ? bulk('transfer', undefined, unpaidSelected) : bulk('send', 'SLIP')}>{unpaidSelected.length > 0 ? <CheckCheck data-icon="inline-start" /> : <Send data-icon="inline-start" />}{unpaidSelected.length ? 'Tandai sudah transfer' : 'Kirim slip gaji'}</Button><Button variant="ghost" disabled={Boolean(busy)} onClick={() => setSelected([])}>Batal pilih</Button></div><p className={styles.muted}>{unpaidSelected.length ? 'Tandai setelah transfer bank selesai, lalu kirim slip.' : 'Slip dikirim hanya ke penerima terpilih.'}</p></section> : screen === 'payment' && <p className={styles.muted}>Centang penerima untuk menandai transfer yang sudah selesai, lalu kirim slip gaji.</p>}
         <p className="text-xs text-muted-foreground sm:hidden">Geser tabel untuk melihat nominal, status, dan tindakan.</p>

@@ -5,9 +5,8 @@ import { ArrowLeft, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { isPaid, type PayrollLine, type PayrollMeeting, type PayrollPerson, type PeriodDocument, type Slip } from '@/lib/payroll/model';
-import { dateWib, payrollCategory, rupiah } from '@/lib/payroll/presentation';
+import { dateWib, payrollSessionLabel, rupiah } from '@/lib/payroll/presentation';
 import PayrollCorrection from './PayrollCorrection';
 import PayrollDetailSummary from './PayrollDetailSummary';
 import styles from './PayrollAdmin.module.css';
@@ -26,7 +25,7 @@ type Props = {
 export default function PayrollDetailDialog({ period, slip, people, meetingCandidates, busy, error, message, previewOpen, close, clearFeedback, run, preview, resend }: Props) {
   const [view, setView] = useState<View>('overview');
   const [correction, setCorrection] = useState<PayrollLine | null>(null);
-  const [sessionKind, setSessionKind] = useState<string | null>(null);
+  const [sessionFilter, setSessionFilter] = useState<{ kind: string; label: string } | null>(null);
   const [sessionsOpen, setSessionsOpen] = useState(false);
   const body = useRef<HTMLDivElement>(null), alert = useRef<HTMLParagraphElement>(null);
   const sessions = useRef<HTMLDetailsElement>(null);
@@ -71,7 +70,7 @@ export default function PayrollDetailDialog({ period, slip, people, meetingCandi
         </> : <Button variant="ghost" disabled={busy} onClick={() => changeView('overview')}><ArrowLeft data-icon="inline-start" />Kembali ke rincian</Button>}
       </nav>
       <div ref={body} className={styles.modalBody}>
-        {view==='overview' && slip.lines.some(l=>['PENDING','PARTIAL'].includes(l.attendance_status ?? '') && !hasReasonedAttendanceOverride(period.overrides[l.key])) && <div className={styles.notice}>Ada absensi siswa yang belum lengkap. Lengkapi sebelum finalisasi. <Button variant="outline" size="sm" onClick={()=>{setSessionsOpen(true);setSessionKind(null);setTimeout(()=>sessions.current?.scrollIntoView({block:'start',behavior:'smooth'}),0);}}>Periksa sesi</Button></div>}
+        {view==='overview' && slip.lines.some(l=>['PENDING','PARTIAL'].includes(l.attendance_status ?? '') && !hasReasonedAttendanceOverride(period.overrides[l.key])) && <div className={styles.notice}>Ada absensi siswa yang belum lengkap. Lengkapi sebelum finalisasi. <Button variant="outline" size="sm" onClick={()=>{setSessionsOpen(true);setSessionFilter(null);setTimeout(()=>sessions.current?.scrollIntoView({block:'start',behavior:'smooth'}),0);}}>Periksa sesi</Button></div>}
         {error && <p ref={alert} tabIndex={-1} role="alert" className={styles.error}>{error}</p>}
         {message && <p role="status" className={styles.success}>{message}</p>}
         {view === 'component' && draft && <form aria-label="Tambahan / potongan manual" onSubmit={event => {
@@ -101,14 +100,28 @@ export default function PayrollDetailDialog({ period, slip, people, meetingCandi
         </fieldset></form>}
         {view === 'correction' && draft && correction && <PayrollCorrection key={correction.key} line={correction} people={people} profileId={slip.profile_id} candidates={meetingCandidates} usedMeetingKeys={Object.entries(period.overrides).filter(([key]) => key !== correction.key).flatMap(([, entry]) => entry.meeting_keys ?? [])} override={period.overrides[correction.key]} busy={busy} close={() => changeView('overview')} save={extra => { void save('override', extra, 'Koreksi disimpan dan total diperbarui.'); }} />}
         {view === 'overview' && <section className={styles.detailPanel} aria-label={`Rincian ${slip.name}`}>
-          <PayrollDetailSummary slip={slip} draft={draft} busy={busy} remove={id => { const reason = window.prompt('Alasan menghapus komponen:'); if (reason) void run('removeComponent', { id, reason }); }} correct={correct} inspect={kind => { setSessionKind(kind); setSessionsOpen(true); if (sessions.current) { sessions.current.open = true; sessions.current.scrollIntoView({ block: 'start', behavior: 'smooth' }); sessions.current.querySelector('summary')?.focus(); } }} />
+          <PayrollDetailSummary slip={slip} draft={draft} busy={busy} remove={id => { const reason = window.prompt('Alasan menghapus komponen:'); if (reason) void run('removeComponent', { id, reason }); }} correct={correct} inspect={(kind, label) => { setSessionFilter({ kind, label }); setSessionsOpen(true); if (sessions.current) { sessions.current.open = true; sessions.current.scrollIntoView({ block: 'start', behavior: 'smooth' }); sessions.current.querySelector('summary')?.focus(); } }} />
           {slip.lines.some(line => !line.summary && !['SALARY','ADJUSTMENT','ALLOWANCE'].includes(line.kind)) && <details ref={sessions} open={sessionsOpen} onToggle={event => setSessionsOpen(event.currentTarget.open)} className={styles.disclosure}><summary>{draft ? 'Pilih sesi yang perlu dikoreksi' : 'Detail sesi'}</summary>
-          {sessionKind && <div className={styles.toolbar}><span>{payrollCategory(sessionKind)}</span><Button type="button" variant="ghost" size="sm" onClick={() => setSessionKind(null)}>Lihat semua aktivitas</Button></div>}
-          <div className={styles.lines}><Table><TableHeader><TableRow><TableHead>Tanggal / aktivitas</TableHead><TableHead>Jenis & perhitungan</TableHead><TableHead>Nominal</TableHead><TableHead>Tindakan</TableHead></TableRow></TableHeader><TableBody>{slip.lines.filter(line => !line.summary && !['SALARY','ALLOWANCE','ADJUSTMENT'].includes(line.kind) && (!sessionKind || line.kind === sessionKind)).map(line => <TableRow key={line.key}>
-            <TableCell>{dateWib(line.date)} WIB<div className={styles.rowname}>{line.label}</div>{line.attendance_status && <div>{attendanceStatusLabel(line) ?? 'Mengajar terkonfirmasi'} · {line.attendance_recorded}/{line.attendance_expected} absensi terisi</div>}<div className={styles.rowmeta}>{line.details}{line.override_reason && ` · Koreksi: ${line.override_reason}`}</div></TableCell>
-            <TableCell><strong>{payrollCategory(line.kind)}</strong><div className={styles.rowmeta}>{line.mode === 'FULLTIME' ? 'Tercakup gaji pokok' : line.mode === 'MITRA' ? 'Fee mitra' : 'Komponen bulanan'}{line.students !== undefined && ['WEEKLY', 'EKSKUL', 'TRIAL'].includes(line.kind) && ` · ${line.students} anak`}</div></TableCell>
-            <TableCell className={styles.money}>{rupiah(line.amount)}</TableCell><TableCell>{draft && !['SALARY', 'ADJUSTMENT', 'ALLOWANCE'].includes(line.kind) && <Button data-correction-key={line.key} size="sm" variant="outline" disabled={busy} onClick={() => correct(line)}>Koreksi sesi</Button>}</TableCell>
-          </TableRow>)}</TableBody></Table></div></details>}
+          {sessionFilter && <div className={styles.toolbar}><strong>{sessionFilter.label}</strong><Button type="button" variant="ghost" size="sm" onClick={() => setSessionFilter(null)}>Lihat semua aktivitas</Button></div>}
+          <ul className={styles.sessionList}>
+            {slip.lines.filter(line => !line.summary && !['SALARY','ALLOWANCE','ADJUSTMENT'].includes(line.kind)
+              && (!sessionFilter || (line.kind === sessionFilter.kind && payrollSessionLabel(slip, line) === sessionFilter.label))).map(line => <li key={line.key}>
+              <div>
+                <strong className={styles.rowname}>{line.label}</strong>
+                <div className={styles.rowmeta}>{dateWib(line.date)} WIB · {payrollSessionLabel(slip, line)}</div>
+                <div className={styles.rowmeta}>{[
+                  line.details.includes('Aktivitas dibatalkan') ? 'Dibatalkan' : attendanceStatusLabel(line),
+                  line.details.includes('Coach pengganti') ? 'Coach pengganti' : null,
+                  line.mode === 'FULLTIME' ? 'Tercakup gaji pokok' : null,
+                  line.override_reason ? `Koreksi: ${line.override_reason}` : null,
+                ].filter(Boolean).join(' · ')}</div>
+              </div>
+              <div className={styles.sessionActions}>
+                <strong className={styles.money}>{rupiah(line.amount)}</strong>
+                {draft && <Button data-correction-key={line.key} size="sm" variant="outline" disabled={busy} onClick={() => correct(line)}>Koreksi sesi</Button>}
+              </div>
+            </li>)}
+          </ul></details>}
           {period.activities.filter(a => a.profile_id === slip.profile_id).map(a => <div key={a.id} className={styles.toolbar}><span>{a.label}</span>{draft && <Button variant="ghost" size="sm" disabled={busy} onClick={() => { const reason = window.prompt('Alasan menghapus aktivitas manual:'); if (reason) void run('removeActivity', { id: a.id, reason }); }}>Hapus aktivitas</Button>}</div>)}
           <details className={styles.disclosure}><summary>Pengiriman ulang & riwayat penerima</summary><div className={styles.detailPanel}>
             <p className={styles.muted}>Rekap absensi dijadwalkan otomatis tanggal 25. Gunakan pengiriman manual hanya untuk koreksi atau kendala pengiriman.</p>

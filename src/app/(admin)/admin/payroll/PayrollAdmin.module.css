@@ -42,6 +42,15 @@
 .disclosure summary{cursor:pointer;font-weight:650;color:var(--foreground);padding:8px 0;width:fit-content}
 .disclosure summary:focus-visible{outline:2px solid var(--ring);outline-offset:3px}
 .disclosure[open]>:not(summary){margin-top:12px}
+.reviewWarnings summary{cursor:pointer}
+.reviewWarnings summary span{margin-inline-start:12px;color:var(--muted-foreground)}
+.warningGroups{display:grid;gap:14px;margin-top:12px}
+.warningGroups h3{font-weight:650}
+.warningGroups p{color:var(--muted-foreground)}
+.warningGroups ul{list-style:disc;padding-inline-start:20px;margin-top:4px}
+.sessionList{list-style:none;margin:0;padding:0}
+.sessionList li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);color:var(--foreground)}
+.sessionActions{display:flex;align-items:flex-end;flex-direction:column;gap:4px;flex-shrink:0}
 .adjustmentForm:empty{display:none}
 .adjustmentForm:has(form){background:var(--muted);padding:18px;border-radius:10px}
 .table{min-width:620px}

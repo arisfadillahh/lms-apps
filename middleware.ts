@@ -5,7 +5,7 @@ import { getToken } from 'next-auth/jwt';
 import { getRoleDashboardPath } from '@/lib/routing';
 import type { Role } from '@/types/supabase';
 
-const PUBLIC_PATHS = new Set<string>(['/', '/holidayclas2026', '/free-trial', '/payroll/reimbursement', '/api/payroll/reimbursement']);
+const PUBLIC_PATHS = new Set<string>(['/', '/holidayclas2026', '/free-trial', '/payroll/reimbursement', '/api/payroll/reimbursement', '/api/holiday-class/registration', '/api/holiday-class/payment']);
 
 // Additional public path prefixes (no auth required)
 const PUBLIC_PREFIXES = [

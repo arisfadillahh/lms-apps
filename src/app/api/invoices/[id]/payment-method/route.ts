@@ -7,6 +7,7 @@ import { createLmsInvoiceMidtransOrderId, InvoiceMidtransClient } from '@/lib/in
 import { getStoredInvoicePaymentByInvoiceId, saveStoredInvoicePayment, toPublicStoredInvoicePayment } from '@/lib/invoicePaymentStore';
 import { isInvoiceCheckoutEnabled, createCheckoutPayment, getClaimedIntents, CheckoutError } from '@/lib/services/invoiceCheckoutServer';
 import { isLiveSingleInvoiceCheckout } from '@/lib/services/invoicePaymentInstructions';
+import { holidayInvoicePattern } from '@/lib/holidayClass';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -24,6 +25,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
         if (invoice.status === 'PAID') {
             return NextResponse.json({ error: 'Invoice ini sudah lunas.' }, { status: 409 });
+        }
+
+        if (holidayInvoicePattern.test(invoice.invoice_number)) {
+            return NextResponse.json({ error: 'Buka tombol Bayar via Midtrans di invoice Holiday Class.' }, { status: 409 });
         }
 
         const option = getInvoicePaymentOption(method);

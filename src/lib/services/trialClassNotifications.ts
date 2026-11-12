@@ -4,6 +4,10 @@ const DEFAULT_ADMIN_GROUP_JID = '120363299465478999@g.us';
 const FREE_TRIAL_ADMIN_URL = 'https://lms.clev.io/admin/free-trials';
 const COACH_DASHBOARD_URL = 'https://lms.clev.io/coach/dashboard';
 
+export function trialAdminWhatsAppGroup() {
+  return process.env.TRIAL_CLASS_ADMIN_WA_GROUP_JID || DEFAULT_ADMIN_GROUP_JID;
+}
+
 export type TrialClassNotificationInput = {
   id: string;
   studentName: string;
@@ -114,7 +118,7 @@ export function buildTrialClassParentMessage(input: TrialClassNotificationInput)
 }
 
 export async function sendTrialClassNotifications(input: TrialClassNotificationInput) {
-  const adminGroupJid = process.env.TRIAL_CLASS_ADMIN_WA_GROUP_JID || DEFAULT_ADMIN_GROUP_JID;
+  const adminGroupJid = trialAdminWhatsAppGroup();
 
   const [adminGroup, parent] = await Promise.all([
     deliverMessage('admin group', adminGroupJid, buildTrialClassAdminMessage(input)),
@@ -302,7 +306,7 @@ export function buildTrialConversionAdminMessage(input: TrialConversionNotificat
 export async function sendTrialConversionAdminWhatsAppNotification(
   input: TrialConversionNotificationInput,
 ): Promise<DeliveryResult> {
-  const adminGroupJid = process.env.TRIAL_CLASS_ADMIN_WA_GROUP_JID || DEFAULT_ADMIN_GROUP_JID;
+  const adminGroupJid = trialAdminWhatsAppGroup();
   return deliverMessage(
     'trial conversion admin group',
     adminGroupJid,

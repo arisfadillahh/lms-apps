@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 import {
     extendPaymentPeriodsForInvoice,
     getInvoiceById,
@@ -28,6 +28,9 @@ import {
 } from '@/lib/midtransWebhookSecurity';
 import { getCheckoutIntent, finishCheckoutFromProvider } from '@/lib/services/invoiceCheckoutServer';
 import { sendCheckoutPaidConfirmation } from '@/lib/services/invoiceCheckoutMessaging';
+import { holidayInvoicePattern } from '@/lib/holidayClass';
+import { settleHolidayPayment } from '@/lib/services/holidayClassPayment';
+import { deliverHolidayWhatsApp } from '@/lib/services/holidayClassMessaging';
 
 export async function POST(request: NextRequest) {
     const payload = (await request.json().catch(() => null)) as MidtransNotificationPayload | null;
@@ -70,6 +73,14 @@ export async function POST(request: NextRequest) {
 }
 
 async function processVerifiedNotification(payload: MidtransNotificationPayload, orderId: string) {
+    if (holidayInvoicePattern.test(orderId)) {
+        const status = mapMidtransStatus(payload);
+        if (status === 'paid') {
+            const registrationId = await settleHolidayPayment(payload);
+            after(() => deliverHolidayWhatsApp(registrationId).catch(() => console.warn('[Holiday Class] Paid confirmation deferred')));
+        }
+        return NextResponse.json({ ok: true, status });
+    }
     // This handler remains active even when new checkout creation is disabled.
     // In-flight payments must still settle after a feature-flag rollback.
     if (orderId.startsWith('LMSB-')) {

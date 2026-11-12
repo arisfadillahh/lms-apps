@@ -5,6 +5,7 @@ import { useState, type CSSProperties } from 'react';
 import type { PublicInvoice } from '@/lib/publicInvoice';
 import type { PublicInvoicePaymentInstruction, PublicInvoicePaymentOption } from '@/lib/invoicePaymentMethods';
 import { formatInvoicePeriod, isSingleMonthInvoice } from '@/lib/invoicePeriod';
+import { holidayInvoicePattern } from '@/lib/holidayClass';
 
 interface BankInfo {
     bank_name: string;
@@ -69,6 +70,27 @@ export default function InvoiceView({ invoice, publicToken, paymentOptions, init
     };
 
     const isPaid = invoice.status === 'PAID';
+    const isHolidayInvoice = holidayInvoicePattern.test(invoice.invoice_number);
+
+    async function openHolidayPayment() {
+        setPaymentError(null);
+        setPaymentLoadingMethod('midtrans');
+        try {
+            const response = await fetch('/api/holiday-class/payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ invoiceNumber: invoice.invoice_number, token: publicToken }),
+            });
+            const data = await response.json();
+            if (data.paid) window.location.reload();
+            else if (response.ok && data.paymentUrl) window.location.assign(data.paymentUrl);
+            else throw new Error(data.error || 'Link Midtrans belum tersedia.');
+        } catch (error) {
+            setPaymentError(error instanceof Error ? error.message : 'Link Midtrans belum tersedia.');
+        } finally {
+            setPaymentLoadingMethod(null);
+        }
+    }
 
     const handleChoosePaymentMethod = async (method: string) => {
         if (!publicToken) {
@@ -190,7 +212,14 @@ export default function InvoiceView({ invoice, publicToken, paymentOptions, init
                             </div>
                             <div style={cardContentStyle}>
                                 {!isPaid ? (
-                                    <PaymentMethodCard
+                                    isHolidayInvoice ? (
+                                        <div>
+                                            <button type="button" onClick={openHolidayPayment} style={changeMethodButtonStyle} disabled={paymentLoadingMethod === 'midtrans'}>
+                                                {paymentLoadingMethod === 'midtrans' ? 'Membuka Midtrans…' : 'Bayar via Midtrans'}
+                                            </button>
+                                            {paymentError && <p role="alert">{paymentError}</p>}
+                                        </div>
+                                    ) : <PaymentMethodCard
                                         payment={selectedPayment}
                                         onOpenModal={() => setIsPaymentModalOpen(true)}
                                         onContactAdmin={bankInfo ? handleContactAdmin : undefined}

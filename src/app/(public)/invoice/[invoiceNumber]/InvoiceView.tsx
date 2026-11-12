@@ -83,7 +83,8 @@ export default function InvoiceView({ invoice, publicToken, paymentOptions, init
             const response = await fetch(`/api/invoices/${encodeURIComponent(invoice.id)}/payment-method`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ method, token: publicToken })
+                body: JSON.stringify({ method, token: publicToken }),
+                signal: AbortSignal.timeout(25000)
             });
             const data = await response.json().catch(() => ({}));
 
@@ -94,7 +95,9 @@ export default function InvoiceView({ invoice, publicToken, paymentOptions, init
             setSelectedPayment(data.payment);
             setIsPaymentModalOpen(false);
         } catch (error) {
-            setPaymentError(error instanceof Error ? error.message : 'Gagal membuat metode pembayaran.');
+            setPaymentError(error instanceof DOMException && error.name === 'TimeoutError'
+                ? 'Pembayaran belum dapat dikonfirmasi. Muat ulang invoice untuk memeriksa statusnya.'
+                : error instanceof Error ? error.message : 'Gagal membuat metode pembayaran.');
         } finally {
             setPaymentLoadingMethod(null);
         }
@@ -677,13 +680,13 @@ function PaymentMethodModal({
 
     return (
         <div style={modalOverlayStyle}>
-            <div style={modalCardStyle}>
+            <div style={modalCardStyle} role="dialog" aria-modal="true" aria-labelledby="invoice-payment-method-title">
                 <div style={modalHeaderStyle}>
                     <div>
                         <div style={modalEyebrowStyle}>Metode pembayaran</div>
-                        <h2 style={modalTitleStyle}>Pilih Metode Pembayaran</h2>
+                        <h2 id="invoice-payment-method-title" style={modalTitleStyle}>Pilih Metode Pembayaran</h2>
                     </div>
-                    <button onClick={onClose} style={modalCloseButtonStyle} disabled={!!loadingMethod}>×</button>
+                    <button onClick={onClose} style={modalCloseButtonStyle} aria-label="Tutup pilihan pembayaran" disabled={!!loadingMethod}>×</button>
                 </div>
 
                 <div style={methodListStyle}>
@@ -721,9 +724,9 @@ function PaymentMethodModal({
                     ))}
                 </div>
 
-                {error && <div style={paymentErrorStyle}>{error}</div>}
                 <div style={modalFooterStyle}>
-                    <div style={modalNoteStyle}>Setelah klik Pilih, QR atau nomor VA langsung tampil di invoice ini.</div>
+                    {error ? <div role="alert" style={paymentErrorStyle}>{error}</div>
+                        : <div style={modalNoteStyle}>Setelah klik Pilih, QR atau nomor VA langsung tampil di invoice ini.</div>}
                     <button
                         type="button"
                         disabled={!canChoose}
@@ -1392,7 +1395,6 @@ const methodLoadingStyle: CSSProperties = {
 };
 
 const paymentErrorStyle: CSSProperties = {
-    marginTop: '14px',
     padding: '10px 12px',
     borderRadius: '12px',
     backgroundColor: '#FEF2F2',

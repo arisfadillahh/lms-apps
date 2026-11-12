@@ -33,6 +33,21 @@ import { settleHolidayPayment } from '@/lib/services/holidayClassPayment';
 import { deliverHolidayWhatsApp } from '@/lib/services/holidayClassMessaging';
 import type { Invoice } from '@/lib/types/invoice';
 
+// The payment attempts table is not present in the generated Supabase types.
+type InvoicePaymentAttempt = {
+    id: string;
+    invoice_id: string;
+    base_amount: number;
+    admin_fee: number;
+    total_amount: number;
+    payment_method: string;
+    payment_method_label: string;
+    midtrans_transaction_id: string | null;
+    midtrans_payment_type: string | null;
+    payment_details: Record<string, unknown> | null;
+    expires_at: string | null;
+};
+
 export async function POST(request: NextRequest) {
     const payload = (await request.json().catch(() => null)) as MidtransNotificationPayload | null;
     if (!payload) {
@@ -91,11 +106,12 @@ async function processVerifiedNotification(payload: MidtransNotificationPayload,
     }
     const supabase = getSupabaseAdmin();
     const safePayload = sanitizeMidtransNotificationPayload(payload);
-    const { data: attempt, error: attemptError } = await supabase
+    const { data, error: attemptError } = await supabase
         .from('invoice_payment_attempts' as any)
         .select('*')
         .eq('order_id', orderId)
         .single();
+    const attempt = data as unknown as InvoicePaymentAttempt | null;
 
     const mappedStatus = mapMidtransStatus(payload);
     const paidAt = mappedStatus === 'paid' ? getMidtransPaidAt(payload) : null;
@@ -137,15 +153,15 @@ async function processVerifiedNotification(payload: MidtransNotificationPayload,
     await supabase
         .from('invoice_payment_attempts' as any)
         .update({
-            midtrans_transaction_id: payload.transaction_id ?? (attempt as any).midtrans_transaction_id ?? null,
-            midtrans_payment_type: payload.payment_type ?? (attempt as any).midtrans_payment_type ?? null,
+            midtrans_transaction_id: payload.transaction_id ?? attempt.midtrans_transaction_id ?? null,
+            midtrans_payment_type: payload.payment_type ?? attempt.midtrans_payment_type ?? null,
             midtrans_transaction_status: payload.transaction_status ?? null,
             notification_payload: safePayload,
             paid_at: paidAt
         })
-        .eq('id', (attempt as any).id);
+        .eq('id', attempt.id);
 
-    const invoice = await getInvoiceById((attempt as any).invoice_id);
+    const invoice = await getInvoiceById(attempt.invoice_id);
     if (!invoice) {
         return NextResponse.json({ ok: true, updated: false, reason: 'invoice_not_found' });
     }
@@ -156,19 +172,19 @@ async function processVerifiedNotification(payload: MidtransNotificationPayload,
     await supabase
         .from('invoices' as any)
         .update({
-            payment_method: (attempt as any).payment_method,
-            payment_method_label: (attempt as any).payment_method_label,
-            payment_base_amount: (attempt as any).base_amount,
-            payment_admin_fee: (attempt as any).admin_fee,
-            payment_total_amount: (attempt as any).total_amount,
-            selected_payment_attempt_id: (attempt as any).id,
+            payment_method: attempt.payment_method,
+            payment_method_label: attempt.payment_method_label,
+            payment_base_amount: attempt.base_amount,
+            payment_admin_fee: attempt.admin_fee,
+            payment_total_amount: attempt.total_amount,
+            selected_payment_attempt_id: attempt.id,
             midtrans_order_id: orderId,
-            midtrans_transaction_id: payload.transaction_id ?? (attempt as any).midtrans_transaction_id ?? null,
-            midtrans_payment_type: payload.payment_type ?? (attempt as any).midtrans_payment_type ?? null,
+            midtrans_transaction_id: payload.transaction_id ?? attempt.midtrans_transaction_id ?? null,
+            midtrans_payment_type: payload.payment_type ?? attempt.midtrans_payment_type ?? null,
             midtrans_transaction_status: payload.transaction_status ?? null,
-            midtrans_payment_details: (attempt as any).payment_details ?? {},
+            midtrans_payment_details: attempt.payment_details ?? {},
             midtrans_raw_response: safePayload,
-            midtrans_expires_at: (attempt as any).expires_at ?? null
+            midtrans_expires_at: attempt.expires_at ?? null
         })
         .eq('id', invoice.id);
 

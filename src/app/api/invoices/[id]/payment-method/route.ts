@@ -12,6 +12,7 @@ import { holidayInvoicePattern } from '@/lib/holidayClass';
 type RouteParams = { params: Promise<{ id: string }> };
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
+    let isHolidayInvoice = false;
     try {
         const { id } = await params;
         const body = await request.json().catch(() => ({}));
@@ -27,9 +28,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             return NextResponse.json({ error: 'Invoice ini sudah lunas.' }, { status: 409 });
         }
 
-        if (holidayInvoicePattern.test(invoice.invoice_number)) {
-            return NextResponse.json({ error: 'Buka tombol Bayar via Midtrans di invoice Holiday Class.' }, { status: 409 });
-        }
+        isHolidayInvoice = holidayInvoicePattern.test(invoice.invoice_number);
 
         const option = getInvoicePaymentOption(method);
         const payment = buildInvoicePaymentBreakdown(method, invoice.total_amount);
@@ -84,7 +83,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         if (error instanceof CheckoutError) return NextResponse.json({ error: error.message }, { status: error.status });
         console.error('[InvoicePayment] Create payment method error:', error);
         return NextResponse.json({
-            error: error instanceof Error ? error.message : 'Gagal membuat instruksi pembayaran.'
+            error: isHolidayInvoice ? 'Instruksi pembayaran belum dapat dibuat. Coba lagi atau hubungi tim Clevio.'
+                : error instanceof Error ? error.message : 'Gagal membuat instruksi pembayaran.'
         }, { status: 500 });
     }
 }

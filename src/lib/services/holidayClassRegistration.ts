@@ -13,7 +13,7 @@ export const holidayRegistrationSchema = z.object({
   parentName: personName,
   studentName: personName,
   phone: z.string().trim().max(24).regex(/^\+?[\d .()-]+$/).transform(normalizeIndonesianPhone).pipe(z.string().regex(/^628\d{7,12}$/)),
-  email: z.string().trim().email().max(160).transform(value => value.toLowerCase()),
+  email: z.union([z.string().trim().email().max(160).transform(value => value.toLowerCase()), z.literal('')]).default(''),
   schoolGrade: z.number().int().min(1).max(12),
   selections: z.array(z.object({ program: z.number().int().min(0).max(3), batch: z.number().int().min(0).max(6) })).min(1).max(3),
   platform: z.enum(['none', 'own', 'clevio']),

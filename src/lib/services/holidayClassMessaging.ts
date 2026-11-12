@@ -29,8 +29,8 @@ export function holidayWhatsAppMessage(kind: MessageKind, invoice: Invoice, regi
     ...(registration.platform === 'none' ? [] : [`Open Code: ${registration.platform === 'clevio' ? 'Beli lewat Clevio' : 'Disiapkan sendiri'}`]),
   ];
   const footer = group
-    ? [`Wali: ${invoice.parent_name}`, `Follow up: https://wa.me/${invoice.parent_phone}`]
-    : [`${paid ? 'Lihat invoice lunas' : 'Buka invoice dan bayar via Midtrans'}: ${holidayInvoiceUrl(invoice)}`];
+    ? [`Orang tua: ${invoice.parent_name}`, `Follow up: https://wa.me/${invoice.parent_phone}`]
+    : [`${paid ? 'Lihat invoice lunas' : 'Buka invoice dan pilih metode pembayaran'}: ${holidayInvoiceUrl(invoice)}`];
   return [header, '', ...detail, '', ...footer].join('\n');
 }
 

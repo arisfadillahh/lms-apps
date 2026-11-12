@@ -57,7 +57,7 @@ export interface PublicInvoicePaymentInstruction {
 const DEFAULT_ADMIN_FEE_FIXED = 2_500;
 
 export function getInvoicePaymentOptions(): InvoicePaymentMethodOption[] {
-    const adminFeeFixed = getNumberEnv('MIDTRANS_ADMIN_FEE_FIXED', DEFAULT_ADMIN_FEE_FIXED);
+    const adminFeeFixed = DEFAULT_ADMIN_FEE_FIXED;
     const adminFeeLabel = adminFeeFixed > 0 ? formatRupiah(adminFeeFixed) : 'Tanpa biaya admin';
 
     return [
@@ -211,13 +211,6 @@ export function calculateInvoicePaymentAdminFee(
     const fixedFee = Math.max(0, option.feeFixed ?? 0);
     const feeVat = Math.ceil((fixedFee * Math.max(0, option.feeVatPercent ?? 0)) / 100);
     return fixedFee + feeVat;
-}
-
-function getNumberEnv(name: string, fallback: number) {
-    const raw = process.env[name];
-    if (!raw) return fallback;
-    const value = Number(raw.replace(/[^\d.-]/g, ''));
-    return Number.isFinite(value) && value >= 0 ? value : fallback;
 }
 
 function formatRupiah(value: number) {

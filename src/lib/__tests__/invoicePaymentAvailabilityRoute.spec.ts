@@ -63,4 +63,21 @@ describe('invoice payment selection API', () => {
     expect(body.payment.qrImageUrl).toBe('/api/invoices/mock-invoice/payment-qr?t=valid-local-token&order=LOCAL-QRIS');
     expect(body.options.some((option: { code: string }) => option.code === 'gopay')).toBe(false);
   });
+
+  it.each(['qris', 'bni_va'])('offers %s for Holiday Class through the regular invoice payment endpoint', async method => {
+    const invoice = { ...fixture, invoice_number: 'HC-2627-000001', invoice_type: 'SEASONAL' };
+    mock.getInvoice.mockResolvedValue(invoice);
+    const details = { method, label: method === 'qris' ? 'QRIS' : 'BNI Virtual Account', baseAmount: 100000,
+      adminFee: 2500, total: 102500, feeLabel: 'Rp2.500', bank: method === 'bni_va' ? 'bni' : null,
+      vaNumber: method === 'bni_va' ? '1234567890' : null, qrCodeUrl: null, deeplinkUrl: null, billerCode: null, billKey: null };
+    mock.createPayment.mockResolvedValue({ orderId: 'LOCAL-HOLIDAY', paymentDetails: details });
+    mock.save.mockResolvedValue({ ...details, invoiceId: fixture.id, orderId: 'LOCAL-HOLIDAY', paymentDetails: details });
+    mock.getAdmin.mockImplementation(() => { throw new Error('Mock DB unavailable'); });
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const response = await call(method);
+    const data = await response.json();
+    expect(response.status).toBe(200);
+    expect(data.payment).toMatchObject({ method, total: 102500 });
+    expect(mock.createPayment).toHaveBeenCalledWith(invoice, expect.objectContaining({ method }), expect.any(String));
+  });
 });

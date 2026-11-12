@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { getInvoiceByNumber } from '@/lib/dao/invoicesDao';
 import { holidayInvoicePattern } from '@/lib/holidayClass';
 import { consumeRateLimit } from '@/lib/rateLimit';
-import { getHolidayPaymentUrl } from '@/lib/services/holidayClassPayment';
+import { holidayInvoiceUrl } from '@/lib/services/holidayClassPayment';
 import { verifyInvoicePublicToken } from '@/lib/services/invoicePublicAccess';
 
 export async function POST(request: Request) {
@@ -18,10 +18,9 @@ export async function POST(request: Request) {
     if (!invoice || !verifyInvoicePublicToken(invoice, input.data.token)) return NextResponse.json({ error: 'Link invoice tidak valid.' }, { status: 404 });
     if (invoice.status === 'PAID') return NextResponse.json({ paid: true }, { headers: { 'Cache-Control': 'no-store' } });
     if (!['PENDING', 'OVERDUE'].includes(invoice.status)) return NextResponse.json({ error: 'Invoice sudah tidak aktif. Hubungi tim Clevio.' }, { status: 409 });
-    const paymentUrl = await getHolidayPaymentUrl(invoice);
-    if (!paymentUrl) return NextResponse.json({ error: 'Link Midtrans sedang disiapkan. Coba beberapa saat lagi.' }, { status: 409 });
+    const paymentUrl = holidayInvoiceUrl(invoice);
     return NextResponse.json({ paymentUrl }, { headers: { 'Cache-Control': 'no-store' } });
   } catch {
-    return NextResponse.json({ error: 'Link Midtrans belum tersedia. Coba kembali atau hubungi tim Clevio.' }, { status: 503 });
+    return NextResponse.json({ error: 'Link pembayaran belum tersedia. Coba kembali atau hubungi tim Clevio.' }, { status: 503 });
   }
 }

@@ -23,6 +23,17 @@ describe('direct GoPay disabled, interoperable QRIS retained', () => {
     expect(getInvoicePaymentOption('qris')?.description).toMatch(/mobile banking.*QRIS/);
   });
 
+  it('charges exactly Rp2,500 for every available method regardless of stale environment settings', () => {
+    vi.stubEnv('MIDTRANS_ADMIN_FEE_FIXED', '7000');
+    for (const amount of [10000, 350000, 1500000]) {
+      for (const option of getPublicInvoicePaymentOptions(amount)) {
+        expect(option.adminFee).toBe(2500);
+        expect(option.total).toBe(amount + 2500);
+        expect(buildInvoicePaymentBreakdown(option.code, amount)?.adminFee).toBe(2500);
+      }
+    }
+  });
+
   it('keeps the gateway GoPay mapping needed to issue QRIS, using mocked transport only', async () => {
     vi.stubEnv('MIDTRANS_SERVER_KEY', 'SB-Mid-server-LOCAL-MOCK-NOT-A-CREDENTIAL');
     vi.stubEnv('MIDTRANS_IS_PRODUCTION', 'false');

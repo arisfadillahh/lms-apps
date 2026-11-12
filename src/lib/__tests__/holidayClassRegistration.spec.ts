@@ -22,6 +22,16 @@ const prepare = (override: Partial<typeof registration> = {}, date = now) =>
   prepareHolidayRegistration(holidayRegistrationSchema.parse({ ...registration, ...override }), date);
 
 describe('Holiday Class checkout catalog', () => {
+  it('accepts registrations without requesting an email address', () => {
+    const withoutEmail: Partial<typeof registration> = { ...registration };
+    delete withoutEmail.email;
+    const parsed = holidayRegistrationSchema.parse(withoutEmail);
+    const prepared = prepareHolidayRegistration(parsed, now);
+    expect(prepared.email).toBe('');
+    expect(prepared.total).toBe(500000);
+    expect(holidayRegistrationSchema.parse({ ...registration, email: '' }).email).toBe('');
+  });
+
   it('charges Rp500k for Godot with self-provided Open Code or Rp700k with Clevio access', () => {
     expect(prepare().total).toBe(500000);
     const withPlatform = prepare({ platform: 'clevio' });

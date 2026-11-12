@@ -31,6 +31,7 @@ import { sendCheckoutPaidConfirmation } from '@/lib/services/invoiceCheckoutMess
 import { holidayInvoicePattern } from '@/lib/holidayClass';
 import { settleHolidayPayment } from '@/lib/services/holidayClassPayment';
 import { deliverHolidayWhatsApp } from '@/lib/services/holidayClassMessaging';
+import type { Invoice } from '@/lib/types/invoice';
 
 export async function POST(request: NextRequest) {
     const payload = (await request.json().catch(() => null)) as MidtransNotificationPayload | null;
@@ -74,12 +75,7 @@ export async function POST(request: NextRequest) {
 
 async function processVerifiedNotification(payload: MidtransNotificationPayload, orderId: string) {
     if (holidayInvoicePattern.test(orderId)) {
-        const status = mapMidtransStatus(payload);
-        if (status === 'paid') {
-            const registrationId = await settleHolidayPayment(payload);
-            after(() => deliverHolidayWhatsApp(registrationId).catch(() => console.warn('[Holiday Class] Paid confirmation deferred')));
-        }
-        return NextResponse.json({ ok: true, status });
+        return processHolidayNotification(payload);
     }
     // This handler remains active even when new checkout creation is disabled.
     // In-flight payments must still settle after a feature-flag rollback.
@@ -117,6 +113,11 @@ async function processVerifiedNotification(payload: MidtransNotificationPayload,
             return NextResponse.json({ ok: true, updated: false, reason: 'invoice_not_found' });
         }
 
+        if (holidayInvoicePattern.test(invoice.invoice_number)) {
+            if (storedAttempt.baseAmount !== invoice.total_amount) throw new Error('Holiday payment base amount changed');
+            return processHolidayNotification(payload, invoice, storedAttempt.total);
+        }
+
         if (mappedStatus === 'paid' && invoice.status !== 'PAID') {
             const paidInvoice = await markInvoiceAsPaid(invoice.id, paidAt ?? new Date().toISOString(), `Dibayar via Midtrans ${orderId}`);
             if (!paidInvoice) {
@@ -148,6 +149,9 @@ async function processVerifiedNotification(payload: MidtransNotificationPayload,
     if (!invoice) {
         return NextResponse.json({ ok: true, updated: false, reason: 'invoice_not_found' });
     }
+    if (holidayInvoicePattern.test(invoice.invoice_number) && Number(attempt.base_amount) !== invoice.total_amount) {
+        throw new Error('Holiday payment base amount changed');
+    }
 
     await supabase
         .from('invoices' as any)
@@ -168,6 +172,10 @@ async function processVerifiedNotification(payload: MidtransNotificationPayload,
         })
         .eq('id', invoice.id);
 
+    if (holidayInvoicePattern.test(invoice.invoice_number)) {
+        return processHolidayNotification(payload, invoice, Number(attempt.total_amount));
+    }
+
     if (mappedStatus !== 'paid') {
         return NextResponse.json({ ok: true, updated: true, status: mappedStatus });
     }
@@ -186,6 +194,15 @@ async function processVerifiedNotification(payload: MidtransNotificationPayload,
     }
 
     return NextResponse.json({ ok: true, updated: true, status: mappedStatus });
+}
+
+async function processHolidayNotification(payload: MidtransNotificationPayload, invoice?: Invoice, expectedTotal?: number) {
+    const status = mapMidtransStatus(payload);
+    if (status === 'paid') {
+        const registrationId = await settleHolidayPayment(payload, invoice, expectedTotal);
+        after(() => deliverHolidayWhatsApp(registrationId).catch(() => console.warn('[Holiday Class] Paid confirmation deferred')));
+    }
+    return NextResponse.json({ ok: true, updated: status === 'paid', status });
 }
 
 async function processTrialConversionPaid(invoiceId: string, paidAt: string) {

@@ -25,7 +25,8 @@ async function fixture(patch = {}) {
   await executable(bin + '/node', preamble + `if(args[0]?.endsWith('provision-node-runtime.mjs')){event('provision');console.log(process.env.MOCK_RUNTIME);}else{const r=cp.spawnSync(process.env.MOCK_REAL_NODE,args,{stdio:'inherit'});process.exit(r.status??1);}`);
   await executable(runtime + '/bin/npm', preamble + `event('npm '+args.join(' '));if(args[0]==='run'&&args[1]==='build'&&process.env.MOCK_BUILD_FAIL==='1')process.exit(1);`);
   await executable(runtime + '/bin/node', preamble + `
-    if(args[0]?.endsWith('production-healthcheck.mjs')){
+    if(args[0]?.endsWith('provision-payment-browser.mjs')){event('payment-browser');if(process.env.MOCK_BROWSER_FAIL==='1')process.exit(1);}
+    else if(args[0]?.endsWith('production-healthcheck.mjs')){
       const current=fs.realpathSync(process.env.LMS_DEPLOY_ROOT+'/current');event('health '+args[1]);
       if(args[1].includes(':3010')){try{const pid=Number(fs.readFileSync(process.env.LMS_DEPLOY_ROOT+'/deploy-logs/smoke-'+process.env.MOCK_TARGET+'.pid','utf8').trim());process.kill(pid,0);const smoke=JSON.parse(fs.readFileSync(process.env.LMS_DEPLOY_ROOT+'/smoke-process.json','utf8'));if(smoke.pid!==pid||!fs.readFileSync(process.env.MOCK_TRACE,'utf8').includes('smoke '+smoke.cwd))process.exit(1);}catch{process.exit(1);}}
       if(process.env.MOCK_CANDIDATE_FAIL==='1'&&args[1].includes(':3010'))process.exit(1);
@@ -65,6 +66,7 @@ describe('actual deployment script with isolated fake services', () => {
     expect(f.result.status, f.result.stderr).toBe(0);
     expect(f.current).toBe(f.candidate);
     expect(f.trace.indexOf('npm run build')).toBeLessThan(f.trace.indexOf('pm2 delete'));
+    expect(f.trace.indexOf('payment-browser')).toBeLessThan(f.trace.indexOf('npm run build'));
     expect(f.trace.includes('smoke ' + f.old)).toBe(true);
     expect(f.trace.includes('--interpreter ' + f.runtime + '/bin/node')).toBe(true);
     expect(f.trace.includes('auth=' + f.root + '/shared/baileys_auth_info')).toBe(true);
@@ -73,6 +75,11 @@ describe('actual deployment script with isolated fake services', () => {
     expect(await fs.readFile(f.root + '/shared/.data/marker', 'utf8')).toBe('billing state unchanged');
     expect(await fs.readFile(f.root + '/shared/baileys_auth_info/marker', 'utf8')).toBe('session unchanged');
   }, 40000);
+  it('does not cut over or restart LMS if its payment browser cannot be provisioned',async()=>{
+    const f=await fixture({MOCK_BROWSER_FAIL:'1'});
+    expect(f.result.status).toBe(1);expect(f.current).toBe(f.old);
+    expect(f.trace.includes('npm run build')||f.trace.includes('pm2 delete')).toBe(false);
+  },40000);
   it.each([{ MOCK_BUILD_FAIL: '1' }, { MOCK_CANDIDATE_FAIL: '1' }])('keeps the active release and PM2 untouched on pre-switch failure %j', async patch => {
     const f = await fixture(patch);
     expect(f.result.status).toBe(patch.MOCK_BUILD_FAIL ? 1 : 5);

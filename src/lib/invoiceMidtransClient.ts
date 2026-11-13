@@ -1,6 +1,9 @@
 import crypto from 'node:crypto';
 import type { Invoice } from '@/lib/types/invoice';
 import type { InvoicePaymentBreakdown, InvoicePaymentMethodCode } from '@/lib/invoicePaymentMethods';
+import { issueSnapInBrowser } from '@/lib/invoiceSnapBrowser';
+import { withInvoiceIssuance, getIssuanceByOrder } from '@/lib/invoiceIssuanceJournal';
+import { getStoredInvoicePaymentByInvoiceId } from '@/lib/invoicePaymentStore';
 
 type MidtransAction = {
     name?: string;
@@ -8,7 +11,7 @@ type MidtransAction = {
     url?: string;
 };
 
-type MidtransChargeResponse = {
+export type MidtransChargeResponse = {
     status_code?: string;
     status_message?: string;
     transaction_id?: string;
@@ -20,10 +23,18 @@ type MidtransChargeResponse = {
     va_numbers?: Array<{ bank?: string; va_number?: string }>;
     bsi_va_number?: string;
     bni_va_number?: string;
+    bri_va_number?: string;
+    cimb_va_number?: string;
     permata_va_number?: string;
     biller_code?: string;
     bill_key?: string;
     qr_code_url?: string;
+    qr_string?: string;
+    qris_url?: string;
+    qris_expiration_raw?: string;
+    bsi_expiration_raw?: string;
+    currency?: string;
+    bank?: string;
     deeplink_url?: string;
     actions?: MidtransAction[];
     expiry_time?: string;
@@ -73,6 +84,7 @@ export type InvoiceMidtransPayment = {
         feeLabel: string;
         total: number;
         qrCodeUrl: string | null;
+        qrString?: string | null;
         deeplinkUrl: string | null;
         bank: string | null;
         vaNumber: string | null;
@@ -97,23 +109,87 @@ export class InvoiceMidtransClient {
 
     private async transactionRequest(orderId: string, action: 'status' | 'cancel', method: 'GET' | 'POST'): Promise<MidtransNotificationPayload> {
         if (!this.serverKey) throw new Error('Konfigurasi gateway belum tersedia.');
-        const response = await fetch(`${this.coreBaseUrl}/v2/${encodeURIComponent(orderId)}/${action}`, {
+        const issue=await getIssuanceByOrder(orderId);
+        const isBsi=issue?.method==='bsi_va';
+        const id=isBsi ? issue.payment?.transactionId || await (await import('@/lib/midtransSnapTransaction')).verifiedSnapTransactionId(orderId) : orderId;
+        const response = await fetch(`${this.coreBaseUrl}/v2/${encodeURIComponent(id)}/${action}`, {
             method, cache: 'no-store', signal: AbortSignal.timeout(15000),
-            headers: { Accept: 'application/json', Authorization: `Basic ${Buffer.from(`${this.serverKey}:`).toString('base64')}` },
+            headers: { Accept: 'application/json', Authorization: `Basic ${Buffer.from(`${this.serverKey}:`).toString('base64')}`,
+                ...(isBsi?{'transaction-source':'SNAP_API'}:{}) },
         });
         const data = await response.json().catch(() => null) as MidtransNotificationPayload | null;
-        if (!response.ok || !data?.order_id || !data.transaction_status) throw new Error('Status pembayaran belum dapat dipastikan. Jangan membuat pembayaran lain dulu.');
+        if (isBsi && action==='cancel' && data && !data.order_id) data.order_id=orderId;
+        if (!response.ok || data?.order_id!==orderId || !data.transaction_status) throw new Error('Status pembayaran belum dapat dipastikan. Jangan membuat pembayaran lain dulu.');
+        if(isBsi)assertPaymentIdentity(data,orderId,issue.total);
         return data;
     }
 
     async createPayment(invoice: Invoice, payment: InvoicePaymentBreakdown, orderId: string): Promise<InvoiceMidtransPayment> {
-        if (!this.serverKey) {
-            throw new Error('MIDTRANS_SERVER_KEY belum dikonfigurasi di LMS.');
-        }
+        if (!this.serverKey) throw new Error('Konfigurasi pembayaran belum tersedia.');
+        return withInvoiceIssuance(invoice.id, async journal => {
+            let state = await journal.read();
+            const hadState=!!state;
+            const legacy = !state ? await getStoredInvoicePaymentByInvoiceId(invoice.id) : null;
+            // Adopt an existing issued order before creating a new one, including pre-upgrade instructions.
+            if (!state && legacy) state = { invoiceId: invoice.id, orderId: legacy.orderId, method: legacy.method,
+                total: legacy.total, phase: 'READY', payment: { orderId: legacy.orderId, transactionId: legacy.transactionId,
+                    paymentType: legacy.paymentType, transactionStatus: legacy.transactionStatus, expiresAt: legacy.expiresAt,
+                    paymentDetails: legacy.paymentDetails, rawResponse: legacy.rawResponse } };
+            if (!state && invoice.midtrans_order_id) state = { invoiceId:invoice.id, orderId:invoice.midtrans_order_id,
+                method:invoice.payment_method ?? '', total:invoice.payment_total_amount ?? invoice.total_amount, phase:'READY' };
+            if(!hadState&&state){
+                // Older BSI Snap responses used a placeholder ID; recover its real signed-webhook ID.
+                if(state.method==='bsi_va'&&state.payment)state.payment.transactionId=null;
+                await journal.write(state);
+            }
+            if (state && state.phase !== 'REJECTED') {
+                const same = state.method === payment.method && state.total === payment.total
+                    && (payment.method !== 'cimb_va' || state.payment?.paymentDetails.bank?.toLowerCase() === 'cimb');
+                if (state.phase === 'CREATING') throw new Error('Pembuatan pembayaran perlu diperiksa admin. Jangan membuat tagihan lain.');
+                if (state.phase === 'READY') {
+                    let status = await this.getTransactionStatus(state.orderId);
+                    assertPaymentIdentity(status, state.orderId, state.total);
+                    if (mapMidtransStatus(status) === 'paid') throw new Error('Pembayaran sudah diterima. Muat ulang status invoice.');
+                    if (status.transaction_status === 'pending' && same && state.payment) return state.payment;
+                    if (status.transaction_status === 'pending') {
+                        await this.cancelTransaction(state.orderId);
+                        status = await this.getTransactionStatus(state.orderId);
+                        assertPaymentIdentity(status, state.orderId, state.total);
+                    }
+                    if (!['expired', 'cancelled'].includes(mapMidtransStatus(status))) throw new Error('Pembayaran sebelumnya belum selesai dikonfirmasi. Muat ulang status atau hubungi admin.');
+                    state = null;
+                } else if (!same) throw new Error('Lanjutkan metode pembayaran sebelumnya terlebih dahulu.');
+            }
+            if (!state || state.phase === 'REJECTED') {
+                state = { invoiceId: invoice.id, orderId, method: payment.method, total: payment.total, phase: 'CREATING' };
+                // Persist BEFORE the external request. A timeout must never silently issue a second order.
+                await journal.write(state);
+                const response = await this.createSnap(invoice, payment, state.orderId);
+                const snap = await response.json().catch(() => ({})) as MidtransSnapResponse;
+                if (!response.ok || !snap.token) {
+                    if (response.status >= 400 && response.status < 500 && response.status !== 408 && response.status !== 409) {
+                        state.phase = 'REJECTED'; await journal.write(state);
+                    }
+                    throw new Error('Metode pembayaran belum dapat diterbitkan. Pilih metode lain atau hubungi admin.');
+                }
+                state = { ...state, phase: 'SNAP_READY', token: snap.token };
+                await journal.write(state);
+            }
+            if (!state.token) throw new Error('Riwayat pembayaran perlu diperiksa admin.');
+            let data = await issueSnapInBrowser(state.token, this.isProduction);
+            if(payment.method==='bsi_va') data={...data,...await this.getTransactionStatus(state.orderId)};
+            const result = normalizeSnapPayment(data, payment, state.orderId);
+            state = { ...state, phase: 'READY', payment: result };
+            await journal.write(state);
+            return result;
+        });
+    }
 
+    private async createSnap(invoice: Invoice, payment: InvoicePaymentBreakdown, orderId: string) {
         const snapPaymentMethod = getSnapPaymentMethod(payment.method);
-        const snapResponse = await fetch(`${this.baseUrl}/snap/v1/transactions`, {
+        return fetch(`${this.baseUrl}/snap/v1/transactions`, {
             method: 'POST',
+            cache: 'no-store', signal: AbortSignal.timeout(15000),
             headers: {
                 'Content-Type': 'application/json',
                 Accept: 'application/json',
@@ -139,61 +215,6 @@ export class InvoiceMidtransClient {
                 custom_field3: payment.method
             })
         });
-
-        const snap = (await snapResponse.json().catch(() => ({}))) as MidtransSnapResponse;
-        if (!snapResponse.ok || !snap.token) {
-            const message = snap.error_messages?.join(', ') || `Midtrans Snap error ${snapResponse.status}`;
-            throw new Error(message);
-        }
-
-        const chargeResponse = await fetch(`${this.baseUrl}/snap/v2/transactions/${encodeURIComponent(snap.token)}/charge`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Accept: 'application/json',
-                'X-Source': 'snap',
-                'X-Source-App-Type': 'redirection',
-                'X-Source-Version': '2.3.0'
-            },
-            body: JSON.stringify({
-                payment_type: snapPaymentMethod
-            })
-        });
-
-        const data = (await chargeResponse.json().catch(() => ({}))) as MidtransChargeResponse;
-        if (!chargeResponse.ok || !isPendingCharge(data)) {
-            const message = data.error_messages?.join(', ') || data.status_message || `Midtrans payment charge error ${chargeResponse.status}`;
-            throw new Error(message);
-        }
-
-        const va = data.va_numbers?.[0];
-        return {
-            orderId,
-            transactionId: data.transaction_id ?? null,
-            paymentType: data.payment_type ?? snapPaymentMethod,
-            transactionStatus: data.transaction_status ?? null,
-            expiresAt: normalizeMidtransExpiry(data.expiry_time),
-            paymentDetails: {
-                method: payment.method,
-                label: payment.label,
-                baseAmount: payment.baseAmount,
-                adminFee: payment.adminFee,
-                feePercent: payment.feePercent,
-                feeFixed: payment.feeFixed,
-                feeVatPercent: payment.feeVatPercent,
-                feeLabel: payment.feeLabel,
-                total: payment.total,
-                qrCodeUrl: data.qr_code_url ?? data.actions?.find((action) => action.name === 'generate-qr-code')?.url ?? null,
-                deeplinkUrl: data.deeplink_url
-                    ?? data.actions?.find((action) => action.name === 'deeplink-redirect')?.url
-                    ?? getSnapRedirectFallback(payment.method, snap.redirect_url),
-                bank: va?.bank ?? getPaymentBankLabel(payment.method),
-                vaNumber: va?.va_number ?? data.bsi_va_number ?? data.bni_va_number ?? data.permata_va_number ?? null,
-                billerCode: data.biller_code ?? null,
-                billKey: data.bill_key ?? null
-            },
-            rawResponse: data
-        };
     }
 
     get coreBaseUrl() {
@@ -205,8 +226,48 @@ export class InvoiceMidtransClient {
     }
 }
 
+export function assertPaymentIdentity(data: MidtransNotificationPayload, orderId: string, total: number) {
+    if (data.order_id !== orderId || !/^\d+(\.0{1,2})?$/.test(String(data.gross_amount)) || Number(data.gross_amount) !== total) {
+        throw new Error('Rincian pembayaran berbeda. Hubungi admin sebelum mencoba lagi.');
+    }
+}
+
+export function normalizeSnapPayment(data: MidtransChargeResponse, payment: InvoicePaymentBreakdown, orderId: string): InvoiceMidtransPayment {
+    assertPaymentIdentity(data, orderId, payment.total);
+    if (data.transaction_status !== 'pending' || !data.transaction_id || (data.currency && data.currency !== 'IDR')) throw new Error('Instruksi pembayaran belum dikonfirmasi.');
+    const flat = [ ['bsi',data.bsi_va_number],['bni',data.bni_va_number],['bri',data.bri_va_number],['cimb',data.cimb_va_number],['permata',data.permata_va_number] ].find(([,value]) => value);
+    const va = data.va_numbers?.[0] ?? (flat ? {bank:flat[0],va_number:flat[1]} : null);
+    const expectedBank = ({ bsi_va:'bsi', bni_va:'bni', bri_va:'bri', permata_va:'permata', cimb_va:'cimb', bca_va:'bca', other_va:'bni' } as Record<string,string>)[payment.method];
+    if (payment.method === 'qris') {
+        if (!['gopay','qris'].includes(data.payment_type ?? '') || !validQrPayload(data.qr_string, payment.total)) throw new Error('QR pembayaran belum dapat diverifikasi.');
+    } else if (payment.method === 'mandiri_bill') {
+        if (data.payment_type !== 'echannel' || !/^\d{4,20}$/.test(data.biller_code ?? '') || !/^\d{5,30}$/.test(data.bill_key ?? '')) throw new Error('Kode pembayaran belum dapat diverifikasi.');
+    } else if (!expectedBank || va?.bank?.toLowerCase() !== expectedBank || !/^\d{8,30}$/.test(va.va_number ?? '')) {
+        throw new Error('Nomor rekening pembayaran belum dapat diverifikasi.');
+    }
+    return { orderId, transactionId:data.transaction_id, paymentType:data.payment_type ?? null, transactionStatus:'pending', expiresAt:normalizeMidtransExpiry(data.expiry_time),
+        paymentDetails:{ ...payment, qrCodeUrl:data.qris_url ?? data.qr_code_url ?? data.actions?.find(a => a.name === 'generate-qr-code')?.url ?? null,
+            qrString:payment.method === 'qris' ? data.qr_string : null,
+            deeplinkUrl:null, bank:va?.bank ?? getPaymentBankLabel(payment.method), vaNumber:va?.va_number ?? null,
+            billerCode:data.biller_code ?? null, billKey:data.bill_key ?? null }, rawResponse:data };
+}
+
+export function validQrPayload(value: string | undefined, total: number) {
+    if (!value || value.length > 4096 || !/^000201/.test(value) || !/6304[0-9A-F]{4}$/.test(value)) return false;
+    let crc = 0xffff;
+    for (const byte of Buffer.from(value.slice(0,-4))) { crc ^= byte << 8; for (let i=0;i<8;i++) crc = crc & 0x8000 ? ((crc << 1)^0x1021)&0xffff : (crc << 1)&0xffff; }
+    if (crc.toString(16).toUpperCase().padStart(4,'0') !== value.slice(-4)) return false;
+    const tags = new Map<string,string>();
+    for (let offset=0;offset<value.length;) {
+        const tag=value.slice(offset,offset+2), length=Number(value.slice(offset+2,offset+4));
+        if (!/^\d{4}$/.test(value.slice(offset,offset+4)) || tags.has(tag) || offset+4+length>value.length) return false;
+        tags.set(tag,value.slice(offset+4,offset+4+length)); offset+=4+length;
+    }
+    return tags.get('53') === '360' && tags.get('58') === 'ID' && /^\d+(\.0{1,2})?$/.test(tags.get('54') ?? '') && Number(tags.get('54')) === total;
+}
+
 export function createLmsInvoiceMidtransOrderId(invoice: Pick<Invoice, 'id'>, method: InvoicePaymentMethodCode) {
-    const suffix = Date.now().toString(36).toUpperCase();
+    const suffix = crypto.randomUUID().replace(/-/g, '').slice(0, 16).toUpperCase();
     return `LMS-${invoice.id.slice(0, 8)}-${method}-${suffix}`.replace(/[^a-zA-Z0-9_-]/g, '-');
 }
 
@@ -323,8 +384,9 @@ function getSnapPaymentMethod(method: InvoicePaymentMethodCode) {
         case 'permata_va':
             return 'permata_va';
         case 'cimb_va':
+            return 'cimb_va';
         case 'other_va':
-            return 'other_va';
+            return 'bni_va';
         case 'bca_va':
             return 'bca_va';
         case 'bni_va':
@@ -428,7 +490,8 @@ function normalizeMidtransItemName(value: string) {
 
 function normalizeMidtransExpiry(value: string | undefined) {
     if (!value) return null;
-    const normalized = value.includes('T') ? value : `${value.replace(' ', 'T')}+07:00`;
+    let normalized = value.replace(' ', 'T').replace(/ ([+-]\d{2})(\d{2})$/, '$1:$2');
+    if(!/(?:Z|[+-]\d{2}:?\d{2})$/.test(normalized))normalized+='+07:00';
     const timestamp = new Date(normalized);
     return Number.isNaN(timestamp.getTime()) ? null : timestamp.toISOString();
 }

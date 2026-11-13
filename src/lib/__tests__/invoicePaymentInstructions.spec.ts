@@ -61,13 +61,15 @@ describe('legacy invoice page instructions follow the checkout ledger', () => {
   });
   it('serves only the current pending single-invoice QR, with no-store headers', async () => {
     m.stored.mockResolvedValue({ orderId: 'LMSB-local', paymentDetails: { method: 'qris', qrCodeUrl: 'https://api.sandbox.midtrans.com/local-qa/qr' } });
-    const network = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(new Uint8Array([1, 2, 3]), { headers: { 'content-type': 'image/png' } }));
+    vi.stubEnv('MIDTRANS_SERVER_KEY','SB-Mid-server-LOCAL-TEST');
+    const png=[137,80,78,71,13,10,26,10];
+    const network = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(new Uint8Array(png), { headers: { 'content-type': 'image/png' } }));
     try {
       const request = new NextRequest('http://localhost/api/invoices/local-invoice/payment-qr?t=local&order=LMSB-local');
       const response = await getQr(request, { params: Promise.resolve({ id: invoice.id }) });
       expect(response.status).toBe(200); expect(response.headers.get('cache-control')).toBe('no-store');
-      expect([...new Uint8Array(await response.arrayBuffer())]).toEqual([1, 2, 3]);
+      expect([...new Uint8Array(await response.arrayBuffer())]).toEqual(png);
       expect(network).toHaveBeenCalledTimes(1);
-    } finally { network.mockRestore(); }
+    } finally { network.mockRestore();vi.unstubAllEnvs(); }
   });
 });

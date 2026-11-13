@@ -104,6 +104,7 @@ done
 (
   cd "$RELEASE_DIR"
   npm ci --include=dev
+  node scripts/provision-payment-browser.mjs "$SHARED_DIR"
   npm run build
 ) >"$BUILD_LOG" 2>&1
 

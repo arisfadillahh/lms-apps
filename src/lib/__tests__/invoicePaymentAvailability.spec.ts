@@ -2,6 +2,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildInvoicePaymentBreakdown, getInvoicePaymentOption, getPublicInvoicePaymentOptions } from '@/lib/invoicePaymentMethods';
 import { InvoiceMidtransClient, mapMidtransStatus } from '@/lib/invoiceMidtransClient';
 import type { Invoice } from '@/lib/types/invoice';
+import { testQr } from './fixtures/paymentQr';
+vi.mock('server-only',()=>({}));
+const browser=vi.hoisted(()=>vi.fn());
+vi.mock('@/lib/invoiceSnapBrowser',()=>({issueSnapInBrowser:browser}));
+vi.mock('@/lib/invoicePaymentStore',()=>({getStoredInvoicePaymentByInvoiceId:async()=>null}));
+vi.mock('@/lib/invoiceIssuanceJournal',()=>({getIssuanceByOrder:async()=>null,withInvoiceIssuance:async(_id:string,run:(j:unknown)=>Promise<unknown>)=>run({read:async()=>null,write:async()=>{}})}));
 
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
@@ -34,30 +40,25 @@ describe('direct GoPay disabled, interoperable QRIS retained', () => {
     }
   });
 
-  it('keeps the gateway GoPay mapping needed to issue QRIS, using mocked transport only', async () => {
+  it('keeps the GoPay QRIS mapping and issues through normal Snap without a direct unsigned charge', async () => {
     vi.stubEnv('MIDTRANS_SERVER_KEY', 'SB-Mid-server-LOCAL-MOCK-NOT-A-CREDENTIAL');
     vi.stubEnv('MIDTRANS_IS_PRODUCTION', 'false');
     vi.stubEnv('NEXTAUTH_URL', 'http://127.0.0.1:3005');
     vi.stubEnv('MIDTRANS_ADMIN_FEE_FIXED', '2500');
-    const transport = vi.fn()
-      .mockResolvedValueOnce(new Response(JSON.stringify({ token: 'mock-snap', redirect_url: 'https://app.sandbox.midtrans.com/snap/v2/vtweb/mock-snap' }), { status: 201 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        status_code: '201', transaction_status: 'pending', payment_type: 'gopay',
-        actions: [{ name: 'generate-qr-code', url: 'https://api.sandbox.midtrans.com/v2/gopay/mock/qr-code' }],
-      }), { status: 201 }));
+    const transport = vi.fn().mockResolvedValueOnce(Response.json({ token: 'mock-snap' }, { status: 201 }));
+    browser.mockResolvedValue({order_id:'QA-QRIS-MOCK',gross_amount:'102500.00',transaction_id:'local-transaction',
+      status_code:'201',transaction_status:'pending',payment_type:'qris',qr_string:testQr(102500)});
     vi.stubGlobal('fetch', transport);
     const invoice = { id: 'mock-invoice', invoice_number: 'QA-QRIS', parent_name: 'Synthetic QA', parent_phone: '', total_amount: 100000, items: [] } as unknown as Invoice;
     const payment = buildInvoicePaymentBreakdown('qris', 100000)!;
     const result = await new InvoiceMidtransClient().createPayment(invoice, payment, 'QA-QRIS-MOCK');
-    expect(transport).toHaveBeenCalledTimes(2);
+    expect(transport).toHaveBeenCalledTimes(1);
     const [snapUrl, snapOptions] = transport.mock.calls[0];
-    const [chargeUrl, chargeOptions] = transport.mock.calls[1];
     expect(new URL(snapUrl).origin).toBe('https://app.sandbox.midtrans.com');
-    expect(new URL(chargeUrl).origin).toBe('https://app.sandbox.midtrans.com');
     expect(JSON.parse(snapOptions.body)).toMatchObject({ enabled_payments: ['gopay'], transaction_details: { gross_amount: 102500 } });
     expect(snapOptions.headers['X-Override-Notification']).toBe('http://127.0.0.1:3005/api/midtrans/notification');
-    expect(JSON.parse(chargeOptions.body)).toEqual({ payment_type: 'gopay' });
-    expect(result.paymentDetails).toMatchObject({ method: 'qris', label: 'QRIS', total: 102500, qrCodeUrl: 'https://api.sandbox.midtrans.com/v2/gopay/mock/qr-code' });
+    expect(browser).toHaveBeenCalledWith('mock-snap',false);
+    expect(result.paymentDetails).toMatchObject({ method:'qris',label:'QRIS',total:102500,qrString:testQr(102500),deeplinkUrl:null });
   });
 
   it.each(['gopay', 'qris'])('still recognizes settlement for issued %s transactions', (payment_type) => {

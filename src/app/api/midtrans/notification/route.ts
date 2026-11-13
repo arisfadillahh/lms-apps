@@ -165,6 +165,11 @@ async function processVerifiedNotification(payload: MidtransNotificationPayload,
     if (!invoice) {
         return NextResponse.json({ ok: true, updated: false, reason: 'invoice_not_found' });
     }
+    // A delayed cancellation/pending event for the old method must not replace
+    // the newer selected instructions. Its individual attempt was updated above.
+    if (mappedStatus !== 'paid' && invoice.midtrans_order_id && invoice.midtrans_order_id !== orderId) {
+        return NextResponse.json({ ok: true, updated: true, historical: true, status: mappedStatus });
+    }
     if (holidayInvoicePattern.test(invoice.invoice_number) && Number(attempt.base_amount) !== invoice.total_amount) {
         throw new Error('Holiday payment base amount changed');
     }

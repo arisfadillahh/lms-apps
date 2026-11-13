@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, it, vi, afterEach } from 'vitest';
 vi.mock('server-only', () => ({}));
-const mock = vi.hoisted(() => ({ from:vi.fn(),rpc:vi.fn(),history:vi.fn(),snapshot:vi.fn() }));
+const mock = vi.hoisted(() => ({ from:vi.fn(),rpc:vi.fn(),history:vi.fn(),snapshot:vi.fn(),browser:vi.fn(),journals:new Map<string,unknown>() }));
 vi.mock('@/lib/supabaseServer',()=>({getSupabaseAdmin:()=>({from:mock.from,rpc:mock.rpc})}));
-vi.mock('@/lib/invoicePaymentStore',()=>({getHistoricalInvoicePayments:mock.history,updateStoredInvoicePaymentStatus:mock.snapshot}));
+vi.mock('@/lib/invoicePaymentStore',()=>({getHistoricalInvoicePayments:mock.history,updateStoredInvoicePaymentStatus:mock.snapshot,getStoredInvoicePaymentByInvoiceId:async()=>null}));
+vi.mock('@/lib/invoiceSnapBrowser',()=>({issueSnapInBrowser:mock.browser}));
+vi.mock('@/lib/invoiceIssuanceJournal',()=>({getIssuanceByOrder:async()=>null,withInvoiceIssuance:async(id:string,run:(j:unknown)=>Promise<unknown>)=>run({read:async()=>mock.journals.get(id)??null,write:async(value:unknown)=>{mock.journals.set(id,value);}})}));
 vi.mock('@/lib/dao/invoicesDao',()=>({getInvoiceById:vi.fn(),getInvoiceSettings:vi.fn()}));
 import { CheckoutError, assertProviderAmount, checkoutToken, verifyCheckoutToken, createCheckoutPayment, refreshCheckoutIntent, type CheckoutIntent, type CheckoutLink } from '@/lib/services/invoiceCheckoutServer';
 import type { Invoice } from '@/lib/types/invoice';
+import { testQr } from './fixtures/paymentQr';
 
 const invoice: Invoice={id:'00000000-0000-4000-8000-000000000001',invoice_number:'QA-1',ccr_id:'family-1',parent_name:'QA',parent_phone:'628123456789',period_month:10,period_year:2026,period_start_date:'2026-10-26',period_end_date:'2026-11-25',total_amount:500000,status:'PENDING',invoice_type:'MONTHLY',due_date:'2026-10-25',paid_at:null,paid_notes:null,created_at:'',updated_at:'',items:[]};
 const link:CheckoutLink={id:'00000000-0000-4000-8000-000000000002',invoice_ids:[invoice.id],ccr_id:'family-1',parent_phone:invoice.parent_phone,send_state:'DRAFT',sent_at:null};
@@ -14,6 +17,8 @@ const pending=(order='LMSB-existing'):CheckoutIntent=>({order_id:order,link_id:l
 beforeEach(()=>{
   vi.resetAllMocks();vi.stubEnv('NEXTAUTH_SECRET','local-checkout-test-secret');vi.stubEnv('MIDTRANS_SERVER_KEY','SB-Mid-server-local-test');vi.stubEnv('MIDTRANS_IS_PRODUCTION','false');vi.stubEnv('NEXTAUTH_URL','http://localhost:3005');vi.stubEnv('LMS_SELECTED_INVOICE_CHECKOUT_ENABLED','true');
   current=null;claims=[];sequence=[];mock.history.mockResolvedValue([]);mock.snapshot.mockResolvedValue(null);
+  mock.journals.clear();
+  mock.browser.mockImplementation(async()=>{sequence.push('charge');return {status_code:'201',transaction_status:'pending',payment_type:'qris',transaction_id:'local-test',order_id:current!.order_id,gross_amount:'502500.00',qr_string:testQr(502500)};});
   mock.from.mockImplementation((table:string)=>{
     let filters:Record<string,unknown>={}, patch:Record<string,unknown>|undefined;
     const q:any={ select:()=>q, in:()=>q, eq:(key:string,value:unknown)=>{filters[key]=value;return q;}, update:(value:Record<string,unknown>)=>{patch=value;return q;},
@@ -47,8 +52,8 @@ describe('payment safety ordering with real gateway client and mocked HTTP only'
     vi.stubGlobal('fetch',vi.fn(async()=>{sequence.push('snap-timeout');throw new Error('network timeout');}));
     await expect(createCheckoutPayment([invoice],link.id,'qris',500000)).rejects.toThrow('rekonsiliasi');
     expect(claims).toHaveLength(1);expect(current!.state).toBe('CREATING');
-    const retry=await createCheckoutPayment([invoice],link.id,'qris',500000);
-    expect(retry.state).toBe('CREATING');expect(fetch).toHaveBeenCalledTimes(1);
+    await expect(createCheckoutPayment([invoice],link.id,'qris',500000)).rejects.toThrow('rekonsiliasi');
+    expect(current!.state).toBe('CREATING');expect(fetch).toHaveBeenCalledTimes(1);
   });
   it('fails closed on a database race before any gateway call',async()=>{
     vi.stubGlobal('fetch',vi.fn());mock.rpc.mockResolvedValue({data:null,error:{code:'P0001'}});
@@ -86,6 +91,7 @@ describe('payment safety ordering with real gateway client and mocked HTTP only'
     expect(mock.rpc).not.toHaveBeenCalled();expect(fetch).toHaveBeenCalledTimes(1);
   });
   it('does not attach wrong gateway totals; the reservation remains held for reconciliation',async()=>{
+    mock.browser.mockResolvedValue({order_id:'local-wrong-order',gross_amount:'1.00',status_code:'201',transaction_status:'pending'});
     vi.stubGlobal('fetch',vi.fn(async(url:string)=>Response.json(url.endsWith('/snap/v1/transactions')?{token:'qa'}:{order_id:current!.order_id,gross_amount:'1.00',status_code:'201',transaction_status:'pending'})));
     await expect(createCheckoutPayment([invoice],link.id,'qris',500000)).rejects.toThrow('rekonsiliasi');
     expect(sequence).toEqual(['reserve_invoice_checkout']);expect(current!.state).toBe('CREATING');

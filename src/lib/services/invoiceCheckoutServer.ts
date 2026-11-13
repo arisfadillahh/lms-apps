@@ -169,16 +169,23 @@ export async function createCheckoutPayment(invoices: Invoice[], linkId: string 
   const active = await getClaimedIntents(ids);
   if (active.length) {
     const intent = active[0], allocated = await intentInvoiceIds(intent.order_id);
-    if (active.length === 1 && intent.method === method && allocated.length === ids.length && ids.every(id => allocated.includes(id)) && intent.link_id === linkId) return intent;
+    if (active.length === 1 && intent.method === method && allocated.length === ids.length && ids.every(id => allocated.includes(id)) && intent.link_id === linkId) {
+      return intent.state === 'CREATING' ? issueReservedCheckout(invoices, breakdown, intent.order_id) : intent;
+    }
     throw new CheckoutError('Sudah ada instruksi aktif. Batalkan dan pastikan statusnya selesai sebelum mengubah pilihan.');
   }
   await assertNoLegacyPayableOrders(invoices);
   const orderId = `LMSB-${randomUUID()}`;
   await rpc('reserve_invoice_checkout', { p_order: orderId, p_link: linkId, p_ids: ids, p_method: method, p_base: base, p_fee: breakdown.adminFee });
+  return issueReservedCheckout(invoices,breakdown,orderId);
+}
+
+async function issueReservedCheckout(invoices: Invoice[], breakdown: NonNullable<ReturnType<typeof buildInvoicePaymentBreakdown>>, orderId: string) {
   // Reservation commits BEFORE external charge. Any network ambiguity retains the
   // claim: never free it on timeout/404 and accidentally issue a second charge.
   try {
-    const synthetic: Invoice = { ...invoices[0], id: orderId, invoice_number: `TAGIHAN-${invoices.length}`, total_amount: base, items: invoices.flatMap(i => i.items ?? []) };
+    const synthetic: Invoice = { ...invoices[0], id: orderId, invoice_number: `TAGIHAN-${invoices.length}`, total_amount: breakdown.baseAmount,
+      midtrans_order_id: null, items: invoices.flatMap(i => i.items ?? []) };
     const payment = await new InvoiceMidtransClient().createPayment(synthetic, breakdown, orderId);
     assertProviderAmount({ order_id: orderId, total_amount: breakdown.total }, payment.rawResponse);
     const { error } = await getSupabaseAdmin().from('invoice_checkout_intents' as any).update({ state: 'PENDING', payment_details: payment.paymentDetails }).eq('order_id', orderId).eq('state', 'CREATING');

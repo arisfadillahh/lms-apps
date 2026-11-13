@@ -84,7 +84,7 @@ export default function InvoiceView({ invoice, publicToken, paymentOptions, init
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ method, token: publicToken }),
-                signal: AbortSignal.timeout(25000)
+                signal: AbortSignal.timeout(45000)
             });
             const data = await response.json().catch(() => ({}));
 
@@ -96,7 +96,7 @@ export default function InvoiceView({ invoice, publicToken, paymentOptions, init
             setIsPaymentModalOpen(false);
         } catch (error) {
             setPaymentError(error instanceof DOMException && error.name === 'TimeoutError'
-                ? 'Pembayaran belum dapat dikonfirmasi. Muat ulang invoice untuk memeriksa statusnya.'
+                ? 'Instruksi masih diproses. Coba lagi untuk melanjutkan pembayaran yang sama atau muat ulang invoice.'
                 : error instanceof Error ? error.message : 'Gagal membuat metode pembayaran.');
         } finally {
             setPaymentLoadingMethod(null);
@@ -598,11 +598,6 @@ function PaymentMethodCard({
                     <a href={payment.qrImageUrl} download style={downloadQrButtonStyle}>
                         Unduh QR
                     </a>
-                    {payment.deeplinkUrl && (
-                        <a href={payment.deeplinkUrl} target="_blank" rel="noreferrer" style={secondaryLinkButtonStyle}>
-                            Buka Pembayaran
-                        </a>
-                    )}
                 </div>
             ) : isGoPay ? (
                 <div style={goPayBoxStyle}>

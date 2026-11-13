@@ -54,16 +54,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             return NextResponse.json({ ok: true, payment: toPublicStoredInvoicePayment(stored, token), options: getPublicInvoicePaymentOptions(invoice.total_amount) });
         }
 
-        const existingPayment = await getReusableInvoicePayment(invoice, token);
-        if (existingPayment && existingPayment.method === payment.method) {
-            return NextResponse.json({
-                ok: true,
-                reused: true,
-                payment: existingPayment,
-                options: getPublicInvoicePaymentOptions(invoice.total_amount)
-            });
-        }
-
         const orderId = createLmsInvoiceMidtransOrderId(invoice, payment.method);
         const midtrans = await new InvoiceMidtransClient().createPayment(invoice, payment, orderId);
         const storedPayment = await saveStoredInvoicePayment({
@@ -81,7 +71,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         });
     } catch (error) {
         if (error instanceof CheckoutError) return NextResponse.json({ error: error.message }, { status: error.status });
-        console.error('[InvoicePayment] Create payment method error:', error);
+        console.error('[InvoicePayment] Create payment method failed:', error instanceof Error ? error.message : 'Unknown failure');
         return NextResponse.json({
             error: isHolidayInvoice ? 'Instruksi pembayaran belum dapat dibuat. Coba lagi atau hubungi tim Clevio.'
                 : error instanceof Error ? error.message : 'Gagal membuat instruksi pembayaran.'

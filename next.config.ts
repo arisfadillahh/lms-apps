@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
     '@whiskeysockets/baileys',
     'jimp',
     'sharp',
+    'puppeteer-core',
     'qrcode-terminal'
   ],
   images: {

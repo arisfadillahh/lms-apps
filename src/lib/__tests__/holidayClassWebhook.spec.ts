@@ -37,6 +37,17 @@ beforeEach(() => {
 });
 
 describe('Holiday standard invoice payment notifications', () => {
+  it('keeps the new selected method when an older cancelled order notifies late',async()=>{
+    m.getInvoice.mockResolvedValue({...invoice,midtrans_order_id:'LMS-new-active'});
+    const updates:string[]=[];
+    m.from.mockImplementation((table:string)=>({
+      select:()=>({eq:()=>({single:async()=>({data:{id:'old-attempt',invoice_id:invoice.id,base_amount:350000,total_amount:352500},error:null})})}),
+      update:()=>{updates.push(table);return {eq:async()=>({error:null})};},
+    }));
+    const response=await POST(request({...payload,status_code:'200',transaction_status:'cancel'}));
+    expect(await response.json()).toMatchObject({historical:true,status:'cancelled'});
+    expect(updates).toEqual(['invoice_payment_attempts']);expect(m.settle).not.toHaveBeenCalled();expect(m.deliver).not.toHaveBeenCalled();
+  });
   it('settles a stored bank payment and schedules Holiday confirmations without altering regular tuition access', async () => {
     const attempt = { id: 'attempt', invoice_id: invoice.id, payment_method: 'bni_va', base_amount: 350000, total_amount: 352500 };
     m.from.mockImplementation(() => ({

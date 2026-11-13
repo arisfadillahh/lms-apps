@@ -47,23 +47,34 @@ export async function GET(request: NextRequest) {
 
         // Parse query params
         const { searchParams } = new URL(request.url);
+        const dateBasis = searchParams.get('dateBasis') ?? 'period';
+        const readDatePart = (key: string) => {
+            const value = searchParams.get(key);
+            return value && value !== 'all' ? Number(value) : undefined;
+        };
+        const month = readDatePart('month');
+        const year = readDatePart('year');
+        if ((dateBasis !== 'issued' && dateBasis !== 'period' && dateBasis !== 'paid')
+            || (month !== undefined && (!Number.isInteger(month) || month < 1 || month > 12))
+            || (year !== undefined && (!Number.isInteger(year) || year < 1900 || year > 9998))
+            || (dateBasis !== 'period' && month !== undefined && year === undefined)) {
+            return NextResponse.json({ error: 'Filter tanggal invoice tidak valid.' }, { status: 400 });
+        }
         const filters: InvoiceFilters = {
-            month: searchParams.get('month') && searchParams.get('month') !== 'all' ? parseInt(searchParams.get('month')!) : undefined,
-            year: searchParams.get('year') && searchParams.get('year') !== 'all' ? parseInt(searchParams.get('year')!) : undefined,
+            dateBasis,
+            month,
+            year,
             status: searchParams.get('status') as InvoiceStatus | undefined,
             search: searchParams.get('search') || undefined,
             page: searchParams.get('page') ? parseInt(searchParams.get('page')!) : 1,
             limit: searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 20
         };
 
-        // Get invoices
-        const result = await listInvoices(filters);
-
-        // Get stats
-        const stats = await getInvoiceStats(filters.month, filters.year);
-
-        // Get settings
-        const settings = await getInvoiceSettings();
+        const [result, stats, settings] = await Promise.all([
+            listInvoices(filters),
+            getInvoiceStats(filters),
+            getInvoiceSettings()
+        ]);
 
         return NextResponse.json({
             ...result,

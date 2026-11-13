@@ -5,6 +5,7 @@
  */
 
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { applyInvoiceFilters } from '@/lib/invoiceDateFilter';
 import type {
     Invoice,
     InvoiceItem,
@@ -635,32 +636,22 @@ export async function updateExternalInvoiceMetadata(
 
 export async function listInvoices(filters: InvoiceFilters): Promise<InvoiceListResult> {
     const supabase = getSupabaseAdmin();
-    const { month, year, status, search, page = 1, limit = 20 } = filters;
+    const { dateBasis, status, page = 1, limit = 20 } = filters;
 
     let query = supabase
         .from('invoices' as any)
         .select(`*, ${INVOICE_ITEMS_WITH_BILLING_DURATION}, ccr_numbers(*)`, { count: 'exact' });
-
-    if (month) {
-        query = query.eq('period_month', month);
-    }
-
-    if (year) {
-        query = query.eq('period_year', year);
-    }
+    query = applyInvoiceFilters<typeof query>(query, filters);
 
     if (status) {
         query = query.eq('status', status);
     }
 
-    if (search) {
-        query = query.or(`invoice_number.ilike.%${search}%,parent_name.ilike.%${search}%`);
-    }
-
     // Pagination
     const offset = (page - 1) * limit;
     query = query
-        .order('created_at', { ascending: false })
+        .order(dateBasis === 'paid' ? 'paid_at' : 'created_at', { ascending: false })
+        .order('id', { ascending: false })
         .range(offset, offset + limit - 1);
 
     const { data, error, count } = await query;

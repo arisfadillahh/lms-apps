@@ -2,7 +2,7 @@
 
 import { useState, type CSSProperties, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import type { Invoice } from '@/lib/types/invoice';
+import type { Invoice, InvoiceDateBasis } from '@/lib/types/invoice';
 import { formatInvoicePeriod } from '@/lib/invoicePeriod';
 import { useReminder } from '@/contexts/ReminderContext';
 import AssignClassModal from './AssignClassModal';
@@ -35,6 +35,8 @@ export default function InvoiceManagement({
 }: Props) {
     const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
     const [stats, setStats] = useState<Stats>(initialStats);
+    const [dateBasis, setDateBasis] = useState<InvoiceDateBasis>('issued');
+    const [loadedDateBasis, setLoadedDateBasis] = useState<InvoiceDateBasis>('issued');
     const [month, setMonth] = useState<number | 'all'>(initialMonth);
     const [year, setYear] = useState<number | 'all'>(initialYear);
     const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -95,6 +97,7 @@ export default function InvoiceManagement({
 
     const formatDate = (dateStr: string) => {
         return new Date(dateStr).toLocaleDateString('id-ID', {
+            timeZone: 'Asia/Jakarta',
             day: 'numeric',
             month: 'short',
             year: 'numeric'
@@ -109,7 +112,7 @@ export default function InvoiceManagement({
     const fetchInvoices = useCallback(async () => {
         setLoading(true);
         try {
-            const params = new URLSearchParams();
+            const params = new URLSearchParams({ dateBasis });
             if (month !== 'all') params.set('month', month.toString());
             if (year !== 'all') params.set('year', year.toString());
             params.set('limit', '1000'); // Fetch all for local pagination
@@ -117,22 +120,27 @@ export default function InvoiceManagement({
 
             const res = await fetch(`/api/invoices?${params.toString()}`);
             const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
 
             setInvoices(data.invoices || []);
+            setCurrentPage(1);
+            setStatusFilter('ALL');
+            setLoadedDateBasis(dateBasis);
             if (data.stats) {
                 setStats(data.stats);
             }
         } catch (error) {
             console.error('Error fetching invoices:', error);
+            setMessage({ type: 'error', text: 'Invoice tidak dapat dimuat. Coba lagi.' });
         } finally {
             setLoading(false);
         }
-    }, [month, year, statusFilter, search]);
+    }, [dateBasis, month, year, search]);
 
     // Action: Generate Invoices ONLY
     const handleGenerate = async () => {
-        if (month === 'all' || year === 'all') {
-            setMessage({ type: 'error', text: 'Pilih bulan dan tahun spesifik untuk generate invoice.' });
+        if (dateBasis !== 'period' || month === 'all' || year === 'all') {
+            setMessage({ type: 'error', text: 'Pilih Periode Kelas, bulan, dan tahun untuk generate invoice.' });
             return;
         }
         setGenerating(true);
@@ -316,7 +324,8 @@ export default function InvoiceManagement({
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <button
                         onClick={handleGenerate}
-                        disabled={generating || isProcessingQueue || month === 'all' || year === 'all'}
+                        disabled={generating || isProcessingQueue}
+                        title="Gunakan Periode Kelas untuk memilih bulan tagihan"
                         className="btn"
                     >
                         {generating ? '⏳ Generating...' : '⚙️ Generate Invoice'}
@@ -358,8 +367,8 @@ export default function InvoiceManagement({
                     <div className="stat-icon">🧾</div>
                 </div>
                 <div className="stat">
-                    <div className="stat-label">Pending</div>
-                    <div className="stat-value">{stats.pending}</div>
+                    <div className="stat-label">{loadedDateBasis === 'paid' ? 'Lunas' : 'Pending'}</div>
+                    <div className="stat-value">{loadedDateBasis === 'paid' ? stats.paid : stats.pending}</div>
                     <div className="stat-icon">🕒</div>
                 </div>
                 <div className="stat">
@@ -369,7 +378,7 @@ export default function InvoiceManagement({
                     <div className="stat-foot" style={{ color: '#c62828' }}>perlu follow-up</div>
                 </div>
                 <div className="stat">
-                    <div className="stat-label">Belum Terbayar</div>
+                    <div className="stat-label">{loadedDateBasis === 'paid' ? 'Total Invoice Lunas' : 'Belum Terbayar'}</div>
                     <div className="stat-value" style={{ fontSize: '24px' }}>{formatCurrency(stats.totalAmount)}</div>
                     <div className="stat-icon">💳</div>
                 </div>
@@ -378,10 +387,32 @@ export default function InvoiceManagement({
             {/* Filters */}
             <div style={filtersStyle}>
                 <div style={filterGroupStyle}>
-                    <label style={filterLabelStyle}>Bulan</label>
+                    <label htmlFor="invoice-date-basis" style={filterLabelStyle}>Dasar tanggal</label>
                     <select
+                        id="invoice-date-basis"
+                        value={dateBasis}
+                        onChange={(e) => {
+                            const next = e.target.value as InvoiceDateBasis;
+                            setDateBasis(next);
+                            if (next !== 'period' && year === 'all' && month !== 'all') setYear(initialYear);
+                        }}
+                        style={selectStyle}
+                    >
+                        <option value="issued">Tanggal Terbit</option>
+                        <option value="period">Periode Kelas</option>
+                        <option value="paid">Tanggal Bayar</option>
+                    </select>
+                </div>
+                <div style={filterGroupStyle}>
+                    <label htmlFor="invoice-month" style={filterLabelStyle}>Bulan</label>
+                    <select
+                        id="invoice-month"
                         value={month}
-                        onChange={(e) => setMonth(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
+                        onChange={(e) => {
+                            const next = e.target.value === 'all' ? 'all' : Number(e.target.value);
+                            setMonth(next);
+                            if (dateBasis !== 'period' && next !== 'all' && year === 'all') setYear(initialYear);
+                        }}
                         style={selectStyle}
                     >
                         <option value="all">Semua Bulan</option>
@@ -391,14 +422,19 @@ export default function InvoiceManagement({
                     </select>
                 </div>
                 <div style={filterGroupStyle}>
-                    <label style={filterLabelStyle}>Tahun</label>
+                    <label htmlFor="invoice-year" style={filterLabelStyle}>Tahun</label>
                     <select
+                        id="invoice-year"
                         value={year}
-                        onChange={(e) => setYear(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
+                        onChange={(e) => {
+                            const next = e.target.value === 'all' ? 'all' : Number(e.target.value);
+                            setYear(next);
+                            if (dateBasis !== 'period' && next === 'all') setMonth('all');
+                        }}
                         style={selectStyle}
                     >
                         <option value="all">Semua Tahun</option>
-                        {[2024, 2025, 2026, 2027].map(y => (
+                        {Array.from({ length: Math.max(4, initialYear - 2022) }, (_, index) => 2024 + index).map(y => (
                             <option key={y} value={y}>{y}</option>
                         ))}
                     </select>
@@ -414,7 +450,7 @@ export default function InvoiceManagement({
                     />
                 </div>
                 <button onClick={fetchInvoices} disabled={loading} style={filterButtonStyle}>
-                    {loading ? '...' : '🔍 Load Data'}
+                    {loading ? 'Memuat…' : 'Tampilkan'}
                 </button>
             </div>
 
@@ -442,18 +478,19 @@ export default function InvoiceManagement({
                         <tr>
                             <th>Invoice Number</th>
                             <th>Parent Name</th>
-                            <th>Periode</th>
+                            <th>Tanggal Terbit</th>
+                            <th>Periode Kelas</th>
                             <th>Total</th>
                             <th>Status</th>
                             <th>Due Date</th>
-                            <th>Paid Date</th>
+                            <th>Tanggal Bayar</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {displayedInvoices.length === 0 ? (
                             <tr>
-                                <td colSpan={8} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Tidak ada invoice</td>
+                                <td colSpan={9} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-dim)' }}>Tidak ada invoice</td>
                             </tr>
                         ) : (
                             displayedInvoices.map((inv) => {
@@ -467,6 +504,7 @@ export default function InvoiceManagement({
                                         </Link>
                                     </td>
                                     <td><div style={{ fontWeight: 600 }}>{inv.parent_name}</div></td>
+                                    <td className="muted">{formatDate(inv.created_at)}</td>
                                     <td>{formatInvoicePeriod(inv, true)}</td>
                                     <td style={{ fontWeight: 700 }}>{formatCurrency(inv.total_amount)}</td>
                                     <td>

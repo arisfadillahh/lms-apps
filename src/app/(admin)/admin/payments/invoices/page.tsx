@@ -5,52 +5,22 @@
  * Table list of invoices with filters, search, and actions.
  */
 
-import { getSupabaseAdmin } from '@/lib/supabaseServer';
-import { INVOICE_ITEMS_WITH_BILLING_DURATION } from '@/lib/dao/invoicesDao';
+import { formatInTimeZone } from 'date-fns-tz';
+import { listInvoices } from '@/lib/dao/invoicesDao';
+import { INVOICE_TIME_ZONE } from '@/lib/invoiceDateFilter';
+import { getInvoiceStats } from '@/lib/services/invoiceGenerator';
+import type { InvoiceFilters } from '@/lib/types/invoice';
 import InvoiceManagement from './InvoiceManagement';
 
 export default async function AdminInvoicesPage() {
-    const supabase = getSupabaseAdmin();
-
-    // Get current month/year
-    const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
-
-    // Fetch initial data
-    const { data: invoicesData } = await supabase
-        .from('invoices' as any)
-        .select(`*, ${INVOICE_ITEMS_WITH_BILLING_DURATION}`)
-        .eq('period_month', currentMonth)
-        .eq('period_year', currentYear)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-    const invoices = invoicesData as any[] || [];
-
-    // Get stats
-    const { data: statsData } = await supabase
-        .from('invoices' as any)
-        .select('status, total_amount')
-        .eq('period_month', currentMonth)
-        .eq('period_year', currentYear);
-
-    const stats = statsData as any[] || [];
-
-    const pendingCount = stats.filter((i: any) => i.status === 'PENDING').length || 0;
-    const paidCount = stats.filter((i: any) => i.status === 'PAID').length || 0;
-    const overdueCount = stats.filter((i: any) => i.status === 'OVERDUE').length || 0;
-    const totalAmount = stats.reduce((sum: number, i: any) => sum + (i.total_amount || 0), 0) || 0;
+    const [currentYear, currentMonth] = formatInTimeZone(new Date(), INVOICE_TIME_ZONE, 'yyyy-MM').split('-').map(Number);
+    const filters: InvoiceFilters = { dateBasis: 'issued', month: currentMonth, year: currentYear, limit: 50 };
+    const [{ invoices }, stats] = await Promise.all([listInvoices(filters), getInvoiceStats(filters)]);
 
     return (
         <InvoiceManagement
-            initialInvoices={invoices || []}
-            initialStats={{
-                pending: pendingCount,
-                paid: paidCount,
-                overdue: overdueCount,
-                totalAmount
-            }}
+            initialInvoices={invoices}
+            initialStats={stats}
             initialMonth={currentMonth}
             initialYear={currentYear}
             checkoutEnabled={process.env.LMS_SELECTED_INVOICE_CHECKOUT_ENABLED === 'true'}

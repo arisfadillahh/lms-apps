@@ -14,7 +14,8 @@ import {
     getMonthlyInvoiceForParent,
     updateInvoiceSummary
 } from '@/lib/dao/invoicesDao';
-import type { GenerateInvoicesResponse, Invoice, InvoiceItem } from '@/lib/types/invoice';
+import type { GenerateInvoicesResponse, Invoice, InvoiceFilters, InvoiceItem } from '@/lib/types/invoice';
+import { applyInvoiceFilters } from '@/lib/invoiceDateFilter';
 
 interface CoderPaymentData {
     id: string;
@@ -444,44 +445,39 @@ function calculateDueDate(
 /**
  * Get invoice statistics for current month
  */
-export async function getInvoiceStats(month?: number, year?: number) {
+export async function getInvoiceStats(filters: InvoiceFilters) {
     const supabase = getSupabaseAdmin();
-
-    let queryPending = supabase.from('invoices' as any).select('*', { count: 'exact', head: true }).eq('status', 'PENDING');
-    let queryPaid = supabase.from('invoices' as any).select('*', { count: 'exact', head: true }).eq('status', 'PAID');
-    let queryOverdue = supabase.from('invoices' as any).select('*', { count: 'exact', head: true }).eq('status', 'OVERDUE');
-    let queryTotal = supabase.from('invoices' as any).select('total_amount').neq('status', 'PAID');
-
-    if (month) {
-        queryPending = queryPending.eq('period_month', month);
-        queryPaid = queryPaid.eq('period_month', month);
-        queryOverdue = queryOverdue.eq('period_month', month);
-        queryTotal = queryTotal.eq('period_month', month);
-    }
-    
-    if (year) {
-        queryPending = queryPending.eq('period_year', year);
-        queryPaid = queryPaid.eq('period_year', year);
-        queryOverdue = queryOverdue.eq('period_year', year);
-        queryTotal = queryTotal.eq('period_year', year);
-    }
-
-    const [pending, paid, overdue, total] = await Promise.all([
-        queryPending,
-        queryPaid,
-        queryOverdue,
-        queryTotal
+    const paidBasis = filters.dateBasis === 'paid';
+    const countStatus = (status: string) => {
+        let count = supabase.from('invoices' as any).select('id', { count: 'exact', head: true });
+        if (!paidBasis) count = count.eq('status', status);
+        return applyInvoiceFilters<typeof count>(count, filters);
+    };
+    const sumAmounts = async () => {
+        const batch = 1000;
+        let total = 0;
+        for (let offset = 0; ; offset += batch) {
+            let amounts = supabase.from('invoices' as any).select('total_amount');
+            if (!paidBasis) amounts = amounts.neq('status', 'PAID');
+            const { data, error } = await applyInvoiceFilters<typeof amounts>(amounts, filters)
+                .order('id').range(offset, offset + batch - 1);
+            if (error) throw error;
+            const rows = data as unknown as Pick<Invoice, 'total_amount'>[];
+            total += rows.reduce((sum, row) => sum + (row.total_amount || 0), 0);
+            if (rows.length < batch) return total;
+        }
+    };
+    const [pending, paid, overdue, totalAmount] = await Promise.all([
+        paidBasis ? null : countStatus('PENDING'),
+        countStatus('PAID'),
+        paidBasis ? null : countStatus('OVERDUE'),
+        sumAmounts()
     ]);
 
-    const totalAmount = ((total.data as any[]) || []).reduce(
-        (sum, inv) => sum + (inv.total_amount || 0),
-        0
-    );
-
     return {
-        pending: pending.count || 0,
+        pending: pending?.count || 0,
         paid: paid.count || 0,
-        overdue: overdue.count || 0,
+        overdue: overdue?.count || 0,
         totalAmount
     };
 }

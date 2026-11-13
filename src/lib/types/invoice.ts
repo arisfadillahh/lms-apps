@@ -154,7 +154,10 @@ export interface MarkPaidRequest {
 }
 
 // Filter types for admin list
+export type InvoiceDateBasis = 'issued' | 'period' | 'paid';
+
 export interface InvoiceFilters {
+    dateBasis?: InvoiceDateBasis;
     month?: number;
     year?: number;
     status?: InvoiceStatus;

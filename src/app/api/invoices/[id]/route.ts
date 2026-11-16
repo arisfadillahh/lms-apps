@@ -258,19 +258,22 @@ export async function DELETE(
         const invoiceForWebhook = await getInvoiceById(id);
         const supabase = getSupabaseAdmin();
 
-        // First delete invoice items
-        await supabase
-            .from('invoice_items' as any)
-            .delete()
-            .eq('invoice_id', id);
-
-        // Then delete the invoice
-        const { error } = await supabase
+        // The invoice-items foreign key cascades within this same statement.
+        // If a registration or checkout blocks deletion, every item stays intact.
+        const { data: deleted, error } = await supabase
             .from('invoices' as any)
             .delete()
-            .eq('id', id);
+            .eq('id', id)
+            .select('id')
+            .maybeSingle();
 
         if (error) {
+            if (error.code === '23503') {
+                return NextResponse.json(
+                    { error: 'Invoice terhubung ke pendaftaran atau riwayat pembayaran, sehingga tidak bisa dihapus dari daftar invoice.' },
+                    { status: 409 }
+                );
+            }
             console.error('[API] Delete invoice error:', error);
             return NextResponse.json(
                 { error: 'Failed to delete invoice' },
@@ -278,7 +281,7 @@ export async function DELETE(
             );
         }
 
-        const eventManagerWebhookStatus = invoiceForWebhook
+        const eventManagerWebhookStatus = deleted && invoiceForWebhook
             ? await notifyEventManagerInvoiceStatus(invoiceForWebhook, 'cancelled')
             : { sent: false, reason: 'invoice_not_found_before_delete' };
 

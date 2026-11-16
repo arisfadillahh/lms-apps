@@ -73,6 +73,7 @@ export default function InvoiceManagement({
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const [showDeleteModal, setShowDeleteModal] = useState<Invoice | null>(null);
     const [deleting, setDeleting] = useState<string | null>(null);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
 
     // Reminder Hook (from global context)
     const { startReminder, isProcessing: isProcessingQueue } = useReminder();
@@ -139,8 +140,8 @@ export default function InvoiceManagement({
 
     // Action: Generate Invoices ONLY
     const handleGenerate = async () => {
-        if (dateBasis !== 'period' || month === 'all' || year === 'all') {
-            setMessage({ type: 'error', text: 'Pilih Periode Kelas, bulan, dan tahun untuk generate invoice.' });
+        if (month === 'all' || year === 'all') {
+            setMessage({ type: 'error', text: 'Pilih satu bulan dan tahun untuk generate invoice.' });
             return;
         }
         setGenerating(true);
@@ -263,20 +264,25 @@ export default function InvoiceManagement({
         if (!showDeleteModal) return;
 
         setDeleting(showDeleteModal.id);
+        setDeleteError(null);
         try {
             const res = await fetch(`/api/invoices/${showDeleteModal.id}`, {
                 method: 'DELETE'
             });
 
             if (res.ok) {
-                setMessage({ type: 'success', text: 'Invoice deleted!' });
+                setMessage({ type: 'success', text: 'Invoice berhasil dihapus.' });
                 setShowDeleteModal(null);
                 await fetchInvoices();
             } else {
-                setMessage({ type: 'error', text: 'Failed to delete invoice' });
+                const body = await res.json().catch(() => null);
+                setDeleteError(res.status === 409 && typeof body?.error === 'string'
+                    ? body.error
+                    : 'Invoice tidak dapat dihapus. Coba lagi.');
             }
         } catch (error) {
-            setMessage({ type: 'error', text: 'Error: ' + String(error) });
+            console.error('Error deleting invoice:', error);
+            setDeleteError('Invoice tidak dapat dihapus. Coba lagi.');
         } finally {
             setDeleting(null);
         }
@@ -325,7 +331,7 @@ export default function InvoiceManagement({
                     <button
                         onClick={handleGenerate}
                         disabled={generating || isProcessingQueue}
-                        title="Gunakan Periode Kelas untuk memilih bulan tagihan"
+                        title="Buat invoice untuk bulan dan tahun yang dipilih"
                         className="btn"
                     >
                         {generating ? '⏳ Generating...' : '⚙️ Generate Invoice'}
@@ -543,7 +549,7 @@ export default function InvoiceManagement({
                                                 </button>
                                             )}
                                             <button
-                                                onClick={() => setShowDeleteModal(inv)}
+                                                onClick={() => { setDeleteError(null); setShowDeleteModal(inv); }}
                                                 className="btn btn-sm btn-ghost"
                                                 title="Hapus invoice"
                                                 style={{ color: '#ef4444' }}
@@ -657,6 +663,7 @@ export default function InvoiceManagement({
                         <p style={{ color: '#c62828', marginBottom: '20px' }}>
                             Apakah Anda yakin ingin menghapus invoice ini? Tindakan ini tidak dapat dibatalkan.
                         </p>
+                        {deleteError && <p role="alert" style={errorMessageStyle}>{deleteError}</p>}
 
                         <div style={modalActionsStyle}>
                             <button

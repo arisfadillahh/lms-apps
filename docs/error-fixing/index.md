@@ -4,6 +4,7 @@ Search this file and the linked monthly log before changing related code.
 
 | Date | Reference | Area | Symptom | Monthly log |
 | --- | --- | --- | --- | --- |
+| 2026-11-16 | BUG-7A6A1304 / BUG-95341CB7 | Admin invoices | Generation required switching date filters and a blocked delete removed line items | [2026-11](./2026-11.md#bug-7a6a1304-and-bug-95341cb7-invoice-generation-and-deletion) |
 | 2026-11-13 | INTERNAL-20261113-02 | Admin invoice dates | Holiday invoices issued in November were only visible under their December class period | [2026-11](./2026-11.md#internal-20261113-02-admin-invoice-date-filters) |
 | 2026-11-13 | INTERNAL-20261113-01 | Inline QRIS and VA issuance | Snap required signed browser requests; QRIS and VA could not be issued inside Clevio invoices | [2026-11](./2026-11.md#internal-20261113-01-server-side-snap-instructions) |
 | 2026-11-12 | INTERNAL-20261112-02 | Invoice payment issuance | QRIS and VA selection could not generate instructions | [2026-11](./2026-11.md#internal-20261112-02-invoice-payment-instructions-rejected) |

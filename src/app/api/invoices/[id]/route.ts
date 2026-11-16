@@ -14,6 +14,7 @@ import { getShortInvoiceUrlOrOriginal } from '@/lib/services/shortLinks';
 import { notifyEventManagerInvoiceStatus, resolveExternalReference } from '@/lib/services/eventManagerWebhook';
 import { isInvoiceCheckoutEnabled, confirmManualMonthlyPayment, CheckoutError } from '@/lib/services/invoiceCheckoutServer';
 import { holidayInvoicePattern } from '@/lib/holidayClass';
+import { invoicePaymentDateWib } from '@/lib/invoicePaymentDate';
 import { deleteHolidayInvoice } from '@/lib/services/holidayInvoiceDeletion';
 
 type RouteParams = { params: Promise<{ id: string }> };
@@ -164,8 +165,13 @@ export async function PATCH(
             );
         }
 
-        const before = isInvoiceCheckoutEnabled() ? await getInvoiceById(id) : null;
-        const transactional = before?.invoice_type === 'MONTHLY';
+        const before = await getInvoiceById(id);
+        if (!before) return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+        const paymentDate = typeof paid_at === 'string' ? invoicePaymentDateWib(paid_at) : '';
+        if (!paymentDate || paymentDate < invoicePaymentDateWib(before.created_at) || paymentDate > invoicePaymentDateWib(new Date())) {
+            return NextResponse.json({ error: 'Tanggal bayar harus antara tanggal terbit invoice dan hari ini (WIB).' }, { status: 400 });
+        }
+        const transactional = isInvoiceCheckoutEnabled() && before.invoice_type === 'MONTHLY';
         const confirmed = transactional ? await confirmManualMonthlyPayment(before!, paid_at, paid_notes) : null;
         const invoice = confirmed?.invoice ?? await markInvoiceAsPaid(id, paid_at, paid_notes);
         if (confirmed?.duplicate) return NextResponse.json({ ...invoice, waStatus: { sent: false, skipped: true } });

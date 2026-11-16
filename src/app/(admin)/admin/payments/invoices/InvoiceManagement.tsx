@@ -4,6 +4,7 @@ import { useState, type CSSProperties, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import type { Invoice, InvoiceDateBasis } from '@/lib/types/invoice';
 import { formatInvoicePeriod } from '@/lib/invoicePeriod';
+import { invoicePaymentDateWib } from '@/lib/invoicePaymentDate';
 import { holidayInvoicePattern } from '@/lib/holidayClass';
 import { useReminder } from '@/contexts/ReminderContext';
 import AssignClassModal from './AssignClassModal';
@@ -538,7 +539,7 @@ export default function InvoiceManagement({
                                                 <button
                                                     onClick={() => {
                                                         setShowPaidModal(inv);
-                                                        setPaidDate(new Date().toISOString().split('T')[0]);
+                                                        setPaidDate(invoicePaymentDateWib(new Date()));
                                                     }}
                                                     className="btn btn-sm btn-ghost"
                                                     title="Tandai Lunas"
@@ -626,6 +627,8 @@ export default function InvoiceManagement({
                             <label style={formLabelStyle}>Tanggal Bayar</label>
                             <input
                                 type="date"
+                                min={invoicePaymentDateWib(showPaidModal.created_at)}
+                                max={invoicePaymentDateWib(new Date())}
                                 value={paidDate}
                                 onChange={(e) => setPaidDate(e.target.value)}
                                 style={inputStyle}
@@ -651,7 +654,7 @@ export default function InvoiceManagement({
                             </button>
                             <button
                                 onClick={handleMarkPaid}
-                                disabled={!paidDate || markingPaid === showPaidModal.id}
+                                disabled={!paidDate || paidDate < invoicePaymentDateWib(showPaidModal.created_at) || paidDate > invoicePaymentDateWib(new Date()) || markingPaid === showPaidModal.id}
                                 style={confirmButtonStyle}
                             >
                                 {markingPaid === showPaidModal.id ? 'Saving...' : 'Confirm Paid'}

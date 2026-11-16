@@ -58,7 +58,7 @@ describe('invoice payment selection API', () => {
     const response = await call('qris');
     const body = await response.json();
     expect(response.status).toBe(200);
-    expect(mock.createPayment).toHaveBeenCalledWith(fixture, expect.objectContaining({ method: 'qris', total: 102500 }), expect.any(String));
+    expect(mock.createPayment).toHaveBeenCalledWith(fixture, expect.objectContaining({ method: 'qris', total: 102500 }), expect.any(String), undefined);
     expect(body.payment).toMatchObject({ method: 'qris', label: 'QRIS', total: 102500 });
     expect(body.payment.qrImageUrl).toBe('/api/invoices/mock-invoice/payment-qr?t=valid-local-token&order=LOCAL-QRIS');
     expect(body.options.some((option: { code: string }) => option.code === 'gopay')).toBe(false);
@@ -78,6 +78,14 @@ describe('invoice payment selection API', () => {
     const data = await response.json();
     expect(response.status).toBe(200);
     expect(data.payment).toMatchObject({ method, total: 102500 });
-    expect(mock.createPayment).toHaveBeenCalledWith(invoice, expect.objectContaining({ method }), expect.any(String));
+    expect(mock.createPayment).toHaveBeenCalledWith(invoice, expect.objectContaining({ method }), expect.any(String), expect.any(Function));
+  });
+
+  it('does not allow Holiday payment issuance after deletion races with the invoice lookup', async () => {
+    mock.getInvoice.mockResolvedValueOnce({ ...fixture, invoice_number: 'HC-2627-000001', invoice_type: 'SEASONAL' })
+      .mockResolvedValueOnce(null);
+    mock.createPayment.mockImplementation(async (_invoice, _payment, _order, beforeIssue) => beforeIssue());
+    expect((await call('qris')).status).toBe(409);
+    expect(mock.save).not.toHaveBeenCalled();
   });
 });

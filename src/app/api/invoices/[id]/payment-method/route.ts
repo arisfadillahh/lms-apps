@@ -55,7 +55,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         }
 
         const orderId = createLmsInvoiceMidtransOrderId(invoice, payment.method);
-        const midtrans = await new InvoiceMidtransClient().createPayment(invoice, payment, orderId);
+        const midtrans = await new InvoiceMidtransClient().createPayment(invoice, payment, orderId, isHolidayInvoice
+            ? async () => {
+                const current = await getInvoiceById(id);
+                if (!current || current.paid_at || !['PENDING', 'OVERDUE'].includes(current.status)) {
+                    throw new CheckoutError('Invoice ini sudah tidak aktif.', 409);
+                }
+            }
+            : undefined);
         const storedPayment = await saveStoredInvoicePayment({
             invoiceId: invoice.id,
             invoiceNumber: invoice.invoice_number,

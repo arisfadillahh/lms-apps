@@ -13,6 +13,8 @@ import { buildInvoicePublicUrl } from '@/lib/services/invoicePublicAccess';
 import { getShortInvoiceUrlOrOriginal } from '@/lib/services/shortLinks';
 import { notifyEventManagerInvoiceStatus, resolveExternalReference } from '@/lib/services/eventManagerWebhook';
 import { isInvoiceCheckoutEnabled, confirmManualMonthlyPayment, CheckoutError } from '@/lib/services/invoiceCheckoutServer';
+import { holidayInvoicePattern } from '@/lib/holidayClass';
+import { deleteHolidayInvoice } from '@/lib/services/holidayInvoiceDeletion';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -256,6 +258,31 @@ export async function DELETE(
 
         const { id } = await params;
         const invoiceForWebhook = await getInvoiceById(id);
+        const deleteRegistration = request.nextUrl.searchParams.get('deleteRegistration') === 'true';
+        if (deleteRegistration && session?.user.role !== 'ADMIN') {
+            return NextResponse.json({ error: 'Hanya admin yang bisa menghapus pendaftaran Holiday Class.' }, { status: 403 });
+        }
+        if (invoiceForWebhook && holidayInvoicePattern.test(invoiceForWebhook.invoice_number)) {
+            if (!deleteRegistration) {
+                return NextResponse.json({ error: 'Konfirmasi penghapusan invoice dan pendaftaran Holiday Class dari daftar invoice.' }, { status: 409 });
+            }
+            const result = await deleteHolidayInvoice(invoiceForWebhook);
+            if (result === 'paid') {
+                return NextResponse.json({ error: 'Invoice Holiday Class yang sudah dibayar tidak bisa dihapus.' }, { status: 409 });
+            }
+            if (result !== 'deleted' && result !== 'missing') {
+                return NextResponse.json({ error: 'Pembayaran belum bisa dipastikan selesai atau dibatalkan. Invoice dan pendaftaran masih tersimpan.' }, { status: 409 });
+            }
+            const eventManagerWebhookStatus = result === 'deleted'
+                ? await notifyEventManagerInvoiceStatus(invoiceForWebhook, 'cancelled')
+                : { sent: false, reason: 'invoice_not_found_before_delete' };
+            return NextResponse.json({ success: true, registrationDeleted: result === 'deleted', eventManagerWebhookStatus });
+        }
+        if (deleteRegistration) {
+            return invoiceForWebhook
+                ? NextResponse.json({ error: 'Invoice ini tidak punya pendaftaran Holiday Class.' }, { status: 409 })
+                : NextResponse.json({ success: true });
+        }
         const supabase = getSupabaseAdmin();
 
         // The invoice-items foreign key cascades within this same statement.
@@ -268,7 +295,7 @@ export async function DELETE(
             .maybeSingle();
 
         if (error) {
-            if (error.code === '23503') {
+            if (error.code === '23503' || error.code === '23001') {
                 return NextResponse.json(
                     { error: 'Invoice terhubung ke pendaftaran atau riwayat pembayaran, sehingga tidak bisa dihapus dari daftar invoice.' },
                     { status: 409 }

@@ -124,9 +124,10 @@ export class InvoiceMidtransClient {
         return data;
     }
 
-    async createPayment(invoice: Invoice, payment: InvoicePaymentBreakdown, orderId: string): Promise<InvoiceMidtransPayment> {
+    async createPayment(invoice: Invoice, payment: InvoicePaymentBreakdown, orderId: string, beforeIssue?: () => Promise<void>): Promise<InvoiceMidtransPayment> {
         if (!this.serverKey) throw new Error('Konfigurasi pembayaran belum tersedia.');
         return withInvoiceIssuance(invoice.id, async journal => {
+            await beforeIssue?.();
             let state = await journal.read();
             const hadState=!!state;
             const legacy = !state ? await getStoredInvoicePaymentByInvoiceId(invoice.id) : null;

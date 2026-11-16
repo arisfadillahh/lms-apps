@@ -4,6 +4,7 @@ import { useState, type CSSProperties, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import type { Invoice, InvoiceDateBasis } from '@/lib/types/invoice';
 import { formatInvoicePeriod } from '@/lib/invoicePeriod';
+import { holidayInvoicePattern } from '@/lib/holidayClass';
 import { useReminder } from '@/contexts/ReminderContext';
 import AssignClassModal from './AssignClassModal';
 import SeasonalInvoiceModal from './SeasonalInvoiceModal';
@@ -72,6 +73,7 @@ export default function InvoiceManagement({
     const [paidNotes, setPaidNotes] = useState('');
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const [showDeleteModal, setShowDeleteModal] = useState<Invoice | null>(null);
+    const deletingHoliday = !!showDeleteModal && holidayInvoicePattern.test(showDeleteModal.invoice_number);
     const [deleting, setDeleting] = useState<string | null>(null);
     const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -266,12 +268,12 @@ export default function InvoiceManagement({
         setDeleting(showDeleteModal.id);
         setDeleteError(null);
         try {
-            const res = await fetch(`/api/invoices/${showDeleteModal.id}`, {
+            const res = await fetch(`/api/invoices/${showDeleteModal.id}${deletingHoliday ? '?deleteRegistration=true' : ''}`, {
                 method: 'DELETE'
             });
 
             if (res.ok) {
-                setMessage({ type: 'success', text: 'Invoice berhasil dihapus.' });
+                setMessage({ type: 'success', text: deletingHoliday ? 'Invoice dan pendaftaran Holiday Class sudah dihapus.' : 'Invoice berhasil dihapus.' });
                 setShowDeleteModal(null);
                 await fetchInvoices();
             } else {
@@ -657,11 +659,13 @@ export default function InvoiceManagement({
             {showDeleteModal && (
                 <div style={modalOverlayStyle}>
                     <div style={modalStyle}>
-                        <h3 style={modalTitleStyle}>🗑️ Hapus Invoice</h3>
+                        <h3 style={modalTitleStyle}>{deletingHoliday ? 'Hapus invoice dan pendaftaran' : 'Hapus invoice'}</h3>
                         <p style={modalSubtitleStyle}>Invoice: {showDeleteModal.invoice_number}</p>
 
                         <p style={{ color: '#c62828', marginBottom: '20px' }}>
-                            Apakah Anda yakin ingin menghapus invoice ini? Tindakan ini tidak dapat dibatalkan.
+                            {deletingHoliday
+                                ? 'Pendaftaran Holiday Class ikut dihapus dan instruksi pembayaran yang masih aktif akan dibatalkan. Tindakan ini permanen.'
+                                : 'Invoice ini akan dihapus permanen.'}
                         </p>
                         {deleteError && <p role="alert" style={errorMessageStyle}>{deleteError}</p>}
 
@@ -677,7 +681,7 @@ export default function InvoiceManagement({
                                 disabled={deleting === showDeleteModal.id}
                                 style={{ ...confirmButtonStyle, backgroundColor: '#c62828' }}
                             >
-                                {deleting === showDeleteModal.id ? 'Deleting...' : 'Ya, Hapus'}
+                                {deleting === showDeleteModal.id ? 'Menghapus…' : 'Ya, hapus'}
                             </button>
                         </div>
                     </div>

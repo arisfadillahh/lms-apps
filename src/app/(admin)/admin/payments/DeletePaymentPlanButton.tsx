@@ -3,7 +3,7 @@
 import type { CSSProperties } from 'react';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Trash2 } from 'lucide-react';
+import { AlertTriangle, Trash2 } from 'lucide-react';
 
 type Props = {
     planId: string;
@@ -53,7 +53,7 @@ export default function DeletePaymentPlanButton({ planId, planName }: Props) {
                             Apakah Anda yakin ingin menghapus paket <strong>&quot;{planName}&quot;</strong>?
                         </p>
                         <p style={warningStyle}>
-                            ⚠️ Paket yang sudah digunakan oleh siswa tidak dapat dihapus.
+                            <><AlertTriangle size={16} aria-hidden="true" /> Paket yang sudah digunakan oleh siswa tidak dapat dihapus.</>
                         </p>
 
                         {error && <p style={errorStyle}>{error}</p>}

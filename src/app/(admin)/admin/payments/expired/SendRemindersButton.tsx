@@ -2,7 +2,7 @@
 
 import type { CSSProperties } from 'react';
 import { useState, useTransition } from 'react';
-import { Bell } from 'lucide-react';
+import { AlertCircle, Bell, CheckCircle2 } from 'lucide-react';
 
 type Props = {
     mode?: 'BATCH' | 'THRESHOLD';
@@ -25,7 +25,7 @@ export default function SendRemindersButton({ mode = 'THRESHOLD' }: Props) {
                 if (data.success) {
                     setResult({
                         success: true,
-                        message: `✅ Expired: ${data.expiredMarked}, Sent: ${data.remindersSent}, Failed: ${data.remindersFailed}`,
+                        message: `Expired: ${data.expiredMarked}, Sent: ${data.remindersSent}, Failed: ${data.remindersFailed}`,
                     });
                 } else {
                     setResult({
@@ -52,7 +52,13 @@ export default function SendRemindersButton({ mode = 'THRESHOLD' }: Props) {
                 <span style={{
                     fontSize: '0.85rem',
                     color: result.success ? '#16a34a' : '#dc2626',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
                 }}>
+                    {result.success
+                        ? <CheckCircle2 size={16} aria-hidden="true" />
+                        : <AlertCircle size={16} aria-hidden="true" />}
                     {result.message}
                 </span>
             )}

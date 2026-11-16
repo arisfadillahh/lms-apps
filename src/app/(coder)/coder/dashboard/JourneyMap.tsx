@@ -349,7 +349,7 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
                     {/* On-going badge — clean pill at top of card */}
                     {isCurrent && (
                       <span className="inline-block mb-2 px-3 py-0.5 bg-sky/10 text-[#0ea5e9] text-[9px] font-black uppercase tracking-widest rounded-full border border-sky/20">
-                        Dalam Perjalanan 🚀
+                        Dalam Perjalanan <Rocket size={12} className="ml-1 inline" aria-hidden="true" />
                       </span>
                     )}
                     {/* Quest label */}
@@ -392,12 +392,12 @@ function CourseJourney({ course }: { course: JourneyCourse }) {
                     {/* Locked hint */}
                     {isUpcoming && !isTrophy && (
                       <p className="text-[9px] text-slate-400 mt-2 font-bold">
-                        Selesaikan tahap sebelumnya 🔒
+                        Selesaikan tahap sebelumnya <Lock size={12} className="ml-1 inline" aria-hidden="true" />
                       </p>
                     )}
                     {isTrophy && (
                       <p className="text-[9px] text-amber-500 mt-2 font-bold">
-                        Selesaikan projek akhir kamu! 🏆
+                        Selesaikan projek akhir kamu! <Trophy size={12} className="ml-1 inline" aria-hidden="true" />
                       </p>
                     )}
                   </div>

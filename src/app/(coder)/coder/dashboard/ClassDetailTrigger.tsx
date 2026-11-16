@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, PlayCircle, BookOpen, Calendar, Rocket, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { X, PlayCircle, BookOpen, Calendar, Rocket, ArrowRight, CheckCircle2, Palette, Code2 } from 'lucide-react';
 import Link from 'next/link';
 
 import type { ReactNode } from 'react';
@@ -31,7 +31,7 @@ export default function ClassDetailTrigger({ classInfo, customTrigger }: ClassDe
         setMounted(true);
     }, []);
 
-    const icon = classType === 'EKSKUL' ? '🎨' : '💻';
+    const ClassIcon = classType === 'EKSKUL' ? Palette : Code2;
     const displayTitle = classType === 'EKSKUL' ? block?.name || className : className;
     const lessonsList = block?.lessons || [];
 
@@ -69,8 +69,8 @@ export default function ClassDetailTrigger({ classInfo, customTrigger }: ClassDe
                                 <X className="w-5 h-5" />
                             </button>
 
-                            <div className="text-5xl mb-3 transform hover:scale-110 transition-transform duration-300 drop-shadow-sm">
-                                {icon}
+                            <div className="mb-3 transform text-slate-700 transition-transform duration-300 hover:scale-110">
+                                <ClassIcon size={48} strokeWidth={1.8} aria-hidden="true" />
                             </div>
                             <h2 className="text-xl font-black tracking-tight text-slate-800 leading-tight mb-2 px-4">
                                 {displayTitle}
@@ -255,10 +255,10 @@ export default function ClassDetailTrigger({ classInfo, customTrigger }: ClassDe
                     style={{ background: bgColor }}
                 >
                     <div className="absolute right-[-1rem] bottom-[-1rem] text-7xl opacity-10 group-hover:scale-110 transition-transform duration-300">
-                        {icon}
+                        <ClassIcon size={58} strokeWidth={1.8} aria-hidden="true" />
                     </div>
 
-                    <div className="text-4xl mb-3">{icon}</div>
+                    <div className="mb-3 text-slate-700"><ClassIcon size={36} strokeWidth={1.8} aria-hidden="true" /></div>
                     <h3 className="text-base font-bold text-slate-800 m-0 mb-1 z-10 relative pr-4">
                         {displayTitle}
                     </h3>

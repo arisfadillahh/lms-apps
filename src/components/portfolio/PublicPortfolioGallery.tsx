@@ -114,7 +114,7 @@ function ProjectModal({ project, onClose }: { project: PublicProject; onClose: (
         <p className={styles.modalLeadV4}>{snapshot.summary}</p>
         {actionLinks.length > 0 ? <><div className={styles.modalActionsV4}>{actionLinks.map((link) => <a key={link.label} href={link.href} target="_blank" rel="noreferrer">{link.icon}{link.label}</a>)}</div><p className={styles.externalHint}>Link dibuka di tab baru.</p></> : <p className={styles.externalHint}>Karya ini ditampilkan lewat gambar dan cerita. Link untuk mencoba belum tersedia.</p>}
         <div className={styles.storyGridV4}>
-          {snapshot.howToPlay && <StoryBlock number="▶" title="Cara mencoba karya" value={snapshot.howToPlay} />}
+          {snapshot.howToPlay && <StoryBlock number={<Play size={14} aria-hidden="true" />} title="Cara mencoba karya" value={snapshot.howToPlay} />}
           <StoryBlock number="01" title="Tentang karyaku" value={snapshot.description} />
           <StoryBlock number="02" title="Yang aku pelajari" value={snapshot.learningReflection} />
           <StoryBlock number="03" title="Keahlian yang dilatih" value={skills} />
@@ -125,6 +125,6 @@ function ProjectModal({ project, onClose }: { project: PublicProject; onClose: (
   </div>;
 }
 
-function StoryBlock({ number, title, value }: { number: string; title: string; value: string }) {
+function StoryBlock({ number, title, value }: { number: ReactNode; title: string; value: string }) {
   return <section className={styles.storyBlockV4}><span>{number}</span><div><h3>{title}</h3><p>{value}</p></div></section>;
 }

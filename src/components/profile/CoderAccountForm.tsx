@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, Mail, UserCircle, Lock, KeyRound, ShieldCheck } from 'lucide-react';
+import { Camera, Mail, UserCircle, Lock, KeyRound, ShieldCheck, Rocket } from 'lucide-react';
 
 interface UserProfile {
     username: string;
@@ -177,7 +177,7 @@ export default function CoderAccountForm({ user }: { user: UserProfile }) {
 
                         <div className="text-center sm:text-left">
                             <h3 className="text-lg font-black text-clevio-navy">{user.fullName}</h3>
-                            <p className="text-sm font-bold text-slate-400 mb-3">Coder Luar Biasa 🚀</p>
+                            <p className="mb-3 inline-flex items-center gap-1.5 text-sm font-bold text-slate-400">Coder Luar Biasa <Rocket size={14} aria-hidden="true" /></p>
 
                             <input
                                 type="file"

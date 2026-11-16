@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, ExternalLink, Calendar, Play } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Calendar, Play, Gamepad2 } from 'lucide-react';
 import { getSessionOrThrow } from '@/lib/auth';
 import { getLessonDetailForCoder } from '@/lib/services/coder';
 import { assertRole } from '@/lib/roles';
@@ -117,7 +117,7 @@ export default async function CoderLessonDetailPage(props: PageProps) {
                     {lesson.coach_example_url && (
                         <div style={projectCardStyle}>
                             <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-                                <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🎮</div>
+                                <div style={{ marginBottom: '0.5rem', color: '#475569' }}><Gamepad2 size={48} strokeWidth={1.7} aria-hidden="true" /></div>
                                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', margin: 0 }}>Project Mission</h3>
                                 <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem', marginTop: '0.4rem' }}>
                                     Cek hasil akhir project yang akan kita buat hari ini!

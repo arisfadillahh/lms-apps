@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
-import { Pencil, CheckSquare, Square } from 'lucide-react';
+import { Pencil, CheckSquare, Square, ArrowUpRight } from 'lucide-react';
 
 import type { LessonTemplateRecord } from '@/lib/dao/lessonTemplatesDao';
 import EditLessonModal from './EditLessonModal';
@@ -145,7 +145,7 @@ export default function LessonTable({ lessons }: LessonTableProps) {
                                     <td style={tdStyle}>
                                         {lesson.slide_url ? (
                                             <a href={lesson.slide_url} target="_blank" rel="noreferrer" style={linkStyle}>
-                                                Open Slide ↗
+                                                Open Slide <ArrowUpRight size={14} aria-hidden="true" />
                                             </a>
                                         ) : (
                                             <span style={{ color: '#cbd5e1' }}>—</span>
@@ -154,7 +154,7 @@ export default function LessonTable({ lessons }: LessonTableProps) {
                                     <td style={tdStyle}>
                                         {lesson.example_url ? (
                                             <a href={lesson.example_url} target="_blank" rel="noreferrer" style={linkStyle}>
-                                                View Example ↗
+                                                View Example <ArrowUpRight size={14} aria-hidden="true" />
                                             </a>
                                         ) : (
                                             <span style={{ color: '#cbd5e1' }}>—</span>

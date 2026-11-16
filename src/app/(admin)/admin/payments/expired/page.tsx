@@ -3,6 +3,7 @@ import { getSessionOrThrow } from '@/lib/auth';
 import { assertRole } from '@/lib/roles';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import PageHead from '@/components/admin/PageHead';
+import { CheckCircle2, Phone } from 'lucide-react';
 
 export default async function ExpiredPaymentsPage() {
   const session = await getSessionOrThrow();
@@ -70,7 +71,10 @@ export default async function ExpiredPaymentsPage() {
                           className="btn btn-sm btn-ghost"
                           style={{ color: '#16a34a' }}
                         >
-                          📱 {period.users.parent_contact_phone}
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                            <Phone size={15} aria-hidden="true" />
+                            {period.users.parent_contact_phone}
+                          </span>
                         </a>
                       ) : (
                         <span className="muted">—</span>
@@ -83,7 +87,10 @@ export default async function ExpiredPaymentsPage() {
           </table>
         ) : (
           <div className="empty" style={{ color: '#16a34a' }}>
-            ✅ Tidak ada periode yang akan expired dalam 7 hari ke depan
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <CheckCircle2 size={18} aria-hidden="true" />
+              Tidak ada periode yang akan expired dalam 7 hari ke depan
+            </span>
           </div>
         )}
       </div>

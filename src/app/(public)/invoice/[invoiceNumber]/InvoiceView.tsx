@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { Printer } from 'lucide-react';
 import { useState, type CSSProperties } from 'react';
 import type { PublicInvoice } from '@/lib/publicInvoice';
 import type { PublicInvoicePaymentInstruction, PublicInvoicePaymentOption } from '@/lib/invoicePaymentMethods';
@@ -398,7 +399,7 @@ export default function InvoiceView({ invoice, publicToken, paymentOptions, init
             {/* Print Button */}
             <div style={printContainerStyle}>
                 <button onClick={() => window.print()} style={printButtonStyle}>
-                    🖨️ Cetak / Simpan PDF
+                    <><Printer size={16} aria-hidden="true" /> Cetak / Simpan PDF</>
                 </button>
             </div>
 

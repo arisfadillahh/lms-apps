@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, LogOut, Settings, Bell } from 'lucide-react';
+import { ChevronDown, LogOut, Settings, Bell, Hand } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import SignOutButton from '@/components/SignOutButton';
@@ -26,11 +26,11 @@ export default function CoachDashboardHeader({ user }: CoachDashboardHeaderProps
     return (
         <nav className="coach-dashboard-header sticky top-0 z-40 flex w-full min-w-0 max-w-full items-center justify-between gap-2 border-b border-[#e2e8f0] bg-white px-4 py-3 shadow-sm md:gap-6 md:px-8 md:py-4">
             <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-3">
-                <h1 className="text-xl font-bold text-slate-800 hidden lg:block">
-                    Selamat datang kembali, Coach {firstName}! 👋
+                <h1 className="hidden items-center gap-2 text-xl font-bold text-slate-800 lg:flex">
+                    Selamat datang kembali, Coach {firstName}! <Hand size={18} aria-hidden="true" />
                 </h1>
-                <h1 className="min-w-0 flex-1 truncate whitespace-nowrap text-base font-bold text-slate-800 sm:text-lg lg:hidden">
-                    Halo, {firstName}! 👋
+                <h1 className="flex min-w-0 flex-1 items-center gap-1.5 truncate whitespace-nowrap text-base font-bold text-slate-800 sm:text-lg lg:hidden">
+                    Halo, {firstName}! <Hand size={16} aria-hidden="true" />
                 </h1>
             </div>
 

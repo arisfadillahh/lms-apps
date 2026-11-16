@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Pencil } from 'lucide-react';
 import { useState, type CSSProperties, type ReactNode } from 'react';
 
 type BlockListItem = {
@@ -44,7 +45,7 @@ export default function BlockList({ items }: BlockListProps) {
                 style={iconButtonStyle}
                 title="Edit informasi block"
               >
-                ✏️
+                <Pencil size={16} aria-hidden="true" />
               </button>
               {item.deleteAction ?? null}
             </div>

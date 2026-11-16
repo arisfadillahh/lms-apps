@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { AlertTriangle, Pencil, Undo2 } from 'lucide-react';
 
 import type { CoachLeaveRequestWithRelations } from '@/lib/dao/coachLeaveDao';
 
@@ -90,7 +91,10 @@ export default function LeaveApprovalTable({ requests, coaches }: LeaveApprovalT
       )}
       {errorMessage && (
         <div style={{ padding: '10px 16px', background: '#fde7ea', color: '#b4192e', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600 }}>
-          ⚠ {errorMessage}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <AlertTriangle size={16} aria-hidden="true" />
+            {errorMessage}
+          </span>
         </div>
       )}
       {requests.length === 0 ? (
@@ -187,7 +191,7 @@ export default function LeaveApprovalTable({ requests, coaches }: LeaveApprovalT
                                 onClick={() => toggleEdit(request.id)}
                                 className="btn btn-sm btn-ghost"
                               >
-                                ↩
+                                <Undo2 size={16} aria-hidden="true" />
                               </button>
                             )}
                           </>
@@ -197,7 +201,7 @@ export default function LeaveApprovalTable({ requests, coaches }: LeaveApprovalT
                             onClick={() => toggleEdit(request.id)}
                             className="btn btn-sm btn-ghost"
                           >
-                            ✏️ Edit
+                            <><Pencil size={15} aria-hidden="true" /> Edit</>
                           </button>
                         )}
                       </div>

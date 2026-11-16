@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
-import { Ban } from 'lucide-react';
+import { Ban, CheckCircle2, X, XCircle } from 'lucide-react';
 
 type ToggleActiveButtonProps = {
   userId: string;
@@ -45,7 +45,7 @@ export default function ToggleActiveButton({ userId, initialActive }: ToggleActi
         setIsActive(nextActive);
         setToast({
           type: 'success',
-          message: nextActive ? '✅ User berhasil diaktifkan!' : '✅ User berhasil dinonaktifkan!'
+          message: nextActive ? 'User berhasil diaktifkan!' : 'User berhasil dinonaktifkan!'
         });
         router.refresh();
       } catch (error) {
@@ -89,12 +89,15 @@ export default function ToggleActiveButton({ userId, initialActive }: ToggleActi
               color: toast.type === 'success' ? '#065f46' : '#b91c1c',
             }}
           >
+            {toast.type === 'success'
+              ? <CheckCircle2 size={18} aria-hidden="true" />
+              : <XCircle size={18} aria-hidden="true" />}
             <span>{toast.message}</span>
             <button
               onClick={() => setToast(null)}
               style={closeButtonStyle}
             >
-              ✕
+              <X size={16} aria-hidden="true" />
             </button>
           </div>
         </div>

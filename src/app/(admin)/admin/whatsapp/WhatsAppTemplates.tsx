@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, type CSSProperties } from 'react';
+import { AlertTriangle, Eye, Pencil, RotateCcw, Save } from 'lucide-react';
 import type { InvoiceSettings } from '@/lib/types/invoice';
 import {
     CLASS_REMINDER_TEMPLATE_CATEGORIES,
@@ -210,9 +211,9 @@ export default function WhatsAppTemplatesContent({ settings, settingsMsg, saving
                                 </div>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                                <button onClick={() => setEditedClassReminderContent(prev => ({ ...prev, [category]: definition.content }))} style={outlineBtnStyle}>↺ Reset Default</button>
+                                <button onClick={() => setEditedClassReminderContent(prev => ({ ...prev, [category]: definition.content }))} style={outlineBtnStyle}><RotateCcw size={15} aria-hidden="true" /> Reset Default</button>
                                 <button onClick={() => handleSaveClassReminder(category)} style={{ ...greenBtnStyle, opacity: changed ? 1 : 0.5 }} disabled={saving === category || !changed}>
-                                    {saving === category ? 'Menyimpan...' : '💾 Simpan Template'}
+                                    {saving === category ? 'Menyimpan...' : <><Save size={15} aria-hidden="true" /> Simpan Template</>}
                                 </button>
                             </div>
                             {existing && <p style={{ fontSize: 11, color: '#94a3b8', margin: '10px 0 0' }}>Terakhir diupdate: {new Date(existing.updated_at).toLocaleString('id-ID')}</p>}
@@ -244,7 +245,7 @@ export default function WhatsAppTemplatesContent({ settings, settingsMsg, saving
             <div style={cardStyle}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                     <div>
-                        <h3 style={{ ...titleStyle, fontSize: 16 }}>⚠️ Template Pesan Absensi</h3>
+                        <h3 style={{ ...titleStyle, fontSize: 16 }}><AlertTriangle size={18} aria-hidden="true" /> Template Pesan Absensi</h3>
                         <p style={descStyle}>Pesan yang dikirim ke orang tua saat siswa tidak hadir / izin</p>
                     </div>
                     {hasChanges && <span style={unsavedBadge}>Belum disimpan</span>}
@@ -254,7 +255,7 @@ export default function WhatsAppTemplatesContent({ settings, settingsMsg, saving
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                     <label style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>Isi Pesan</label>
                     <button onClick={() => setShowPreview(!showPreview)} style={outlineBtnStyle}>
-                        {showPreview ? '✏️ Edit' : '👁️ Preview'}
+                        {showPreview ? <><Pencil size={15} aria-hidden="true" /> Edit</> : <><Eye size={15} aria-hidden="true" /> Preview</>}
                     </button>
                 </div>
 
@@ -284,9 +285,9 @@ export default function WhatsAppTemplatesContent({ settings, settingsMsg, saving
 
                 {/* Actions */}
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                    <button onClick={() => setEditedContent(DEFAULT_TEMPLATE.content)} style={outlineBtnStyle}>↺ Reset Default</button>
+                    <button onClick={() => setEditedContent(DEFAULT_TEMPLATE.content)} style={outlineBtnStyle}><RotateCcw size={15} aria-hidden="true" /> Reset Default</button>
                     <button onClick={handleSave} style={{ ...greenBtnStyle, opacity: !hasChanges ? 0.5 : 1 }} disabled={saving === 'PARENT_ABSENT' || !hasChanges}>
-                        {saving === 'PARENT_ABSENT' ? 'Menyimpan...' : '💾 Simpan Template'}
+                        {saving === 'PARENT_ABSENT' ? 'Menyimpan...' : <><Save size={15} aria-hidden="true" /> Simpan Template</>}
                     </button>
                 </div>
 

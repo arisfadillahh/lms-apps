@@ -3,7 +3,7 @@
 import { useState, useRef, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import * as Dialog from '@radix-ui/react-dialog';
-import { X, Upload, FileSpreadsheet, Info, CheckCircle2, AlertCircle } from 'lucide-react';
+import { X, Upload, FileSpreadsheet, Info, CheckCircle2, AlertCircle, Lightbulb, FileText } from 'lucide-react';
 
 type ImportLessonsButtonProps = {
     blockId: string;
@@ -178,7 +178,7 @@ export default function ImportLessonsButton({ blockId, currentLessonCount }: Imp
                 <Dialog.Content style={contentStyle}>
                     <div style={headerStyle}>
                         <Dialog.Title style={{ fontSize: '1.2rem', fontWeight: 600, color: '#0f172a' }}>
-                            📥 Import Lessons dari CSV
+                            <><Upload size={16} aria-hidden="true" /> Import Lessons dari CSV</>
                         </Dialog.Title>
                         <Dialog.Close asChild>
                             <button style={closeButtonStyle}>
@@ -217,7 +217,10 @@ export default function ImportLessonsButton({ blockId, currentLessonCount }: Imp
                                 </tbody>
                             </table>
                             <p style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.75rem' }}>
-                                💡 Tip: Gunakan Google Sheets lalu export sebagai CSV
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                    <Lightbulb size={16} aria-hidden="true" />
+                                    Tip: Gunakan Google Sheets lalu export sebagai CSV
+                                </span>
                             </p>
                         </div>
                     )}
@@ -241,7 +244,7 @@ export default function ImportLessonsButton({ blockId, currentLessonCount }: Imp
                         </button>
                         {file && (
                             <span style={{ marginLeft: '0.75rem', color: '#475569', fontSize: '0.9rem' }}>
-                                📄 {file.name}
+                                <><FileText size={16} aria-hidden="true" /> {file.name}</>
                             </span>
                         )}
                     </div>

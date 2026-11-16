@@ -4,6 +4,7 @@ import { useState, useTransition, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { CheckCircle2, Lightbulb, LoaderCircle } from 'lucide-react';
 
 interface Report {
   id: string;
@@ -89,7 +90,10 @@ export default function KanbanBoard({ initialReports }: KanbanBoardProps) {
     <>
       {/* Board hint */}
       <div className="kanban-board-hint muted" style={{ fontSize: 12.5, marginBottom: 2 }}>
-        💡 Drag kartu ke kolom lain untuk mengubah status laporan secara langsung.
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <Lightbulb size={16} aria-hidden="true" />
+          Drag kartu ke kolom lain untuk mengubah status laporan secara langsung.
+        </span>
       </div>
 
       <div className="kanban-mobile-tabs" role="tablist" aria-label="Filter status laporan">
@@ -274,7 +278,9 @@ export default function KanbanBoard({ initialReports }: KanbanBoardProps) {
                           gap: 4,
                         }}
                       >
-                        {successId === report.id ? '✅ Tersimpan' : '⏳ Menyimpan...'}
+                        {successId === report.id
+                          ? <><CheckCircle2 size={15} aria-hidden="true" /> Tersimpan</>
+                          : <><LoaderCircle size={15} className="animate-spin" aria-hidden="true" /> Menyimpan...</>}
                       </div>
                     )}
 

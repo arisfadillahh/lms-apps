@@ -10,7 +10,10 @@ import AssignClassModal from './AssignClassModal';
 import SeasonalInvoiceModal from './SeasonalInvoiceModal';
 import WeeklyRegistrationModal from './WeeklyRegistrationModal';
 import InvoiceCheckoutModal from './InvoiceCheckoutModal';
-import { Link2 } from 'lucide-react';
+import {
+    AlertTriangle, Bell, CalendarDays, CheckCircle2, Clock3, CreditCard, Eye,
+    FilePlus2, FileText, Loader2, Link2, Settings2, Trash2, Undo2,
+} from 'lucide-react';
 
 interface Stats {
     pending: number;
@@ -229,10 +232,10 @@ export default function InvoiceManagement({
                 // Show WA confirmation status to admin
                 const waStatus = data.waStatus;
                 if (waStatus?.sent) {
-                    setMessage({ type: 'success', text: `✅ Invoice marked as paid! WhatsApp konfirmasi berhasil dikirim ke ${showPaidModal.parent_name}.` });
+                    setMessage({ type: 'success', text: `Invoice marked as paid! WhatsApp konfirmasi berhasil dikirim ke ${showPaidModal.parent_name}.` });
                 } else {
                     const reason = waStatus?.error || 'Unknown error';
-                    setMessage({ type: 'error', text: `⚠️ Invoice marked as paid, tapi WhatsApp konfirmasi GAGAL dikirim: ${reason}` });
+                    setMessage({ type: 'error', text: `Invoice marked as paid, tapi WhatsApp konfirmasi GAGAL dikirim: ${reason}` });
                 }
 
                 // Check if this is a REGISTRATION invoice - show assign class modal
@@ -336,33 +339,36 @@ export default function InvoiceManagement({
                         title="Buat invoice untuk bulan dan tahun yang dipilih"
                         className="btn"
                     >
-                        {generating ? '⏳ Generating...' : '⚙️ Generate Invoice'}
+                        {generating ? <><Loader2 size={16} className="animate-spin" aria-hidden="true" /> Generating...</> : <><Settings2 size={16} aria-hidden="true" /> Generate Invoice</>}
                     </button>
                     <button
                         onClick={() => setShowSeasonalModal(true)}
                         className="btn"
                     >
-                        📅 Invoice Seasonal
+                        <><CalendarDays size={16} aria-hidden="true" /> Invoice Seasonal</>
                     </button>
                     <button
                         onClick={() => setShowWeeklyModal(true)}
                         className="btn"
                     >
-                        📝 Registrasi Weekly
+                        <><FilePlus2 size={16} aria-hidden="true" /> Registrasi Weekly</>
                     </button>
                     <button
                         onClick={handlePrepareReminders}
                         disabled={generating || isProcessingQueue}
                         className="btn btn-primary"
                     >
-                        📤 Kirim Reminder
+                        <><Bell size={16} aria-hidden="true" /> Kirim Reminder</>
                     </button>
                 </div>
             </div>
 
             {/* Message */}
             {message && (
-                <div style={message.type === 'success' ? successMessageStyle : errorMessageStyle}>
+                <div style={{ ...(message.type === 'success' ? successMessageStyle : errorMessageStyle), display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {message.type === 'success'
+                        ? <CheckCircle2 size={16} aria-hidden="true" />
+                        : <AlertTriangle size={16} aria-hidden="true" />}
                     {message.text}
                 </div>
             )}
@@ -372,23 +378,23 @@ export default function InvoiceManagement({
                 <div className="stat">
                     <div className="stat-label">Total Invoice</div>
                     <div className="stat-value">{stats.pending + stats.paid + stats.overdue}</div>
-                    <div className="stat-icon">🧾</div>
+                    <div className="stat-icon"><FileText size={22} aria-hidden="true" /></div>
                 </div>
                 <div className="stat">
                     <div className="stat-label">{loadedDateBasis === 'paid' ? 'Lunas' : 'Pending'}</div>
                     <div className="stat-value">{loadedDateBasis === 'paid' ? stats.paid : stats.pending}</div>
-                    <div className="stat-icon">🕒</div>
+                    <div className="stat-icon"><Clock3 size={22} aria-hidden="true" /></div>
                 </div>
                 <div className="stat">
                     <div className="stat-label">Overdue</div>
                     <div className="stat-value">{stats.overdue}</div>
-                    <div className="stat-icon">⚠️</div>
+                    <div className="stat-icon"><AlertTriangle size={22} aria-hidden="true" /></div>
                     <div className="stat-foot" style={{ color: '#c62828' }}>perlu follow-up</div>
                 </div>
                 <div className="stat">
                     <div className="stat-label">{loadedDateBasis === 'paid' ? 'Total Invoice Lunas' : 'Belum Terbayar'}</div>
                     <div className="stat-value" style={{ fontSize: '24px' }}>{formatCurrency(stats.totalAmount)}</div>
-                    <div className="stat-icon">💳</div>
+                    <div className="stat-icon"><CreditCard size={22} aria-hidden="true" /></div>
                 </div>
             </div>
 
@@ -526,7 +532,7 @@ export default function InvoiceManagement({
                                         <div className="row gap-1" style={{ justifyContent: 'flex-end' }}>
                                             {checkoutEnabled && inv.invoice_type === 'MONTHLY' && inv.status !== 'PAID' && inv.ccr_id && <button type="button" className="btn btn-sm btn-ghost" title="Bayar tagihan pilihan" aria-label={`Bayar tagihan pilihan untuk ${inv.parent_name}`} onClick={() => setCheckoutInvoiceId(inv.id)}><Link2 size={17} /></button>}
                                                 <Link href={previewUrl} target="_blank" className="btn btn-sm btn-ghost" title="Preview invoice">
-                                                👁️
+                                                <Eye size={16} aria-hidden="true" />
                                                 </Link>
                                             {inv.status !== 'PAID' && (
                                                 <button
@@ -537,7 +543,7 @@ export default function InvoiceManagement({
                                                     className="btn btn-sm btn-ghost"
                                                     title="Tandai Lunas"
                                                 >
-                                                    ✅
+                                                    <CheckCircle2 size={16} aria-hidden="true" />
                                                 </button>
                                             )}
                                             {inv.status === 'PAID' && (
@@ -547,7 +553,7 @@ export default function InvoiceManagement({
                                                     title="Batalkan Lunas"
                                                     style={{ color: '#f59e0b' }}
                                                 >
-                                                    ↩️
+                                                    <Undo2 size={16} aria-hidden="true" />
                                                 </button>
                                             )}
                                             <button
@@ -556,7 +562,7 @@ export default function InvoiceManagement({
                                                 title="Hapus invoice"
                                                 style={{ color: '#ef4444' }}
                                             >
-                                                🗑️
+                                                <Trash2 size={16} aria-hidden="true" />
                                             </button>
                                         </div>
                                     </td>

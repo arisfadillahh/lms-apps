@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Bell, ArrowRight } from 'lucide-react';
+import { X, Bell, ArrowRight, Megaphone } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type Notification = {
@@ -381,7 +381,9 @@ function NotificationModal({ notif, onClose }: { notif: Notification | null, onC
                                         fontWeight: 800,
                                         boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
                                     }}>
-                                        {notif.type === 'BROADCAST' ? '📢 Broadcast' : '🔔 Notifikasi'}
+                                        {notif.type === 'BROADCAST'
+                                            ? <><Megaphone size={14} aria-hidden="true" /> Broadcast</>
+                                            : <><Bell size={14} aria-hidden="true" /> Notifikasi</>}
                                     </span>
                                 </div>
                                 <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#0f172a', margin: 0, lineHeight: 1.1, letterSpacing: '-0.02em' }}>

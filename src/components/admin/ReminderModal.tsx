@@ -2,7 +2,7 @@
 
 import { type CSSProperties } from 'react';
 import { useReminder } from '@/contexts/ReminderContext';
-import { X, Minus, Square, RotateCcw, Send } from 'lucide-react';
+import { X, Minus, Square, RotateCcw, Send, Clock3, PauseCircle } from 'lucide-react';
 
 export default function ReminderModal() {
     const {
@@ -94,7 +94,7 @@ export default function ReminderModal() {
                                     <td style={tdStyle}>{item.parent_name}</td>
                                     <td style={{ ...tdStyle, textAlign: 'center' }}>
                                         {item.status === 'pending' && (
-                                            <span style={statusPendingStyle}>⏳ Menunggu</span>
+                                            <span style={{ ...statusPendingStyle, display: 'inline-flex', alignItems: 'center', gap: 5 }}><Clock3 size={14} aria-hidden="true" /> Menunggu</span>
                                         )}
                                         {item.status === 'sending' && (
                                             <span style={statusSendingStyle}>
@@ -110,7 +110,7 @@ export default function ReminderModal() {
                                             </span>
                                         )}
                                         {item.status === 'stopped' && (
-                                            <span style={statusStoppedStyle}>⏸ Dihentikan</span>
+                                            <span style={{ ...statusStoppedStyle, display: 'inline-flex', alignItems: 'center', gap: 5 }}><PauseCircle size={14} aria-hidden="true" /> Dihentikan</span>
                                         )}
                                     </td>
                                 </tr>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, type CSSProperties } from 'react';
-import { X, Loader2, Send } from 'lucide-react';
+import { X, Loader2, Send, CalendarDays, CheckCircle2, Info, FileText, Wallet } from 'lucide-react';
 
 interface Pricing {
     id: string;
@@ -233,8 +233,9 @@ export default function SeasonalInvoiceModal({ isOpen, onClose, onSuccess }: Sea
             <div style={{ ...modalStyle, maxWidth: success ? '800px' : '520px' }} onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div style={headerStyle}>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-                        {success ? '✅ Invoice Berhasil Dibuat' : '📅 Buat Invoice Seasonal'}
+                    <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
+                        {success ? <CheckCircle2 size={21} aria-hidden="true" /> : <CalendarDays size={21} aria-hidden="true" />}
+                        {success ? 'Invoice Berhasil Dibuat' : 'Buat Invoice Seasonal'}
                     </h2>
                     <button onClick={handleClose} style={closeButtonStyle}>
                         <X size={20} />
@@ -273,8 +274,9 @@ export default function SeasonalInvoiceModal({ isOpen, onClose, onSuccess }: Sea
                                     </button>
 
                                     <div style={{ fontSize: '0.8rem', color: '#64748b', lineHeight: 1.4 }}>
-                                        <p style={{ margin: 0 }}>
-                                            ℹ️ Tombol ini akan mencoba mengirim pesan otomatis menggunakan nomor Admin yang terhubung. Jika gagal, akan membuka WhatsApp Web.
+                                        <p style={{ display: 'flex', alignItems: 'flex-start', gap: 6, margin: 0 }}>
+                                            <Info size={15} aria-hidden="true" />
+                                            Tombol ini akan mencoba mengirim pesan otomatis menggunakan nomor Admin yang terhubung. Jika gagal, akan membuka WhatsApp Web.
                                         </p>
                                     </div>
 
@@ -290,7 +292,7 @@ export default function SeasonalInvoiceModal({ isOpen, onClose, onSuccess }: Sea
                         <form onSubmit={handleSubmit}>
                             {/* Student Info */}
                             <div style={sectionStyle}>
-                                <h3 style={sectionTitleStyle}>📋 Data Siswa</h3>
+                                <h3 style={sectionTitleStyle}><FileText size={17} aria-hidden="true" /> Data Siswa</h3>
                                 <div style={fieldStyle}>
                                     <label style={labelStyle}>Nama Lengkap *</label>
                                     <input
@@ -317,7 +319,7 @@ export default function SeasonalInvoiceModal({ isOpen, onClose, onSuccess }: Sea
 
                             {/* Pricing */}
                             <div style={sectionStyle}>
-                                <h3 style={sectionTitleStyle}>💰 Paket & Harga</h3>
+                                <h3 style={sectionTitleStyle}><Wallet size={17} aria-hidden="true" /> Paket & Harga</h3>
                                 <div style={fieldStyle}>
                                     <label style={labelStyle}>Pilih Level/Paket *</label>
                                     <select

@@ -2,7 +2,7 @@
 
 import type { CSSProperties } from 'react';
 import { useState } from 'react';
-import { FolderPlus, Upload, Share2, Link2, X, HelpCircle } from 'lucide-react';
+import { FolderPlus, Upload, Share2, Link2, X, HelpCircle, Bookmark, AlertTriangle } from 'lucide-react';
 
 export default function UploadTutorialModal() {
     const [showModal, setShowModal] = useState(false);
@@ -95,7 +95,7 @@ export default function UploadTutorialModal() {
                             </div>
 
                             <div style={importantBoxStyle}>
-                                <strong>📌 Yang Harus Diingat:</strong>
+                                <strong><Bookmark size={15} aria-hidden="true" /> Yang Harus Diingat:</strong>
                                 <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.25rem' }}>
                                     <li>Upload ke <strong>FOLDER</strong>, bukan file satuan</li>
                                     <li>Share <strong>FOLDER-nya</strong>, bukan file satu-satu</li>
@@ -105,7 +105,7 @@ export default function UploadTutorialModal() {
                             </div>
 
                             <div style={warningBoxStyle}>
-                                <strong>⚠️ Perhatian:</strong> Jika izin akses tidak diatur dengan benar, coach tidak akan bisa melihat karya kamu dan tugas akan dianggap belum dikumpulkan!
+                                <strong><AlertTriangle size={15} aria-hidden="true" /> Perhatian:</strong> Jika izin akses tidak diatur dengan benar, coach tidak akan bisa melihat karya kamu dan tugas akan dianggap belum dikumpulkan!
                             </div>
                         </div>
                     </div>

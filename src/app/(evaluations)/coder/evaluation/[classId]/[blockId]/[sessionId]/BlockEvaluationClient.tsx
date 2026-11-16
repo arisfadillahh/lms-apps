@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
+import { PartyPopper, Rocket } from 'lucide-react';
 
 // Custom SVGs (lucide-react not installed)
 const ArrowLeftIcon = ({ size = 24 }: { size?: number }) => (
@@ -315,7 +316,7 @@ export default function BlockEvaluationClient({
            transition={{ delay: 0.2 }}
            className="text-white text-4xl md:text-5xl font-black mb-4"
         >
-           Luar Biasa! 🎉
+           Luar Biasa! <PartyPopper size={18} aria-hidden="true" />
         </motion.h1>
         <motion.p 
            initial={{ y: 20, opacity: 0 }} 
@@ -557,7 +558,7 @@ export default function BlockEvaluationClient({
               disabled={isPending}
               className="group w-full md:w-auto bg-sunshine text-clevio-navy px-12 py-5 rounded-full text-xl font-black shadow-[0_6px_0_0_#e6b85c] hover:-translate-y-0.5 active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-4 disabled:opacity-50"
             >
-              {isPending ? 'Menyimpan...' : (coachStep > currentStep ? 'Kirim & Lanjut 🚀' : 'Kirim Jawaban')}
+              {isPending ? 'Menyimpan...' : (coachStep > currentStep ? <>Kirim &amp; Lanjut <Rocket size={16} aria-hidden="true" /></> : 'Kirim Jawaban')}
               <ArrowRightIcon className="font-bold group-hover:translate-x-1 transition-transform" />
             </button>
           </div>

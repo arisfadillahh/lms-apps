@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { CalendarDays } from 'lucide-react';
 
 import {
   attendanceDao,
@@ -558,7 +559,10 @@ function BlockInfoCard({ label, summary, emphasis, action }: BlockInfoCardProps)
         </p>
         {block.pitching_day_date && (
           <div style={{ marginTop: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: '#fff7ed', color: '#c2410c', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
-            📅 Pitching: {formatDate(block.pitching_day_date)}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <CalendarDays size={15} aria-hidden="true" />
+              Pitching: {formatDate(block.pitching_day_date)}
+            </span>
           </div>
         )}
       </div>

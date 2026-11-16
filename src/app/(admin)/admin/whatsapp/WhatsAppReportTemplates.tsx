@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, type CSSProperties } from 'react';
+import { Eye, Pencil, RotateCcw, Save } from 'lucide-react';
 import type { InvoiceSettings } from '@/lib/types/invoice';
 
 function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
@@ -125,7 +126,7 @@ export default function WhatsAppReportTemplates({ settings, settingsMsg, savingS
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                     <label style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>Isi Pesan</label>
                     <button onClick={() => setShowPreview(!showPreview)} style={outlineBtnStyle}>
-                        {showPreview ? '✏️ Edit' : '👁️ Preview'}
+                        {showPreview ? <><Pencil size={15} aria-hidden="true" /> Edit</> : <><Eye size={15} aria-hidden="true" /> Preview</>}
                     </button>
                 </div>
 
@@ -158,9 +159,9 @@ export default function WhatsAppReportTemplates({ settings, settingsMsg, savingS
 
                 {/* Actions */}
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                    <button onClick={() => setEditedContent(DEFAULT_TEMPLATE.content)} style={outlineBtnStyle}>↺ Reset Default</button>
+                    <button onClick={() => setEditedContent(DEFAULT_TEMPLATE.content)} style={outlineBtnStyle}><RotateCcw size={15} aria-hidden="true" /> Reset Default</button>
                     <button onClick={handleSave} style={{ ...greenBtnStyle, opacity: !hasChanges ? 0.5 : 1 }} disabled={saving || !hasChanges}>
-                        {saving ? 'Menyimpan...' : '💾 Simpan Template'}
+                        {saving ? 'Menyimpan...' : <><Save size={15} aria-hidden="true" /> Simpan Template</>}
                     </button>
                 </div>
 

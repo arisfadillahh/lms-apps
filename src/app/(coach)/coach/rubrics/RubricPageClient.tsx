@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   Calendar, Users, Zap, FileText, ArrowRight, Flag, PartyPopper, 
-  GraduationCap, LayoutGrid, ChevronLeft, ChevronRight, Save, X, AlertTriangle
+  GraduationCap, LayoutGrid, ChevronLeft, ChevronRight, Save, X, AlertTriangle, Sparkles
 } from 'lucide-react';
 import type { EvaluationScoreMap } from '@/lib/services/evaluationScores';
 
@@ -277,7 +277,7 @@ function EvaluationModal({
                     Murid Berikutnya <ChevronRight className="w-4 h-4" />
                   </button>
                 ) : (
-                  <p className="text-[10px] font-black text-slate-400 tracking-widest uppercase">AKHIR ANTREAN MURID ✨</p>
+                  <p className="text-[10px] font-black text-slate-400 tracking-widest uppercase">AKHIR ANTREAN MURID <Sparkles size={12} aria-hidden="true" /></p>
                 )}
               </div>
             </motion.div>
@@ -603,7 +603,7 @@ export default function RubricPageClient({ pendingLessons, draftReports }: Rubri
                 <PartyPopper className="text-emerald-500" size={24} />
               </div>
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center ml-2 z-10 relative">
-                <h3 className="text-xl font-bold text-slate-800 mb-2">Semua sesi udah kelar! 🎉</h3>
+                <h3 className="text-xl font-bold text-slate-800 mb-2">Semua sesi udah kelar! <PartyPopper size={18} aria-hidden="true" /></h3>
                 <p className="text-slate-500 max-w-sm mx-auto">Semua penilaian untuk sesi mengajarmu sudah selesai. Mantap, Coach! Terus pertahankan!</p>
               </div>
             </motion.div>

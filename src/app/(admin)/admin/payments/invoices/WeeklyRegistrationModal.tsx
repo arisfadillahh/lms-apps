@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, type CSSProperties } from 'react';
-import { X, Loader2, Send, Plus, Trash2 } from 'lucide-react';
+import { X, Loader2, Send, Plus, Trash2, CheckCircle2, FilePlus2, Sparkles, ContactRound, GraduationCap } from 'lucide-react';
 
 interface Pricing {
     id: string;
@@ -295,8 +295,9 @@ export default function WeeklyRegistrationModal({ isOpen, onClose, onSuccess }: 
             <div style={modalStyle}>
                 {/* Header */}
                 <div style={headerStyle}>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>
-                        {success ? '✅ Invoice Berhasil (Weekly)' : '📝 Registrasi Weekly Baru'}
+                    <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>
+                        {success ? <CheckCircle2 size={21} aria-hidden="true" /> : <FilePlus2 size={21} aria-hidden="true" />}
+                        {success ? 'Invoice Berhasil (Weekly)' : 'Registrasi Weekly Baru'}
                     </h2>
                     <button onClick={handleClose} style={closeBtnStyle}><X size={20} /></button>
                 </div>
@@ -309,7 +310,7 @@ export default function WeeklyRegistrationModal({ isOpen, onClose, onSuccess }: 
                         </div>
                     ) : success ? (
                         <div style={{ textAlign: 'center', padding: '2rem' }}>
-                            <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>🎉 Invoice Siap!</h3>
+                            <h3 style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: '1.5rem', marginBottom: '1rem' }}><Sparkles size={22} aria-hidden="true" /> Invoice Siap!</h3>
                             <p>Nomor Invoice: <strong>{success.invoiceNumber}</strong></p>
                             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '2rem' }}>
                                 <button onClick={sendWhatsApp} style={primaryBtnStyle}>
@@ -322,7 +323,7 @@ export default function WeeklyRegistrationModal({ isOpen, onClose, onSuccess }: 
                         <form onSubmit={handleSubmit}>
                             {/* Parent Info */}
                             <div style={sectionStyle}>
-                                <h3 style={sectionTitleStyle}>👤 Data Orang Tua</h3>
+                                <h3 style={sectionTitleStyle}><ContactRound size={17} aria-hidden="true" /> Data Orang Tua</h3>
                                 <div style={rowStyle}>
                                     <div style={{ flex: 1 }}>
                                         <label style={labelStyle}>Nama Orang Tua *</label>
@@ -351,7 +352,7 @@ export default function WeeklyRegistrationModal({ isOpen, onClose, onSuccess }: 
                             {/* Students Loop */}
                             <div style={sectionStyle}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                    <h3 style={sectionTitleStyle}>🎓 Data Siswa ({students.length})</h3>
+                                    <h3 style={sectionTitleStyle}><GraduationCap size={17} aria-hidden="true" /> Data Siswa ({students.length})</h3>
                                     <button type="button" onClick={addStudent} style={smallAddBtnStyle}>
                                         <Plus size={14} /> Tambah Siswa
                                     </button>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type CSSProperties } from 'react';
-import { BookOpen, X, ExternalLink, Presentation } from 'lucide-react';
+import { BookOpen, X, ExternalLink, Presentation, CalendarDays, FileText, Gamepad2, Target } from 'lucide-react';
 import type { LessonSlot } from '@/lib/services/lessonScheduler';
 
 import ReportLessonButton from '../../lesson/[id]/ReportLessonButton';
@@ -44,7 +44,9 @@ export default function LessonDetailButton({ lessonSlot, sessionId, sessionDate,
                         <div style={headerStyle}>
                             <div>
                                 <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.25rem' }}>
-                                    📅 {sessionDate}
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                                        <CalendarDays size={14} aria-hidden="true" /> {sessionDate}
+                                    </span>
                                 </div>
                                 <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
                                     {title}
@@ -60,14 +62,14 @@ export default function LessonDetailButton({ lessonSlot, sessionId, sessionDate,
                             {/* Summary */}
                             {summary && (
                                 <div style={sectionStyle}>
-                                    <h3 style={sectionTitleStyle}>📝 Ringkasan</h3>
+                                    <h3 style={sectionTitleStyle}><FileText size={17} aria-hidden="true" /> Ringkasan</h3>
                                     <p style={{ color: '#475569', lineHeight: 1.6, margin: 0 }}>{summary}</p>
                                 </div>
                             )}
 
                             {/* Slide */}
                             <div style={sectionStyle}>
-                                <h3 style={sectionTitleStyle}>📊 Slide Presentasi</h3>
+                                <h3 style={sectionTitleStyle}><Presentation size={17} aria-hidden="true" /> Slide Presentasi</h3>
                                 {slideUrl ? (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                         <a
@@ -97,7 +99,7 @@ export default function LessonDetailButton({ lessonSlot, sessionId, sessionDate,
 
                             {/* Example Game */}
                             <div style={sectionStyle}>
-                                <h3 style={sectionTitleStyle}>🎮 Contoh Game</h3>
+                                <h3 style={sectionTitleStyle}><Gamepad2 size={17} aria-hidden="true" /> Contoh Game</h3>
                                 {exampleUrl ? (
                                     <a href={exampleUrl} target="_blank" rel="noreferrer" style={linkButtonStyle}>
                                         <ExternalLink size={16} />
@@ -122,7 +124,7 @@ export default function LessonDetailButton({ lessonSlot, sessionId, sessionDate,
                                 href={`/coach/sessions/${sessionId}/attendance`}
                                 style={primaryButtonStyle}
                             >
-                                🎯 Ke Halaman Presensi
+                                <><Target size={16} aria-hidden="true" /> Ke Halaman Presensi</>
                             </a>
                         </div>
                     </div>

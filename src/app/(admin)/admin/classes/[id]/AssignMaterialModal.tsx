@@ -101,7 +101,7 @@ export default function AssignMaterialModal({ classId, sessionId, currentDate, i
                                 }
                                 groups.sort((a, b) => a.blockOrder - b.blockOrder);
                                 return groups.map(group => (
-                                    <optgroup key={group.blockName} label={`📦 ${group.blockName}`}>
+                                    <optgroup key={group.blockName} label={group.blockName}>
                                         {group.lessons.map(lesson => (
                                             <option key={lesson.id} value={lesson.id}>
                                                 {lesson.title}

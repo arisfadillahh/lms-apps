@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { CheckCircle2, CircleX, Hash, LoaderCircle, RefreshCw, UsersRound } from 'lucide-react';
 
 interface Coder {
     id: string;
@@ -102,7 +103,9 @@ export default function CCRAssignment() {
                     className={message.type === 'success' ? 'badge badge-success' : 'badge badge-danger'}
                     style={{ display: 'block', padding: '10px 14px', borderRadius: 'var(--radius)', marginBottom: 16, fontSize: 13 }}
                 >
-                    {message.type === 'success' ? '✅' : '❌'} {message.text}
+                    {message.type === 'success'
+                        ? <CheckCircle2 size={16} aria-hidden="true" />
+                        : <CircleX size={16} aria-hidden="true" />} {message.text}
                 </div>
             )}
 
@@ -111,19 +114,19 @@ export default function CCRAssignment() {
                 <div className="stat">
                     <div className="stat-label">Belum Punya ID Invoice</div>
                     <div className="stat-value">{groups.length} <span style={{ fontSize: 16, fontWeight: 500 }}>Keluarga</span></div>
-                    <div className="stat-icon">👨‍👩‍👧</div>
+                    <div className="stat-icon"><UsersRound size={22} aria-hidden="true" /></div>
                 </div>
                 <div className="stat">
                     <div className="stat-label">Next Available CCR</div>
                     <div className="stat-value mono" style={{ fontSize: 26 }}>{nextCCR}</div>
-                    <div className="stat-icon">🔢</div>
+                    <div className="stat-icon"><Hash size={22} aria-hidden="true" /></div>
                 </div>
             </div>
 
             {/* Empty state */}
             {groups.length === 0 ? (
                 <div className="card" style={{ padding: '48px 20px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
+                    <div style={{ marginBottom: 8, color: 'var(--success)' }}><CheckCircle2 size={32} aria-hidden="true" /></div>
                     <div style={{ fontWeight: 700, fontSize: 15 }}>Semua coder sudah memiliki ID Invoice!</div>
                     <div className="muted" style={{ marginTop: 4, fontSize: 13 }}>Tidak ada keluarga yang perlu di-assign saat ini.</div>
                 </div>
@@ -140,7 +143,7 @@ export default function CCRAssignment() {
                                 <div className="row gap-2">
                                     <span className="chip">{group.coders.length} Anak</span>
                                     {group.existing_ccr && (
-                                        <span className="badge badge-warn">👨‍👩‍👧‍👦 Sibling</span>
+                                        <span className="badge badge-warn"><UsersRound size={14} aria-hidden="true" /> Sibling</span>
                                     )}
                                 </div>
                             </div>
@@ -176,7 +179,7 @@ export default function CCRAssignment() {
                                     />
                                     <span style={{ fontSize: 11.5, color: 'var(--text-dim)', marginTop: 4, display: 'block' }}>
                                         {group.existing_ccr
-                                            ? `✅ Parent sudah punya CCR: ${group.existing_ccr}`
+                                            ? <><CheckCircle2 size={13} aria-hidden="true" /> Parent sudah punya CCR: {group.existing_ccr}</>
                                             : `Next available: ${nextCCR}`}
                                     </span>
                                 </div>
@@ -187,7 +190,7 @@ export default function CCRAssignment() {
                                         className="btn btn-primary"
                                     >
                                         {assigning === group.parent_phone
-                                            ? '⏳ Assigning...'
+                                            ? <><LoaderCircle size={15} className="animate-spin" aria-hidden="true" /> Assigning...</>
                                             : group.coders.length > 1 ? 'Assign to All' : 'Assign'}
                                     </button>
                                     <button
@@ -205,7 +208,7 @@ export default function CCRAssignment() {
 
             {/* Refresh */}
             <button onClick={fetchUnassigned} className="btn" style={{ marginTop: 20 }}>
-                🔄 Refresh List
+                <><RefreshCw size={16} aria-hidden="true" /> Refresh List</>
             </button>
         </div>
     );

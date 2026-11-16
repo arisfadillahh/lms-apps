@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Save, AlertTriangle, ArrowRight, ArrowLeft, FileText } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Save, AlertTriangle, ArrowRight, ArrowLeft, FileText, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { EvaluationCriteriaRecord } from '@/lib/dao/reportsDao';
 import type { EvaluationScoreMap } from '@/lib/services/evaluationScores';
@@ -295,7 +295,7 @@ export default function EvaluationFormClient({ sessionId, students, criteriaList
                         </button>
                       ) : (
                         <p className="text-[10px] font-black text-slate-400 tracking-widest uppercase mb-4">
-                           AKHIR ANTREAN MURID ✨
+                           AKHIR ANTREAN MURID <Sparkles size={14} aria-hidden="true" />
                         </p>
                       )}
                   </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { CheckCircle2, CircleX, IdCard, Pencil, RefreshCw, Save } from 'lucide-react';
 
 interface CCR {
     id: string;
@@ -93,7 +94,9 @@ export default function CCRList() {
                     className={message.type === 'success' ? 'badge badge-success' : 'badge badge-danger'}
                     style={{ display: 'block', padding: '10px 14px', borderRadius: 'var(--radius)', marginBottom: 16, fontSize: 13 }}
                 >
-                    {message.type === 'success' ? '✅' : '❌'} {message.text}
+                    {message.type === 'success'
+                        ? <CheckCircle2 size={16} aria-hidden="true" />
+                        : <CircleX size={16} aria-hidden="true" />} {message.text}
                 </div>
             )}
 
@@ -102,7 +105,7 @@ export default function CCRList() {
                 <div className="stat" style={{ flex: '0 0 auto', minWidth: 160 }}>
                     <div className="stat-label">Total ID Invoice</div>
                     <div className="stat-value">{ccrs.length}</div>
-                    <div className="stat-icon">🆔</div>
+                    <div className="stat-icon"><IdCard size={22} aria-hidden="true" /></div>
                 </div>
                 <div style={{ flex: 1, maxWidth: 380, alignSelf: 'flex-end' }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>
@@ -182,7 +185,7 @@ export default function CCRList() {
                                                     disabled={saving}
                                                     className="btn btn-sm btn-primary"
                                                 >
-                                                    {saving ? '...' : '💾 Simpan'}
+                                                    {saving ? '...' : <><Save size={15} aria-hidden="true" /> Simpan</>}
                                                 </button>
                                                 <button onClick={handleCancelEdit} className="btn btn-sm btn-ghost">
                                                     Batal
@@ -190,7 +193,7 @@ export default function CCRList() {
                                             </div>
                                         ) : (
                                             <button onClick={() => handleEdit(ccr)} className="btn btn-sm btn-ghost">
-                                                ✏️ Edit
+                                                <><Pencil size={15} aria-hidden="true" /> Edit</>
                                             </button>
                                         )}
                                     </td>
@@ -203,7 +206,7 @@ export default function CCRList() {
 
             {/* Refresh */}
             <button onClick={fetchCCRs} className="btn" style={{ marginTop: 16 }}>
-                🔄 Refresh
+                <><RefreshCw size={16} aria-hidden="true" /> Refresh</>
             </button>
         </div>
     );

@@ -3,6 +3,7 @@
 import { useState, useEffect, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Download, FileText, Monitor, KeyRound } from 'lucide-react';
 
 type Software = {
     id: string;
@@ -76,7 +77,7 @@ export default function SoftwareDetailModal({ software, customTrigger }: { softw
                                             rel="noopener noreferrer"
                                             style={downloadButtonStyle}
                                         >
-                                            Download Software ⬇️
+                                            <Download size={16} aria-hidden="true" /> Download Software
                                         </a>
                                         <p style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.5rem', fontStyle: 'italic' }}>
                                             *Link akan terbuka di tab baru
@@ -90,7 +91,7 @@ export default function SoftwareDetailModal({ software, customTrigger }: { softw
                                     {/* Installation Instructions */}
                                     {software.installation_instructions && (
                                         <div style={infoBoxStyle}>
-                                            <h3 style={sectionTitleStyle}>📝 Cara Install</h3>
+                                            <h3 style={sectionTitleStyle}><FileText size={17} aria-hidden="true" /> Cara Install</h3>
                                             <div style={{ fontSize: '0.9rem', color: '#334155', whiteSpace: 'pre-line', lineHeight: '1.6' }}>
                                                 {software.installation_instructions}
                                             </div>
@@ -101,7 +102,7 @@ export default function SoftwareDetailModal({ software, customTrigger }: { softw
                                         {/* Min Specs */}
                                         {software.minimum_specs && Object.keys(software.minimum_specs).length > 0 && (
                                             <div style={{ ...infoBoxStyle, background: '#fffbeb', borderColor: '#fcd34d' }}>
-                                                <h3 style={{ ...sectionTitleStyle, color: '#92400e' }}>💻 Spesifikasi Minimum</h3>
+                                                <h3 style={{ ...sectionTitleStyle, color: '#92400e' }}><Monitor size={17} aria-hidden="true" /> Spesifikasi Minimum</h3>
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem' }}>
                                                     {Object.entries(software.minimum_specs).map(([key, value]) => value && (
                                                         <div key={key} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #fde68a', paddingBottom: '0.25rem' }}>
@@ -116,7 +117,7 @@ export default function SoftwareDetailModal({ software, customTrigger }: { softw
                                         {/* Access Info */}
                                         {software.access_info && (
                                             <div style={{ ...infoBoxStyle, background: '#ecfdf5', borderColor: '#6ee7b7' }}>
-                                                <h3 style={{ ...sectionTitleStyle, color: '#065f46' }}>🔑 Info Akses</h3>
+                                                <h3 style={{ ...sectionTitleStyle, color: '#065f46' }}><KeyRound size={17} aria-hidden="true" /> Info Akses</h3>
                                                 <p style={{ fontSize: '0.9rem', color: '#047857', lineHeight: '1.5', margin: 0 }}>
                                                     {software.access_info}
                                                 </p>

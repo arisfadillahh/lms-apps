@@ -1,6 +1,23 @@
 'use client';
 
 import { useState, useEffect, type CSSProperties } from 'react';
+import {
+    AlertTriangle,
+    BellRing,
+    BookOpenText,
+    CheckCircle2,
+    CircleX,
+    Clock3,
+    FlaskConical,
+    Link2,
+    LoaderCircle,
+    RefreshCw,
+    Save,
+    ScrollText,
+    Smartphone,
+    Unplug,
+    Wrench,
+} from 'lucide-react';
 import type { InvoiceSettings, WhatsAppStatus } from '@/lib/types/invoice';
 import { renderClassReminderMessage } from '@/lib/classDelivery';
 import { resolveClassReminderTemplate } from '@/lib/classReminderTemplates';
@@ -315,11 +332,15 @@ Mohon hadir tepat waktu ya. Terima kasih! 🙏`;
         <div style={containerStyle}>
             {/* Connection Status Card */}
             <div style={cardStyle}>
-                <h2 style={sectionTitleStyle}>📱 Status Koneksi</h2>
+                <h2 style={sectionTitleStyle}><Smartphone size={20} aria-hidden="true" /> Status Koneksi</h2>
 
                 <div style={statusContainerStyle}>
                     <div style={statusIndicatorStyle(status?.isConnected || false)}>
-                        {status?.isConnected ? '🟢 Connected' : '🔴 Disconnected'}
+                        {status?.isConnected ? (
+                            <><CheckCircle2 size={16} aria-hidden="true" /> Connected</>
+                        ) : (
+                            <><CircleX size={16} aria-hidden="true" /> Disconnected</>
+                        )}
                     </div>
 
                     {status?.connectedPhone && (
@@ -351,7 +372,7 @@ Mohon hadir tepat waktu ya. Terima kasih! 🙏`;
                             disabled={connecting}
                             style={connectButtonStyle}
                         >
-                            {connecting ? '⏳ Connecting...' : '🔗 Connect WhatsApp'}
+                            {connecting ? <><LoaderCircle size={16} aria-hidden="true" /> Connecting...</> : <><Link2 size={16} aria-hidden="true" /> Connect WhatsApp</>}
                         </button>
                     ) : (
                         <button
@@ -359,12 +380,12 @@ Mohon hadir tepat waktu ya. Terima kasih! 🙏`;
                             disabled={disconnecting}
                             style={disconnectButtonStyle}
                         >
-                            {disconnecting ? '⏳ Disconnecting...' : '🔌 Disconnect'}
+                            {disconnecting ? <><LoaderCircle size={16} aria-hidden="true" /> Disconnecting...</> : <><Unplug size={16} aria-hidden="true" /> Disconnect</>}
                         </button>
                     )}
 
                     <button onClick={fetchStatus} style={refreshButtonStyle}>
-                        🔄 Refresh Status
+                        <RefreshCw size={16} aria-hidden="true" /> Refresh Status
                     </button>
 
                     <button
@@ -372,14 +393,14 @@ Mohon hadir tepat waktu ya. Terima kasih! 🙏`;
                         disabled={resetting}
                         style={resetButtonStyle}
                     >
-                        {resetting ? '⏳ Resetting...' : '🔧 Force Reset'}
+                        {resetting ? <><LoaderCircle size={16} aria-hidden="true" /> Resetting...</> : <><Wrench size={16} aria-hidden="true" /> Force Reset</>}
                     </button>
                 </div>
             </div>
 
             {/* Instructions Card */}
             <div style={cardStyle}>
-                <h2 style={sectionTitleStyle}>📋 Petunjuk Penggunaan</h2>
+                <h2 style={sectionTitleStyle}><BookOpenText size={20} aria-hidden="true" /> Petunjuk Penggunaan</h2>
                 <ol style={instructionsListStyle}>
                     <li>Klik tombol &quot;Connect WhatsApp&quot; untuk memulai koneksi.</li>
                     <li>QR Code akan muncul di layar.</li>
@@ -390,7 +411,7 @@ Mohon hadir tepat waktu ya. Terima kasih! 🙏`;
                 </ol>
 
                 <div style={warningBoxStyle}>
-                    <p style={warningTitleStyle}>⚠️ Penting:</p>
+                    <p style={warningTitleStyle}><AlertTriangle size={16} aria-hidden="true" /> Penting:</p>
                     <ul style={warningListStyle}>
                         <li>Koneksi WhatsApp harus tetap aktif untuk mengirim pesan.</li>
                         <li>Jika server restart, Anda perlu scan QR Code ulang.</li>
@@ -403,10 +424,10 @@ Mohon hadir tepat waktu ya. Terima kasih! 🙏`;
             <div style={cardStyle}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <h2 style={{ ...sectionTitleStyle, marginBottom: 0 }}>⏰ Reminder Kelas Hari Ini</h2>
+                        <h2 style={{ ...sectionTitleStyle, marginBottom: 0 }}><BellRing size={20} aria-hidden="true" /> Reminder Kelas Hari Ini</h2>
                         {status?.serverTime && (
                             <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500, marginTop: '4px' }}>
-                                🕒 Server Time: {status.serverTime} (WIB)
+                                <Clock3 size={14} aria-hidden="true" /> Server Time: {status.serverTime} (WIB)
                             </span>
                         )}
                     </div>
@@ -472,10 +493,10 @@ Mohon hadir tepat waktu ya. Terima kasih! 🙏`;
 
                     <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between' }}>
                         <button onClick={handleOpenTestModal} style={testButtonStyle}>
-                            🧪 Tes Kirim Pesan
+                            <FlaskConical size={16} aria-hidden="true" /> Tes Kirim Pesan
                         </button>
                         <button onClick={handleSaveSettings} disabled={savingSettings} style={saveButtonStyle}>
-                            {savingSettings ? 'Saving...' : '💾 Simpan Konfigurasi'}
+                            {savingSettings ? <><LoaderCircle size={16} aria-hidden="true" /> Saving...</> : <><Save size={16} aria-hidden="true" /> Simpan Konfigurasi</>}
                         </button>
                     </div>
                 </div>
@@ -484,7 +505,7 @@ Mohon hadir tepat waktu ya. Terima kasih! 🙏`;
                 {showTestModal && (
                     <div style={modalOverlayStyle}>
                         <div style={modalContentStyle}>
-                            <h3 style={{ marginTop: 0 }}>🧪 Tes Kirim Reminder</h3>
+                            <h3 style={{ marginTop: 0 }}><FlaskConical size={18} aria-hidden="true" /> Tes Kirim Reminder</h3>
 
                             {testMsg && (
                                 <div style={testMsg.type === 'success' ? successStyle : errorStyle}>
@@ -546,8 +567,8 @@ Mohon hadir tepat waktu ya. Terima kasih! 🙏`;
             {/* Message Logs Card */}
             <div style={cardStyle}>
                 <div style={logsHeaderStyle}>
-                    <h2 style={sectionTitleStyle}>📜 Log Pesan Terakhir</h2>
-                    <button onClick={fetchLogs} style={refreshSmallButtonStyle}>🔄</button>
+                    <h2 style={sectionTitleStyle}><ScrollText size={20} aria-hidden="true" /> Log Pesan Terakhir</h2>
+                    <button onClick={fetchLogs} style={refreshSmallButtonStyle} aria-label="Muat ulang log"><RefreshCw size={16} aria-hidden="true" /></button>
                 </div>
 
                 {logs.length === 0 ? (

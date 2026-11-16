@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { Printer } from 'lucide-react';
+import { CalendarDays, Check, Printer } from 'lucide-react';
 import { useState, type CSSProperties } from 'react';
 import type { PublicInvoice } from '@/lib/publicInvoice';
 import type { PublicInvoicePaymentInstruction, PublicInvoicePaymentOption } from '@/lib/invoicePaymentMethods';
@@ -203,9 +203,16 @@ export default function InvoiceView({ invoice, publicToken, paymentOptions, init
                                     />
                                 ) : isPaid ? (
                                     <div style={paidStatusContainerStyle}>
-                                        <div style={paidCheckmarkStyle}>✓</div>
+                                        <div style={paidCheckmarkStyle}>
+                                            <Check size={27} strokeWidth={3} aria-hidden="true" />
+                                        </div>
                                         <div style={paidTextStyle}>LUNAS</div>
-                                        <div style={paidDateStyle}>{formatDate(invoice.paid_at || '')}</div>
+                                        {invoice.paid_at && (
+                                            <div style={paidDateStyle}>
+                                                <CalendarDays size={17} aria-hidden="true" />
+                                                <time dateTime={invoice.paid_at}>{formatDate(invoice.paid_at)}</time>
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
                                     <div style={emptyStateStyle}>Silakan hubungi admin</div>
@@ -1439,28 +1446,49 @@ const modalChooseButtonDisabledStyle: CSSProperties = {
 };
 
 const paidStatusContainerStyle: CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '8px',
     textAlign: 'center',
-    padding: '10px',
+    padding: '14px 8px 17px',
     backgroundColor: '#ECFDF5',
-    borderRadius: '8px',
-    border: '1px solid #6EE7B7'
+    borderRadius: '10px',
+    border: '1px solid #34D399'
 };
 
 const paidCheckmarkStyle: CSSProperties = {
-    fontSize: '24px',
-    color: '#059669',
-    marginBottom: '4px'
+    display: 'grid',
+    placeItems: 'center',
+    width: '46px',
+    height: '46px',
+    borderRadius: '50%',
+    backgroundColor: '#70B629',
+    backgroundImage: 'linear-gradient(150deg, #95CC35, #60AA29)',
+    color: '#FFFFFF',
+    WebkitPrintColorAdjust: 'exact',
+    printColorAdjust: 'exact'
 };
 
 const paidTextStyle: CSSProperties = {
-    fontSize: '18px',
-    fontWeight: 800,
-    color: '#059669'
+    fontSize: '29px',
+    fontWeight: 900,
+    lineHeight: 1,
+    color: '#087443'
 };
 
 const paidDateStyle: CSSProperties = {
-    fontSize: '12px',
-    color: '#047857'
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    maxWidth: '100%',
+    padding: '5px 12px',
+    borderRadius: '10px',
+    backgroundColor: '#D7EFE4',
+    fontSize: '14px',
+    fontWeight: 600,
+    color: '#14683F'
 };
 
 const emptyStateStyle: CSSProperties = {

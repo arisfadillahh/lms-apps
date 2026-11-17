@@ -84,11 +84,16 @@ export function trackLead(parameters: MetaEventParameters = {}, options?: MetaEv
   trackStandardEvent("Lead", parameters, options);
 }
 
+export function trackHolidayRegistration(eventId: string) {
+  return trackStandardEvent("CompleteRegistration", {}, { eventId });
+}
+
 function trackStandardEvent(eventName: string, parameters: MetaEventParameters = {}, options?: MetaEventOptions) {
-  if (!initializeMetaPixel() || !window.fbq) return;
+  if (!initializeMetaPixel() || !window.fbq) return false;
   const compacted = compactParameters(parameters);
   if (options?.eventId) window.fbq("track", eventName, compacted, { eventID: options.eventId });
   else window.fbq("track", eventName, compacted);
+  return true;
 }
 
 function compactParameters(parameters: MetaEventParameters) {

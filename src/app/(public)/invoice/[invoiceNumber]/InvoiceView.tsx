@@ -2,7 +2,9 @@
 
 import Image from 'next/image';
 import { CalendarDays, Check, Printer } from 'lucide-react';
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
+import { trackHolidayRegistration } from '@/lib/metaPixel';
+import { holidayInvoicePattern } from '@/lib/holidayClass';
 import type { PublicInvoice } from '@/lib/publicInvoice';
 import type { PublicInvoicePaymentInstruction, PublicInvoicePaymentOption } from '@/lib/invoicePaymentMethods';
 import { formatInvoicePeriod, isSingleMonthInvoice } from '@/lib/invoicePeriod';
@@ -40,6 +42,21 @@ const COLORS = {
 };
 
 export default function InvoiceView({ invoice, publicToken, paymentOptions, initialPayment, bankInfo }: Props) {
+    useEffect(() => {
+        if (!holidayInvoicePattern.test(invoice.invoice_number)) return;
+        try {
+            const key = `clevio-holiday-registration:${location.pathname}`;
+            const eventId = sessionStorage.getItem(key);
+            if (!eventId || !/^[a-f0-9-]{36}$/i.test(eventId)) return;
+            if (localStorage.getItem('clevio-holiday-analytics') === 'no') {
+                sessionStorage.removeItem(key);
+                return;
+            }
+            if (trackHolidayRegistration(eventId)) sessionStorage.removeItem(key);
+        } catch {
+            // Browser storage restrictions should not affect the invoice.
+        }
+    }, [invoice.invoice_number]);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [selectedPayment, setSelectedPayment] = useState<PaymentInstruction | null>(() => {
         return initialPayment ?? buildInitialPaymentInstruction(invoice, publicToken ?? null);

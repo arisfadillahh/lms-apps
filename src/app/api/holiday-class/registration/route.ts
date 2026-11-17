@@ -4,6 +4,7 @@ import { consumeRateLimit } from '@/lib/rateLimit';
 import { createHolidayRegistration, holidayRegistrationSchema, HolidayRegistrationError } from '@/lib/services/holidayClassRegistration';
 import { holidayInvoiceUrl } from '@/lib/services/holidayClassPayment';
 import { deliverHolidayWhatsApp } from '@/lib/services/holidayClassMessaging';
+import { sendHolidayRegistrationConversion } from '@/lib/services/holidayMetaConversions';
 
 export const runtime = 'nodejs';
 const noStore = { 'Cache-Control': 'no-store' };
@@ -25,7 +26,8 @@ export async function POST(request: Request) {
     if (!await consumeRateLimit({ request, scope: 'holiday-registration', maxRequests: 16, windowSeconds: 600 })) {
       return NextResponse.json({ error: 'Terlalu banyak percobaan. Coba beberapa menit lagi.' }, { status: 429 });
     }
-    const parsed = holidayRegistrationSchema.safeParse(await request.json().catch(() => null));
+    const body = await request.json().catch(() => null);
+    const parsed = holidayRegistrationSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: 'Periksa nama, WhatsApp, pilihan program, dan persetujuan privasi.' }, { status: 400 });
     }
@@ -35,6 +37,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Terlalu banyak percobaan untuk nomor WhatsApp ini. Buka kembali invoice atau coba lagi nanti.' }, { status: 429 });
     }
     const invoice = await createHolidayRegistration(parsed.data);
+    if (body?.adMeasurement === true) {
+      after(() => sendHolidayRegistrationConversion(parsed.data.id, parsed.data.phone, invoice.created_at)
+        .catch(() => console.warn('[Holiday Class] Meta registration conversion failed')));
+    }
     after(() => deliverHolidayWhatsApp(parsed.data.id).catch(() => console.warn('[Holiday Class] Registration delivery deferred')));
     const invoiceUrl = holidayInvoiceUrl(invoice);
     return NextResponse.json({ invoiceNumber: invoice.invoice_number, invoiceUrl }, { headers: noStore });

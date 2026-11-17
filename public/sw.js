@@ -41,9 +41,11 @@ self.addEventListener('message', (event) => {
     const cache = await caches.open(ACTIVE_USER_CACHE);
     if (!event.data.userId) {
       await cache.delete(ACTIVE_USER_KEY);
+      event.ports[0]?.postMessage('ACK');
       return;
     }
     await cache.put(ACTIVE_USER_KEY, new Response(String(event.data.userId)));
+    event.ports[0]?.postMessage('ACK');
   })());
 });
 

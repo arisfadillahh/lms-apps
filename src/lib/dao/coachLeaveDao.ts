@@ -13,15 +13,17 @@ export type CoachLeaveRequestWithRelations = CoachLeaveRequestRecord & {
 };
 
 export type CreateLeaveRequestInput = {
+  substituteCoachId: string;
   coachId: string;
   sessionId: string;
   note?: string | null;
 };
 
-export async function createLeaveRequest({ coachId, sessionId, note }: CreateLeaveRequestInput): Promise<CoachLeaveRequestRecord> {
+export async function createLeaveRequest({ coachId, sessionId, substituteCoachId, note }: CreateLeaveRequestInput): Promise<CoachLeaveRequestRecord> {
   const supabase = getSupabaseAdmin();
   const payload: TablesInsert<'coach_leave_requests'> = {
     coach_id: coachId,
+    substitute_coach_id: substituteCoachId,
     session_id: sessionId,
     note: note ?? null,
   };

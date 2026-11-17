@@ -15,12 +15,14 @@ type Session = {
 
 type Props = {
     availableSessions: Session[];
+    coachOptions: { id: string; name: string }[];
 };
 
-export default function CreateLeaveRequestDialog({ availableSessions }: Props) {
+export default function CreateLeaveRequestDialog({ availableSessions, coachOptions }: Props) {
     const [open, setOpen] = useState(false);
     const [selectedSessionId, setSelectedSessionId] = useState('');
     const [note, setNote] = useState('');
+    const [substituteCoachId, setSubstituteCoachId] = useState('');
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
@@ -44,7 +46,7 @@ export default function CreateLeaveRequestDialog({ availableSessions }: Props) {
                 const res = await fetch('/api/coach/leave', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sessionId: selectedSessionId, note }),
+                    body: JSON.stringify({ sessionId: selectedSessionId, substituteCoachId, note }),
                 });
 
                 if (!res.ok) {
@@ -56,6 +58,7 @@ export default function CreateLeaveRequestDialog({ availableSessions }: Props) {
                 setOpen(false);
                 setSelectedSessionId('');
                 setNote('');
+                setSubstituteCoachId('');
                 router.refresh();
             } catch {
                 setError('Terjadi kesalahan sistem');
@@ -151,6 +154,17 @@ export default function CreateLeaveRequestDialog({ availableSessions }: Props) {
                                     </div>
                                 </div>
 
+                                <div className="space-y-2">
+                                    <label htmlFor="leave-substitute" className="text-sm font-semibold text-slate-700">Coach pengganti (wajib)</label>
+                                    <select id="leave-substitute" required value={substituteCoachId}
+                                        onChange={event => setSubstituteCoachId(event.target.value)}
+                                        className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm">
+                                        <option value="">Pilih coach pengganti</option>
+                                        {coachOptions.map(coach => <option key={coach.id} value={coach.id}>{coach.name}</option>)}
+                                    </select>
+                                    <p className="text-xs text-slate-500">Cari dan konfirmasi kesediaan coach pengganti sebelum mengajukan izin.</p>
+                                </div>
+
                                 {/* Note Textarea */}
                                 <div className="space-y-2">
                                     <label className="text-sm font-semibold text-slate-700">Alasan Ketidakhadiran</label>
@@ -176,7 +190,7 @@ export default function CreateLeaveRequestDialog({ availableSessions }: Props) {
                                 <div className="space-y-3 pt-1">
                                     <button
                                         type="submit"
-                                        disabled={isPending}
+                                        disabled={isPending || !substituteCoachId}
                                         className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                                     >
                                         {isPending && (

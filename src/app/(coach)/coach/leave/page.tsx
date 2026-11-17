@@ -10,10 +10,11 @@ export default async function CoachLeavePage() {
   const session = await getSessionOrThrow();
   await assertRole(session, 'COACH');
 
-  const [upcomingSessions, leaveRequests, coachUser] = await Promise.all([
+  const [upcomingSessions, leaveRequests, coachUser, coaches] = await Promise.all([
     sessionsDao.listUpcomingSessionsForCoach(session.user.id, 60),
     coachLeaveDao.listLeaveRequestsForCoach(session.user.id),
     usersDao.getUserById(session.user.id),
+    usersDao.listUsersByRole('COACH'),
   ]);
 
   const headerUser = {
@@ -82,7 +83,11 @@ export default async function CoachLeavePage() {
             </p>
           </div>
           <div className="flex items-center gap-3 mt-1">
-            <CreateLeaveRequestDialog availableSessions={availableSessions} />
+            <CreateLeaveRequestDialog
+              availableSessions={availableSessions}
+              coachOptions={coaches.filter(coach => coach.id !== session.user.id && coach.is_active)
+                .map(coach => ({ id: coach.id, name: coach.full_name }))}
+            />
           </div>
         </div>
 

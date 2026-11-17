@@ -3,12 +3,13 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { getSessionOrThrow } from '@/lib/auth';
-import { coachLeaveDao, sessionsDao, classesDao } from '@/lib/dao';
+import { coachLeaveDao, sessionsDao, classesDao, usersDao } from '@/lib/dao';
 import { createAdminNotifications } from '@/lib/dao/notificationsDao';
 import { assertRole } from '@/lib/roles';
 
 const requestSchema = z.object({
   sessionId: z.string().uuid(),
+  substituteCoachId: z.string().uuid(),
   note: z
     .string()
     .max(400)
@@ -55,9 +56,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Leave request already submitted for this session' }, { status: 409 });
   }
 
+  const substitute = await usersDao.getUserById(parsed.data.substituteCoachId);
+  if (!substitute || substitute.role !== 'COACH' || !substitute.is_active || substitute.id === coachSession.user.id) {
+    return NextResponse.json({ error: 'Pilih coach pengganti lain yang masih aktif.' }, { status: 400 });
+  }
+
   const requestRecord = await coachLeaveDao.createLeaveRequest({
     coachId: coachSession.user.id,
     sessionId: parsed.data.sessionId,
+    substituteCoachId: substitute.id,
     note: parsed.data.note ?? null,
   });
 

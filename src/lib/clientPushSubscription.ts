@@ -1,7 +1,20 @@
 async function setServiceWorkerActiveUser(userId: string | null) {
   if (!('serviceWorker' in navigator)) return;
   const registration = await navigator.serviceWorker.ready;
-  registration.active?.postMessage({ type: 'SET_ACTIVE_USER', userId });
+  const worker = registration.active;
+  if (!worker) return;
+  await new Promise<void>((resolve) => {
+    const channel = new MessageChannel();
+    const finish = () => {
+      clearTimeout(timeout);
+      channel.port1.close();
+      resolve();
+    };
+    // An older worker may still receive this message without acknowledging it.
+    const timeout = window.setTimeout(finish, 1500);
+    channel.port1.onmessage = finish;
+    worker.postMessage({ type: 'SET_ACTIVE_USER', userId }, [channel.port2]);
+  });
 }
 
 export async function syncExistingPushSubscriptionToCurrentAccount(userId: string) {

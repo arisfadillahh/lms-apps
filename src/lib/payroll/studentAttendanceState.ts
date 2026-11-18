@@ -10,10 +10,11 @@ export interface StudentAttendanceMetadata {
 }
 const recognized = new Set(['PRESENT', 'LATE', 'ABSENT', 'EXCUSED']);
 
-/** Only active enrollments within their enrollment window belong to the roster. */
+/** Evaluate membership at the session date, including memberships that ended later. */
 export function isEnrollmentAtSession(enrollment: { enrolled_at: string; ended_at: string | null; status: string }, dateTime: string): boolean {
   const stamp = Date.parse(dateTime), enrolled = Date.parse(enrollment.enrolled_at);
-  return enrollment.status === 'ACTIVE' && Number.isFinite(stamp) && Number.isFinite(enrolled) && enrolled <= stamp &&
+  return (enrollment.status === 'ACTIVE' || (enrollment.status === 'INACTIVE' && Boolean(enrollment.ended_at))) &&
+    Number.isFinite(stamp) && Number.isFinite(enrolled) && enrolled <= stamp &&
     (!enrollment.ended_at || stamp <= Date.parse(enrollment.ended_at));
 }
 

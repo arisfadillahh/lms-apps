@@ -28,6 +28,23 @@ function calculate(input = fixture(), options: { fulltime?: boolean; override?: 
 }
 
 describe('shared student attendance state and historical roster', () => {
+  it('preserves completed teaching fees when students and memberships are deactivated later', () => {
+    const input = fixture();
+    input.attendance = recorded(['PRESENT', 'PRESENT', 'PRESENT']);
+    const before = calculate(input).line;
+    const historical = {
+      ...input,
+      enrollments: input.enrollments.map(e => ({
+        ...e, status: 'INACTIVE', ended_at: '2026-11-18T00:00:00+07:00', users: { is_active: false },
+      })),
+    };
+    const after = calculate(historical).line;
+    expect(after.amount).toBe(before.amount);
+    expect(after.students).toBe(3);
+    expect(after.attendance_status).toBe('CONFIRMED');
+    historical.sessions[0].date_time = '2026-11-19T10:00:00+07:00';
+    expect(calculate(historical).line.students).toBe(0);
+  });
   it.each([
     [[], { status: 'PENDING', expected: 3, recorded: 0, present: 0 }],
     [['ABSENT'], { status: 'PENDING', expected: 3, recorded: 1, present: 0 }],
@@ -42,11 +59,12 @@ describe('shared student attendance state and historical roster', () => {
     expect(evaluateStudentAttendance(['a'], [{ coder_id: 'a', status: 'PRESENT' }, { coder_id: 'a', status: 'ABSENT' }])).toEqual({ status: 'PENDING', expected: 1, recorded: 0, present: 0 });
     expect(evaluateStudentAttendance([], [{ coder_id: 'outside', status: 'PRESENT' }])).toEqual({ status: 'PENDING', expected: 0, recorded: 0, present: 0 });
   });
-  it('uses the enrollment window only for active students and ignores invalid dates', () => {
+  it('uses the historical enrollment window and ignores invalid dates', () => {
     const enrollment = { enrolled_at: '2026-11-01T00:00:00+07:00', ended_at: '2026-11-12T10:00:00+07:00', status: 'ACTIVE' };
     expect(isEnrollmentAtSession(enrollment, '2026-11-12T10:00:00+07:00')).toBe(true);
     expect(isEnrollmentAtSession(enrollment, '2026-11-12T10:00:01+07:00')).toBe(false);
-    expect(isEnrollmentAtSession({ ...enrollment, status: 'INACTIVE' }, '2026-11-12T09:00:00+07:00')).toBe(false);
+    expect(isEnrollmentAtSession({ ...enrollment, status: 'INACTIVE' }, '2026-11-12T09:00:00+07:00')).toBe(true);
+    expect(isEnrollmentAtSession({ ...enrollment, status: 'INACTIVE', ended_at: null }, '2026-11-12T09:00:00+07:00')).toBe(false);
     expect(isEnrollmentAtSession({ ...enrollment, enrolled_at: 'invalid' }, '2026-11-12T10:00:00+07:00')).toBe(false);
   });
 });

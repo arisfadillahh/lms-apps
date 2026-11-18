@@ -4,7 +4,7 @@ import { attendanceValidationWarning, evaluateStudentAttendance, hasReasonedAtte
 
 export interface ClassSource { id: string; name: string; type: 'WEEKLY' | 'EKSKUL'; coach_id: string; delivery_mode: 'ONLINE' | 'OFFLINE'; payroll_mode?: 'FULLTIME' | 'MITRA' | null }
 export interface SessionSource { id: string; class_id: string; date_time: string; status: string; substitute_coach_id: string | null; payroll_mode?: 'FULLTIME' | 'MITRA' | null }
-export interface EnrollmentSource { class_id: string; coder_id: string; enrolled_at: string; ended_at: string | null; status: string }
+export interface EnrollmentSource { class_id: string; coder_id: string; enrolled_at: string; ended_at: string | null; status: string; users?: { is_active: boolean } }
 export interface AttendanceSource { session_id: string; coder_id: string; status: string }
 export interface LeaveSource { session_id: string; status: string; substitute_coach_id: string | null }
 export interface TrialSource { id: string; student_name: string; phone: string; trial_mode: 'ONLINE' | 'OFFLINE'; status: string; coach_id: string | null; scheduled_at: string | null; duration_minutes: number }
@@ -29,7 +29,11 @@ export function buildPayrollActivities(input: {
     const approved = leaves.find(l => l.session_id === s.id && l.status === 'APPROVED');
     const payee = s.substitute_coach_id || approved?.substitute_coach_id || klass.coach_id;
     const cancelled = s.status === 'CANCELLED' || Boolean(approved && !approved.substitute_coach_id && !s.substitute_coach_id);
-    const roster = new Set(enrollments.filter(e => e.class_id === klass.id && isEnrollmentAtSession(e, s.date_time)).map(e => e.coder_id));
+    const roster = new Set(enrollments.filter(e => e.class_id === klass.id &&
+      isEnrollmentAtSession(e, s.date_time) &&
+      (e.users?.is_active !== false || (input.attendance ?? []).some(row =>
+        row.session_id === s.id && row.coder_id === e.coder_id))
+    ).map(e => e.coder_id));
     const students = roster.size;
     const state = !cancelled && cutoff !== null && Date.parse(s.date_time) >= cutoff
       ? evaluateStudentAttendance(roster, (input.attendance ?? []).filter(row => row.session_id === s.id)) : null;

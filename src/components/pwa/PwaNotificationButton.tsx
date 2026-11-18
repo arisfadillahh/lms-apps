@@ -28,9 +28,6 @@ export default function PwaNotificationButton() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => undefined);
     }
-    if ('Notification' in window && Notification.permission === 'granted') {
-      setPushEnabled(true);
-    }
     const standalone = window.matchMedia('(display-mode: standalone)').matches ||
       (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
     setIsStandalone(standalone);
@@ -75,7 +72,9 @@ export default function PwaNotificationButton() {
       const keyResponse = await fetch('/api/push/vapid-public-key');
       const keyData = await keyResponse.json();
       if (!keyData.enabled || !keyData.publicKey) throw new Error('Notifikasi push belum dikonfigurasi di server.');
-      const permission = await Notification.requestPermission();
+      const permission = Notification.permission === 'granted'
+        ? 'granted'
+        : await Notification.requestPermission();
       if (permission !== 'granted') throw new Error('Izin notifikasi belum diberikan.');
       const registration = await navigator.serviceWorker.ready;
       const existing = await registration.pushManager.getSubscription();
@@ -114,7 +113,7 @@ export default function PwaNotificationButton() {
           <div className="pwa-menu-title">Aplikasi Clevio LMS</div>
           <p className="pwa-menu-copy">Pasang LMS di HP dan aktifkan push untuk pembayaran, trial, laporan, serta gangguan operasional penting.</p>
           <button type="button" className="pwa-menu-action" onClick={install}><Download size={15} /> Pasang di HP</button>
-          <button type="button" className="pwa-menu-action primary" onClick={enablePush} disabled={busy || pushEnabled}>
+          <button type="button" className="pwa-menu-action primary" onClick={enablePush} disabled={busy}>
             <BellRing size={15} /> {busy ? 'Mengaktifkan...' : pushEnabled ? 'Notifikasi aktif' : 'Aktifkan notifikasi'}
           </button>
           {message ? <p className="pwa-menu-message" role="status">{message}</p> : null}

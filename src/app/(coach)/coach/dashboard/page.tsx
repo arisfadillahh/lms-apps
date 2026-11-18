@@ -187,6 +187,7 @@ export default async function CoachDashboardPage() {
                                                     <h3 className="font-bold text-brand-deep group-hover:text-emerald-600 transition-colors">
                                                         {cls.name}
                                                     </h3>
+                                                    {cls.isSubstitute && <p className="mt-1 text-xs text-amber-800"><span className="mr-1 rounded bg-amber-100 px-1.5 py-0.5 font-bold">Pengganti</span>Menggantikan Coach {cls.replacedCoachName ?? 'utama'}</p>}
                                                     <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">
                                                         {cls.nextSessionDate ? format(new Date(cls.nextSessionDate), 'EEEE, HH:mm', { locale: localeId }) : 'Belum Ada Jadwal'}
                                                     </p>

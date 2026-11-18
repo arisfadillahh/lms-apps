@@ -13,6 +13,8 @@ interface LessonInfo {
 interface NextSessionProps {
     id: string;
     class_name?: string;
+    isSubstitute?: boolean;
+    replacedCoachName?: string;
     date_time: string;
     lesson?: LessonInfo | null;
 }
@@ -66,6 +68,9 @@ export default function HeroCountdownClient({ session }: { session: NextSessionP
                 </div>
                 <div>
                     <h2 className="text-3xl font-extrabold tracking-tight mb-2">{session.class_name}</h2>
+                    {session.isSubstitute && (
+                        <p className="mb-3 text-sm text-amber-100"><span className="mr-2 rounded bg-amber-100 px-2 py-1 font-bold text-amber-900">Pengganti</span>Menggantikan Coach {session.replacedCoachName ?? 'utama'}</p>
+                    )}
                     <div className="flex flex-wrap items-center gap-4 mb-3">
                         <p className="text-slate-300 text-sm flex items-center gap-2">
                             <span className="material-symbols-outlined text-sm text-slate-400">schedule</span>

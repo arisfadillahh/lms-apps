@@ -1,5 +1,5 @@
 
-import { attendanceDao, classesDao, sessionsDao } from '@/lib/dao';
+import { attendanceDao, classesDao, sessionsDao, usersDao } from '@/lib/dao';
 import type { ClassBlockRecord } from '@/lib/dao/classesDao';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 import { getSoftwareByBlockId } from '@/lib/dao/blockSoftwareDao';
@@ -34,6 +34,7 @@ type CoachClassSummary = {
   } | null;
   upcomingBlock?: { name?: string | null; startDate: string; endDate: string } | null;
   isSubstitute?: boolean; // New flag
+  replacedCoachName?: string;
   studentsCount?: number;
 };
 
@@ -129,6 +130,7 @@ export async function getCoachClassesWithBlocks(coachId: string): Promise<CoachC
         currentBlock,
         upcomingBlock,
         isSubstitute: !isMainCoach, // Set flag
+        replacedCoachName: !isMainCoach ? (await usersDao.getUserById(klass.coach_id))?.full_name : undefined,
         studentsCount: activeEnrollments.length,
       };
     }),
@@ -136,6 +138,8 @@ export async function getCoachClassesWithBlocks(coachId: string): Promise<CoachC
 }
 
 export type ExtendedSession = import('@/lib/dao/sessionsDao').SessionRecord & {
+  isSubstitute?: boolean;
+  replacedCoachName?: string;
   class_name?: string;
   lesson?: {
     id: string;
@@ -209,6 +213,7 @@ async function getSubstituteSessions(coachId: string): Promise<ExtendedSession[]
       // We need to fetch the class to get levelId.
       const classRecord = await classesDao.getClassById(classId);
       if (!classRecord) return [];
+      const replacedCoach = await usersDao.getUserById(classRecord.coach_id);
 
       const lessonMap = await computeLessonSchedule(
         classId,
@@ -221,6 +226,8 @@ async function getSubstituteSessions(coachId: string): Promise<ExtendedSession[]
         return {
           ...session,
           class_name: session.class_name, // Already populated by listAllSubstituteSessions
+          isSubstitute: true,
+          replacedCoachName: replacedCoach?.full_name,
           lesson: lessonSlot
             ? {
               id: lessonSlot.lessonTemplate.id,

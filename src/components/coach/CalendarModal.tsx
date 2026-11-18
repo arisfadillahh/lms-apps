@@ -11,6 +11,8 @@ type Session = {
     date_time: string;
     status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
     class_name?: string;
+    isSubstitute?: boolean;
+    replacedCoachName?: string;
     lesson?: {
         title: string;
         block_name: string;
@@ -215,6 +217,9 @@ export default function CalendarModal({ sessions, children, triggerClassName, tr
                                                                     {isCompleted ? ' · Selesai' : ' · Terjadwal'}
                                                                 </span>
                                                                 <h4 className="text-sm font-bold text-slate-900 mt-0.5">{s.class_name ?? 'Kelas'}</h4>
+                                                                {s.isSubstitute && (
+                                                                    <p className="mt-1 text-xs text-amber-800"><span className="rounded bg-amber-100 px-1.5 py-0.5 font-bold">SUB</span> Menggantikan Coach {s.replacedCoachName ?? 'utama'}</p>
+                                                                )}
                                                                 {s.lesson && (
                                                                     <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">{s.lesson.title}</p>
                                                                 )}

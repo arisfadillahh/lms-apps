@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import SubstituteBadge from '@/components/coach/SubstituteBadge';
+import MitraBadge from '@/components/coach/MitraBadge';
 import { format, differenceInSeconds } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 
@@ -13,6 +15,7 @@ interface LessonInfo {
 interface NextSessionProps {
     id: string;
     class_name?: string;
+    isMitraSession?: boolean;
     isSubstitute?: boolean;
     replacedCoachName?: string;
     date_time: string;
@@ -68,8 +71,9 @@ export default function HeroCountdownClient({ session }: { session: NextSessionP
                 </div>
                 <div>
                     <h2 className="text-3xl font-extrabold tracking-tight mb-2">{session.class_name}</h2>
+                    {session.isMitraSession && <MitraBadge />}
                     {session.isSubstitute && (
-                        <p className="mb-3 text-sm text-amber-100"><span className="mr-2 rounded bg-amber-100 px-2 py-1 font-bold text-amber-900">Pengganti</span>Menggantikan Coach {session.replacedCoachName ?? 'utama'}</p>
+                        <SubstituteBadge coachName={session.replacedCoachName} />
                     )}
                     <div className="flex flex-wrap items-center gap-4 mb-3">
                         <p className="text-slate-300 text-sm flex items-center gap-2">

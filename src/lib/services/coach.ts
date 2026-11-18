@@ -6,6 +6,7 @@ import { getSoftwareByBlockId } from '@/lib/dao/blockSoftwareDao';
 import { mergeCoachClassesById, pickNextCoachSession, pickRelevantCoachSessions } from '@/lib/services/coachClassSummary';
 import { filterEvaluationEnrollmentsForSession } from '@/lib/services/enrollmentEligibility';
 import { isCoachEvaluationBlockActive, isRegularReportWindowActive } from '@/lib/services/reportWindows';
+import { coachTeachingBadge } from './coachTeachingBadge';
 
 type SoftwareInfo = {
   id: string;
@@ -35,6 +36,7 @@ type CoachClassSummary = {
   upcomingBlock?: { name?: string | null; startDate: string; endDate: string } | null;
   isSubstitute?: boolean; // New flag
   replacedCoachName?: string;
+  isMitraSession?: boolean;
   studentsCount?: number;
 };
 
@@ -54,6 +56,7 @@ function pickBlock(blocks: (ClassBlockRecord & { block_name?: string | null })[]
 }
 
 export async function getCoachClassesWithBlocks(coachId: string): Promise<CoachClassSummary[]> {
+  const isMitraSession = await coachTeachingBadge(coachId);
   const [ownClasses, subClasses] = await Promise.all([
     classesDao.listClassesForCoach(coachId),
     classesDao.listClassesWhereCoachIsSubstitute(coachId)
@@ -91,7 +94,7 @@ export async function getCoachClassesWithBlocks(coachId: string): Promise<CoachC
       }
 
       const relevantSessions = pickRelevantCoachSessions(sessions, isMainCoach, coachId)
-        .filter((session) => session.status !== 'CANCELLED' && lessonMap.has(session.id))
+        .filter((session) => session.status !== 'CANCELLED')
         .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
       const nextSession = pickNextCoachSession(
         relevantSessions.filter((session) => session.status !== 'COMPLETED'),
@@ -126,6 +129,7 @@ export async function getCoachClassesWithBlocks(coachId: string): Promise<CoachC
         name: klass.name,
         type: klass.type,
         nextSessionDate: displaySession?.date_time ?? null,
+        isMitraSession: displaySession ? await isMitraSession(displaySession, klass) : false,
         nextLesson,
         currentBlock,
         upcomingBlock,
@@ -138,6 +142,7 @@ export async function getCoachClassesWithBlocks(coachId: string): Promise<CoachC
 }
 
 export type ExtendedSession = import('@/lib/dao/sessionsDao').SessionRecord & {
+  isMitraSession?: boolean;
   isSubstitute?: boolean;
   replacedCoachName?: string;
   class_name?: string;
@@ -151,6 +156,7 @@ export type ExtendedSession = import('@/lib/dao/sessionsDao').SessionRecord & {
 };
 
 export async function getAllCoachSessions(coachId: string): Promise<ExtendedSession[]> {
+  const isMitraSession = await coachTeachingBadge(coachId);
   const classes = await classesDao.listClassesForCoach(coachId);
 
   const ownSessionsPromises = classes.map(async (klass) => {
@@ -182,7 +188,13 @@ export async function getAllCoachSessions(coachId: string): Promise<ExtendedSess
     getSubstituteSessions(coachId)
   ]);
 
-  const allSessions = [...ownSessionsNested.flat(), ...subSessions];
+  const allSessions: ExtendedSession[] = [...ownSessionsNested.flat(), ...subSessions];
+  const classIds = [...new Set(allSessions.map(s => s.class_id))];
+  const badgeClasses = new Map(await Promise.all(classIds.map(async id => [id, await classesDao.getClassById(id)] as const)));
+  for (const session of allSessions) {
+    const klass = badgeClasses.get(session.class_id);
+    session.isMitraSession = klass ? await isMitraSession(session, klass) : false;
+  }
 
   // Sort by date
   return allSessions.sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());

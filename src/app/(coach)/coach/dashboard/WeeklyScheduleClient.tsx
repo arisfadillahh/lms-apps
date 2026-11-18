@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import MitraBadge from '@/components/coach/MitraBadge';
 import { format, addDays, isSameDay, startOfWeek, subDays } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface Session {
     id: string;
     class_name?: string;
+    isMitraSession?: boolean;
     date_time: string;
     class_id: string;
 }
@@ -69,9 +71,9 @@ export default function WeeklyScheduleClient({ sessions, classes }: WeeklySchedu
     };
 
     return (
-        <div className="p-5 flex flex-col min-h-0">
+        <div className="px-5 py-3 flex flex-col min-h-0 flex-1">
             {/* Navigation and Date Slider */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-3 shrink-0">
                 <button 
                     onClick={shiftBackward}
                     className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-500 transition-colors"
@@ -136,6 +138,7 @@ export default function WeeklyScheduleClient({ sessions, classes }: WeeklySchedu
                             </div>
                             <div className={`flex-grow p-4 border-l-4 rounded-r-2xl ${i === 0 ? 'bg-emerald-50 border-emerald-500' : i === 1 ? 'bg-slate-50 border-slate-300' : 'bg-blue-50 border-blue-400'}`}>
                                 <h5 className="text-xs font-bold text-brand-deep">{s.class_name}</h5>
+                                {s.isMitraSession && <MitraBadge />}
                                 <p className="text-[10px] text-slate-500 font-medium mt-1">Platform: Zoom • {studentCount} Siswa</p>
                             </div>
                         </div>

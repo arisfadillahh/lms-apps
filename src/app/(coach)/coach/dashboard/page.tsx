@@ -5,6 +5,8 @@ import { getSessionOrThrow } from '@/lib/auth';
 import { getCoachClassesWithBlocks, getAllCoachSessions, getPendingLessonEvaluationsForCoach } from '@/lib/services/coach';
 import { makeUpTasksDao } from '@/lib/dao';
 import CalendarModal from '@/components/coach/CalendarModal';
+import SubstituteBadge from '@/components/coach/SubstituteBadge';
+import MitraBadge from '@/components/coach/MitraBadge';
 import WeeklyScheduleClient from './WeeklyScheduleClient';
 import HeroCountdownClient from './HeroCountdownClient';
 import CoachDraftReportsAlert from './CoachDraftReportsAlert';
@@ -77,12 +79,12 @@ export default async function CoachDashboardPage() {
             `}</style>
 
             <StaggerContainer className="mt-8">
-                <div className="flex flex-col lg:flex-row gap-6 md:gap-8">
-                    <div className="flex-grow w-full lg:max-w-[calc(100%-360px)]">
+                <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-6">
+                    <div className="contents">
                         <CoachDraftReportsAlert coachId={session.user.id} />
                         <CoachPortfolioReviewAlert coachId={session.user.id} />
                         <MobilePwaOnboardingCard role="COACH" />
-                        <StaggerItem className="mb-8">
+                        <StaggerItem className="lg:col-start-1 lg:row-start-1">
                             <section>
                                 <div className="bg-gradient-to-r from-[#0f172a] to-[#1e3a5f] rounded-3xl p-6 md:p-8 text-white shadow-2xl relative overflow-hidden group border border-white/5">
                                     <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
@@ -139,11 +141,11 @@ export default async function CoachDashboardPage() {
                             </section>
                         </StaggerItem>
 
-                        <StaggerItem>
+                        <StaggerItem className="lg:col-span-2">
                             <TrialClassSchedule trials={upcomingTrials} />
                         </StaggerItem>
 
-                        <StaggerItem className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <StaggerItem className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:col-span-2">
                             <div className="bg-white p-6 rounded-3xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] border border-slate-100">
                                 <div className="flex justify-between items-start mb-4">
                                     <span className="p-2 bg-blue-50 text-blue-600 rounded-lg material-symbols-outlined">groups</span>
@@ -168,7 +170,7 @@ export default async function CoachDashboardPage() {
                             </div>
                         </StaggerItem>
 
-                        <StaggerItem className="bg-white rounded-3xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] border border-slate-100 overflow-hidden">
+                        <StaggerItem className="bg-white rounded-3xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] border border-slate-100 overflow-hidden lg:col-span-2">
                             <div className="p-6">
                                 <div className="flex items-center justify-between mb-8">
                                     <h2 className="text-lg font-extrabold text-brand-deep flex items-center gap-2">
@@ -187,12 +189,13 @@ export default async function CoachDashboardPage() {
                                                     <h3 className="font-bold text-brand-deep group-hover:text-emerald-600 transition-colors">
                                                         {cls.name}
                                                     </h3>
-                                                    {cls.isSubstitute && <p className="mt-1 text-xs text-amber-800"><span className="mr-1 rounded bg-amber-100 px-1.5 py-0.5 font-bold">Pengganti</span>Menggantikan Coach {cls.replacedCoachName ?? 'utama'}</p>}
+                                                    {cls.isSubstitute && <SubstituteBadge coachName={cls.replacedCoachName} />}
+                                                    {cls.isMitraSession && <MitraBadge />}
                                                     <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">
                                                         {cls.nextSessionDate ? format(new Date(cls.nextSessionDate), 'EEEE, HH:mm', { locale: localeId }) : 'Belum Ada Jadwal'}
                                                     </p>
                                                 </div>
-                                                <span className="px-2.5 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-bold rounded-full">{cls.type === 'EKSKUL' ? 'Ekskul' : 'Aktif'}</span>
+                                                <span className="px-2.5 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-bold rounded-full">{cls.type === 'EKSKUL' ? 'Ekskul' : 'Weekly'}</span>
                                             </div>
                                             <div className="grid grid-cols-2 gap-4 border-t border-slate-50 pt-4">
                                                 <div>
@@ -223,9 +226,9 @@ export default async function CoachDashboardPage() {
                         </StaggerItem>
                     </div>
 
-                    <StaggerItem className="w-full lg:w-[360px] flex-shrink-0">
-                        <aside className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] flex flex-col h-full overflow-hidden">
-                            <div className="p-6 border-b border-slate-50 flex items-center justify-between">
+                    <StaggerItem className="min-w-0 lg:col-start-2 lg:row-start-1">
+                        <aside className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] flex flex-col h-full lg:max-h-[300px] overflow-hidden">
+                            <div className="px-5 py-3 border-b border-slate-50 flex items-center justify-between">
                                 <div>
                                     <h3 className="font-extrabold text-brand-deep">Next Schedule</h3>
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
@@ -243,7 +246,7 @@ export default async function CoachDashboardPage() {
                                 classes={classes.map(c => ({ classId: c.classId, studentsCount: c.studentsCount }))}
                             />
 
-                            <div className="mt-auto p-6 bg-slate-50 border-t border-slate-100">
+                            <div className="hidden">
                                 <CalendarModal
                                     sessions={activeSessions}
                                     triggerClassName="w-full bg-[#0f172a] text-white font-bold py-3.5 rounded-2xl text-sm shadow-xl shadow-[#0f172a]/20 hover:bg-slate-800 transition-all flex items-center justify-center gap-2"

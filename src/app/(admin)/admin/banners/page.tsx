@@ -382,7 +382,7 @@ export default function AdminBannersPage() {
                                     <img
                                         src={banner.imagePath}
                                         alt={banner.title}
-                                        className={`w-full h-full object-cover transition-opacity ${!banner.isActive ? 'opacity-40 grayscale' : ''}`}
+                                        className={`w-full h-full object-contain transition-opacity ${!banner.isActive ? 'opacity-40 grayscale' : ''}`}
                                     />
                                     {!banner.isActive && (
                                         <div className="absolute inset-0 flex items-center justify-center">

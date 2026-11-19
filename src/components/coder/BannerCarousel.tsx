@@ -105,7 +105,8 @@ export default function BannerCarousel({ banners }: BannerCarouselProps) {
 const containerStyle: React.CSSProperties = {
     position: 'relative',
     width: '100%',
-    aspectRatio: '1280 / 320',
+    aspectRatio: '3 / 1',
+    backgroundColor: '#f1f5f9',
     borderRadius: '1rem',
     overflow: 'hidden',
     boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
@@ -127,7 +128,7 @@ const slideStyle: React.CSSProperties = {
 const imageStyle: React.CSSProperties = {
     width: '100%',
     height: '100%',
-    objectFit: 'cover',
+    objectFit: 'contain',
 };
 
 const arrowStyle: React.CSSProperties = {

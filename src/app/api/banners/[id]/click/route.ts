@@ -50,7 +50,9 @@ export async function GET(
         await fs.writeFile(BANNERS_JSON, JSON.stringify(data, null, 2));
 
         // Use the proper Next.js redirect to smoothly send user to final destination
-        return NextResponse.redirect(currentBanner.linkUrl);
+        return request.method === 'POST'
+            ? NextResponse.json({ success: true })
+            : NextResponse.redirect(currentBanner.linkUrl);
 
     } catch (error) {
         console.error('Error tracking banner click:', error);
@@ -59,3 +61,5 @@ export async function GET(
         return NextResponse.json({ error: 'Failed to process tracking' }, { status: 500 });
     }
 }
+
+export const POST = GET;

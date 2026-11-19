@@ -50,7 +50,13 @@ export default function BannerCarousel({ banners }: BannerCarouselProps) {
                 {activeBanners.map((banner, index) => (
                     <a
                         key={banner.id}
-                        href={`/api/banners/${banner.id}/click`}
+                        href={banner.linkUrl || '/coder/dashboard'}
+                        onClick={() => {
+                            fetch(`/api/banners/${banner.id}/click`, {
+                                method: 'POST',
+                                keepalive: true,
+                            }).catch(() => undefined);
+                        }}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{

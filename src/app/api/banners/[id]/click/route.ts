@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
 import path from 'path';
 
-const BANNERS_JSON = path.join(process.cwd(), 'public', 'banners', 'banners.json');
+import { BANNERS_JSON } from '@/lib/bannerStorage';
 
 type Banner = {
     id: string;

@@ -37,10 +37,12 @@ type Banner = {
 
 async function getBanners(): Promise<Banner[]> {
   try {
-    const filePath = path.join(process.cwd(), 'public', 'banners', 'banners.json');
+    const filePath = path.join(process.cwd(), '.data', 'banners', 'banners.json');
     const data = await fs.readFile(filePath, 'utf-8');
     const json = JSON.parse(data);
-    return json.banners || [];
+    return (json.banners || []).map((banner: Banner) => ({
+      ...banner, imagePath: banner.imagePath.replace(/^\/banners\//, '/api/banner-images/'),
+    }));
   } catch {
     return [];
   }

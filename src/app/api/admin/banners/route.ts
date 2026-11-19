@@ -7,8 +7,7 @@ import { consumeRateLimit } from '@/lib/rateLimit';
 import { normalizeSafePageReference } from '@/lib/safeUrl';
 import { detectAvatarImageType } from '@/lib/services/avatarUploadSecurity';
 
-const BANNERS_DIR = path.join(process.cwd(), 'public', 'banners');
-const BANNERS_JSON = path.join(BANNERS_DIR, 'banners.json');
+import { BANNERS_DIR, BANNERS_JSON, bannerImageUrl } from '@/lib/bannerStorage';
 const MAX_BANNER_BYTES = 5 * 1024 * 1024;
 
 async function requireAdmin(): Promise<NextResponse | null> {
@@ -50,7 +49,7 @@ export async function GET() {
     const denied = await requireAdmin();
     if (denied) return denied;
     const data = await readBanners();
-    return NextResponse.json(data);
+    return NextResponse.json({ ...data, banners: data.banners.map(b => ({ ...b, imagePath: bannerImageUrl(b.imagePath) })) });
 }
 
 // POST - Create new banner (with image upload)
@@ -84,7 +83,7 @@ export async function POST(request: NextRequest) {
         }
 
         const filename = `${uuidv4()}${imageType.extension}`;
-        const imagePath = `/banners/${filename}`;
+        const imagePath = `/api/banner-images/${filename}`;
         const fullPath = path.join(BANNERS_DIR, filename);
 
         // Save image to public/banners
@@ -169,7 +168,7 @@ export async function DELETE(request: NextRequest) {
         }
 
         // Delete image file
-        const imagePath = path.join(process.cwd(), 'public', banner.imagePath);
+        const imagePath = path.join(BANNERS_DIR, path.basename(banner.imagePath));
         try {
             await fs.unlink(imagePath);
         } catch {

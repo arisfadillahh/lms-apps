@@ -51,11 +51,19 @@ export default function BannerCarousel({ banners }: BannerCarouselProps) {
                     <a
                         key={banner.id}
                         href={banner.linkUrl || '/coder/dashboard'}
-                        onClick={() => {
+                        onClick={(event) => {
                             fetch(`/api/banners/${banner.id}/click`, {
                                 method: 'POST',
                                 keepalive: true,
                             }).catch(() => undefined);
+                            const url = new URL(banner.linkUrl || '/coder/dashboard', window.location.origin);
+                            if (url.hostname === 'wa.me' && /^\/\d+$/.test(url.pathname) &&
+                                /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                                event.preventDefault();
+                                const phone = url.pathname.slice(1);
+                                const text = url.searchParams.get('text') ?? '';
+                                window.location.href = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(text)}`;
+                            }
                         }}
                         target="_blank"
                         rel="noopener noreferrer"

@@ -26,6 +26,34 @@ export default function AdminBannersPage() {
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
     const [saving, setSaving] = useState(false);
     const [showUploadForm, setShowUploadForm] = useState(false);
+    const [editing, setEditing] = useState<Banner | null>(null);
+    const [editFile, setEditFile] = useState<File | null>(null);
+    const [editBusy, setEditBusy] = useState(false);
+    const [editError, setEditError] = useState('');
+
+    async function saveEdit(event: React.FormEvent) {
+        event.preventDefault();
+        if (!editing || editBusy) return;
+        setEditBusy(true);
+        setEditError('');
+        try {
+            const form = new FormData();
+            form.set('id', editing.id);
+            form.set('title', editing.title);
+            form.set('linkUrl', editing.linkUrl);
+            if (editFile) form.set('image', editFile);
+            const response = await fetch('/api/admin/banners', { method: 'PUT', body: form });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Gagal menyimpan banner.');
+            await fetchBanners();
+            setEditing(null);
+            setEditFile(null);
+        } catch (error) {
+            setEditError(error instanceof Error ? error.message : 'Gagal menyimpan banner.');
+        } finally {
+            setEditBusy(false);
+        }
+    }
 
     useEffect(() => {
         fetchBanners();
@@ -428,8 +456,8 @@ export default function AdminBannersPage() {
                                 <div className="flex items-center justify-end gap-2 pr-2">
                                     <button
                                         className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors border-none bg-transparent cursor-pointer"
-                                        onClick={(e) => { e.stopPropagation(); /* Optional edit functionality if needed */ }}
-                                        title="Edit (Fitur Segera)"
+                                        onClick={(e) => { e.stopPropagation(); setEditing({ ...banner }); setEditFile(null); setEditError(''); }}
+                                        title="Edit banner"
                                     >
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                             <path d="M12 20h9"></path>
@@ -461,6 +489,33 @@ export default function AdminBannersPage() {
                     </div>
                 )}
             </div>
+
+            {editing && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                    <form onSubmit={saveEdit} role="dialog" aria-modal="true" aria-labelledby="edit-banner-title"
+                        className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+                        <h2 id="edit-banner-title" className="mb-4 text-lg font-bold">Edit banner</h2>
+                        <img src={editing.imagePath} alt={editing.title} className="mb-4 aspect-[4/1] w-full rounded-lg bg-slate-100 object-contain" />
+                        <label className="mb-4 block text-sm font-semibold">Judul
+                            <input required maxLength={120} value={editing.title} onChange={e => setEditing({ ...editing, title: e.target.value })}
+                                className="mt-1 w-full rounded-lg border border-slate-300 p-2" />
+                        </label>
+                        <label className="mb-4 block text-sm font-semibold">Link tujuan
+                            <input value={editing.linkUrl} onChange={e => setEditing({ ...editing, linkUrl: e.target.value })}
+                                className="mt-1 w-full rounded-lg border border-slate-300 p-2" />
+                        </label>
+                        <label className="mb-2 block text-sm font-semibold">Ganti gambar (opsional)
+                            <input type="file" accept="image/png,image/jpeg,image/webp" onChange={e => setEditFile(e.target.files?.[0] ?? null)} className="mt-2 block w-full text-sm" />
+                        </label>
+                        <p className="mb-4 text-xs text-slate-500">1200 × 300 piksel (4:1), PNG/JPG/WebP, maksimal 5 MB.</p>
+                        {editError && <p role="alert" className="mb-4 text-sm text-red-600">{editError}</p>}
+                        <div className="flex justify-end gap-2">
+                            <button type="button" disabled={editBusy} onClick={() => setEditing(null)} className="btn">Batal</button>
+                            <button type="submit" disabled={editBusy} className="btn btn-primary">{editBusy ? 'Menyimpan...' : 'Simpan perubahan'}</button>
+                        </div>
+                    </form>
+                </div>
+            )}
 
             {/* Info Footer Box */}
             <div className="mt-4 p-5 bg-blue-50 border border-blue-100 rounded-2xl flex gap-3 shadow-sm">

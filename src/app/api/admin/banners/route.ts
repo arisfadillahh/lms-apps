@@ -115,7 +115,9 @@ export async function PUT(request: NextRequest) {
     try {
         const denied = await requireAdmin();
         if (denied) return denied;
-        const body = await request.json();
+        const multipart = request.headers.get('content-type')?.startsWith('multipart/form-data');
+        const form = multipart ? await request.formData() : null;
+        const body = form ? Object.fromEntries(form.entries()) : await request.json();
         const { id, linkUrl, title, order, isActive } = body;
 
         if (!id) {
@@ -127,6 +129,23 @@ export async function PUT(request: NextRequest) {
 
         if (bannerIndex === -1) {
             return NextResponse.json({ error: 'Banner not found' }, { status: 404 });
+        }
+
+        const replacement = form?.get('image');
+        if (replacement instanceof File && replacement.size > 0) {
+            if (!await consumeRateLimit({ request, scope: 'admin-banner-upload', maxRequests: 20, windowSeconds: 60 * 60 })) {
+                return NextResponse.json({ error: 'Terlalu banyak upload banner. Silakan coba lagi nanti.' }, { status: 429 });
+            }
+            if (replacement.size > MAX_BANNER_BYTES) return NextResponse.json({ error: 'Ukuran banner maksimal 5 MB' }, { status: 400 });
+            const buffer = Buffer.from(await replacement.arrayBuffer());
+            const imageType = detectAvatarImageType(replacement.type, buffer);
+            if (!imageType || imageType.contentType === 'image/gif') {
+                return NextResponse.json({ error: 'Banner harus berupa PNG, JPG, atau WebP yang valid' }, { status: 400 });
+            }
+            const filename = `${uuidv4()}${imageType.extension}`;
+            await fs.mkdir(BANNERS_DIR, { recursive: true });
+            await fs.writeFile(path.join(BANNERS_DIR, filename), buffer, { flag: 'wx' });
+            data.banners[bannerIndex].imagePath = `/api/banner-images/${filename}`;
         }
 
         // Update fields if provided

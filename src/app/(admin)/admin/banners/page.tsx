@@ -211,7 +211,7 @@ export default function AdminBannersPage() {
                         </div>
                         <div>
                             <h3 className="m-0 text-base font-bold text-slate-800">Upload Banner Baru</h3>
-                            <p className="m-0 text-xs text-slate-500 mt-0.5">Rekomendasi ukuran: 1200 x 400 pixels (3:1)</p>
+                            <p className="m-0 text-xs text-slate-500 mt-0.5">Rekomendasi ukuran: 1200 × 300 piksel (4:1)</p>
                         </div>
                     </div>
 
@@ -378,7 +378,7 @@ export default function AdminBannersPage() {
                                 </div>
 
                                 {/* Column 2: Image Preview */}
-                                <div className="relative w-full aspect-[3/1] rounded-lg overflow-hidden border border-slate-200 shadow-sm bg-slate-100">
+                                <div className="relative w-full aspect-[4/1] rounded-lg overflow-hidden border border-slate-200 shadow-sm bg-slate-100">
                                     <img
                                         src={banner.imagePath}
                                         alt={banner.title}
@@ -471,7 +471,7 @@ export default function AdminBannersPage() {
                     <h4 className="m-0 text-sm font-bold text-blue-900 mb-1">Panduan Manajemen Banner</h4>
                     <p className="m-0 text-xs text-blue-800/80 leading-relaxed">
                         Gunakan tombol panah di kolom <strong>Urutan</strong> atau drag & drop (geser) untuk memindahkan posisi banner di carousel dashboard siswa.
-                        Perubahan urutan akan langsung disimpan secara otomatis. Pastikan ukuran banner berada pada rasio lanskap tebal (rekomendasi 1200×400 px) untuk hasil terbaik.
+                        Perubahan urutan akan langsung disimpan secara otomatis. Gunakan banner dengan rasio 4:1 (rekomendasi 1200 × 300 piksel) untuk hasil terbaik.
                     </p>
                 </div>
             </div>

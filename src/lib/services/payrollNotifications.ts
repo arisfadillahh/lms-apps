@@ -9,9 +9,11 @@ export async function payrollAdmins(menu = 'payroll') {
   return (data ?? []).filter(a => canAccessMenu(a.username, a.admin_permissions, menu));
 }
 export const attendanceAdmins = () => payrollAdmins('coachAttendance');
-export async function createAttendanceAdminNotifications(input: NotificationDeliveryOptions & { title: string; message: string; type?: string }, picId?: string | null) {
+export async function createAttendanceAdminNotifications(input: NotificationDeliveryOptions & { title: string; message: string; type?: string }, _picId?: string | null) {
+  void _picId; // Retain caller compatibility; assignment no longer narrows delivery.
   const eligible = await attendanceAdmins();
-  const recipients = picId && eligible.some(a => a.id === picId) ? eligible.filter(a => a.id === picId) : eligible;
+  // PIC ownership must not hide operational requests from the other reviewers.
+  const recipients = eligible;
   for (const admin of recipients) await createNotification(admin.id, input.title, input.message, input.type ?? 'PAYROLL', { ...input, push: input.push ?? true });
   return recipients.length;
 }

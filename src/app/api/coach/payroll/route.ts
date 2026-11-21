@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     const next = submitCorrection(record.document, { id: body.data.id ?? randomUUID(), user_id: session.user.id, message: body.data.message });
     if (next !== record.document) {
       await commitPayrollPeriod(record, next, session.user.id, 'SUBMIT_CORRECTION', body.data.message);
-      await createAttendanceAdminNotifications({ title: `Koreksi absensi ${body.data.periodId}`, message: `${session.user.fullName}: ${body.data.message}`, type: 'PAYROLL', category: 'PAYROLL', actionUrl: `/admin/coach-attendance?period=${body.data.periodId}`, priority: 'HIGH', push: false }, next.pic_id).catch(() => console.error('[Payroll] Notifikasi PIC belum terkirim; pengajuan tersimpan.'));
+      await createAttendanceAdminNotifications({ title: `Koreksi absensi ${body.data.periodId}`, message: `${session.user.fullName}: ${body.data.message}`, type: 'PAYROLL', category: 'PAYROLL', actionUrl: `/admin/coach-attendance?period=${body.data.periodId}`, priority: 'HIGH', push: true }, next.pic_id).catch(() => console.error('[Payroll] Notifikasi PIC belum terkirim; pengajuan tersimpan.'));
     }
     return NextResponse.json({ success: true });
   } catch (e) { return fail(e); }

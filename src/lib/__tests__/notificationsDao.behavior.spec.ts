@@ -150,6 +150,19 @@ describe('createNotification Admin PWA delivery', () => {
     expect(mocks.sendPushToUsers).not.toHaveBeenCalled();
   });
 
+  it.each(['REPORT_REVIEW', 'TRIAL_ASSESSMENT', 'COACH_LEAVE', 'LESSON_REPORT', 'LESSON_EXTENSION', 'LEVEL_PROGRESSION', 'FREE_TRIAL', 'TRIAL_CONVERSION', 'ISSUE_REPORT', 'WHATSAPP_STATUS', 'PAYMENT_REVIEW'])(
+    'includes Coach Lead in stored and device delivery for %s', async (type) => {
+      const fixture = makeSupabase(null, [{ id: 'admin' }, { id: 'coachlead' }]);
+      mocks.getSupabaseAdmin.mockReturnValue(fixture.supabase);
+      mocks.sendPushToUsers.mockResolvedValue({ sent: 2, removed: 0, skipped: false });
+      await createAdminNotifications({ type, title: 'Operational update', message: 'Review required' });
+      expect(fixture.insertedPayload).toEqual(expect.arrayContaining([
+        expect.objectContaining({ user_id: 'coachlead', type, is_read: false }),
+      ]));
+      expect(mocks.sendPushToUsers).toHaveBeenCalledWith(['admin', 'coachlead'], expect.objectContaining({ title: 'Operational update' }));
+    },
+  );
+
   it('pushes an explicitly actionable notification to a Coder device', async () => {
     const fixture = makeSupabase({ id: 'coder-1', role: 'CODER' });
     mocks.getSupabaseAdmin.mockReturnValue(fixture.supabase);

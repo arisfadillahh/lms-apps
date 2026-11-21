@@ -23,7 +23,9 @@ describe('payroll admin notification permissions', () => {
     ] }) }) }) }) });
     expect((await attendanceAdmins()).map(a => a.id)).toEqual(['admin', 'lead']);
     await createAttendanceAdminNotifications({ title: 'Koreksi absensi', message: 'Aktivitas belum tercatat' }, 'lead');
-    expect(mocks.notify.mock.calls.map(c => c[0])).toEqual(['lead']); mocks.notify.mockClear();
+    expect(mocks.notify.mock.calls.map(c => c[0])).toEqual(['admin', 'lead']);
+    expect(mocks.notify.mock.calls.every(c => c[4].push === true)).toBe(true);
+    mocks.notify.mockClear();
     await createAttendanceAdminNotifications({ title: 'Koreksi absensi', message: 'Perlu PIC operasional' }, 'finance');
     expect(mocks.notify.mock.calls.map(c => c[0])).toEqual(['admin', 'lead']);
   });

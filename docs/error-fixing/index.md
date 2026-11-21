@@ -4,6 +4,7 @@ Search this file and the linked monthly log before changing related code.
 
 | Date | Reference | Area | Symptom | Monthly log |
 | --- | --- | --- | --- | --- |
+| 2026-11-21 | INTERNAL-20261121-01 | Coach Lead notifications | Review alerts stored in bell but phone not registered; missing trial/attendance access | [2026-11](./2026-11.md#internal-20261121-01-coach-lead-notification-recovery) |
 | 2026-11-16 | BUG-95341CB7 follow-up | Holiday invoices | Deleting an unpaid Holiday invoice also requires deleting its linked registration | [2026-11](./2026-11.md#bug-95341cb7-follow-up-holiday-registration-deletion) |
 | 2026-11-16 | BUG-7A6A1304 / BUG-95341CB7 | Admin invoices | Generation required switching date filters and a blocked delete removed line items | [2026-11](./2026-11.md#bug-7a6a1304-and-bug-95341cb7-invoice-generation-and-deletion) |
 | 2026-11-13 | INTERNAL-20261113-02 | Admin invoice dates | Holiday invoices issued in November were only visible under their December class period | [2026-11](./2026-11.md#internal-20261113-02-admin-invoice-date-filters) |

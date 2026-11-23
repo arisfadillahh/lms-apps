@@ -50,23 +50,23 @@ BEGIN
   RETURN v_invoice_id;
 END; $$;
 
-CREATE FUNCTION public.enqueue_holiday_reminders() RETURNS integer
+CREATE FUNCTION public.enqueue_holiday_reminders(p_now timestamptz DEFAULT now()) RETURNS integer
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 DECLARE v_count integer;
 BEGIN
-  IF extract(hour FROM now() AT TIME ZONE 'Asia/Jakarta') NOT BETWEEN 9 AND 19 THEN RETURN 0; END IF;
+  IF extract(hour FROM p_now AT TIME ZONE 'Asia/Jakarta') NOT BETWEEN 9 AND 19 THEN RETURN 0; END IF;
   INSERT INTO public.holiday_class_whatsapp_outbox(registration_id,kind)
-    SELECT r.id,CASE WHEN r.created_at <= now()-interval '3 days' THEN 'reminder_3' ELSE 'reminder_1' END
+    SELECT r.id,CASE WHEN r.created_at <= p_now-interval '3 days' THEN 'reminder_3' ELSE 'reminder_1' END
     FROM public.holiday_class_registrations r JOIN public.invoices i ON i.id=r.invoice_id
     WHERE i.status::text IN ('PENDING','OVERDUE') AND i.paid_at IS NULL
-      AND r.created_at <= now()-interval '1 day'
-      AND i.due_date >= (now() AT TIME ZONE 'Asia/Jakarta')::date
+      AND r.created_at <= p_now-interval '1 day'
+      AND i.due_date >= (p_now AT TIME ZONE 'Asia/Jakarta')::date
     ON CONFLICT(registration_id,kind) DO NOTHING;
   GET DIAGNOSTICS v_count=ROW_COUNT;
   RETURN v_count;
 END; $$;
-REVOKE ALL ON FUNCTION public.enqueue_holiday_reminders() FROM public,anon,authenticated;
-GRANT EXECUTE ON FUNCTION public.enqueue_holiday_reminders() TO service_role;
+REVOKE ALL ON FUNCTION public.enqueue_holiday_reminders(timestamptz) FROM public,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.enqueue_holiday_reminders(timestamptz) TO service_role;
 
 CREATE OR REPLACE FUNCTION public.claim_holiday_class_whatsapp(p_registration uuid DEFAULT NULL)
 RETURNS SETOF public.holiday_class_whatsapp_outbox
@@ -76,6 +76,9 @@ LANGUAGE sql SECURITY DEFINER SET search_path = '' AS $$
     WHERE (p_registration IS NULL OR n.registration_id=p_registration)
       AND n.sent_at IS NULL AND n.failed_at IS NULL AND n.next_attempt_at<=now()
       AND (n.claimed_at IS NULL OR n.claimed_at<now()-interval '10 minutes')
+      AND (n.kind<>'reminder_1' OR NOT EXISTS (
+        SELECT 1 FROM public.holiday_class_whatsapp_outbox newer
+        WHERE newer.registration_id=n.registration_id AND newer.kind='reminder_3'))
       AND (n.kind IN ('registration_group','invoice_parent','reminder_1','reminder_3') OR EXISTS (
         SELECT 1 FROM public.holiday_class_whatsapp_outbox previous WHERE previous.registration_id=n.registration_id
           AND previous.kind=CASE n.kind WHEN 'paid_group' THEN 'registration_group' ELSE 'invoice_parent' END

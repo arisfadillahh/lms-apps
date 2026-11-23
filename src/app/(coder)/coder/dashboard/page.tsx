@@ -117,7 +117,7 @@ export default async function CoderDashboardPage() {
     (l: any) => l.status !== 'LOCKED'
   );
   const totalActiveInClass = Math.max(lessonsRunningInClass.length, 1);
-  const activeProgressPct = Math.round((completedLessons / totalActiveInClass) * 100);
+  const activeProgressPct = activeBlock?.block.progressPercent ?? Math.round((completedLessons / totalActiveInClass) * 100);
 
   // Check if class link is active: query today's sessions DIRECTLY from DB
   // (lesson.scheduledAt is unreliable — depends on lessonMap template matching)
@@ -156,6 +156,8 @@ export default async function CoderDashboardPage() {
       }
     }
   }
+
+  const dashboardSlideUrl = isLinkActive ? nextLesson?.slideUrl : lastCompletedLessonWithSlide?.slideUrl;
 
   // The evaluation logic is now fully handled by BlockEvaluationCard component itself!
 
@@ -376,11 +378,9 @@ export default async function CoderDashboardPage() {
                               <Zap className="text-orange-600" size={18} />
                               {isLinkActive ? 'Slide Pertemuan Hari Ini' : 'Akses Slide Sesi Sebelumnya'}
                             </h5>
-                            {isLinkActive ? (
-                              <p className="text-sm font-bold text-slate-400 italic p-4 bg-slate-50 rounded-2xl">Slide belum tersedia untuk materi ini.</p>
-                            ) : lastCompletedLessonWithSlide?.slideUrl ? (
+                            {dashboardSlideUrl ? (
                               <a
-                                href={lastCompletedLessonWithSlide.slideUrl}
+                                href={dashboardSlideUrl}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="flex items-center justify-between p-4 bg-pastel-blue hover:bg-sky hover:text-white rounded-2xl border-2 border-sky/20 transition-all group/link"

@@ -4,6 +4,7 @@ import { splitEkskulLessonMakeUp } from '@/lib/ekskulMakeUpInstructions';
 import { computeLessonSchedule } from '@/lib/services/lessonScheduler';
 import { nextPersonalBlock } from '@/lib/services/personalBlockQueue';
 import { isEkskulLessonAccessible } from '@/lib/services/coderLessonAccess';
+import { buildCoderEkskulProgress } from '@/lib/services/coderEkskulProgress';
 export { isEkskulLessonAccessible } from '@/lib/services/coderLessonAccess';
 import { buildDisplayedJourneyBlocks, mergeJourneyStatus, type PersonalJourneyStatus } from '@/lib/services/coderJourneyPolicy';
 
@@ -21,6 +22,7 @@ export type CoderClassProgress = {
     startDate: string;
     endDate: string;
     estimatedSessions?: number | null;
+    progressPercent?: number;
     software?: Array<{
       id: string;
       name: string;
@@ -397,61 +399,12 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
               access_info: ps.software.access_info,
             }));
 
-            // Find next upcoming session for Ekskul
-            const nextSession = sessions
-              .filter(s => (new Date(s.date_time) >= now && s.status !== 'COMPLETED' && s.status !== 'CANCELLED'))
-              .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime())[0];
-            const sortedActiveSessions = sessions
-              .filter(s => s.status !== 'CANCELLED')
-              .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
-            const nextSessionIndex = nextSession
-              ? sortedActiveSessions.findIndex((session) => session.id === nextSession.id)
-              : -1;
-            const expandedEkskulLessons = plan.ekskul_lessons
-              .slice()
-              .sort((a, b) => a.order_index - b.order_index)
-              .flatMap((lesson) =>
-                Array.from({ length: Math.max(1, lesson.estimated_meetings || 1) }, (_, partIndex) => ({
-                  lesson,
-                  partNumber: partIndex + 1,
-                  totalParts: Math.max(1, lesson.estimated_meetings || 1),
-                })),
-              );
-            const nextLessonEntry = nextSessionIndex >= 0 ? expandedEkskulLessons[nextSessionIndex] ?? null : null;
-            const nextLessonParts = nextLessonEntry
-              ? splitEkskulLessonMakeUp(nextLessonEntry.lesson.summary, nextLessonEntry.lesson.make_up_instructions)
-              : null;
-
-            // For Ekskul journey - use lessons as nodes instead of blocks
-            // Estimate progress based on completed sessions vs total lessons
-            const completedSessions = sessions.filter(s => s.status === 'COMPLETED').length;
-
-            journeyBlocks = plan.ekskul_lessons
-              .sort((a, b) => a.order_index - b.order_index)
-              .map((lesson, index) => {
-                // Determine lesson status based on session progress
-                let lessonStatus: 'UPCOMING' | 'CURRENT' | 'COMPLETED' = 'UPCOMING';
-                if (index < completedSessions) {
-                  lessonStatus = 'COMPLETED';
-                } else if (index === completedSessions) {
-                  lessonStatus = 'CURRENT';
-                }
-
-                // Estimate dates for each lesson
-                const lessonStartDate = new Date(klass.start_date);
-                lessonStartDate.setDate(lessonStartDate.getDate() + (index * 7)); // Roughly weekly
-                const lessonEndDate = new Date(lessonStartDate);
-                lessonEndDate.setDate(lessonEndDate.getDate() + 7);
-
-                return {
-                  blockId: lesson.id, // Use lesson id as blockId for compatibility
-                  name: lesson.title,
-                  status: lessonStatus,
-                  startDate: lessonStartDate.toISOString(),
-                  endDate: lessonEndDate.toISOString(),
-                  orderIndex: index,
-                };
-              });
+            const ekskulProgress = buildCoderEkskulProgress(plan.ekskul_lessons, sessions, now);
+            journeyBlocks = ekskulProgress.journey.map(lesson => ({
+              ...lesson,
+              startDate: lesson.startDate ?? klass.start_date,
+              endDate: lesson.endDate ?? klass.end_date,
+            }));
 
             upNext = {
               blockId: plan.id,
@@ -460,18 +413,9 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
               startDate: klass.start_date,
               endDate: klass.end_date,
               estimatedSessions: plan.ekskul_lessons.reduce((acc, l) => acc + (l.estimated_meetings || 1), 0),
+              progressPercent: ekskulProgress.percent,
               software: software,
-              lessons: nextSession && nextLessonEntry ? [{
-                id: nextLessonEntry.lesson.id,
-                title: nextLessonEntry.totalParts > 1
-                  ? `${nextLessonEntry.lesson.title} (Part ${nextLessonEntry.partNumber})`
-                  : nextLessonEntry.lesson.title,
-                summary: nextLessonParts?.summary ?? `Jam ${new Date(nextSession.date_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`,
-                orderIndex: 0,
-                slideUrl: nextLessonEntry.lesson.slide_url ?? null,
-                status: 'NEXT' as const,
-                scheduledAt: [nextSession.date_time]
-              }] : []
+              lessons: ekskulProgress.lessons,
             };
           }
         }

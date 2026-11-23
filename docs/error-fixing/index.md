@@ -4,6 +4,7 @@ Search this file and the linked monthly log before changing related code.
 
 | Date | Reference | Area | Symptom | Monthly log |
 | --- | --- | --- | --- | --- |
+| 2026-11-23 | INTERNAL-20261123-03 | Coder Ekskul dashboard and materials | Progress stayed at zero; previous summary/slides missing; lesson detail ignored dark theme | [2026-11](./2026-11.md#internal-20261123-03-coder-ekskul-dashboard-history-and-material-theme) |
 | 2026-11-23 | INTERNAL-20261123-01 | Holiday funnel | Registration measurement, duplicate orders, delivery diagnostics and mobile invoice flow | [2026-11](./2026-11.md#internal-20261123-01-holiday-funnel-review-branch) |
 | 2026-11-21 | INTERNAL-20261121-01 | Coach Lead notifications | Review alerts stored in bell but phone not registered; missing trial/attendance access | [2026-11](./2026-11.md#internal-20261121-01-coach-lead-notification-recovery) |
 | 2026-11-16 | BUG-95341CB7 follow-up | Holiday invoices | Deleting an unpaid Holiday invoice also requires deleting its linked registration | [2026-11](./2026-11.md#bug-95341cb7-follow-up-holiday-registration-deletion) |

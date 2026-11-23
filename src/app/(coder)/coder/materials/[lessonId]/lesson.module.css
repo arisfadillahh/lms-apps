@@ -1,0 +1,39 @@
+.page {
+  --lesson-link: #2563eb;
+}
+:global(html[data-coder-theme='dark']) .page {
+  --lesson-link: #79d9ff;
+}
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 2rem;
+  align-items: start;
+}
+.layout > * { min-width: 0; }
+.slideHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--coder-border, #f1f5f9);
+}
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  position: sticky;
+  top: 2rem;
+}
+.page a:focus-visible {
+  outline: 2px solid var(--lesson-link);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+@media (max-width: 1024px) {
+  .layout { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+  .sidebar { position: static; }
+}

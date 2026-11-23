@@ -42,7 +42,7 @@ describe('ekskul lesson sync contracts', () => {
     expect(sessionsTable).toContain('lessonMap: Map<string, LessonDisplay>');
     expect(sessionsTable).toContain('showLessonLinks = false');
     expect(sessionsTable).toContain('Link Slide');
-    expect(coderService).toContain('id: nextLessonEntry.lesson.id');
-    expect(coderService).toContain('slideUrl: nextLessonEntry.lesson.slide_url ?? null');
+    expect(coderService).toContain('buildCoderEkskulProgress(plan.ekskul_lessons, sessions, now)');
+    expect(coderService).toContain('lessons: ekskulProgress.lessons');
   });
 });

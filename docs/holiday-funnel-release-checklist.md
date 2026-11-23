@@ -38,5 +38,5 @@ Sumber: [Meta Conversions API dan Test Events](https://developers.facebook.com/d
 1. Backup dan review migration baru, kemudian terapkan berurutan di environment yang disetujui. Jangan mengubah jatuh tempo invoice lama. Pengingat tetap default false.
 2. Deploy SHA LMS yang disetujui dan verifikasi healthcheck serta invoice biasa.
 3. **Publikasikan landing static setelah LMS**, mengikuti [runbook landing](../../ops/holiday-landing/README.md). Normal deploy LMS tidak mempublikasikan container static tersebut.
-4. Jalankan pemeriksa hash read-only terhadap URL staging/live yang disetujui. Verifikasi script versi baru dan lakukan tes visual.
+4. Jalankan `node scripts/verify-holiday-landing-hashes.mjs <URL-landing>/` read-only terhadap URL staging/live yang disetujui. Semua hash index/script harus match. Sebelum publikasi, gunakan `--baseline` untuk mendeteksi drift; ikuti backup/atomic index switch/rollback dalam runbook. Verifikasi script versi baru dan lakukan tes visual.
 5. Baru sesudah pengukuran/pembayaran lolos, pertimbangkan konfigurasi CAPI, bantuan CS dan aktivasi pengingat. Tidak mengaktifkan WA atau menulis nilai env otomatis dari alat QA.

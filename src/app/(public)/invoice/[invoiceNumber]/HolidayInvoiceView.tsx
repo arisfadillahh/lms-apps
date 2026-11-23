@@ -6,14 +6,16 @@ import type { PublicInvoice } from '@/lib/publicInvoice';
 import type { PublicInvoicePaymentInstruction, PublicInvoicePaymentOption } from '@/lib/invoicePaymentMethods';
 import { trackHolidayEventWhenReady } from '@/lib/metaPixel';
 import styles from './HolidayInvoiceView.module.css';
+import { orderHolidayPaymentOptions, holidayFallbackVa } from '@/lib/holidayPaymentOptions';
 
 type Props={ invoice:PublicInvoice; token:string; options:PublicInvoicePaymentOption[]; initialPayment:PublicInvoicePaymentInstruction|null; initialExpiresAt?:string|null; csPhone:string|null };
 const rupiah=(n:number)=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n);
 const date=(s:string)=>new Date(s).toLocaleDateString('id-ID',{timeZone:'Asia/Jakarta',day:'numeric',month:'long',year:'numeric'});
 
 export default function HolidayInvoiceView({invoice,token,options,initialPayment,initialExpiresAt,csPhone}:Props) {
-  const priority=['bni_va','bri_va','qris','bsi_va','mandiri_bill','permata_va','cimb_va','other_va'];
-  const available=options.filter(o=>!o.disabled).sort((a,b)=>priority.indexOf(a.code)-priority.indexOf(b.code));
+  const available=orderHolidayPaymentOptions(options);
+  const mainMethods=available.filter(o=>['qris','bni_va','bri_va'].includes(o.code));
+  const otherMethods=available.filter(o=>!['qris','bni_va','bri_va'].includes(o.code));
   const [method,setMethod]=useState(initialPayment?.method??available[0]?.code??'');
   const [payment,setPayment]=useState(initialPayment);
   const [expiry,setExpiry]=useState(initialExpiresAt??invoice.midtrans_expires_at??null);
@@ -48,7 +50,13 @@ export default function HolidayInvoiceView({invoice,token,options,initialPayment
       if(!response.ok||!data.payment)throw new Error(data.error||'Instruksi pembayaran belum tersedia. Coba lagi.');
       setPayment(data.payment);setExpiry(data.expiresAt??null);setChoosing(false);setFeedback('');
       try {if(data.eventId&&localStorage.getItem('clevio-holiday-analytics')!=='no')void trackHolidayEventWhenReady('InitiateCheckout',data.eventId,data.payment.total);} catch { /* Optional browser storage. */ }
-    } catch(e) {setError(e instanceof DOMException&&e.name==='TimeoutError'?'Instruksi masih diproses. Coba lagi untuk melanjutkan pembayaran yang sama.':e instanceof Error?e.message:'Pembayaran belum dapat diproses.');}
+    } catch(e) {
+      if(method==='qris') {
+        const fallback=holidayFallbackVa(available);
+        if(fallback){setMethod(fallback.code);setChoosing(true);setError('QRIS belum bisa dibuat. Silakan lanjut dengan Virtual Account di bawah, atau pilih QRIS untuk mencoba lagi.');}
+        else setError('QRIS belum bisa dibuat. Coba lagi atau hubungi tim Clevio melalui tombol bantuan.');
+      } else setError(e instanceof DOMException&&e.name==='TimeoutError'?'Instruksi masih diproses. Coba lagi untuk melanjutkan pembayaran yang sama.':e instanceof Error?e.message:'Pembayaran belum dapat diproses.');
+    }
     finally {setBusy(false);}
   }
   async function copy(value:string) {
@@ -82,11 +90,12 @@ export default function HolidayInvoiceView({invoice,token,options,initialPayment
         {paid?<><span className={styles.paidIcon}><CheckCircle2 size={38}/></span><h2 id="payment-title">Pembayaran diterima</h2><p>Terima kasih, Ayah/Bunda. Pendaftaran {invoice.seasonal_student_name} sudah lunas.</p>{invoice.paid_at&&<p className={styles.date}><CalendarDays size={17}/>{date(invoice.paid_at)}</p>}<p>Konfirmasi juga dikirim ke WhatsApp orang tua.</p></>:<>
           <span className={styles.status}>Menunggu pembayaran</span><h2 id="payment-title">Selesaikan pendaftaran</h2>
           <p className={styles.muted}>Pilih cara bayar yang paling mudah. Biaya admin sudah termasuk dalam total.</p>
+          {!available.some(o=>o.code==='qris')&&<p className={styles.muted}>QRIS sedang tidak tersedia. Silakan pilih Virtual Account.</p>}
           {choosing?<form onSubmit={e=>{e.preventDefault();void choosePayment();}}>
-            <fieldset className={styles.methods} disabled={busy}><legend>Metode pembayaran</legend>{available.slice(0,3).map(o=><label key={o.code} className={styles.method}>
+            <fieldset className={styles.methods} disabled={busy}><legend>Metode pembayaran</legend>{mainMethods.map(o=><label key={o.code} className={`${styles.method} ${o.code==='qris'?styles.qrisMethod:''}`}>
               <input type="radio" name="method" value={o.code} checked={method===o.code} onChange={()=>setMethod(o.code)}/>
-              <span><strong>{o.label}</strong><small>Biaya admin {rupiah(o.adminFee)}</small></span><strong>{rupiah(o.total)}</strong>
-            </label>)}{available.length>3&&<details className={styles.terms} open={available.slice(3).some(o=>o.code===method)}><summary>Bank lainnya</summary>{available.slice(3).map(o=><label key={o.code} className={styles.method}>
+              <span><strong>{o.label}{o.code==='qris'?' · Praktis':''}</strong><small>Biaya admin {rupiah(o.adminFee)}</small></span><strong>{rupiah(o.total)}</strong>
+            </label>)}{otherMethods.length>0&&<details className={styles.terms} open={otherMethods.some(o=>o.code===method)||!mainMethods.length}><summary>Bank lain</summary>{otherMethods.map(o=><label key={o.code} className={styles.method}>
               <input type="radio" name="method" value={o.code} checked={method===o.code} onChange={()=>setMethod(o.code)}/>
               <span><strong>{o.label}</strong><small>Biaya admin {rupiah(o.adminFee)}</small></span><strong>{rupiah(o.total)}</strong>
             </label>)}</details>}</fieldset>
@@ -100,8 +109,8 @@ export default function HolidayInvoiceView({invoice,token,options,initialPayment
               {payment.billKey&&<><output className={styles.number}>{payment.billKey}</output><button className={styles.secondary} onClick={()=>void copy(payment.billKey!)}><Copy size={16}/>Salin kode pembayaran</button></>}
               {payment.qrImageUrl&&<><div className={styles.qr}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={payment.qrImageUrl} alt="QRIS pembayaran Holiday Class" width="240" height="240" onError={()=>setError('QR belum dapat dimuat. Muat ulang invoice atau hubungi tim Clevio.')}/>
-              </div><a className={styles.secondary} href={payment.qrImageUrl} download={`QRIS-${invoice.invoice_number}.png`}><Download size={17}/>Simpan QR</a><p className={styles.muted}>Pindai dari HP lain, atau impor gambar QR di aplikasi pembayaran yang mendukung.</p></>}
+                <img src={payment.qrImageUrl} alt="QRIS pembayaran Holiday Class" width="280" height="280" onError={()=>{setError('QR belum dapat dimuat. Silakan coba Virtual Account.');const fallback=holidayFallbackVa(available);if(fallback)setMethod(fallback.code);setChoosing(true);}}/>
+              </div><a className={styles.secondary} href={payment.qrImageUrl} download={`QRIS-${invoice.invoice_number}.png`}><Download size={17}/>Simpan QR</a><p className={styles.muted}>Simpan QR, lalu buka aplikasi e-wallet/m-banking dan pilih bayar QRIS dari galeri. Jika aplikasi belum mendukung, pindai dari HP lain.</p></>}
               {payment.deeplinkUrl&&/^https:\/\//.test(payment.deeplinkUrl)&&<a className={styles.primary} href={payment.deeplinkUrl}>Buka aplikasi pembayaran</a>}
             </>}
             <button className={styles.textButton} disabled={busy} onClick={()=>setChoosing(true)}>Ganti metode pembayaran</button>

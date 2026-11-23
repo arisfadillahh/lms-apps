@@ -16,6 +16,7 @@ import { toPublicInvoice } from '@/lib/publicInvoice';
 import { holidayInvoicePattern } from '@/lib/holidayClass';
 import { normalizeIndonesianPhone } from '@/lib/phoneNumbers';
 import HolidayInvoiceView from './HolidayInvoiceView';
+import { holidayWalletConfig } from '@/lib/holidayPaymentOptions';
 
 interface Props {
     params: Promise<{ invoiceNumber: string }>;
@@ -40,6 +41,10 @@ export default async function PublicInvoicePage({ params, searchParams }: Props)
     ]);
 
     if (holidayInvoicePattern.test(invoice.invoice_number) && token) {
+        // Existing Snap normalization has no verified wallet deeplink adapter.
+        // Merchant activation alone must not expose an unusable payment method.
+        const wallets=holidayWalletConfig(process.env);
+        if(wallets.some(w=>w.merchantEnabled&&!w.available))console.warn('[Holiday Payment] Wallet activation requested; verified deeplink adapter still required.');
         const phone=normalizeIndonesianPhone(process.env.HOLIDAY_CS_WHATSAPP || settings?.admin_whatsapp_number || '');
         return <HolidayInvoiceView invoice={toPublicInvoice(invoice)} token={token}
             options={getPublicInvoicePaymentOptions(invoice.total_amount)}

@@ -37,8 +37,13 @@ export function holidayWhatsAppMessage(kind: MessageKind, invoice: Invoice, regi
   ];
   const footer = group
     ? [`Orang tua: ${invoice.parent_name}`, `Follow up: https://wa.me/${invoice.parent_phone}`]
-    : [`${paid ? 'Lihat invoice lunas' : 'Buka invoice dan pilih metode pembayaran'}: ${holidayInvoiceUrl(invoice)}`];
-  return [header, '', ...detail, '', ...footer].join('\n');
+    : [`${paid ? 'Lihat invoice lunas' : 'Lanjutkan pembayaran di sini'}: ${holidayInvoiceUrl(invoice)}`];
+  const greeting=group?[]:paid
+    ? [`Halo Ayah/Bunda, terima kasih. Pembayaran kelas ${invoice.seasonal_student_name} sudah kami terima.`]
+    : [`Halo Ayah/Bunda, terima kasih sudah memilih Holiday Class Clevio untuk ${invoice.seasonal_student_name}.`,
+      'Pendaftarannya sudah tercatat. Yuk, selesaikan pembayaran agar keikutsertaan ananda segera terkonfirmasi dan persiapan kelasnya bisa kami bantu.',
+      `Mohon selesaikan paling lambat ${new Date(invoice.due_date).toLocaleDateString('id-ID',{timeZone:'Asia/Jakarta',day:'numeric',month:'long',year:'numeric'})}.`];
+  return [header, '', ...greeting, '', ...detail, '', ...footer,...(!group&&!paid?['','Kalau perlu bantuan memilih cara bayar, Ayah/Bunda boleh langsung balas pesan ini. Kami siap bantu.']:[])].join('\n');
 }
 
 export async function deliverHolidayWhatsApp(registrationId: string | null = null) {

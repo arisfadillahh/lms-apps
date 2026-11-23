@@ -63,11 +63,12 @@ try {
     if(!['localhost','127.0.0.1'].includes(u.hostname))return route.abort();
     return route.continue();
   });
-  let qrCalls=0;
+  let qrCalls=0,failQr=false;
   await page.route('**/api/invoices/*/payment-method',async route=>{
     const body=route.request().postDataJSON(),isQr=body.method==='qris';
     if(isQr)qrCalls++;
-    return route.fulfill({json:{ok:true,eventId:'checkout:'+invoice.invoice_number,expiresAt:qrCalls===1&&isQr?'2020-01-01T00:00:00Z':'2099-01-01T00:00:00Z',payment:{method:body.method,label:isQr?'QRIS':'BNI Virtual Account',baseAmount:900000,adminFee:2500,total:902500,feeLabel:'Rp2.500',bank:isQr?null:'bni',vaNumber:isQr?null:'9881234567890',billerCode:null,billKey:null,deeplinkUrl:null,qrImageUrl:isQr?'/qa-qr.png':null}}});
+    if(isQr&&failQr)return route.fulfill({status:503,json:{error:'QA QR unavailable'}});
+    return route.fulfill({json:{ok:true,eventId:'checkout:'+invoice.invoice_number,expiresAt:qrCalls===2&&isQr?'2020-01-01T00:00:00Z':'2099-01-01T00:00:00Z',payment:{method:body.method,label:isQr?'QRIS':'BNI Virtual Account',baseAmount:900000,adminFee:2500,total:902500,feeLabel:'Rp2.500',bank:isQr?null:'bni',vaNumber:isQr?null:'9881234567890',billerCode:null,billKey:null,deeplinkUrl:null,qrImageUrl:isQr?'/qa-qr.png':null}}});
   });
   await page.route('**/qa-qr.png',async route=>route.fulfill({body:await QRCode.toBuffer('LOCAL QA ONLY - NOT A PAYMENT'),contentType:'image/png'}));
   const url='http://localhost:3210/invoice/'+invoice.invoice_number+'?t='+token(invoice.invoice_number);
@@ -83,6 +84,8 @@ try {
     await page.goto(regularUrl);await page.waitForTimeout(400);
     await page.screenshot({path:path.join(out,`legacy-invoice-${width}.png`),fullPage:true});
     await page.goto(url);await page.getByRole('heading',{name:'Selesaikan pendaftaran'}).waitFor();
+    if(await page.getByRole('radio').first().inputValue()!=='qris')throw Error('QRIS is not first');
+    if(!await page.getByRole('radio').first().isChecked())throw Error('QRIS is not selected by default');
     await page.screenshot({path:path.join(out,`holiday-invoice-${width}.png`),fullPage:true});
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth);
     if(overflow)throw Error('Holiday horizontal overflow at '+width);
@@ -90,6 +93,11 @@ try {
     if(!viewport.includes('width=device-width'))throw Error('Holiday mobile viewport missing');
   }
   await page.setViewportSize({width:360,height:900});
+  failQr=true;
+  await page.getByRole('button',{name:'Tampilkan pembayaran'}).click();
+  await page.getByRole('alert').filter({hasText:'Virtual Account'}).waitFor();
+  if(!await page.getByRole('radio',{name:/BNI Virtual Account/}).isChecked())throw Error('QR failure did not offer BNI');
+  failQr=false;
   await page.getByRole('radio',{name:/BNI Virtual Account/}).check();
   await page.getByRole('button',{name:'Tampilkan pembayaran'}).click();
   await page.getByText('9881234567890').waitFor();
@@ -106,7 +114,7 @@ try {
   await page.getByRole('button',{name:'Buat QR baru'}).waitFor();
   await page.getByRole('button',{name:'Buat QR baru'}).click();
   await page.getByRole('link',{name:'Simpan QR'}).waitFor();
-  if(qrCalls!==2)throw Error('QR regeneration did not occur');
+  if(qrCalls!==3)throw Error('QR regeneration did not occur');
   await page.screenshot({path:path.join(out,'holiday-qris-360.png'),fullPage:true});
   paid=true;await page.reload();
   await page.getByRole('heading',{name:'Pembayaran diterima'}).waitFor();

@@ -7,6 +7,7 @@ import { holidayBatches, holidayLevels, holidayPlatformFee, holidaySessionMinute
 import { normalizeIndonesianPhone } from '@/lib/phoneNumbers';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { holidayAttributionSchema, type HolidayAttribution } from '@/lib/holidayAttribution';
+import { holidayInvoiceDueDays } from '@/lib/holidayReminders';
 
 const personName = z.string().trim().min(2).max(100).regex(/^[\p{L}\p{M}\p{N} .’'-]+$/u);
 export const holidayRegistrationSchema = z.object({
@@ -106,8 +107,7 @@ export async function createHolidayRegistration(input: HolidayInput, attribution
     return requireInvoice(previous.invoice_id);
   }
   const details = prepareHolidayRegistration(input);
-  const dueDays = Number(process.env.HOLIDAY_INVOICE_DUE_DAYS ?? 1);
-  if (!Number.isInteger(dueDays) || dueDays < 1 || dueDays > 30) throw new Error('Invalid Holiday invoice due days');
+  const dueDays = holidayInvoiceDueDays(process.env.HOLIDAY_INVOICE_DUE_DAYS);
   const { data: invoiceId, error } = await db.rpc('create_holiday_class_registration' as never, {
     p_id: input.id, p_hash: hash, p_details: { ...details, dueDays, attribution },
   } as never);

@@ -20,7 +20,7 @@ describe('Holiday funnel additive database migration',()=>{
         seasonal_student_name text,seasonal_student_phone text,period_month int,period_year int,period_start_date date,period_end_date date,
         total_amount int,due_date date,status text,invoice_type text,created_at timestamptz default now(),updated_at timestamptz,paid_at timestamptz,paid_notes text,payment_method text,payment_total_amount int);
       CREATE TABLE invoice_items(invoice_id uuid REFERENCES invoices(id) ON DELETE CASCADE,coder_name text,class_name text,level_name text,description text,base_price int,discount_amount int,final_price int);`);
-    for(const name of ['20261112160000_holiday_class_registration.sql','20261116110000_delete_holiday_registration_invoice.sql','20261123090000_holiday_funnel.sql','20261123093000_holiday_meta_outbox.sql'])await db.exec(readFileSync('supabase/migrations/'+name,'utf8'));
+    for(const name of ['20261112160000_holiday_class_registration.sql','20261116110000_delete_holiday_registration_invoice.sql','20261123090000_holiday_funnel.sql','20261123093000_holiday_meta_outbox.sql','20261123110000_holiday_three_day_validity.sql'])await db.exec(readFileSync('supabase/migrations/'+name,'utf8'));
   },30000);
   afterAll(async()=>{await db?.close();});
   it('reuses identical orders across UUIDs without changing existing data, but permits additional programs',async()=>{
@@ -80,5 +80,14 @@ describe('Holiday funnel additive database migration',()=>{
     const queue=await db.query("select id from holiday_class_meta_outbox where registration_id='00000000-0000-4000-8000-000000000009'");expect(queue.rows).toHaveLength(0);
     const paidInvoice=await make();
     const protectedRow=await db.query<{result:string}>('select delete_holiday_registration_invoice($1,true) as result',[paidInvoice]);expect(protectedRow.rows[0].result).toBe('paid');
+  });
+  it('queues H+1 and H+3 for a late-night signup before its three-day due date',async()=>{
+    const invoice=await make('00000000-0000-4000-8000-000000000019',{...details,phone:'6281987654322'});
+    await db.query("update holiday_class_registrations set created_at='2026-11-20T16:59:00Z' where invoice_id=$1",[invoice]);
+    await db.query("update invoices set due_date='2026-11-23' where id=$1",[invoice]);
+    for(const stamp of ['2026-11-21T01:59:00Z','2026-11-21T02:00:00Z','2026-11-23T02:00:00Z'])await db.query('select enqueue_holiday_reminders($1)',[stamp]);
+    const {rows}=await db.query("select n.kind from holiday_class_whatsapp_outbox n join holiday_class_registrations r on r.id=n.registration_id where r.invoice_id=$1 and n.kind like 'reminder_%' order by n.kind",[invoice]);
+    expect(rows).toEqual([{kind:'reminder_1'},{kind:'reminder_3'}]);
+    const due=await db.query<{due_date:string}>('select due_date::text from invoices where id=$1',[invoice]);expect(due.rows[0].due_date).toBe('2026-11-23');
   });
 });

@@ -3,7 +3,7 @@ vi.mock('server-only',()=>({}));
 vi.mock('@/lib/supabaseServer',()=>({getSupabaseAdmin:vi.fn()}));
 import { holidayEventId } from '@/lib/holidayAttribution';
 import { buildHolidayMetaEvent } from '@/lib/services/holidayMetaConversions';
-import { holidayReminderAllowed,holidayReminderStage } from '@/lib/holidayReminders';
+import { holidayReminderAllowed,holidayReminderStage,holidayInvoiceDueDays } from '@/lib/holidayReminders';
 import { buildContentSecurityPolicy } from '@/lib/security/contentSecurityPolicy';
 describe('Holiday measurement and reminder rules',()=>{
   it('uses identical stable IDs for browser/server and payment replay',()=>{
@@ -19,9 +19,9 @@ describe('Holiday measurement and reminder rules',()=>{
     expect(a.custom_data).toEqual({value:352500,currency:'IDR'});
     expect(a.user_data).toMatchObject({fbp:'fb.1.2.3',fbc:'fb.1.2.click',client_user_agent:'UA'});
   });
-  it('uses H+1/H+3 elapsed days and only sends 09.00–19.59 WIB to valid unpaid invoices',()=>{
+  it('uses WIB calendar days and only sends 09.00–19.59 WIB to valid unpaid invoices',()=>{
     const created='2026-11-20T02:00:00Z';
-    expect(holidayReminderStage(created,new Date('2026-11-21T01:59:59Z'))).toBeNull();
+    expect(holidayReminderStage(created,new Date('2026-11-20T16:59:59Z'))).toBeNull();
     expect(holidayReminderStage(created,new Date('2026-11-21T02:00:00Z'))).toBe('reminder_1');
     expect(holidayReminderStage(created,new Date('2026-11-23T02:00:00Z'))).toBe('reminder_3');
     const invoice={status:'PENDING',due_date:'2026-11-25'};
@@ -30,6 +30,16 @@ describe('Holiday measurement and reminder rules',()=>{
     expect(holidayReminderAllowed(invoice,new Date('2026-11-23T13:00:00Z')).withinHours).toBe(false);
     expect(holidayReminderAllowed({...invoice,status:'PAID'},new Date()).active).toBe(false);
     expect(holidayReminderAllowed({...invoice,due_date:'2020-01-01'},new Date()).active).toBe(false);
+  });
+  it('defaults future invoices to three days and catches night registrations on H+1 and H+3 mornings',()=>{
+    expect(holidayInvoiceDueDays()).toBe(3);expect(holidayInvoiceDueDays('1')).toBe(1);expect(holidayInvoiceDueDays('30')).toBe(30);
+    for(const n of ['0','31','bad',''])expect(()=>holidayInvoiceDueDays(n)).toThrow();
+    const created='2026-11-20T16:59:00Z';
+    expect(holidayReminderStage(created,new Date('2026-11-21T02:00:00Z'))).toBe('reminder_1');
+    expect(holidayReminderStage(created,new Date('2026-11-23T02:00:00Z'))).toBe('reminder_3');
+    const invoice={status:'PENDING',due_date:'2026-11-23'};
+    expect(holidayReminderAllowed(invoice,new Date('2026-11-23T12:59:59Z'))).toEqual({withinHours:true,active:true});
+    expect(holidayReminderAllowed(invoice,new Date('2026-11-24T02:00:00Z')).active).toBe(false);
   });
   it('permits the Meta script only when Holiday policy is explicitly selected',()=>{
     expect(buildContentSecurityPolicy()).not.toContain('connect.facebook.net');

@@ -1,4 +1,5 @@
 "use client";
+import { sendHolidayBrowserMeasurement } from '@/lib/holidayBrowserMeasurement';
 
 export type MetaEventParameters = {
   program_name?: string;
@@ -86,6 +87,17 @@ export function trackLead(parameters: MetaEventParameters = {}, options?: MetaEv
 
 export function trackHolidayRegistration(eventId: string) {
   return trackStandardEvent("CompleteRegistration", {}, { eventId });
+}
+
+/** A queued fbq call is not proof that the external script loaded. */
+export async function trackHolidayEventWhenReady(name:'CompleteRegistration'|'InitiateCheckout',eventId:string,value?:number) {
+  if(typeof location!=='undefined'&&location.pathname.startsWith('/invoice/'))return sendHolidayBrowserMeasurement(name,eventId,value);
+  if(!initializeMetaPixel())return false;
+  for(let tries=0;tries<20;tries++) {
+    if(window.fbq?.callMethod)return trackStandardEvent(name,{...(value===undefined?{}:{value,currency:'IDR'})},{eventId});
+    await new Promise(resolve=>setTimeout(resolve,100));
+  }
+  return false;
 }
 
 function trackStandardEvent(eventName: string, parameters: MetaEventParameters = {}, options?: MetaEventOptions) {

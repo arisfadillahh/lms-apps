@@ -12,6 +12,7 @@ vi.mock('@/lib/supabaseServer', () => ({ getSupabaseAdmin: () => ({ from: m.from
 vi.mock('@/lib/invoicePaymentStore', () => ({ getStoredInvoicePaymentByOrderId: m.stored, updateStoredInvoicePaymentStatus: m.updateStored }));
 vi.mock('@/lib/services/holidayClassPayment', () => ({ settleHolidayPayment: m.settle }));
 vi.mock('@/lib/services/holidayClassMessaging', () => ({ deliverHolidayWhatsApp: m.deliver }));
+vi.mock('@/lib/services/holidayMetaConversions', () => ({ deliverHolidayConversions: vi.fn().mockResolvedValue({sent:0}) }));
 vi.mock('@/lib/invoiceMidtransClient', async original => ({ ...await original<typeof import('@/lib/invoiceMidtransClient')>(), verifyMidtransSignature: () => true }));
 vi.mock('@/lib/midtransWebhookSecurity', () => ({ buildMidtransWebhookEventKey: () => 'qa-event', claimMidtransWebhookEvent: m.claim, finishMidtransWebhookEvent: m.finish, sanitizeMidtransNotificationPayload: (p: unknown) => p }));
 vi.mock('@/lib/services/trialConversion', () => ({ markTrialConversionPaidFromInvoice: vi.fn() }));
@@ -23,6 +24,7 @@ vi.mock('@/lib/services/invoiceCheckoutServer', () => ({ getCheckoutIntent: vi.f
 vi.mock('@/lib/services/invoiceCheckoutMessaging', () => ({ sendCheckoutPaidConfirmation: vi.fn() }));
 
 import { POST } from '@/app/api/midtrans/notification/route';
+import { deliverHolidayConversions } from '@/lib/services/holidayMetaConversions';
 
 const invoice = { id: 'holiday-invoice', invoice_number: 'HC-2627-000001', total_amount: 350000, status: 'PENDING', invoice_type: 'SEASONAL' };
 const payload = { order_id: 'LMS-holiday-qris', gross_amount: '352500.00', status_code: '200', transaction_status: 'settlement' };
@@ -34,6 +36,7 @@ beforeEach(() => {
   m.getInvoice.mockResolvedValue(invoice);
   m.settle.mockResolvedValue('registration-qa');
   m.deliver.mockResolvedValue(undefined);
+  vi.mocked(deliverHolidayConversions).mockResolvedValue({sent:0,skipped:true});
 });
 
 describe('Holiday standard invoice payment notifications', () => {

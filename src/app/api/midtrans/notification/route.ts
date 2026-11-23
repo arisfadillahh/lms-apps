@@ -31,6 +31,7 @@ import { sendCheckoutPaidConfirmation } from '@/lib/services/invoiceCheckoutMess
 import { holidayInvoicePattern } from '@/lib/holidayClass';
 import { settleHolidayPayment } from '@/lib/services/holidayClassPayment';
 import { deliverHolidayWhatsApp } from '@/lib/services/holidayClassMessaging';
+import { deliverHolidayConversions } from '@/lib/services/holidayMetaConversions';
 import type { Invoice } from '@/lib/types/invoice';
 
 // The payment attempts table is not present in the generated Supabase types.
@@ -222,6 +223,7 @@ async function processHolidayNotification(payload: MidtransNotificationPayload, 
     if (status === 'paid') {
         const registrationId = await settleHolidayPayment(payload, invoice, expectedTotal);
         after(() => deliverHolidayWhatsApp(registrationId).catch(() => console.warn('[Holiday Class] Paid confirmation deferred')));
+        after(() => deliverHolidayConversions().catch(() => console.warn('[Holiday Class] Paid measurement deferred')));
     }
     return NextResponse.json({ ok: true, updated: status === 'paid', status });
 }

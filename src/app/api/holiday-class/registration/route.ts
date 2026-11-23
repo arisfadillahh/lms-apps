@@ -4,7 +4,8 @@ import { consumeRateLimit } from '@/lib/rateLimit';
 import { createHolidayRegistration, holidayRegistrationSchema, HolidayRegistrationError } from '@/lib/services/holidayClassRegistration';
 import { holidayInvoiceUrl } from '@/lib/services/holidayClassPayment';
 import { deliverHolidayWhatsApp } from '@/lib/services/holidayClassMessaging';
-import { sendHolidayRegistrationConversion } from '@/lib/services/holidayMetaConversions';
+import { queueHolidayConversion, deliverHolidayConversions } from '@/lib/services/holidayMetaConversions';
+import { getSupabaseAdmin } from '@/lib/supabaseServer';
 
 export const runtime = 'nodejs';
 const noStore = { 'Cache-Control': 'no-store' };
@@ -36,14 +37,23 @@ export async function POST(request: Request) {
     })) {
       return NextResponse.json({ error: 'Terlalu banyak percobaan untuk nomor WhatsApp ini. Buka kembali invoice atau coba lagi nanti.' }, { status: 429 });
     }
-    const invoice = await createHolidayRegistration(parsed.data);
+    const invoice = await createHolidayRegistration(parsed.data, {
+      ...parsed.data.attribution, measurement:body?.adMeasurement===true,
+      client_user_agent:request.headers.get('user-agent')?.slice(0,500),
+      // Reverse proxy must overwrite X-Real-IP; never accept client body IPs.
+      client_ip_address:request.headers.get('x-real-ip')?.slice(0,64),
+    });
+    const {data:registration,error:lookup}=await getSupabaseAdmin().from('holiday_class_registrations' as never).select('id').eq('invoice_id',invoice.id).single();
+    if(lookup||!registration)throw new Error('Holiday registration identity unavailable');
+    const registrationId=(registration as {id:string}).id;
+    let eventId:string|null=null;
     if (body?.adMeasurement === true) {
-      after(() => sendHolidayRegistrationConversion(parsed.data.id, parsed.data.phone, invoice.created_at)
-        .catch(() => console.warn('[Holiday Class] Meta registration conversion failed')));
+      eventId=await queueHolidayConversion(invoice.id,'CompleteRegistration',invoice.total_amount,invoice.created_at);
+      after(() => deliverHolidayConversions().catch(() => console.warn('[Holiday Class] Meta delivery deferred')));
     }
-    after(() => deliverHolidayWhatsApp(parsed.data.id).catch(() => console.warn('[Holiday Class] Registration delivery deferred')));
+    after(() => deliverHolidayWhatsApp(registrationId).catch(() => console.warn('[Holiday Class] Registration delivery deferred')));
     const invoiceUrl = holidayInvoiceUrl(invoice);
-    return NextResponse.json({ invoiceNumber: invoice.invoice_number, invoiceUrl }, { headers: noStore });
+    return NextResponse.json({ invoiceNumber: invoice.invoice_number, invoiceUrl, eventId, reused:registrationId!==parsed.data.id }, { headers: noStore });
   } catch (error) {
     if (error instanceof HolidayRegistrationError) return NextResponse.json({ error: error.message }, { status: error.status });
     console.error('[Holiday Class] Registration could not be completed');

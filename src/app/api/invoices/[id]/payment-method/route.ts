@@ -8,6 +8,7 @@ import { getStoredInvoicePaymentByInvoiceId, saveStoredInvoicePayment, toPublicS
 import { isInvoiceCheckoutEnabled, createCheckoutPayment, getClaimedIntents, CheckoutError } from '@/lib/services/invoiceCheckoutServer';
 import { isLiveSingleInvoiceCheckout } from '@/lib/services/invoicePaymentInstructions';
 import { holidayInvoicePattern } from '@/lib/holidayClass';
+import { queueHolidayConversion } from '@/lib/services/holidayMetaConversions';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -71,8 +72,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
         await tryStorePaymentInDatabase(invoice.id, payment, midtrans);
 
+        const eventId=isHolidayInvoice ? await queueHolidayConversion(invoice.id,'InitiateCheckout',payment.total)
+            .catch(()=>{console.warn('[Holiday Meta] Checkout measurement deferred; payment remains available');return null;}) : null;
+
         return NextResponse.json({
             ok: true,
+            ...(isHolidayInvoice ? {eventId,expiresAt:midtrans.expiresAt}:{}),
             payment: toPublicStoredInvoicePayment(storedPayment, token),
             options: getPublicInvoicePaymentOptions(invoice.total_amount)
         });

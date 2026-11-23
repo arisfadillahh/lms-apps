@@ -23,8 +23,8 @@ describe('Holiday invoice settlement using standard QRIS or VA instructions', ()
   it('verifies the fee-inclusive provider total and settles the original invoice base amount', async () => {
     expect(await settleHolidayPayment(payload, invoice, 352500)).toBe('holiday-registration-id');
     expect(mock.status).toHaveBeenCalledWith(payload.order_id);
-    expect(mock.rpc).toHaveBeenCalledWith('settle_holiday_class_invoice', {
-      p_order: invoice.invoice_number, p_amount: 350000, p_paid_at: '2026-11-12T09:00:00.000Z',
+    expect(mock.rpc).toHaveBeenCalledWith('settle_holiday_class_invoice_measured', {
+      p_order: invoice.invoice_number, p_amount: 350000, p_gross:352500,p_paid_at: '2026-11-12T09:00:00.000Z',
     });
   });
 
@@ -39,7 +39,7 @@ describe('Holiday invoice settlement using standard QRIS or VA instructions', ()
     const legacy = { ...payload, order_id: invoice.invoice_number, gross_amount: '350000.00' };
     mock.status.mockResolvedValue(legacy);
     await settleHolidayPayment(legacy);
-    expect(mock.rpc).toHaveBeenCalledWith('settle_holiday_class_invoice', expect.objectContaining({
+    expect(mock.rpc).toHaveBeenCalledWith('settle_holiday_class_invoice_measured', expect.objectContaining({
       p_order: invoice.invoice_number, p_amount: 350000,
     }));
   });

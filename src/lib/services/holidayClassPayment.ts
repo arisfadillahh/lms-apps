@@ -33,8 +33,9 @@ export async function settleHolidayPayment(payload: MidtransNotificationPayload,
   const rawPaidAt = getMidtransPaidAt(authoritative).replace(' ', 'T');
   const paidAt = new Date(/T\d\d:\d\d:\d\d(?:\.\d+)?$/.test(rawPaidAt) ? rawPaidAt + '+07:00' : rawPaidAt);
   if (!Number.isFinite(paidAt.getTime())) throw new Error('Invalid Holiday Midtrans settlement date');
-  const { data, error } = await getSupabaseAdmin().rpc('settle_holiday_class_invoice' as never, {
+  const { data, error } = await getSupabaseAdmin().rpc('settle_holiday_class_invoice_measured' as never, {
     p_order: invoice?.invoice_number ?? order, p_amount: invoice?.total_amount ?? amount, p_paid_at: paidAt.toISOString(),
+    p_gross:amount,
   } as never);
   if (error || typeof data !== 'string') throw new Error('Holiday invoice settlement failed');
   return data;

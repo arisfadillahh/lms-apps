@@ -43,6 +43,12 @@ const nextConfig: NextConfig = {
         { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()' },
         ...(useHttpsHeaders ? [{ key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' }] : []),
       ],
+    }, {
+      source: '/invoice/HC-2627-:sequence(\\d+)',
+      headers: [{key:'Content-Security-Policy',value:buildContentSecurityPolicy({upgradeInsecureRequests:useHttpsHeaders,development:process.env.NODE_ENV==='development',holidayMeasurement:true})}],
+    }, {
+      source:'/holiday-measurement',
+      headers:[{key:'Content-Security-Policy',value:buildContentSecurityPolicy({upgradeInsecureRequests:useHttpsHeaders,holidayMeasurement:true})}],
     }];
   },
 };

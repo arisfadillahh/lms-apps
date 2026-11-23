@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { CalendarDays, Check, Printer } from 'lucide-react';
 import { useEffect, useState, type CSSProperties } from 'react';
-import { trackHolidayRegistration } from '@/lib/metaPixel';
+import { trackHolidayEventWhenReady } from '@/lib/metaPixel';
 import { holidayInvoicePattern } from '@/lib/holidayClass';
 import type { PublicInvoice } from '@/lib/publicInvoice';
 import type { PublicInvoicePaymentInstruction, PublicInvoicePaymentOption } from '@/lib/invoicePaymentMethods';
@@ -52,7 +52,7 @@ export default function InvoiceView({ invoice, publicToken, paymentOptions, init
                 sessionStorage.removeItem(key);
                 return;
             }
-            if (trackHolidayRegistration(eventId)) sessionStorage.removeItem(key);
+            void trackHolidayEventWhenReady('CompleteRegistration',eventId).then(sent=>{if(sent)sessionStorage.removeItem(key);});
         } catch {
             // Browser storage restrictions should not affect the invoice.
         }

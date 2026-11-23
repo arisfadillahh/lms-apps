@@ -58,8 +58,18 @@ BEGIN
   RETURN NEW;
 END; $$;
 REVOKE ALL ON FUNCTION public.queue_holiday_checkout_meta() FROM public,anon,authenticated,service_role;
-CREATE TRIGGER holiday_checkout_meta AFTER UPDATE OF payment_total_amount,payment_method ON public.invoices
-  FOR EACH ROW EXECUTE FUNCTION public.queue_holiday_checkout_meta();
+-- Some production installations still persist payment metadata in the existing
+-- file journal. Do not force a monthly invoice storage migration for Holiday.
+-- Those installations enqueue checkout through the Holiday API after issuance.
+DO $install_checkout_trigger$
+BEGIN
+  IF (SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='invoices'
+      AND column_name IN ('payment_total_amount','payment_method'))=2 THEN
+    EXECUTE 'CREATE TRIGGER holiday_checkout_meta AFTER UPDATE OF payment_total_amount,payment_method ON public.invoices
+      FOR EACH ROW EXECUTE FUNCTION public.queue_holiday_checkout_meta()';
+  END IF;
+END;
+$install_checkout_trigger$;
 
 CREATE FUNCTION public.settle_holiday_class_invoice_measured(p_order text,p_amount integer,p_gross integer,p_paid_at timestamptz)
 RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$

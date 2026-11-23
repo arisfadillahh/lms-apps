@@ -13,6 +13,9 @@ import { toPublicStoredInvoicePayment } from '@/lib/invoicePaymentStore';
 import { getCurrentStoredInvoicePayment } from '@/lib/services/invoicePaymentInstructions';
 import InvoiceView from './InvoiceView';
 import { toPublicInvoice } from '@/lib/publicInvoice';
+import { holidayInvoicePattern } from '@/lib/holidayClass';
+import { normalizeIndonesianPhone } from '@/lib/phoneNumbers';
+import HolidayInvoiceView from './HolidayInvoiceView';
 
 interface Props {
     params: Promise<{ invoiceNumber: string }>;
@@ -35,6 +38,15 @@ export default async function PublicInvoicePage({ params, searchParams }: Props)
         getInvoiceSettings(),
         getCurrentStoredInvoicePayment(invoice)
     ]);
+
+    if (holidayInvoicePattern.test(invoice.invoice_number) && token) {
+        const phone=normalizeIndonesianPhone(process.env.HOLIDAY_CS_WHATSAPP || settings?.admin_whatsapp_number || '');
+        return <HolidayInvoiceView invoice={toPublicInvoice(invoice)} token={token}
+            options={getPublicInvoicePaymentOptions(invoice.total_amount)}
+            initialPayment={storedPayment ? toPublicStoredInvoicePayment(storedPayment,token) : null}
+            initialExpiresAt={storedPayment?.expiresAt??invoice.midtrans_expires_at}
+            csPhone={/^628\d{7,12}$/.test(phone)?phone:null}/>;
+    }
 
     return (
         <InvoiceView
@@ -62,9 +74,13 @@ export async function generateMetadata({ params }: Props) {
     };
 }
 
-export const viewport = {
+export async function generateViewport({params}:Props) {
+  const {invoiceNumber}=await params;
+  if(holidayInvoicePattern.test(invoiceNumber))return {width:'device-width',initialScale:1};
+  return {
     width: 1024,
     initialScale: 0.35, // Force zoom out to fit 1024px content on ~360-390px screens
     maximumScale: 5,
     userScalable: true,
-};
+  };
+}

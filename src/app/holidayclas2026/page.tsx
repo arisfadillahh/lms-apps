@@ -77,7 +77,7 @@ const levels = [
     name: "Innovator",
     grade: "Untuk SMP-SMA",
     image: "level-innovator-software.png",
-    materials: ["AI", "Coding", "Automation", "Arduino", "Blender 3D"],
+    materials: ["AI", "Coding", "Automation", "Arduino"],
     outcome: "Anak membuat project teknologi modern untuk portfolio.",
     price: "Mulai Rp500.000"
   }

@@ -1,0 +1,25 @@
+body:has(#holiday-measurement[open]):not(:has(dialog:modal)) { overflow: visible; }
+
+#holiday-measurement {
+  position: fixed;
+  inset: auto 1rem 1rem auto;
+  width: min(28rem, 100% - 2rem);
+  margin: 0;
+  padding: 1rem 1.125rem;
+  z-index: 20;
+}
+
+#holiday-measurement p { margin: .4rem 0 .85rem; }
+#holiday-measurement .actions { gap: .5rem; flex-wrap: wrap; }
+#holiday-measurement button, [data-measurement-settings] {
+  font: inherit;
+  color: inherit;
+  background: white;
+  border: 1px solid var(--edge);
+  border-radius: .65rem;
+  padding: .45rem .7rem;
+  cursor: pointer;
+}
+
+#holiday-measurement [data-measurement-allow] { background: #e4efff; }
+[data-measurement-settings] { margin-inline-start: .5rem; }

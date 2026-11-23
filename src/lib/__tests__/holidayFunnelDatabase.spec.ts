@@ -19,8 +19,8 @@ describe('Holiday funnel additive database migration',()=>{
       CREATE TABLE invoices(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),invoice_number text,parent_name text,parent_phone text,
         seasonal_student_name text,seasonal_student_phone text,period_month int,period_year int,period_start_date date,period_end_date date,
         total_amount int,due_date date,status text,invoice_type text,created_at timestamptz default now(),updated_at timestamptz,paid_at timestamptz,paid_notes text,payment_method text,payment_total_amount int);
-      CREATE TABLE invoice_items(invoice_id uuid REFERENCES invoices(id),coder_name text,class_name text,level_name text,description text,base_price int,discount_amount int,final_price int);`);
-    for(const name of ['20261112160000_holiday_class_registration.sql','20261123090000_holiday_funnel.sql','20261123093000_holiday_meta_outbox.sql'])await db.exec(readFileSync('supabase/migrations/'+name,'utf8'));
+      CREATE TABLE invoice_items(invoice_id uuid REFERENCES invoices(id) ON DELETE CASCADE,coder_name text,class_name text,level_name text,description text,base_price int,discount_amount int,final_price int);`);
+    for(const name of ['20261112160000_holiday_class_registration.sql','20261116110000_delete_holiday_registration_invoice.sql','20261123090000_holiday_funnel.sql','20261123093000_holiday_meta_outbox.sql'])await db.exec(readFileSync('supabase/migrations/'+name,'utf8'));
   },30000);
   afterAll(async()=>{await db?.close();});
   it('reuses identical orders across UUIDs without changing existing data, but permits additional programs',async()=>{
@@ -72,5 +72,13 @@ describe('Holiday funnel additive database migration',()=>{
     await db.exec("delete from holiday_class_whatsapp_outbox where kind like 'reminder_%';update invoices set due_date='2026-11-22';");
     await db.query("select enqueue_holiday_reminders('2026-11-23T03:00:00Z')");
     const expired=await db.query("select id from holiday_class_whatsapp_outbox where kind like 'reminder_%'");expect(expired.rows).toHaveLength(0);
+  });
+  it('preserves existing unpaid dummy deletion and paid invoice protection with the new queue',async()=>{
+    const candidate=await make('00000000-0000-4000-8000-000000000009',{...details,phone:'6281987654321'});
+    const removed=await db.query<{result:string}>('select delete_holiday_registration_invoice($1,true) as result',[candidate]);
+    expect(removed.rows[0].result).toBe('deleted');
+    const queue=await db.query("select id from holiday_class_meta_outbox where registration_id='00000000-0000-4000-8000-000000000009'");expect(queue.rows).toHaveLength(0);
+    const paidInvoice=await make();
+    const protectedRow=await db.query<{result:string}>('select delete_holiday_registration_invoice($1,true) as result',[paidInvoice]);expect(protectedRow.rows[0].result).toBe('paid');
   });
 });

@@ -1,0 +1,44 @@
+#registration-dialog { width: min(42rem, 100% - 1.5rem); }
+#registration-dialog .dialog-head { position: sticky; top: 0; z-index: 1; }
+#holiday-registration section { display: grid; gap: .9rem; }
+#holiday-registration [hidden] { display: none; }
+#holiday-registration label { display: grid; min-width: 0; gap: .3rem; font-size: .92rem; font-weight: 850; }
+#holiday-registration :is(select, input:not([type=radio], [type=checkbox])) {
+  width: 100%;
+  min-height: 2.8rem;
+  padding: .42rem .62rem;
+  border: 1px solid #bed1ee;
+  border-radius: .7rem;
+  color: var(--ink);
+  background: white;
+}
+#registration-programs { display: grid; gap: .65rem; }
+.registration-choice-row, .registration-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; min-width: 0; }
+.registration-choice-row { padding: .7rem; border: 1px solid var(--edge); border-radius: .85rem; background: #fff; }
+.registration-bundle, .registration-total { display: flex; align-items: center; justify-content: space-between; gap: .65rem; }
+.registration-bundle { padding: .75rem; color: #245e1f; background: #edf8e6; border: 1px solid #d4e9c9; border-radius: .8rem; }
+.registration-bundle p { margin-top: .2rem; font-size: .83rem; }
+.registration-secondary { padding: .48rem .75rem; min-height: 2.55rem; color: var(--ink); background: #fff; border: 1px solid #bcd2ef; border-radius: 1rem; font-weight: 850; }
+.registration-secondary:hover { background: #eef5ff; }
+#holiday-registration fieldset { min-width: 0; margin: 0; padding: .65rem .75rem; border: 1px solid var(--edge); border-radius: .8rem; }
+#holiday-registration legend { padding-inline: .3rem; font-weight: 850; }
+#holiday-registration .registration-choice { display: flex; align-items: start; gap: .45rem; font-weight: 700; }
+.registration-choice + .registration-choice { margin-top: .45rem; }
+.registration-choice input { flex: none; margin: .28em 0 0; }
+.registration-total { color: var(--ink); font-weight: 850; }
+.registration-total strong { font-size: 1.2rem; }
+.registration-summary { padding: .8rem; border: 1px solid var(--edge); border-radius: .85rem; background: #edf5ff; }
+.registration-summary ul { display: grid; gap: .32rem; margin-block: .45rem .55rem; color: var(--text); font-size: .88rem; }
+.registration-summary .registration-total { padding-top: .45rem; border-top: 1px solid #ceddf3; }
+.registration-summary a { margin-top: .6rem; }
+.registration-actions { justify-content: end; }
+.registration-actions button[disabled] { cursor: wait; opacity: .7; }
+.registration-error { margin-bottom: .65rem; padding: .6rem; color: #87212b; background: #fff0f0; border-radius: .6rem; font-weight: 740; }
+#registration-status:empty { display: none; }
+@media (max-width: 520px) {
+  .registration-choice-row, .registration-grid { grid-template-columns: 1fr; }
+  .registration-bundle { flex-wrap: wrap; }
+  .registration-actions .primary { width: 100%; }
+}
+
+.registration-grid label:has(input[type=tel]) { grid-column: 1 / -1; }

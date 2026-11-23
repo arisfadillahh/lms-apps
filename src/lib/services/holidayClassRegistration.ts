@@ -6,6 +6,7 @@ import { getInvoiceById } from '@/lib/dao/invoicesDao';
 import { holidayBatches, holidayLevels, holidayPlatformFee, holidaySessionMinutes, holidayStartMinutes } from '@/lib/holidayClass';
 import { normalizeIndonesianPhone } from '@/lib/phoneNumbers';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
+import { holidayAttributionSchema, type HolidayAttribution } from '@/lib/holidayAttribution';
 
 const personName = z.string().trim().min(2).max(100).regex(/^[\p{L}\p{M}\p{N} .’'-]+$/u);
 export const holidayRegistrationSchema = z.object({
@@ -18,6 +19,7 @@ export const holidayRegistrationSchema = z.object({
   selections: z.array(z.object({ program: z.number().int().min(0).max(3), batch: z.number().int().min(0).max(6) })).min(1).max(3),
   platform: z.enum(['none', 'own', 'clevio']),
   consent: z.literal(true),
+  attribution: holidayAttributionSchema.optional(),
 });
 
 export class HolidayRegistrationError extends Error {
@@ -87,7 +89,7 @@ export function prepareHolidayRegistration(input: HolidayInput, now = new Date()
   };
 }
 
-export async function createHolidayRegistration(input: HolidayInput) {
+export async function createHolidayRegistration(input: HolidayInput, attribution?: HolidayAttribution) {
   const db = getSupabaseAdmin();
   // A retry must resolve to the same invoice even if the catalog or dates change.
   const hash = createHash('sha256').update(JSON.stringify({
@@ -104,8 +106,10 @@ export async function createHolidayRegistration(input: HolidayInput) {
     return requireInvoice(previous.invoice_id);
   }
   const details = prepareHolidayRegistration(input);
+  const dueDays = Number(process.env.HOLIDAY_INVOICE_DUE_DAYS ?? 1);
+  if (!Number.isInteger(dueDays) || dueDays < 1 || dueDays > 30) throw new Error('Invalid Holiday invoice due days');
   const { data: invoiceId, error } = await db.rpc('create_holiday_class_registration' as never, {
-    p_id: input.id, p_hash: hash, p_details: details,
+    p_id: input.id, p_hash: hash, p_details: { ...details, dueDays, attribution },
   } as never);
   if (error?.message === 'HOLIDAY_REQUEST_CHANGED') throw new HolidayRegistrationError('Data berbeda dari pendaftaran sebelumnya. Mulai pendaftaran baru.', 409);
   if (error || typeof invoiceId !== 'string') throw new Error('Holiday registration transaction failed');

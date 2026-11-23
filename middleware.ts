@@ -5,7 +5,7 @@ import { getToken } from 'next-auth/jwt';
 import { getRoleDashboardPath } from '@/lib/routing';
 import type { Role } from '@/types/supabase';
 
-const PUBLIC_PATHS = new Set<string>(['/', '/holidayclas2026', '/free-trial', '/payroll/reimbursement', '/api/payroll/reimbursement', '/api/holiday-class/registration', '/api/holiday-class/payment']);
+const PUBLIC_PATHS = new Set<string>(['/', '/holidayclas2026', '/holiday-measurement', '/free-trial', '/payroll/reimbursement', '/api/payroll/reimbursement', '/api/holiday-class/registration', '/api/holiday-class/payment']);
 
 // Additional public path prefixes (no auth required)
 const PUBLIC_PREFIXES = [
@@ -110,6 +110,7 @@ const ADMIN_ACCESS_RULES: AdminAccessRule[] = [
   { prefix: '/api/admin/evaluations', menus: ['evaluations'] },
   { prefix: '/api/admin/exkul/competencies', menus: ['classes'] },
   { prefix: '/api/admin/invoices', menus: ['invoices'] },
+  { prefix: '/api/admin/holiday-class', menus: ['invoices'] },
   { prefix: '/api/admin/leave', menus: ['leave'] },
   { prefix: '/api/admin/lesson-reports', menus: ['lessonReports'] },
   { prefix: '/api/admin/migrations', menus: [] },

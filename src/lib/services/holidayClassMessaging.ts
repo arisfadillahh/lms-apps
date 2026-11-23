@@ -5,8 +5,9 @@ import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { holidayInvoiceUrl } from './holidayClassPayment';
 import { trialAdminWhatsAppGroup } from './trialClassNotifications';
 import type { Invoice } from '@/lib/types/invoice';
+import { holidayReminderAllowed } from '@/lib/holidayReminders';
 
-type MessageKind = 'registration_group' | 'invoice_parent' | 'paid_group' | 'paid_parent';
+type MessageKind = 'registration_group' | 'invoice_parent' | 'paid_group' | 'paid_parent' | 'reminder_1' | 'reminder_3';
 type OutboxRow = { id: number; registration_id: string; kind: MessageKind; attempts: number; claimed_at: string };
 type Registration = {
   invoice_id: string;
@@ -15,7 +16,13 @@ type Registration = {
 };
 
 export function holidayWhatsAppMessage(kind: MessageKind, invoice: Invoice, registration: Registration) {
-  const paid = kind === 'paid_group' || kind === 'paid_parent';
+  if (kind.startsWith('reminder_')) return [
+    'Halo Ayah/Bunda, pendaftaran Holiday Class ' + invoice.seasonal_student_name + ' masih menunggu pembayaran.',
+    ...registration.selections.map(s => `${s.name} · ${s.batch} · ${s.time} WIB`),
+    `Invoice ${invoice.invoice_number}: ${holidayInvoiceUrl(invoice)}`,
+    'Balas pesan ini kalau butuh bantuan memilih cara bayar.',
+  ].join('\n\n');
+  const paid = kind === 'paid_group' || kind === 'paid_parent' || invoice.status === 'PAID';
   const group = kind === 'registration_group' || kind === 'paid_group';
   const header = paid ? '*Holiday Class · Pembayaran diterima*' : group
     ? '*Holiday Class · Pendaftaran baru*' : '*Invoice Holiday Class Clevio*';
@@ -45,6 +52,7 @@ export async function deliverHolidayWhatsApp(registrationId: string | null = nul
   for (const row of rows) {
     let success = false;
     let permanentFailure = false;
+    let lastError: string | null = null;
     try {
       const { data: record, error: lookupError } = await db.from('holiday_class_registrations' as never)
         .select('invoice_id,platform,selections').eq('id', row.registration_id).single();
@@ -52,12 +60,26 @@ export async function deliverHolidayWhatsApp(registrationId: string | null = nul
       const registration = record as Registration;
       const invoice = await getInvoiceById(registration.invoice_id);
       if (!invoice) throw new Error('Holiday WhatsApp invoice lookup failed');
+      if (row.kind.startsWith('reminder_')) {
+        const eligibility=holidayReminderAllowed(invoice,new Date());
+        if (process.env.HOLIDAY_REMINDER_ENABLED !== 'true' || !eligibility.withinHours) {
+          const {error:deferError}=await db.from('holiday_class_whatsapp_outbox' as never).update({ claimed_at: null, attempts:Math.max(0,row.attempts-1),next_attempt_at: new Date(Date.now()+60*60_000).toISOString() } as never).eq('id',row.id).eq('claimed_at',row.claimed_at);
+          if(deferError)throw new Error('Reminder deferral unavailable');
+          continue;
+        }
+        if (!eligibility.active) {
+          permanentFailure = true;
+          throw new Error('Reminder stopped: paid, cancelled or invoice validity ended');
+        }
+      }
       const group = row.kind === 'registration_group' || row.kind === 'paid_group';
       const target = group ? trialAdminWhatsAppGroup() : invoice.parent_phone;
       const result = await sendWhatsAppMessage(target, holidayWhatsAppMessage(row.kind, invoice, registration));
       success = result.success;
+      lastError = result.error?.replace(/https?:\/\/\S+/g, '[url]').replace(/\d{8,}/g,'[number]').slice(0, 500) ?? (success ? null : 'WhatsApp send failed without detail');
       permanentFailure = /not on WhatsApp|Invalid WhatsApp target/i.test(result.error ?? '');
-    } catch {
+    } catch (error) {
+      lastError = error instanceof Error ? error.message.slice(0,500) : 'WhatsApp delivery failed';
       console.warn('[Holiday Class] WhatsApp delivery deferred', { event: row.id });
     }
     const now = new Date();
@@ -69,6 +91,7 @@ export async function deliverHolidayWhatsApp(registrationId: string | null = nul
         sent_at: success ? now.toISOString() : null,
         failed_at: !success && terminal ? now.toISOString() : null,
         next_attempt_at: new Date(now.getTime() + delay * 60_000).toISOString(),
+        last_error: lastError,
       } as never).eq('id', row.id).eq('claimed_at', row.claimed_at);
     if (saveError) console.error('[Holiday Class] WhatsApp delivery result unavailable', { event: row.id });
     if (success) sent += 1;

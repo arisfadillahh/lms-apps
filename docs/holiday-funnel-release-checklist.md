@@ -2,6 +2,8 @@
 
 Branch review: `codex/holiday-funnel`. Dokumen ini tidak memberikan izin deploy atau pengiriman pesan.
 
+Hasil lanjutan dan batas verifikasi terbaru: [laporan lima bagian](./holiday-funnel-followup-2026-11-23.md). Patch yang diuji terakhir adalah Next.js 16.4.6; default baru jatuh tempo Holiday tiga hari kalender WIB.
+
 ## Lokal dan Sandbox
 
 1. Jalankan tes fokus Holiday, suite penuh, lint file berubah, TypeScript dan build. Dua kegagalan baseline yang boleh tetap: `coachMobileHeader.contract.spec.ts` dan `coachStudentAttendanceFlow.spec.ts`. Jika patch Next.js membuat kegagalan tambahan, jangan rilis patch tersebut.

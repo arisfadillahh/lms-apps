@@ -4,6 +4,14 @@ import { CheckCircle2 } from 'lucide-react';
 import { getSessionOrThrow } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import BlockEvaluationClient from './BlockEvaluationClient';
+import { isCoderEvaluationSelfPaced } from '@/lib/coderEvaluationMode';
+
+type EvaluationContext = { id: string; status: string; created_at: string; template_id: string | null };
+type EvaluationContextQuery = {
+  select: (columns: string) => EvaluationContextQuery;
+  eq: (column: string, value: string) => EvaluationContextQuery;
+  maybeSingle: () => Promise<{ data: EvaluationContext | null; error: unknown }>;
+};
 
 export default async function BlockEvaluationPage({
   params,
@@ -42,6 +50,28 @@ export default async function BlockEvaluationPage({
   if (!lessonAccess) {
     return <main className="p-8">Sesi evaluasi tidak ditemukan.</main>;
   }
+  const { data: evaluationContext, error: evaluationContextError } = evalSessionId
+    ? await (supabase as unknown as { from: (table: 'block_evaluation_sessions') => EvaluationContextQuery }).from('block_evaluation_sessions')
+      .select('id,status,created_at,template_id')
+      .eq('id', evalSessionId)
+      .eq('class_id', classId)
+      .eq('block_id', blockId)
+      .eq('session_id', sessionId)
+      .maybeSingle()
+    : { data: null, error: null };
+  if (evalSessionId && (evaluationContextError || !evaluationContext)) {
+    return <main className="p-8">Sesi evaluasi tidak ditemukan untuk kelas ini.</main>;
+  }
+  const { data: meeting, error: meetingError } = evaluationContext
+    ? await supabase.from('sessions').select('date_time,status').eq('id', sessionId).eq('class_id', classId).maybeSingle()
+    : { data: null, error: null };
+  if (meetingError) return <main className="p-8">Status sesi belum dapat dimuat. Silakan coba lagi.</main>;
+  const selfPaced = evaluationContext ? isCoderEvaluationSelfPaced({
+    status: evaluationContext.status,
+    createdAt: evaluationContext.created_at,
+    meetingAt: meeting?.date_time,
+    meetingStatus: meeting?.status,
+  }, new Date()) : false;
 
   const { data: existingEvaluation } = await supabase
     .from('block_evaluations')
@@ -104,6 +134,14 @@ export default async function BlockEvaluationPage({
   // Fetch evaluation template questions
   let questions: any[] = [];
   let templateId: string | null = null;
+  if (evaluationContext?.template_id) {
+    const { data: originalTemplate } = await supabase.from('block_evaluation_templates')
+      .select('id,questions').eq('id', evaluationContext.template_id).maybeSingle();
+    if (originalTemplate) {
+      questions = originalTemplate.questions ?? [];
+      templateId = originalTemplate.id;
+    }
+  }
 
   // Try to find a template for this class's level
   const { data: levelRow } = await supabase
@@ -112,7 +150,7 @@ export default async function BlockEvaluationPage({
     .eq('id', classId)
     .single();
 
-  if (levelRow?.level_id) {
+  if (questions.length === 0 && levelRow?.level_id) {
     const { data: tmpl } = await supabase
       .from('block_evaluation_templates')
       .select('*')
@@ -158,6 +196,7 @@ export default async function BlockEvaluationPage({
       questions={questions}
       templateId={templateId}
       evalSessionId={evalSessionId}
+      selfPaced={selfPaced}
     />
   );
 }

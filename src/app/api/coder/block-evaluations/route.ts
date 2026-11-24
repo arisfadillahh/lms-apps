@@ -2,6 +2,7 @@ import { after, NextResponse } from 'next/server';
 import { getSessionOrThrow } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { generateDraftReportsForClasses } from '@/lib/services/aiReports';
+import { isCoderEvaluationSelfPaced } from '@/lib/coderEvaluationMode';
 
 export async function POST(req: Request) {
   try {
@@ -125,7 +126,7 @@ export async function GET(req: Request) {
     if (evalSessionId) {
       const { data: evalSession, error: evalSessionError } = await (supabase as any)
         .from('block_evaluation_sessions')
-        .select('id,class_id,current_question_index,status')
+        .select('id,class_id,block_id,session_id,current_question_index,status,created_at')
         .eq('id', evalSessionId)
         .maybeSingle();
       if (evalSessionError) throw evalSessionError;
@@ -146,7 +147,14 @@ export async function GET(req: Request) {
         .eq('coder_id', session.user.id);
       if (answersError) throw answersError;
 
-      return NextResponse.json({ evalSession, pastAnswers: pastAnswers ?? [], serverTime });
+      const { data: meeting, error: meetingError } = await supabase.from('sessions')
+        .select('date_time,status')
+        .eq('id', evalSession.session_id)
+        .eq('class_id', evalSession.class_id)
+        .maybeSingle();
+      if (meetingError) throw meetingError;
+      const selfPaced = isCoderEvaluationSelfPaced({ status: evalSession.status, createdAt: evalSession.created_at, meetingAt: meeting?.date_time, meetingStatus: meeting?.status }, new Date(serverTime));
+      return NextResponse.json({ evalSession: { ...evalSession, selfPaced }, pastAnswers: pastAnswers ?? [], serverTime });
     }
 
     if (mode === 'active' && classId) {
@@ -167,7 +175,14 @@ export async function GET(req: Request) {
         .limit(1)
         .maybeSingle();
       if (activeError) throw activeError;
-      return NextResponse.json({ activeSession: activeSession ?? null, serverTime });
+      let selfPaced = false;
+      if (activeSession) {
+        const { data: meeting, error: meetingError } = await supabase.from('sessions')
+          .select('date_time,status').eq('id', activeSession.session_id).eq('class_id', classId).maybeSingle();
+        if (meetingError) throw meetingError;
+        selfPaced = isCoderEvaluationSelfPaced({ status: activeSession.status, createdAt: activeSession.created_at, meetingAt: meeting?.date_time, meetingStatus: meeting?.status }, new Date(serverTime));
+      }
+      return NextResponse.json({ activeSession: activeSession ? { ...activeSession, selfPaced } : null, serverTime });
     }
 
     if (!blockId) {

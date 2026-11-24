@@ -1,0 +1,11 @@
+.card { background: linear-gradient(135deg, #6d28d9, #4338ca); color: #fff; }
+.icon, .badge { background: rgb(255 255 255 / 14%); }
+.action { background: #fff; color: #4c1d95; }
+.action:hover { background: #f3e8ff; }
+.action:focus-visible { outline: 3px solid #fde68a; outline-offset: 4px; }
+:global(html[data-coder-theme='dark']) .card {
+  background: linear-gradient(135deg, #252d54, #192d47);
+  border: 1px solid #405273;
+}
+:global(html[data-coder-theme='dark']) .action { background: #b9e86e; color: #14243a; }
+:global(html[data-coder-theme='dark']) .action:hover { background: #c9f28b; }

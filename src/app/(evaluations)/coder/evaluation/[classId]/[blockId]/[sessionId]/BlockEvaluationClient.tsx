@@ -37,6 +37,7 @@ interface Props {
   questions: any[];
   templateId: string | null;
   evalSessionId?: string;
+  selfPaced?: boolean;
 }
 
 export default function BlockEvaluationClient({
@@ -44,7 +45,8 @@ export default function BlockEvaluationClient({
   coachName, blockName, levelName,
   questions: initialQuestions,
   templateId,
-  evalSessionId
+  evalSessionId,
+  selfPaced = false,
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -54,9 +56,9 @@ export default function BlockEvaluationClient({
     initialQuestions.forEach((q: any) => { init[q.id] = ''; });
     return init;
   });
-  const [currentStep, setCurrentStep] = useState(evalSessionId ? -1 : 0);
+  const [currentStep, setCurrentStep] = useState(evalSessionId && !selfPaced ? -1 : 0);
   const [isAnswerSubmitted, setIsAnswerSubmitted] = useState(false);
-  const [coachStep, setCoachStep] = useState(evalSessionId ? -1 : 0);
+  const [coachStep, setCoachStep] = useState(selfPaced ? initialQuestions.length : evalSessionId ? -1 : 0);
   const [isCompletedScreen, setIsCompletedScreen] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -111,7 +113,7 @@ export default function BlockEvaluationClient({
 
       if (data) {
         let currentCoachStep = data.current_question_index;
-        if (data.status === 'completed') {
+        if (selfPaced || data.selfPaced || data.status === 'completed') {
           currentCoachStep = questions.length;
         }
         setCoachStep(currentCoachStep);
@@ -147,7 +149,7 @@ export default function BlockEvaluationClient({
       if (cancelled) return;
       const pollData = payload.evalSession;
       if (pollData) {
-        if (pollData.status === 'completed') {
+        if (selfPaced || pollData.selfPaced || pollData.status === 'completed') {
           setCoachStep(questions.length);
         } else if (pollData.current_question_index !== undefined) {
           setCoachStep(pollData.current_question_index);
@@ -159,7 +161,7 @@ export default function BlockEvaluationClient({
       cancelled = true;
       window.clearInterval(pollInterval);
     };
-  }, [evalSessionId, questions]);
+  }, [evalSessionId, questions, selfPaced]);
 
   // Automatically advance Coder if Coach moves to next question while Coder is waiting.
   useEffect(() => {

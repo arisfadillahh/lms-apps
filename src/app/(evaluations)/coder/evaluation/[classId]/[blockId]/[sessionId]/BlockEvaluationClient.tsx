@@ -349,8 +349,8 @@ export default function BlockEvaluationClient({
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-sunshine/10 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-clevio-green/10 rounded-full blur-3xl pointer-events-none"></div>
 
-        <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mb-6 z-10">
-          <img alt="Clevio Logo" className="h-8" src="/images/clevio-logo.png.png" />
+        <div className="w-44 h-20 p-3 bg-white/10 rounded-2xl flex items-center justify-center mb-6 z-10">
+          <img alt="Clevio Logo" width={3508} height={1236} className="block h-auto w-full max-h-full object-contain" src="/images/clevio-logo.png.png" />
         </div>
         
         <h1 className="text-3xl md:text-5xl font-black mb-4 z-10 tracking-tight">Ruang Tunggu Evaluasi</h1>
@@ -403,7 +403,7 @@ export default function BlockEvaluationClient({
               <ArrowLeftIcon size={24} />
             </Link>
             <div className="hidden sm:block">
-              <img alt="Clevio Logo" className="h-7" src="/images/clevio-logo.png.png" />
+              <img alt="Clevio Logo" width={3508} height={1236} className="block h-7 w-auto shrink-0 object-contain" src="/images/clevio-logo.png.png" />
             </div>
           </div>
           <div className="flex flex-col items-center">

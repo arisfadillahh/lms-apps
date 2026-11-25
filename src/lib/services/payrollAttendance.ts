@@ -31,7 +31,7 @@ export function parseAttendanceCommand(raw: unknown): PayrollCommand {
   const parsed = payrollCommandSchema.safeParse(raw);
   if (!parsed.success) throw new PayrollError('Data koreksi tidak valid.');
   const command = parsed.data;
-  if (!actions.has(command.action) || (command.action === 'override' && command.amount !== undefined)) throw new PayrollError('Akses ini hanya untuk aktivitas dan koreksi absensi, tanpa nominal atau pembayaran.', 403);
+  if (!actions.has(command.action) || (command.action === 'override' && (command.amount !== undefined || command.motorTrip !== undefined))) throw new PayrollError('Akses ini hanya untuk aktivitas dan koreksi absensi, tanpa nominal atau pembayaran.', 403);
   return command;
 }
 export async function executeAttendanceCommand(raw: unknown, actor: string) {

@@ -1,5 +1,6 @@
 import type { PayrollMeeting, PeriodDocument, Slip } from './model';
 import { attendanceStatusLabel, projectStudentAttendance } from './studentAttendanceState.ts';
+import { MOTOR_TRIP_OPENING_PREFIX } from './transport.ts';
 
 const attendanceKinds = new Set(['WEEKLY', 'EKSKUL', 'TRIAL', 'EVENT', 'TRAINING_ONLINE', 'TRAINING_OFFLINE', 'OBSERVATION_ONLINE', 'OBSERVATION_OFFLINE', 'CLASS_SUMMARY']);
 const timeZone = 'Asia/Jakarta';
@@ -64,7 +65,7 @@ function coachLink(period: PeriodDocument, appUrl?: string): string {
   } catch { return ''; }
 }
 
-export function formatAttendanceRecap(period: PeriodDocument, slip: Slip, _now?: Date, appUrl?: string): string {
+export function formatAttendanceRecap(period: PeriodDocument, slip: Slip, now?: Date, appUrl?: string): string {
   const blocked = attendanceRecapBlockReason(slip);
   if (blocked) return blocked;
   const meetings = meetingsForMessage(slip);
@@ -80,7 +81,28 @@ export function formatAttendanceRecap(period: PeriodDocument, slip: Slip, _now?:
     const status = meeting.cancelled ? ' (dibatalkan)' : [meeting.substitute ? 'pengganti' : '', attendanceLabel?.toLocaleLowerCase('id-ID') ?? ''].filter(Boolean).map(label => ` (${label})`).join('');
     rows.push(`• ${time}${clean(meeting.label)}${status}`);
   }
-  return `Rekap mengajar - ${monthLabel(period)}\nHalo ${clean(slip.name)}, ini aktivitas yang tercatat di LMS.\n\n${rows.join('\n') || 'Belum ada aktivitas tercatat.'}\n\nTotal: ${count} aktivitas.\n\nBATAS KOREKSI: ${deadlineLabel(period)} pukul 17.00 WIB.\nKalau ada yang perlu dikoreksi, ajukan di LMS sebelum batas itu.\nKelas tanggal 25 yang berjalan setelah pesan ini tetap masuk periode ini.${coachLink(period, appUrl)}`;
+  const trips = slip.lines.filter(line => line.kind === 'TRANSPORT' && line.key.startsWith('transport-motor:'));
+  const opening = slip.lines.find(line => line.key.startsWith(`component:${MOTOR_TRIP_OPENING_PREFIX}`));
+  const transport = [
+    opening ? `\n${clean(opening.label)}.` : '',
+    trips.length ? `\nTransport motor terkonfirmasi: ${trips.length} trip.` : '',
+  ].join('');
+  const correction = now && now.getTime() >= Date.parse(period.correction_deadline)
+    ? 'Kalau ada aktivitas atau perjalanan yang perlu dicek, hubungi admin.\nSeluruh kegiatan tanggal 25 tetap masuk periode ini.'
+    : `BATAS KOREKSI: ${deadlineLabel(period)} pukul 17.00 WIB.\nKalau ada yang perlu dikoreksi, ajukan di LMS sebelum batas itu.\nKelas tanggal 25 yang berjalan setelah pesan ini tetap masuk periode ini.`;
+  return `Rekap mengajar - ${monthLabel(period)}\nHalo ${clean(slip.name)}, ini aktivitas yang tercatat di LMS.\n\n${rows.join('\n') || 'Belum ada aktivitas tercatat.'}\n\nTotal: ${count} aktivitas.${transport}\n\n${correction}${coachLink(period, appUrl)}`;
+}
+
+export function formatStaffRecap(period: PeriodDocument, slip: Slip): string {
+  const activities = slip.lines.filter(line =>
+    attendanceKinds.has(line.kind) || line.kind === 'TRANSPORT'
+    || (line.kind === 'ADJUSTMENT' && /transport|reimbursement|ongkos/i.test(line.label)),
+  );
+  const rows = activities.map(line => {
+    const date = activityDate(line.date);
+    return `• ${date ? date.toLocaleDateString('id-ID', { timeZone, day: 'numeric', month: 'short' }) + ' · ' : ''}${clean(line.label)}`;
+  });
+  return `Rekap staf - ${monthLabel(period)}\nHalo ${clean(slip.name)}, ini ringkasan aktivitas dan transport di LMS.\n\n${rows.join('\n') || 'Belum ada aktivitas atau transport tercatat untuk periode ini.'}\n\nKalau ada catatan yang perlu dilengkapi, hubungi admin.`;
 }
 
 export function formatAttendanceReminder(period: PeriodDocument, slip: Slip, appUrl?: string): string {

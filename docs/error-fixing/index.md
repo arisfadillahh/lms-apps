@@ -4,6 +4,7 @@ Search this file and the linked monthly log before changing related code.
 
 | Date | Reference | Area | Symptom | Monthly log |
 | --- | --- | --- | --- | --- |
+| 2026-11-25 | INTERNAL-20261125-03 | Payroll | Impor spreadsheet macet sebelum WA dan perlu perhitungan transport mandiri | [2026-11](./2026-11.md#internal-20261125-03-payroll-operasional-tanpa-sinkronisasi-spreadsheet) |
 | 2026-11-25 | INTERNAL-20261125-02 | Coder Weekly | Dashboard menampilkan blok lama 100% dan materi blok yang berjalan terkunci | [2026-11](./2026-11.md#internal-20261125-02-coder-weekly-mengikuti-blok-kelas-yang-sudah-berjalan) |
 | 2026-11-25 | INTERNAL-20261125-01 | Dashboard Coder | Status evaluasi yang gagal dimuat bisa menampilkan ajakan evaluasi lama | [2026-11](./2026-11.md#internal-20261125-01-dashboard-coder-menampilkan-refleksi-yang-relevan) |
 | 2026-11-24 | INTERNAL-20261124-01 | Coder evaluation catch-up | Old presenter at lobby index -1 trapped Coder in waiting room; dark theme made evaluation CTA unreadable | [2026-11](./2026-11.md#internal-20261124-01-coder-evaluation-catch-up-and-dark-action-contrast) |

@@ -3,6 +3,7 @@ import type { LegacyIdentityLink } from './legacyIdentity';
 import { attachAttendanceDetails } from './attendanceDetails.ts';
 import { formatAttendanceRecap } from './attendanceMessage.ts';
 import { attendanceValidationWarning, hasReasonedAttendanceOverride, type StudentAttendanceMetadata } from './studentAttendanceState.ts';
+import { MOTOR_TRIP_RATE } from './transport.ts';
 
 export type Contract = 'MITRA' | 'FULLTIME';
 export type PersonKind = 'COACH' | 'STAFF';
@@ -39,6 +40,7 @@ export interface ActivityOverride {
   profile_id?: string; amount?: number; excluded?: boolean; mode?: Contract; reason: string;
   quantity?: number; quantity_delta?: number; meeting_keys?: string[]; selection_cutoff?: string;
   teaching_confirmed?: boolean;
+  motor_trip?: boolean;
 }
 export interface PayrollMeeting extends StudentAttendanceMetadata {
   key: string; date: string; label: string; user_id: string; kind: ActivityKind;
@@ -223,6 +225,12 @@ export function calculatePeriod(input: {
     slip.lines.push({ key: a.key, date: a.date, label: a.label, kind: a.kind, quantity: 1, rate, amount, mode, students: a.students,
       ...attendanceMetadata,
       details: [a.details, a.cancelled ? 'Aktivitas dibatalkan' : '', nonPayable && !a.cancelled ? 'Tidak menghasilkan tambahan fee' : ''].filter(Boolean).join(' · '), override_reason: override?.reason });
+    if (override?.motor_trip && ['WEEKLY', 'EKSKUL'].includes(a.kind) && a.delivery === 'OFFLINE'
+      && person.kind === 'COACH' && !a.cancelled && !override.excluded) {
+      slip.lines.push({ key: `transport-motor:${a.key}`, date: a.date, label: `Transport motor · ${a.label}`,
+        kind: 'TRANSPORT', quantity: 1, rate: MOTOR_TRIP_RATE, amount: MOTOR_TRIP_RATE,
+        details: 'Perjalanan motor dikonfirmasi', override_reason: override.reason });
+    }
   }
   for (const m of p.manual) {
     const slip = slips.get(m.profile_id);

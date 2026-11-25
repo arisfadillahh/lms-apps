@@ -50,11 +50,13 @@ describe('private payroll delivery, transfer gating and retries', () => {
     expect(mocks.notify).toHaveBeenCalledWith('u1',expect.anything(),expect.stringContaining('token=scoped-p1'),'PAYROLL',expect.anything());expect(mocks.text).not.toHaveBeenCalled();
   });
   it('uses live coach profile phone for text-only recap and deduplicates a repeat without creating a PDF', async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-25T18:00:00+07:00'));
     profile.staff_phone = '629999999999';
     expect((await sendPayrollBatch(record.id, ['p1'], 'RECAP', 'admin'))[0].status).toBe('SENT');
     expect(mocks.text).toHaveBeenCalledWith(phone, expect.stringContaining('Rekap mengajar'));
     expect(mocks.wa).not.toHaveBeenCalled(); expect(mocks.pdf).not.toHaveBeenCalled();
-    expect(mocks.notify).toHaveBeenCalledWith('u1', expect.any(String), expect.stringContaining('17.00'), 'PAYROLL', expect.objectContaining({ actionUrl: '/coach/payroll?period=2026-10' }));
+    expect(mocks.notify).toHaveBeenCalledWith('u1', expect.any(String), expect.stringContaining('hubungi admin'), 'PAYROLL', expect.objectContaining({ actionUrl: '/coach/payroll?period=2026-10' }));
+    expect(mocks.text.mock.calls[0][1]).not.toMatch(/17\.00|token=scoped/);
     await sendPayrollBatch(record.id, ['p1'], 'RECAP', 'admin');
     expect(mocks.text).toHaveBeenCalledTimes(1);
   });
@@ -150,9 +152,24 @@ describe('private payroll delivery, transfer gating and retries', () => {
     expect(mocks.text).toHaveBeenCalledTimes(1); expect(mocks.pdf).not.toHaveBeenCalled();
   });
 
-  it.each(['RECAP', 'REMINDER'] as const)('does not send %s to staff or inactive payroll profiles', async kind => {
+  it('sends the manual staff activity recap to its own number without salary amounts or an expired form', async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-25T18:00:00+07:00'));
+    profile.kind = 'STAFF'; profile.user_id = null; profile.staff_phone = '628111111111';
+    const slip = record.document.slips[0];
+    slip.kind = 'STAFF'; slip.user_id = null;
+    slip.lines = [
+      { key: 'salary:p1', kind: 'SALARY', label: 'Gaji tetap', date: '2026-10-25', quantity: 1, rate: 1_000_000, amount: 1_000_000, details: '' },
+      { key: 'component:transport', kind: 'ADJUSTMENT', label: 'Transport umum', date: '2026-10-25', quantity: 1, rate: 12_500, amount: 12_500, details: '' },
+    ];
+    expect((await sendPayrollBatch(record.id, ['p1'], 'RECAP', 'admin'))[0].status).toBe('SENT');
+    expect(mocks.text).toHaveBeenCalledWith('628111111111', expect.stringContaining('Transport umum'));
+    expect(mocks.text.mock.calls[0][1]).not.toMatch(/Gaji tetap|1000000|12500|reimbursement\?token/);
+    expect(mocks.pdf).not.toHaveBeenCalled();
+  });
+  it.each(['RECAP', 'REMINDER'] as const)('does not send automatic %s to staff or any recap to inactive profiles', async kind => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-25T16:00:00+07:00'));
     profile.kind = 'STAFF';
-    expect((await sendPayrollBatch(record.id, ['p1'], kind, 'admin'))[0].status).toBe('FAILED');
+    expect((await sendPayrollBatch(record.id, ['p1'], kind, null))[0].status).toBe('FAILED');
     profile.kind = 'COACH'; profile.active = false;
     expect((await sendPayrollBatch(record.id, ['p1'], kind, 'admin'))[0].status).toBe('FAILED');
     expect(mocks.commit).not.toHaveBeenCalled(); expect(mocks.notify).not.toHaveBeenCalled(); expect(mocks.text).not.toHaveBeenCalled();

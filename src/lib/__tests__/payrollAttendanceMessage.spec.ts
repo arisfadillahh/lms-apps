@@ -14,7 +14,7 @@ describe('simple dated coach attendance message', () => {
       meeting(),
       meeting({ key: 'session-3', date: '2026-11-04T09:00:00Z', label: 'Trial Dira', kind: 'TRIAL' }),
     ], lines: [line({ label: 'Gaji rahasia', kind: 'SALARY', amount: 7000000 }), line({ label: 'Bonus rahasia', kind: 'GOAL' }), line({ label: 'Tunjangan rahasia', kind: 'ALLOWANCE' })] });
-    const message = formatAttendanceRecap(period, coach, new Date(), 'https://lms.clev.io');
+    const message = formatAttendanceRecap(period, coach, new Date('2026-11-25T09:00:00+07:00'), 'https://lms.clev.io');
     expect(message).toContain('Rekap mengajar - November 2026');
     expect(message).toContain('4 Nov\n• 15.00 - Weekly Scratch\n• 16.00 - Trial Dira\n\n5 Nov\n• 10.30 - Ekskul Robotik (pengganti)');
     expect(message).toContain('Total: 3 aktivitas.');

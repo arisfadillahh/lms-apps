@@ -4,7 +4,8 @@ import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import * as dao from '@/lib/dao/payrollDao';
 import { calculatePayroll, payrollMeetingCandidates, requireDraft, requireReason, assertComponentDate } from './payroll';
 import { meetingMatchesLine } from '@/lib/payroll/attendanceDetails';
-import { finalize, reopen, markTransferred, reverseTransfer, reviewCorrection, PayrollError } from '@/lib/payroll/model';
+import { finalize, reopen, markTransferred, reverseTransfer, reviewCorrection, PayrollError, wibDate } from '@/lib/payroll/model';
+import { MOTOR_TRIP_OPENING_PREFIX } from '@/lib/payroll/transport';
 import { attendanceAdmins } from './payrollNotifications';
 import { createNotification } from '@/lib/dao/notificationsDao';
 import type { PayrollCommand } from '@/lib/payroll/validation';
@@ -42,11 +43,7 @@ export async function executePayrollCommand(command: PayrollCommand, actor: stri
   let record = await dao.getPayrollPeriod(command.periodId);
   if (!record) throw new PayrollError('Periode tidak ditemukan.', 404);
   if (record.revision !== command.revision) throw new PayrollError('Data sudah berubah. Muat ulang terlebih dahulu.', 409);
-  if (command.action === 'calculate') return calculatePayroll(record, now, actor);
-  if (command.action === 'refreshSource') {
-    const { refreshPayrollSource } = await import('./payrollSourceSync');
-    return refreshPayrollSource(record, actor);
-  }
+  if (command.action === 'calculate' || command.action === 'refreshSource') return calculatePayroll(record, now, actor);
   if (command.action === 'send') {
     const { sendPayrollBatch } = await import('./payrollDelivery');
     return sendPayrollBatch(record.id, command.profileIds, command.kind, actor, command.resend);
@@ -88,12 +85,25 @@ export async function executePayrollCommand(command: PayrollCommand, actor: stri
       requireDraft(record);
       const originalSlip = next.slips.find(s => s.lines.some(l => l.key === command.sourceKey));
       const line = originalSlip?.lines.find(l => l.key === command.sourceKey);
-      if (!line || ['SALARY', 'ADJUSTMENT', 'ALLOWANCE'].includes(line.kind)) throw new PayrollError('Aktivitas sumber tidak ditemukan.');
+      if (!line || line.key.startsWith('transport-motor:') || ['SALARY', 'ADJUSTMENT', 'ALLOWANCE'].includes(line.kind)) throw new PayrollError('Aktivitas sumber tidak ditemukan.');
       if(command.teachingConfirmed!==undefined && (line.summary || !['WEEKLY','EKSKUL'].includes(line.kind)))throw new PayrollError('Konfirmasi mengajar hanya untuk pertemuan kelas individual.');
       if ((command.quantity !== undefined || command.meetingKeys !== undefined) && !line.summary) throw new PayrollError('Untuk pertemuan tunggal, gunakan status dikecualikan atau pilih coach pengganti.');
       const config = await dao.getPayrollConfig();
       if (command.profileId) {
         if (!config.people.some(p => p.id === command.profileId && p.active)) throw new PayrollError('Penerima pengganti tidak aktif.');
+      }
+      const motorTrip = command.motorTrip ?? next.overrides[command.sourceKey]?.motor_trip;
+      if (command.motorTrip === true) {
+        const meeting = originalSlip?.attendance_details?.find(entry => entry.key === line.key);
+        const recipient = config.people.find(person => person.id === (command.profileId ?? originalSlip?.profile_id));
+        if (!meeting || meeting.delivery !== 'OFFLINE' || meeting.cancelled || command.excluded
+          || line.summary || !['WEEKLY', 'EKSKUL'].includes(line.kind) || recipient?.kind !== 'COACH') {
+          throw new PayrollError('Transport motor hanya untuk perjalanan ke sesi offline coach yang tercatat.');
+        }
+        const opening = next.manual.find(entry => entry.id === `${MOTOR_TRIP_OPENING_PREFIX}${recipient.id}`);
+        if (opening && wibDate(meeting.date) <= wibDate(opening.date)) {
+          throw new PayrollError('Tanggal ini termasuk saldo awal transport motor. Koreksi komponen saldo awal untuk mencegah hitung ganda.');
+        }
       }
       let quantity = command.quantity;
       if (command.meetingKeys !== undefined) {
@@ -111,7 +121,7 @@ export async function executePayrollCommand(command: PayrollCommand, actor: stri
         quantity = keys.size;
         next.meeting_catalog = candidates;
       }
-      next.overrides[command.sourceKey] = { profile_id: command.profileId, amount: command.amount, teaching_confirmed:command.teachingConfirmed, quantity, quantity_delta: quantity === undefined ? undefined : quantity-(line.source_quantity ?? line.quantity), meeting_keys: command.meetingKeys, selection_cutoff: command.meetingKeys === undefined ? undefined : now.toISOString(), excluded: line.summary && quantity !== undefined ? false : command.excluded, mode: command.mode, reason: command.reason };
+      next.overrides[command.sourceKey] = { profile_id: command.profileId, amount: command.amount, teaching_confirmed:command.teachingConfirmed, motor_trip: motorTrip, quantity, quantity_delta: quantity === undefined ? undefined : quantity-(line.source_quantity ?? line.quantity), meeting_keys: command.meetingKeys, selection_cutoff: command.meetingKeys === undefined ? undefined : now.toISOString(), excluded: line.summary && quantity !== undefined ? false : command.excluded, mode: command.mode, reason: command.reason };
       next.calculated_at = null; break;
     }
     case 'recoverDelivery': {

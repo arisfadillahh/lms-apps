@@ -48,6 +48,17 @@ describe('payroll calendar and automatic fee policy', () => {
     expect(result.slips.find(s => s.profile_id === 'p1')!.total).toBe(0);
     expect(result.slips.find(s => s.profile_id === 'p2')!.total).toBe(3080000);
   });
+  it('pays one confirmed offline motor trip at Rp35.000 separately from salary or class fee', () => {
+    const p = createPeriod(2026, 11);
+    p.overrides.s1 = { motor_trip: true, profile_id: 'p2', reason: 'Coach pengganti berangkat dengan motor' };
+    const trip = activity({ delivery: 'OFFLINE', mode: 'FULLTIME' });
+    const result = calc([trip, trip], p);
+    const lines = result.slips.find(s => s.profile_id === 'p2')!.lines;
+    expect(lines.filter(l => l.kind === 'TRANSPORT')).toMatchObject([{ amount: 35000, quantity: 1, key: 'transport-motor:s1' }]);
+    expect(lines.find(l => l.key === 's1')?.amount).toBe(0);
+    expect(calc([activity({ cancelled: true, delivery: 'OFFLINE' }), activity({ key: 's2' })], p).slips.flatMap(s => s.lines).filter(l => l.kind === 'TRANSPORT')).toEqual([]);
+    expect(calc([activity()], p).slips.flatMap(s => s.lines).filter(l => l.kind === 'TRANSPORT')).toEqual([]);
+  });
   it('recalculating and repeated source rows never duplicate fee', () => {
     const p = calc([activity(), activity()]); expect(calc([activity(), activity()], p)).toEqual(p);
   });
@@ -95,6 +106,7 @@ describe('monthly final versions and bank transfer ledger', () => {
   it('closes regular coach reports exactly at 17.00 but allows admin revision afterward', () => {
     const p = calc(); expect(correctionOpen(p, new Date('2026-11-25T16:59:59+07:00'))).toBe(true); expect(correctionOpen(p, new Date('2026-11-25T17:00:00+07:00'))).toBe(false);
     expect(reopen(finalize(p, 'admin', now), 'Revisi admin akhir bulan').status).toBe('DRAFT');
-    expect(recapMessage(p, p.slips[0], now)).toContain('pukul 17.00 WIB');
+    expect(recapMessage(p, p.slips[0], new Date('2026-11-25T16:59:00+07:00'))).toContain('pukul 17.00 WIB');
+    expect(recapMessage(p, p.slips[0], now)).toContain('hubungi admin');
   });
 });

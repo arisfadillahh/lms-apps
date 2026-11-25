@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { ActivityOverride, PayrollLine, PayrollMeeting, PayrollPerson } from '@/lib/payroll/model';
+import { MOTOR_TRIP_RATE } from '@/lib/payroll/transport';
 import { meetingMatchesLine, selectedMeetingKeys } from '@/lib/payroll/attendanceDetails';
 import { dateWib, rupiah } from '@/lib/payroll/presentation';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,7 @@ import styles from './PayrollAdmin.module.css';
 import { attendanceStatusLabel } from '@/lib/payroll/studentAttendanceState';
 
 type CorrectionLine = Pick<PayrollLine, 'key' | 'date' | 'label' | 'kind' | 'quantity' | 'mode' | 'students' | 'source_identity' | 'source_counter' | 'attendance_status' | 'summary_before'> & Partial<Pick<PayrollLine, 'rate' | 'quantity_rate' | 'amount' | 'summary' | 'override_reason'>>;
-type OperationalOverride = Pick<ActivityOverride, 'profile_id' | 'excluded' | 'mode' | 'quantity' | 'meeting_keys' | 'selection_cutoff' | 'teaching_confirmed'> & { reason?: string };
+type OperationalOverride = Pick<ActivityOverride, 'profile_id' | 'excluded' | 'mode' | 'quantity' | 'meeting_keys' | 'selection_cutoff' | 'teaching_confirmed' | 'motor_trip'> & { reason?: string };
 type Props = {
   line: CorrectionLine; people: Pick<PayrollPerson, 'id' | 'user_id' | 'name' | 'active'>[]; profileId: string;
   busy: boolean; candidates?: PayrollMeeting[]; usedMeetingKeys?: string[]; override?: OperationalOverride & { amount?: number }; attendanceOnly?: boolean;
@@ -20,6 +21,8 @@ type Props = {
 function unit(kind: string) { return kind === 'GOAL' ? 'anak' : ['CLASS_SUMMARY', 'WEEKLY', 'EKSKUL', 'TRIAL'].includes(kind) ? 'sesi' : 'kegiatan'; }
 export default function PayrollCorrection({ line, people, profileId, busy, candidates = [], usedMeetingKeys = [], override, attendanceOnly = false, save, close }: Props) {
   const summary = Boolean(line.summary || !line.date);
+  const canRecordMotor = !attendanceOnly && !summary && ['WEEKLY', 'EKSKUL'].includes(line.kind)
+    && candidates.some(meeting => meeting.key === line.key && meeting.delivery === 'OFFLINE' && !meeting.cancelled);
   const canChooseMeetings = summary && !['GOAL', 'TRANSPORT'].includes(line.kind);
   const initialQuantity = summary && override?.excluded ? 0 : line.quantity;
   const [recipient, setRecipient] = useState(override?.profile_id ?? profileId);
@@ -55,6 +58,7 @@ export default function PayrollCorrection({ line, people, profileId, busy, candi
       if (method === 'meetings') extra.meetingKeys = selectedAvailable;
     }
     if (!attendanceOnly) extra.amount = manualAmount ? Number(amount) : undefined;
+    if (canRecordMotor) extra.motorTrip = !excluded && fields.motorTrip === 'on';
     if(!summary && ['WEEKLY','EKSKUL'].includes(line.kind))extra.teachingConfirmed=teaching==='AUTO'?undefined:teaching==='true';
     save(extra);
   }}><fieldset className={styles.correctionFields} disabled={busy}>
@@ -85,7 +89,8 @@ export default function PayrollCorrection({ line, people, profileId, busy, candi
     {hasFinancials && <div className={styles.correctionEstimate} aria-live="polite"><span>{manualAmount ? 'Nominal khusus' : 'Nominal otomatis'}</span><strong>{invalidCount ? '—' : !manualAmount && nativeCalculationChanged && !excluded ? 'Dihitung saat disimpan' : rupiah(manualAmount ? Number(amount) || 0 : automaticAmount)}</strong>{manualAmount ? <p>Nominal khusus sedang digunakan. Pilih tarif otomatis di Pengaturan lanjutan agar nominal mengikuti jumlah.</p> : nativeCalculationChanged && <p>Nominal mengikuti coach dan mode mengajar yang dipilih setelah disimpan.</p>}</div>}
 
     {!summary && <label className={styles.field}>Coach yang mengajar<select className={styles.select} value={recipient} onChange={event => { setRecipient(event.target.value); setSelected([]); }}>{people.filter(p => p.active || p.id === recipient).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>}
-    <label className={styles.field}>Alasan koreksi<Input name="reason" placeholder="Contoh: satu pertemuan dibatalkan" minLength={5} maxLength={1000} defaultValue={override?.reason ?? ''} required /></label>
+    {canRecordMotor && <label className={styles.checklabel}><input className={styles.checkbox} type="checkbox" name="motorTrip" defaultChecked={override?.motor_trip} disabled={excluded} /> Perjalanan motor terkonfirmasi · {rupiah(MOTOR_TRIP_RATE)} per trip</label>}
+    <label className={styles.field}>Alasan koreksi<Input name="reason" placeholder="Contoh: coach datang ke kelas naik motor" minLength={5} maxLength={1000} defaultValue={override?.reason ?? ''} required /></label>
 
     <details className={`${styles.disclosure} ${styles.correctionAdvanced}`}><summary>Pengaturan lanjutan</summary><div className={styles.correctionAdvancedFields}>
       {summary && <label className={styles.field}>Coach penerima<select className={styles.select} value={recipient} onChange={event => { setRecipient(event.target.value); setSelected([]); }}>{people.filter(p => p.active || p.id === recipient).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>}

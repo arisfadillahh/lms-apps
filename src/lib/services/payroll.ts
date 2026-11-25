@@ -6,33 +6,30 @@ import { calculatePeriod, createPeriod, currentPeriod, effective, inPeriod, Payr
 import { approvedRequestActivities, type ActivityRequest } from '@/lib/payroll/activityRequests';
 import { attendanceAdmins } from './payrollNotifications';
 import { calculateSynchronizedPeriod } from '@/lib/payroll/synchronizedPeriod';
+import { usesLegacyPayrollArchive } from '@/lib/payroll/legacyImport';
 import { canonicalMeetingCandidates, meetingFromActivity } from '@/lib/payroll/attendanceDetails';
-import { refreshAttendanceSource } from './payrollAttendanceSource';
-import { applyAttendancePolicy, STUDENT_ATTENDANCE_FROM, usesLmsAttendanceForEntirePeriod } from '@/lib/payroll/attendancePolicy';
+import { STUDENT_ATTENDANCE_FROM } from '@/lib/payroll/attendancePolicy';
+
+function attendanceFrom(period: PeriodDocument): string {
+  return period.id >= '2026-11' ? period.starts_at : period.class_attendance_from ?? STUDENT_ATTENDANCE_FROM;
+}
 
 export async function calculatePayroll(record: PeriodRecord, now = new Date(), actor: string | null = null): Promise<PeriodRecord> {
   requireDraft(record);
-  record={...record,document:applyAttendancePolicy(record.document,now)};
   const config = await dao.getPayrollConfig();
-  if (record.document.legacy_imports?.length) {
-    const sourced = await refreshAttendanceSource(record.document,now);
-    const native = await payrollSourceActivities(sourced,now);
-    const pastMeetings = await payrollMeetingCandidates(sourced, now,native.activities);
-    const catalog = new Map((sourced.meeting_catalog ?? []).filter(m=>m.origin==='SOURCE' && (!sourced.class_attendance_from || Date.parse(m.date)<Date.parse(sourced.class_attendance_from))).map(m=>[m.key,m]));
-    for(const m of pastMeetings)catalog.set(m.key,m);
-    const isCurrent = record.id === currentPeriod(now).id || usesLmsAttendanceForEntirePeriod(sourced);
-    if(isCurrent)for(const a of native.activities.filter(a=>['WEEKLY','EKSKUL'].includes(a.kind) && Date.parse(a.date)>=Date.parse(sourced.class_attendance_from!))){
-      const override=sourced.overrides[a.key];
-      const person=override?.profile_id?config.people.find(p=>p.id===override.profile_id):config.people.find(p=>p.user_id===a.user_id);
-      const term=person && effective(config.terms.filter(t=>t.profile_id===person.id),wibDate(a.date));
-      if(term?.contract==='FULLTIME' && !term.working_days?.length && a.fee_eligible!==false && a.details?.includes('Mode belum ditetapkan admin') && !override?.mode && override?.amount===undefined && !override?.excluded && !a.cancelled)native.warnings.push(`Pilih mode fulltime/mitra untuk ${a.label} (${wibDate(a.date)}) atau beri override beralasan.`);
-    }
-    const next = calculateSynchronizedPeriod({ period: { ...sourced, meeting_catalog: [...catalog.values()] }, ...config, activities:isCurrent ? native.activities : [], sourceWarnings:isCurrent ? native.warnings.filter(w=>w.startsWith('Tanggal konfirmasi lunas trial') || w.startsWith('Absensi siswa') || w.startsWith('Pilih mode fulltime')) : [], now, includeRecurring: isCurrent });
+  if (usesLegacyPayrollArchive(record.document)) {
+    const meeting_catalog = await payrollMeetingCandidates(record.document, now);
+    const next = calculateSynchronizedPeriod({ period: { ...record.document, meeting_catalog }, ...config, activities: [], now, includeRecurring: false });
     return dao.commitPayrollPeriod(record, next, actor, 'CALCULATE');
   }
   if (!config.settings.active_from) throw new PayrollError('Atur tanggal mulai pencatatan gaji terlebih dahulu.');
   if (config.people.filter(p => p.active).length === 0) throw new PayrollError('Tambahkan coach/staf dan kontraknya terlebih dahulu.');
-  const built = await payrollSourceActivities(record.document, now);
+  const period = {
+    ...record.document,
+    class_attendance_from: attendanceFrom(record.document),
+    meeting_catalog: [],
+  };
+  const built = await payrollSourceActivities(period, now);
   const active = built.activities.filter(a => wibDate(a.date) >= config.settings.active_from!);
   for (const a of active) {
     const override = record.document.overrides[a.key];
@@ -40,7 +37,7 @@ export async function calculatePayroll(record: PeriodRecord, now = new Date(), a
     const term = profile && effective(config.terms.filter(t => t.profile_id === profile.id), wibDate(a.date));
     if (term?.contract === 'FULLTIME' && !term.working_days?.length && a.fee_eligible!==false && a.details?.includes('Mode belum ditetapkan admin') && !override?.mode && override?.amount === undefined && !override?.excluded && !a.cancelled) built.warnings.push(`Pilih mode fulltime/mitra untuk ${a.label} (${wibDate(a.date)}) atau beri override beralasan.`);
   }
-  const next = calculatePeriod({ period: record.document, people: config.people, terms: config.terms, cards: config.cards, activities: active, sourceWarnings: built.warnings, now });
+  const next = calculatePeriod({ period, people: config.people, terms: config.terms, cards: config.cards, activities: active, sourceWarnings: built.warnings, now });
   const eligiblePics = await attendanceAdmins();
   if (!eligiblePics.some(a => a.id === next.pic_id)) next.pic_id = eligiblePics.find(a => a.id === actor)?.id ?? eligiblePics[0]?.id ?? null;
   return dao.commitPayrollPeriod(record, next, actor, 'CALCULATE');
@@ -62,13 +59,17 @@ async function payrollSourceActivities(period: PeriodDocument, now: Date) {
     dao.payrollRows('invoices', 'id,status', { in: ['id', invoiceIds] }),
     dao.payrollRows('attendance', 'session_id,coder_id,status', { in: ['session_id', sessions.map(s=>s.id as string)] }),
   ]);
-  const built = buildPayrollActivities({ period, sessions: sessions as unknown as SessionSource[], classes: classes as unknown as ClassSource[], enrollments: enrollments as unknown as EnrollmentSource[], leaves: leaves as unknown as LeaveSource[], trials: trials as unknown as TrialSource[], assessments: assessments as unknown as AssessmentSource[], invoices: invoices as { id: string; status: string }[], attendance:attendance as unknown as AttendanceSource[], attendanceRequiredFrom:period.class_attendance_from ?? STUDENT_ATTENDANCE_FROM, now });
+  const built = buildPayrollActivities({ period, sessions: sessions as unknown as SessionSource[], classes: classes as unknown as ClassSource[], enrollments: enrollments as unknown as EnrollmentSource[], leaves: leaves as unknown as LeaveSource[], trials: trials as unknown as TrialSource[], assessments: assessments as unknown as AssessmentSource[], invoices: invoices as { id: string; status: string }[], attendance:attendance as unknown as AttendanceSource[], attendanceRequiredFrom:attendanceFrom(period), now });
   return { activities: [...built.activities, ...approvedRequestActivities(requests as unknown as ActivityRequest[]).filter(a => inPeriod(a.date, period) && Date.parse(a.date) <= now.getTime())], warnings: built.warnings };
 }
 
 export async function payrollMeetingCandidates(period: PeriodDocument, now = new Date(), activities?:Activity[]) {
-  const [built,config] = await Promise.all([activities ? Promise.resolve({activities}) : payrollSourceActivities(period, now),dao.getPayrollConfig()]);
-  const catalog = new Map((period.meeting_catalog ?? []).filter(m=>m.origin!=='SOURCE' || !period.class_attendance_from || Date.parse(m.date)<Date.parse(period.class_attendance_from)).map(m => [m.key,m]));
+  const archive = usesLegacyPayrollArchive(period);
+  const [built,config] = await Promise.all([
+    activities ? Promise.resolve({ activities }) : payrollSourceActivities(period, now),
+    dao.getPayrollConfig(),
+  ]);
+  const catalog = new Map((archive ? period.meeting_catalog ?? [] : []).filter(m=>m.origin!=='SOURCE' || !period.class_attendance_from || Date.parse(m.date)<Date.parse(period.class_attendance_from)).map(m => [m.key,m]));
   for (const a of built.activities.filter(a => a.kind !== 'GOAL')) catalog.set(a.key,meetingFromActivity(a));
   return canonicalMeetingCandidates([...catalog.values()].filter(m => m.kind !== 'GOAL' && inPeriod(m.date,period) && Date.parse(m.date) <= now.getTime())).map(m => {
     const override = period.overrides[m.key];

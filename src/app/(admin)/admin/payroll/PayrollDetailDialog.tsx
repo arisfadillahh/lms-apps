@@ -125,7 +125,7 @@ export default function PayrollDetailDialog({ period, slip, people, meetingCandi
               </div>
               <div className={styles.sessionActions}>
                 <strong className={styles.money}>{rupiah(line.amount)}</strong>
-                {draft && <Button data-correction-key={line.key} size="sm" variant="outline" disabled={busy} onClick={() => correct(line)}>Koreksi sesi</Button>}
+                {draft && !line.key.startsWith('transport-motor:') && <Button data-correction-key={line.key} size="sm" variant="outline" disabled={busy} onClick={() => correct(line)}>Koreksi sesi</Button>}
               </div>
             </li>)}
           </ul>
@@ -136,7 +136,7 @@ export default function PayrollDetailDialog({ period, slip, people, meetingCandi
           {period.activities.filter(a => a.profile_id === slip.profile_id).map(a => <div key={a.id} className={styles.toolbar}><span>{a.label}</span>{draft && <Button variant="ghost" size="sm" disabled={busy} onClick={() => { const reason = window.prompt('Alasan menghapus aktivitas manual:'); if (reason) void run('removeActivity', { id: a.id, reason }); }}>Hapus aktivitas</Button>}</div>)}
           <details className={styles.disclosure}><summary>Pengiriman ulang & riwayat penerima</summary><div className={styles.detailPanel}>
             <p className={styles.muted}>Rekap absensi dijadwalkan otomatis tanggal 25. Gunakan pengiriman manual hanya untuk koreksi atau kendala pengiriman.</p>
-            <div className={styles.toolbar}>{slip.kind === 'COACH' && <Button variant="outline" disabled={busy || !period.calculated_at} onClick={() => { void resend('RECAP', slip.profile_id); }}>Kirim ulang rekap (manual)</Button>}<Button variant="outline" disabled={busy || !isPaid(period, slip.profile_id) || draft} onClick={() => { void resend('SLIP', slip.profile_id); }}>Kirim ulang slip final</Button></div>
+            <div className={styles.toolbar}><Button variant="outline" disabled={busy || !period.calculated_at} onClick={() => { void resend('RECAP', slip.profile_id); }}>Kirim rekap (manual)</Button><Button variant="outline" disabled={busy || !isPaid(period, slip.profile_id) || draft} onClick={() => { void resend('SLIP', slip.profile_id); }}>Kirim ulang slip final</Button></div>
             <h2>Versi final tersimpan</h2><div className={styles.toolbar}>{period.history.map(h => <Button variant="outline" size="sm" key={h.version} onClick={() => preview(slip, h.version)}>Versi {h.version} · {dateWib(h.finalized_at)} WIB</Button>)}</div>
             <h2>Riwayat transfer</h2>{period.transfers.filter(t => t.profile_id === slip.profile_id).map(t => { const reversed = period.transfer_reversals?.find(r => r.transfer_id === t.id); return <div key={t.id} className={styles.toolbar}><span className={styles.muted}>{dateWib(t.at)} WIB · {rupiah(t.amount)} · versi {t.version} {t.reference}{reversed && ` · Dibatalkan: ${reversed.reason}`}</span>{!draft && !reversed && <Button size="sm" variant="outline" disabled={busy} onClick={() => { const reason = window.prompt('Alasan membatalkan penandaan transfer (uang bank tidak dibatalkan):'); if (reason) void run('reverseTransfer', { transferId: t.id, reason }, 'Penandaan dibatalkan. Riwayat asli tetap tersimpan.'); }}>Batalkan penandaan</Button>}</div>; })}
           </div></details>

@@ -15,6 +15,11 @@ export interface LegacyPayrollSnapshot {
   rows: LegacyPayrollRow[]; total: number; totalBasis: 'SOURCE_TOTAL' | 'RECORDED_FEES' | 'MIXED';
 }
 
+// November was the first period recorded from the LMS since its opening day.
+export function usesLegacyPayrollArchive(period: PeriodDocument): boolean {
+  return period.id < '2026-11' && Boolean(period.legacy_imports?.length);
+}
+
 type Cell = { effectiveValue?: { numberValue?: number; stringValue?: string; errorValue?: unknown }; userEnteredValue?: { formulaValue?: string }; formattedValue?: string };
 export interface LegacySheetSource {
   file: { id: string; name: string; createdTime: string; modifiedTime: string };

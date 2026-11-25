@@ -11,7 +11,7 @@ describe('private PDF presentation', () => {
   });
   it('states the deadline in text and distinguishes draft slip preview from final PDF', () => {
     const p = createPeriod(2026, 10); const html = renderPayrollHtml(p, slip);
-    expect(recapMessage(p, slip)).toContain('BATAS KOREKSI:'); expect(recapMessage(p, slip)).toContain('17.00'); expect(recapMessage(p, slip)).not.toContain('pengecualian'); expect(html).toContain('DRAFT / SEMENTARA');
+    expect(recapMessage(p, slip, new Date('2026-10-25T09:00:00+07:00'))).toContain('BATAS KOREKSI:'); expect(recapMessage(p, slip, new Date('2026-10-25T09:00:00+07:00'))).toContain('17.00'); expect(recapMessage(p, slip, new Date('2026-10-25T09:00:00+07:00'))).not.toContain('pengecualian'); expect(html).toContain('DRAFT / SEMENTARA');
     p.history = [{ version: 1, finalized_at: p.ends_at, finalized_by: 'admin', slips: [slip] }];
     expect(renderPayrollHtml(p, slip)).toContain('>FINAL</span>');
   });
@@ -23,7 +23,7 @@ describe('private PDF presentation', () => {
       { ...slip.lines[0], key: 'bonus', kind: 'GOAL', label: 'Bonus goal', amount: 100000 },
       { ...slip.lines[0], key: 'transport', kind: 'ADJUSTMENT', label: 'Transport manual', amount: 95000 },
     ] };
-    const text = recapMessage(p, s);
+    const text = recapMessage(p, s, new Date('2026-10-25T09:00:00+07:00'));
     expect(text).toContain('Weekly kelas A'); expect(text).not.toContain('2 anak'); expect(text).toContain('(pengganti)');
     for (const forbidden of ['Rp', '80000', '4.000.000', '4275000', 'Gaji tetap', 'Bonus goal', 'Transport manual']) expect(text).not.toContain(forbidden);
     expect(text).toContain('pukul 17.00 WIB');

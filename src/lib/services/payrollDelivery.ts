@@ -7,7 +7,7 @@ import { createPayrollAdminNotifications } from './payrollNotifications';
 import { sendWhatsAppDocument, sendWhatsAppMessage } from '@/lib/services/whatsappClient';
 import { generatePayrollPdf } from '@/lib/pdf/generatePayrollPdf';
 import { profilePhone } from '@/lib/payroll/sources';
-import { attendanceRecapBlockReason, formatAttendanceRecap, formatAttendanceReminder } from '@/lib/payroll/attendanceMessage';
+import { attendanceRecapBlockReason, formatAttendanceRecap, formatAttendanceReminder, formatStaffRecap } from '@/lib/payroll/attendanceMessage';
 import { isPaid, PayrollError, wibDate, type PayrollDelivery } from '@/lib/payroll/model';
 import { createReimbursementLink } from './payrollReimbursements';
 
@@ -26,7 +26,8 @@ async function sendOne(periodId: string, profileId: string, kind: PayrollDeliver
   const config = await getPayrollConfig();
   const profile = config.people.find(s => s.id === profileId);
   if (!profile) throw new PayrollError('Profil penerima tidak ditemukan.');
-  const slip = p.slips.find(s => s.profile_id === profileId) ?? (kind === 'REIMBURSEMENT' ? { profile_id: profile.id, user_id: profile.user_id, name: profile.name, job_title: profile.job_title, kind: profile.kind, contract: 'MITRA' as const, lines: [], total: 0 } : undefined);
+  const staffRecap = kind === 'RECAP' && actor !== null && profile.kind === 'STAFF';
+  const slip = p.slips.find(s => s.profile_id === profileId) ?? (kind === 'REIMBURSEMENT' || staffRecap ? { profile_id: profile.id, user_id: profile.user_id, name: profile.name, job_title: profile.job_title, kind: profile.kind, contract: 'MITRA' as const, lines: [], total: 0 } : undefined);
   if (!slip) throw new PayrollError('Penerima tidak ditemukan.');
   if (kind === 'SLIP' && actor === null) throw new PayrollError('Slip hanya dapat dikirim oleh admin atau finance setelah transfer.');
   if (kind === 'SLIP' && (p.status !== 'FINAL' || !isPaid(p, profileId))) throw new PayrollError('Slip harus final dan sudah ditransfer sebelum dikirim.');
@@ -48,7 +49,8 @@ async function sendOne(periodId: string, profileId: string, kind: PayrollDeliver
     if (now.getTime() < scheduledFrom || now.getTime() >= Date.parse(p.correction_deadline)) throw new PayrollError('Rekap otomatis hanya dikirim tanggal 25 pukul 09.00–17.00 WIB; pengingat mulai pukul 16.00 WIB.');
   }
   if (kind === 'REIMBURSEMENT' && (!profile.active || p.status !== 'DRAFT' || Date.now() >= Date.parse(p.correction_deadline))) throw new PayrollError('Pengajuan reimbursement sudah ditutup atau penerima tidak aktif.');
-  if (kind === 'RECAP' || kind === 'REMINDER') {
+  if (staffRecap && !profile.active) throw new PayrollError('Rekap hanya dikirim ke penerima aktif.');
+  if (!staffRecap && (kind === 'RECAP' || kind === 'REMINDER')) {
     if (profile.kind !== 'COACH' || slip.kind !== 'COACH' || !profile.active) throw new PayrollError('Rekap absensi hanya dikirim ke coach aktif.');
     const blocked = attendanceRecapBlockReason(slip);
     if (blocked) {
@@ -73,13 +75,14 @@ async function sendOne(periodId: string, profileId: string, kind: PayrollDeliver
     const message = kind === 'SLIP'
       ? `Slip gaji ${p.id} versi ${p.version}\nHalo ${slip.name}, admin telah mencatat penyelesaian transfer periode ini. Slip PDF terlampir dan tersedia di akun LMS. Hubungi admin jika ada pertanyaan.`
       : kind === 'REIMBURSEMENT' ? `Pengajuan reimbursement · ${new Date(Date.UTC(p.year,p.month-1,1)).toLocaleDateString('id-ID',{month:'long',year:'numeric',timeZone:'Asia/Jakarta'})}\nHalo ${slip.name}.${reimbursementText}`
+      : staffRecap ? formatStaffRecap(p, slip)
       : (kind === 'REMINDER' ? formatAttendanceReminder(p, slip, appUrl) : formatAttendanceRecap(p, slip, new Date(), appUrl)) + reimbursementText;
-    if (profile.user_id) await createNotification(profile.user_id, kind === 'SLIP' ? `Slip gaji ${p.id}` : kind === 'REIMBURSEMENT' ? `Pengajuan reimbursement ${p.id}` : `Deadline koreksi absensi ${p.id}: tanggal 25 pukul 17.00 WIB`, message, 'PAYROLL', {
+    if (profile.user_id) await createNotification(profile.user_id, kind === 'SLIP' ? `Slip gaji ${p.id}` : kind === 'REIMBURSEMENT' ? `Pengajuan reimbursement ${p.id}` : `Rekap absensi ${p.id}`, message, 'PAYROLL', {
       actionUrl: kind === 'REIMBURSEMENT' ? reimbursementUrl : `/coach/payroll?period=${p.id}`, category: 'PAYROLL', priority: 'HIGH', push: true, dedupeKey: `payroll:${p.id}:${key}${automatic ? ':AUTOMATIC' : ''}`,
     });
     if (!phone) {
       if (profile.user_id) { status = 'LMS_ONLY'; channel = 'LMS'; }
-      else { status = 'NO_CONTACT'; channel = 'ADMIN'; await createPayrollAdminNotifications({ title: kind === 'REIMBURSEMENT' ? 'Form reimbursement staf belum dapat dikirim' : 'Slip staf belum dapat dikirim', message: `Nomor WhatsApp ${slip.name} belum diisi. Lengkapi nomor di profil penerima periode ${p.id}.`, type: 'PAYROLL', actionUrl: `/admin/payroll?period=${p.id}`, dedupeKey: `payroll-no-contact:${p.id}:${key}` }); }
+      else { status = 'NO_CONTACT'; channel = 'ADMIN'; await createPayrollAdminNotifications({ title: staffRecap ? 'Rekap staf belum dapat dikirim' : kind === 'REIMBURSEMENT' ? 'Form reimbursement staf belum dapat dikirim' : 'Slip staf belum dapat dikirim', message: `Nomor WhatsApp ${slip.name} belum diisi. Lengkapi nomor di profil penerima periode ${p.id}.`, type: 'PAYROLL', actionUrl: `/admin/payroll?period=${p.id}`, dedupeKey: `payroll-no-contact:${p.id}:${key}` }); }
     } else {
       // Only private phone numbers are accepted; the existing sender also supports
       // groups, which must never be used for salary documents.

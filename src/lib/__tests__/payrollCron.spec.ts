@@ -1,28 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPeriod } from '@/lib/payroll/model';
 vi.mock('server-only', () => ({}));
-const mocks = vi.hoisted(() => ({ config: vi.fn(), ensure: vi.fn(), calculate: vi.fn(), send: vi.fn(), refresh: vi.fn() }));
+const mocks = vi.hoisted(() => ({ config: vi.fn(), ensure: vi.fn(), calculate: vi.fn(), send: vi.fn() }));
 vi.mock('@/lib/dao/payrollDao', () => ({ getPayrollConfig: mocks.config, ensurePayrollPeriod: mocks.ensure }));
 vi.mock('@/lib/services/payroll', () => ({ calculatePayroll: mocks.calculate }));
 vi.mock('@/lib/services/payrollDelivery', () => ({ sendPayrollBatch: mocks.send }));
-vi.mock('@/lib/services/payrollSourceSync', () => ({ refreshPayrollSource: mocks.refresh }));
 import { runPayrollCron } from '@/lib/services/payrollCron';
 describe('payroll cutoff automation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.config.mockResolvedValue({ settings: { automation_enabled: true, active_from: '2026-01-01' }, people: [{ id: 'p1', kind: 'COACH', active: true }, { id: 'p2', kind: 'STAFF', active: true }] });
     mocks.ensure.mockImplementation(async (y, m) => ({ id: createPeriod(y, m).id, revision: 1, document: { ...createPeriod(y, m), slips: [{ kind: 'COACH', profile_id: 'p1' }, { kind: 'STAFF', profile_id: 'p2' }] } }));
-    mocks.calculate.mockImplementation(async r => r); mocks.refresh.mockImplementation(async r => r); mocks.send.mockResolvedValue([]);
+    mocks.calculate.mockImplementation(async r => r); mocks.send.mockResolvedValue([]);
   });
   it.each([true, false])('does nothing without a configured start date even when the WA flag is %s', async automation_enabled => {
     mocks.config.mockResolvedValue({ settings: { automation_enabled }, people: [{ id: 'p1', kind: 'COACH', active: true }] });
     await runPayrollCron(new Date('2026-11-25T09:00:00+07:00'));
-    expect(mocks.ensure).not.toHaveBeenCalled(); expect(mocks.calculate).not.toHaveBeenCalled(); expect(mocks.refresh).not.toHaveBeenCalled(); expect(mocks.send).not.toHaveBeenCalled();
+    expect(mocks.ensure).not.toHaveBeenCalled(); expect(mocks.calculate).not.toHaveBeenCalled(); expect(mocks.send).not.toHaveBeenCalled();
   });
   it.each([true, false])('does nothing without active recipients even when the WA flag is %s', async automation_enabled => {
     mocks.config.mockResolvedValue({ settings: { automation_enabled, active_from: '2026-01-01' }, people: [{ id: 'p1', kind: 'COACH', active: false }] });
     await runPayrollCron(new Date('2026-11-25T16:00:00+07:00'));
-    expect(mocks.ensure).not.toHaveBeenCalled(); expect(mocks.calculate).not.toHaveBeenCalled(); expect(mocks.refresh).not.toHaveBeenCalled(); expect(mocks.send).not.toHaveBeenCalled();
+    expect(mocks.ensure).not.toHaveBeenCalled(); expect(mocks.calculate).not.toHaveBeenCalled(); expect(mocks.send).not.toHaveBeenCalled();
   });
   it('continues recording/calculating while WA is paused and sends no recap, reminder or reimbursement', async () => {
     mocks.config.mockResolvedValue({ settings: { automation_enabled: false, active_from: '2026-01-01' }, people: [{ id: 'p1', kind: 'COACH', active: true }, { id: 'p2', kind: 'STAFF', active: true }] });
@@ -31,21 +30,14 @@ describe('payroll cutoff automation', () => {
     expect(mocks.ensure).toHaveBeenCalledWith(2026, 11); expect(mocks.calculate).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ id: '2026-11' }), time);
     expect(mocks.send).not.toHaveBeenCalled();
   });
-  it('keeps hourly source synchronization and between-refresh calculation active while WA is paused', async () => {
+  it('calculates November using the LMS path even when a legacy snapshot remains and WA is paused', async () => {
     mocks.config.mockResolvedValue({ settings: { automation_enabled: false, active_from: '2026-01-01' }, people: [{ id: 'p1', kind: 'COACH', active: true }] });
     const time = new Date('2026-11-25T16:00:00+07:00'), p = createPeriod(2026, 11);
-    const record = { id: p.id, revision: 1, document: { ...p, legacy_imports: [{}], slips: [] } };
+    const record = { id: p.id, revision: 1, document: { ...p, legacy_imports: [{}] } };
     mocks.ensure.mockResolvedValue(record);
     expect(await runPayrollCron(time)).toMatchObject({ calculated: true, whatsappPaused: true });
-    expect(mocks.refresh).toHaveBeenCalledExactlyOnceWith(record, null, time); expect(mocks.calculate).not.toHaveBeenCalled(); expect(mocks.send).not.toHaveBeenCalled();
-    vi.clearAllMocks();
-    const recent = { ...record, document: { ...record.document, source_refreshed_at: '2026-11-25T15:50:00+07:00' } }; mocks.ensure.mockResolvedValue(recent);
-    expect(await runPayrollCron(time)).toMatchObject({ calculated: true, whatsappPaused: true });
-    expect(mocks.refresh).not.toHaveBeenCalled(); expect(mocks.calculate).toHaveBeenCalledExactlyOnceWith(recent, time); expect(mocks.send).not.toHaveBeenCalled();
-    vi.clearAllMocks();
-    const due = { ...record, document: { ...record.document, source_refreshed_at: '2026-11-25T15:00:00+07:00' } }; mocks.ensure.mockResolvedValue(due);
-    expect(await runPayrollCron(time)).toMatchObject({ calculated: true, whatsappPaused: true });
-    expect(mocks.refresh).toHaveBeenCalledExactlyOnceWith(due, null, time); expect(mocks.calculate).not.toHaveBeenCalled(); expect(mocks.send).not.toHaveBeenCalled();
+    expect(mocks.calculate).toHaveBeenCalledExactlyOnceWith(record, time);
+    expect(mocks.send).not.toHaveBeenCalled();
   });
   it('calculates before 09:00 WIB without sending a premature recap', async () => {
     await runPayrollCron(new Date('2026-11-25T08:59:00+07:00'));
@@ -77,20 +69,26 @@ describe('payroll cutoff automation', () => {
   it.each([true, false])('does not begin calculation before its configured start date even when the WA flag is %s', async automation_enabled => {
     mocks.config.mockResolvedValue({ settings: { automation_enabled, active_from: '2026-11-26' }, people: [{ id: 'p1', kind: 'COACH', active: true }] });
     await runPayrollCron(new Date('2026-11-25T09:00:00+07:00'));
-    expect(mocks.ensure).not.toHaveBeenCalled(); expect(mocks.calculate).not.toHaveBeenCalled(); expect(mocks.refresh).not.toHaveBeenCalled(); expect(mocks.send).not.toHaveBeenCalled();
+    expect(mocks.ensure).not.toHaveBeenCalled(); expect(mocks.calculate).not.toHaveBeenCalled(); expect(mocks.send).not.toHaveBeenCalled();
   });
   it('still sends reimbursement to coach whose meeting dates need completion, without fabricating an attendance recap',async()=>{
     mocks.send.mockImplementation(async(_p,_ids,kind)=>kind==='RECAP'?[{profileId:'p1',status:'FAILED',error:'Rekap belum dapat dikirim: 2 aktivitas belum memiliki tanggal dan nama kelas.'}]:[]);
     await runPayrollCron(new Date('2026-11-25T09:00:00+07:00'));
     expect(mocks.send).toHaveBeenCalledWith('2026-11',['p2','p1'],'REIMBURSEMENT',null);
   });
-  it('refreshes current synchronized numbers before delivery, at most hourly, and never sends when refresh fails',async()=>{
-    const p=createPeriod(2026,11);const record={id:p.id,revision:1,document:{...p,legacy_imports:[{}],slips:[]}};
+  it('uses the freshly calculated LMS slips for coach recap even when the draft has an imported snapshot', async () => {
+    const time = new Date('2026-11-25T09:00:00+07:00'), p = createPeriod(2026, 11);
+    const record = { id: p.id, revision: 1, document: { ...p, legacy_imports: [{}], slips: [] } };
     mocks.ensure.mockResolvedValue(record);
-    await runPayrollCron(new Date('2026-11-25T09:00:00+07:00'));expect(mocks.refresh).toHaveBeenCalledWith(record,null,expect.any(Date));
-    vi.clearAllMocks();mocks.ensure.mockResolvedValue({...record,document:{...record.document,source_refreshed_at:'2026-11-25T08:50:00+07:00'}});
-    await runPayrollCron(new Date('2026-11-25T09:00:00+07:00'));expect(mocks.refresh).not.toHaveBeenCalled();expect(mocks.calculate).toHaveBeenCalled();
-    vi.clearAllMocks();mocks.ensure.mockResolvedValue(record);mocks.refresh.mockRejectedValue(new Error('Refresh failed'));
-    await expect(runPayrollCron(new Date('2026-11-25T09:00:00+07:00'))).rejects.toThrow('Refresh failed');expect(mocks.send).not.toHaveBeenCalled();
+    mocks.calculate.mockResolvedValue({ ...record, document: { ...record.document, slips: [{ kind: 'COACH', profile_id: 'p1' }] } });
+    await runPayrollCron(time);
+    expect(mocks.calculate).toHaveBeenCalledExactlyOnceWith(record, time);
+    expect(mocks.send).toHaveBeenCalledWith('2026-11', ['p1'], 'RECAP', null);
+    expect(mocks.send).toHaveBeenCalledWith('2026-11', ['p2'], 'REIMBURSEMENT', null);
+  });
+  it('does not send from a stale draft if LMS calculation itself fails', async () => {
+    mocks.calculate.mockRejectedValue(new Error('Calculation failed'));
+    await expect(runPayrollCron(new Date('2026-11-25T09:00:00+07:00'))).rejects.toThrow('Calculation failed');
+    expect(mocks.send).not.toHaveBeenCalled();
   });
 });

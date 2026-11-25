@@ -6,7 +6,7 @@ import { nextPersonalBlock } from '@/lib/services/personalBlockQueue';
 import { isEkskulLessonAccessible } from '@/lib/services/coderLessonAccess';
 import { buildCoderEkskulProgress } from '@/lib/services/coderEkskulProgress';
 export { isEkskulLessonAccessible } from '@/lib/services/coderLessonAccess';
-import { buildDisplayedJourneyBlocks, mergeJourneyStatus, type PersonalJourneyStatus } from '@/lib/services/coderJourneyPolicy';
+import { buildDisplayedJourneyBlocks, mergeJourneyStatus, resolveScheduledContinuations, type PersonalJourneyStatus } from '@/lib/services/coderJourneyPolicy';
 
 export type CoderClassProgress = {
   classId: string;
@@ -474,6 +474,7 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
 
       // Fetch personalized journey order
       const journey = klass.level_id ? await coderProgressDao.getCoderJourney(coderId, klass.level_id) : [];
+      const scheduledContinuation = resolveScheduledContinuations(runtimeBlocks, journey).at(-1);
       const journeyStatusMap = new Map(journey.map((row) => [row.block_id, row.status]));
       const journeyOrderMap = new Map(journey.map(j => [j.block_id, j.journey_order]));
       const curriculumBlocks = [...blocks].sort(compareBlocksByCurriculumOrder);
@@ -548,7 +549,7 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
 
       let upNext: CoderClassProgress['upNext'] = null;
 
-      const currentOrUpcoming =
+      const currentOrUpcoming = scheduledContinuation ??
         (() => {
           const personal = nextPersonalBlock(journey);
           if (!personal) return null;
@@ -640,7 +641,8 @@ export async function getCoderProgress(coderId: string): Promise<CoderClassProgr
         upNext = {
           blockId: currentOrUpcoming.block_id ?? currentOrUpcoming.id,
           name: currentOrUpcoming.block_name ?? 'Block',
-          status: deferredUpNext ? 'UPCOMING'
+          status: scheduledContinuation?.id === currentOrUpcoming.id ? scheduledContinuation.runtimeStatus
+            : deferredUpNext ? 'UPCOMING'
             : personalUpNext?.status === 'IN_PROGRESS' ? 'CURRENT'
             : personalUpNext?.status === 'PENDING' ? 'UPCOMING'
             : currentOrUpcoming.status as 'UPCOMING' | 'CURRENT' | 'COMPLETED',
@@ -894,6 +896,7 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
       const mappedEntries = buildMappedSessionEntries(blocks, sessions, lessonMap);
       const runtimeBlocks = buildRuntimeBlocks(blocks, mappedEntries, now);
       const journey = klass.level_id ? await coderProgressDao.getCoderJourney(coderId, klass.level_id) : [];
+      const scheduledContinuations = hasActiveEnrollment ? resolveScheduledContinuations(runtimeBlocks, journey) : [];
       const journeyStatusMap = new Map(journey.map((row) => [row.block_id, row.status]));
 
       const enrollmentDate = coderEnrollment ? new Date(coderEnrollment.enrolled_at) : new Date(0); // Default to epoch if no date (shouldn't happen)
@@ -935,7 +938,7 @@ export async function getAccessibleLessonsForCoder(coderId: string): Promise<Cod
               const isAccessible =
                 journey.find((row) => row.block_id === block.block_id)?.deferred_after_class !== true &&
                 (isCompletedBlock || isArchived ||
-                  (journeyStatusMap.get(block.block_id) !== 'PENDING' &&
+                  ((journeyStatusMap.get(block.block_id) !== 'PENDING' || scheduledContinuations.some((continuation) => continuation.id === block.id)) &&
                     (isCatchUpInEntryBlock || isCompletedSinceEnrollment)));
               
               return {
@@ -1147,12 +1150,16 @@ export async function getVisibleMaterialsForCoder(coderId: string) {
           }
         }
         const runtimeBlocks = buildRuntimeBlocks(blocks, mappedEntries, new Date(nowIso));
+        const scheduledContinuations = enrollment?.status === 'ACTIVE'
+          ? resolveScheduledContinuations(runtimeBlocks, journey)
+          : [];
         const enrollmentDate = enrollment ? new Date(enrollment.enrolled_at) : null;
         const entryBlock = enrollmentDate ? findEntryBlockBySchedule(runtimeBlocks, enrollmentDate) : null;
 
         for (const session of sessions) {
           const mappedEntry = mappedEntries.find((entry) => entry.session.id === session.id);
-          if (mappedEntry && (personalStatus.get(mappedEntry.classBlock.block_id) === 'PENDING'
+          if (mappedEntry && ((personalStatus.get(mappedEntry.classBlock.block_id) === 'PENDING'
+            && !scheduledContinuations.some((continuation) => continuation.id === mappedEntry.classBlock.id))
             || journey.some((row) => row.block_id === mappedEntry.classBlock.block_id && row.deferred_after_class))) {
             continue;
           }
@@ -1293,6 +1300,9 @@ export async function getLessonDetailForCoder(coderId: string, lessonId: string)
     now,
   );
   const journey = klass.level_id ? await coderProgressDao.getCoderJourney(coderId, klass.level_id) : [];
+  const scheduledContinuations = enrollment?.status === 'ACTIVE'
+    ? resolveScheduledContinuations(runtimeBlocks, journey)
+    : [];
   const journeyStatusMap = new Map(journey.map((row) => [row.block_id, row.status]));
   const deferredBlockWaiting = journey.find((row) => row.block_id === block.block_id)?.deferred_after_class === true;
   const blockIndexById = new Map(runtimeBlocks.map((runtimeBlock, index) => [runtimeBlock.id, index]));
@@ -1304,7 +1314,8 @@ export async function getLessonDetailForCoder(coderId: string, lessonId: string)
     ? await coderSessionAccessDao.hasCoderSessionAccess(coderId, sessionGrantId)
     : false;
   const isCompletedBlock = hasCompletedBlockAccess(journeyStatusMap, block.block_id);
-  if (deferredBlockWaiting || (journeyStatusMap.get(block.block_id) === 'PENDING' && !hasSessionGrant)) return null;
+  if (deferredBlockWaiting || (journeyStatusMap.get(block.block_id) === 'PENDING'
+    && !hasSessionGrant && !scheduledContinuations.some((continuation) => continuation.id === block.id))) return null;
 
   if ((!enrollment || enrollment.status !== 'ACTIVE') && !hasSessionGrant && !isCompletedBlock) {
     return null;

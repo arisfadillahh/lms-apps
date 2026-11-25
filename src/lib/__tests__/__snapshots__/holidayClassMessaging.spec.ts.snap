@@ -1,0 +1,389 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Holiday group message baseline > paid_group PAID clevio 1 selections 1`] = `
+"*Holiday Class · Pembayaran diterima*
+
+
+Peserta: Naya
+Invoice: HC-2627-999999
+Total: Rp299.000
+Status: Lunas
+
+• Creative Coding · Batch 1 · 09.00–10.30 WIB
+Open Code: Beli lewat Clevio
+
+Orang tua: Rina Pratama
+Follow up: https://wa.me/6280000000000"
+`;
+
+exports[`Holiday group message baseline > paid_group PAID clevio 2 selections 1`] = `
+"*Holiday Class · Pembayaran diterima*
+
+
+Peserta: Naya
+Invoice: HC-2627-999999
+Total: Rp598.000
+Status: Lunas
+
+• Creative Coding · Batch 1 · 09.00–10.30 WIB
+• Game Design · Batch 2 · 13.00–14.30 WIB
+Open Code: Beli lewat Clevio
+
+Orang tua: Rina Pratama
+Follow up: https://wa.me/6280000000000"
+`;
+
+exports[`Holiday group message baseline > paid_group PAID none 1 selections 1`] = `
+"*Holiday Class · Pembayaran diterima*
+
+
+Peserta: Naya
+Invoice: HC-2627-999999
+Total: Rp299.000
+Status: Lunas
+
+• Creative Coding · Batch 1 · 09.00–10.30 WIB
+
+Orang tua: Rina Pratama
+Follow up: https://wa.me/6280000000000"
+`;
+
+exports[`Holiday group message baseline > paid_group PAID none 2 selections 1`] = `
+"*Holiday Class · Pembayaran diterima*
+
+
+Peserta: Naya
+Invoice: HC-2627-999999
+Total: Rp598.000
+Status: Lunas
+
+• Creative Coding · Batch 1 · 09.00–10.30 WIB
+• Game Design · Batch 2 · 13.00–14.30 WIB
+
+Orang tua: Rina Pratama
+Follow up: https://wa.me/6280000000000"
+`;
+
+exports[`Holiday group message baseline > paid_group PAID own 1 selections 1`] = `
+"*Holiday Class · Pembayaran diterima*
+
+
+Peserta: Naya
+Invoice: HC-2627-999999
+Total: Rp299.000
+Status: Lunas
+
+• Creative Coding · Batch 1 · 09.00–10.30 WIB
+Open Code: Disiapkan sendiri
+
+Orang tua: Rina Pratama
+Follow up: https://wa.me/6280000000000"
+`;
+
+exports[`Holiday group message baseline > paid_group PAID own 2 selections 1`] = `
+"*Holiday Class · Pembayaran diterima*
+
+
+Peserta: Naya
+Invoice: HC-2627-999999
+Total: Rp598.000
+Status: Lunas
+
+• Creative Coding · Batch 1 · 09.00–10.30 WIB
+• Game Design · Batch 2 · 13.00–14.30 WIB
+Open Code: Disiapkan sendiri
+
+Orang tua: Rina Pratama
+Follow up: https://wa.me/6280000000000"
+`;
+
+exports[`Holiday group message baseline > paid_group PENDING clevio 1 selections 1`] = `
+"*Holiday Class · Pembayaran diterima*
+
+
+Peserta: Naya
+Invoice: HC-2627-999999
+Total: Rp299.000
+Status: Lunas
+
+• Creative Coding · Batch 1 · 09.00–10.30 WIB
+Open Code: Beli lewat Clevio
+
+Orang tua: Rina Pratama
+Follow up: https://wa.me/6280000000000"
+`;
+
+exports[`Holiday group message baseline > paid_group PENDING clevio 2 selections 1`] = `
+"*Holiday Class · Pembayaran diterima*
+
+
+Peserta: Naya
+Invoice: HC-2627-999999
+Total: Rp598.000
+Status: Lunas
+
+• Creative Coding · Batch 1 · 09.00–10.30 WIB
+• Game Design · Batch 2 · 13.00–14.30 WIB
+Open Code: Beli lewat Clevio
+
+Orang tua: Rina Pratama
+Follow up: https://wa.me/6280000000000"
+`;
+
+exports[`Holiday group message baseline > paid_group PENDING none 1 selections 1`] = `
+"*Holiday Class · Pembayaran diterima*
+
+
+Peserta: Naya
+Invoice: HC-2627-999999
+Total: Rp299.000
+Status: Lunas
+
+• Creative Coding · Batch 1 · 09.00–10.30 WIB
+
+Orang tua: Rina Pratama
+Follow up: https://wa.me/6280000000000"
+`;
+
+exports[`Holiday group message baseline > paid_group PENDING none 2 selections 1`] = `
+"*Holiday Class · Pembayaran diterima*
+
+
+Peserta: Naya
+Invoice: HC-2627-999999
+Total: Rp598.000
+Status: Lunas
+
+• Creative Coding · Batch 1 · 09.00–10.30 WIB
+• Game Design · Batch 2 · 13.00–14.30 WIB
+
+Orang tua: Rina Pratama
+Follow up: https://wa.me/6280000000000"
+`;
+
+exports[`Holiday group message baseline > paid_group PENDING own 1 selections 1`] = `
+"*Holiday Class · Pembayaran diterima*
+
+
+Peserta: Naya
+Invoice: HC-2627-999999
+Total: Rp299.000
+Status: Lunas
+
+• Creative Coding · Batch 1 · 09.00–10.30 WIB
+Open Code: Disiapkan sendiri
+
+Orang tua: Rina Pratama
+Follow up: https://wa.me/6280000000000"
+`;
+
+exports[`Holiday group message baseline > paid_group PENDING own 2 selections 1`] = `
+"*Holiday Class · Pembayaran diterima*
+
+
+Peserta: Naya
+Invoice: HC-2627-999999
+Total: Rp598.000
+Status: Lunas
+
+• Creative Coding · Batch 1 · 09.00–10.30 WIB
+• Game Design · Batch 2 · 13.00–14.30 WIB
+Open Code: Disiapkan sendiri
+
+Orang tua: Rina Pratama
+Follow up: https://wa.me/6280000000000"
+`;
+
+exports[`Holiday group message baseline > registration_group PAID clevio 1 selections 1`] = `
+"*Holiday Class · Pembayaran diterima*
+
+
+Peserta: Naya
+Invoice: HC-2627-999999
+Total: Rp299.000
+Status: Lunas
+
+• Creative Coding · Batch 1 · 09.00–10.30 WIB
+Open Code: Beli lewat Clevio
+
+Orang tua: Rina Pratama
+Follow up: https://wa.me/6280000000000"
+`;
+
+exports[`Holiday group message baseline > registration_group PAID clevio 2 selections 1`] = `
+"*Holiday Class · Pembayaran diterima*
+
+
+Peserta: Naya
+Invoice: HC-2627-999999
+Total: Rp598.000
+Status: Lunas
+
+• Creative Coding · Batch 1 · 09.00–10.30 WIB
+• Game Design · Batch 2 · 13.00–14.30 WIB
+Open Code: Beli lewat Clevio
+
+Orang tua: Rina Pratama
+Follow up: https://wa.me/6280000000000"
+`;
+
+exports[`Holiday group message baseline > registration_group PAID none 1 selections 1`] = `
+"*Holiday Class · Pembayaran diterima*
+
+
+Peserta: Naya
+Invoice: HC-2627-999999
+Total: Rp299.000
+Status: Lunas
+
+• Creative Coding · Batch 1 · 09.00–10.30 WIB
+
+Orang tua: Rina Pratama
+Follow up: https://wa.me/6280000000000"
+`;
+
+exports[`Holiday group message baseline > registration_group PAID none 2 selections 1`] = `
+"*Holiday Class · Pembayaran diterima*
+
+
+Peserta: Naya
+Invoice: HC-2627-999999
+Total: Rp598.000
+Status: Lunas
+
+• Creative Coding · Batch 1 · 09.00–10.30 WIB
+• Game Design · Batch 2 · 13.00–14.30 WIB
+
+Orang tua: Rina Pratama
+Follow up: https://wa.me/6280000000000"
+`;
+
+exports[`Holiday group message baseline > registration_group PAID own 1 selections 1`] = `
+"*Holiday Class · Pembayaran diterima*
+
+
+Peserta: Naya
+Invoice: HC-2627-999999
+Total: Rp299.000
+Status: Lunas
+
+• Creative Coding · Batch 1 · 09.00–10.30 WIB
+Open Code: Disiapkan sendiri
+
+Orang tua: Rina Pratama
+Follow up: https://wa.me/6280000000000"
+`;
+
+exports[`Holiday group message baseline > registration_group PAID own 2 selections 1`] = `
+"*Holiday Class · Pembayaran diterima*
+
+
+Peserta: Naya
+Invoice: HC-2627-999999
+Total: Rp598.000
+Status: Lunas
+
+• Creative Coding · Batch 1 · 09.00–10.30 WIB
+• Game Design · Batch 2 · 13.00–14.30 WIB
+Open Code: Disiapkan sendiri
+
+Orang tua: Rina Pratama
+Follow up: https://wa.me/6280000000000"
+`;
+
+exports[`Holiday group message baseline > registration_group PENDING clevio 1 selections 1`] = `
+"*Holiday Class · Pendaftaran baru*
+
+
+Peserta: Naya
+Invoice: HC-2627-999999
+Total: Rp299.000
+Status: Menunggu pembayaran
+
+• Creative Coding · Batch 1 · 09.00–10.30 WIB
+Open Code: Beli lewat Clevio
+
+Orang tua: Rina Pratama
+Follow up: https://wa.me/6280000000000"
+`;
+
+exports[`Holiday group message baseline > registration_group PENDING clevio 2 selections 1`] = `
+"*Holiday Class · Pendaftaran baru*
+
+
+Peserta: Naya
+Invoice: HC-2627-999999
+Total: Rp598.000
+Status: Menunggu pembayaran
+
+• Creative Coding · Batch 1 · 09.00–10.30 WIB
+• Game Design · Batch 2 · 13.00–14.30 WIB
+Open Code: Beli lewat Clevio
+
+Orang tua: Rina Pratama
+Follow up: https://wa.me/6280000000000"
+`;
+
+exports[`Holiday group message baseline > registration_group PENDING none 1 selections 1`] = `
+"*Holiday Class · Pendaftaran baru*
+
+
+Peserta: Naya
+Invoice: HC-2627-999999
+Total: Rp299.000
+Status: Menunggu pembayaran
+
+• Creative Coding · Batch 1 · 09.00–10.30 WIB
+
+Orang tua: Rina Pratama
+Follow up: https://wa.me/6280000000000"
+`;
+
+exports[`Holiday group message baseline > registration_group PENDING none 2 selections 1`] = `
+"*Holiday Class · Pendaftaran baru*
+
+
+Peserta: Naya
+Invoice: HC-2627-999999
+Total: Rp598.000
+Status: Menunggu pembayaran
+
+• Creative Coding · Batch 1 · 09.00–10.30 WIB
+• Game Design · Batch 2 · 13.00–14.30 WIB
+
+Orang tua: Rina Pratama
+Follow up: https://wa.me/6280000000000"
+`;
+
+exports[`Holiday group message baseline > registration_group PENDING own 1 selections 1`] = `
+"*Holiday Class · Pendaftaran baru*
+
+
+Peserta: Naya
+Invoice: HC-2627-999999
+Total: Rp299.000
+Status: Menunggu pembayaran
+
+• Creative Coding · Batch 1 · 09.00–10.30 WIB
+Open Code: Disiapkan sendiri
+
+Orang tua: Rina Pratama
+Follow up: https://wa.me/6280000000000"
+`;
+
+exports[`Holiday group message baseline > registration_group PENDING own 2 selections 1`] = `
+"*Holiday Class · Pendaftaran baru*
+
+
+Peserta: Naya
+Invoice: HC-2627-999999
+Total: Rp598.000
+Status: Menunggu pembayaran
+
+• Creative Coding · Batch 1 · 09.00–10.30 WIB
+• Game Design · Batch 2 · 13.00–14.30 WIB
+Open Code: Disiapkan sendiri
+
+Orang tua: Rina Pratama
+Follow up: https://wa.me/6280000000000"
+`;

@@ -16,13 +16,42 @@ type Registration = {
 };
 
 export function holidayWhatsAppMessage(kind: MessageKind, invoice: Invoice, registration: Registration) {
-  if (kind.startsWith('reminder_')) return [
-    'Halo Ayah/Bunda, pendaftaran Holiday Class ' + invoice.seasonal_student_name + ' masih menunggu pembayaran.',
-    ...registration.selections.map(s => `${s.name} · ${s.batch} · ${s.time} WIB`),
-    `Invoice ${invoice.invoice_number}: ${holidayInvoiceUrl(invoice)}`,
-    'Balas pesan ini kalau butuh bantuan memilih cara bayar.',
-  ].join('\n\n');
-  const paid = kind === 'paid_group' || kind === 'paid_parent' || invoice.status === 'PAID';
+  if (kind !== 'registration_group' && kind !== 'paid_group') {
+    const parent = invoice.parent_name?.trim();
+    const address = parent ? `Ayah/Bunda ${parent}` : 'Ayah/Bunda';
+    const classes = registration.selections.map(s => `• ${s.name} · ${s.batch} · ${s.time} WIB`).join('\n');
+    const [year, month, day] = invoice.due_date.slice(0, 10).split('-').map(Number);
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const due = `${day} ${months[month - 1]} ${year} pukul 23.59 WIB`;
+    const link = holidayInvoiceUrl(invoice);
+
+    if (kind === 'paid_parent' || (kind === 'invoice_parent' && invoice.status === 'PAID')) return [
+      `Terima kasih, ${address}! 🎉`,
+      `Pembayaran untuk ${invoice.seasonal_student_name} sudah kami terima. Pendaftarannya sudah kami catat, dan tim kami akan mengonfirmasi seat serta mengirim info kelas:\n${classes}`,
+      'Tim Clevio akan mengirimkan link Zoom dan info persiapan sebelum kelas dimulai. Jangan lupa siapkan laptop atau tablet (bukan HP) ya.',
+      'Sampai jumpa di kelas! 🚀',
+    ].join('\n\n');
+
+    if (kind === 'invoice_parent') return [
+      `Halo ${address} 👋`,
+      `Terima kasih sudah mendaftarkan ${invoice.seasonal_student_name} di Holiday Class Clevio! Kami senang sekali ${invoice.seasonal_student_name} mau mengisi liburan dengan belajar bikin karya digital sendiri.`,
+      `Berikut ringkasan pendaftarannya:\n${classes}\nTotal: Rp${invoice.total_amount.toLocaleString('id-ID')}`,
+      `⏰ Invoice ini berlaku sampai ${due}. Lewat dari itu, invoice ini tidak berlaku lagi.`,
+      `Bayar dengan QRIS atau Virtual Account di sini:\n${link}`,
+      'Kalau ada kendala saat membayar, balas saja pesan ini ya, Ayah/Bunda. Tim kami siap bantu 🙏',
+    ].join('\n\n');
+
+    const selection = registration.selections.length === 1
+      ? ` (program ${registration.selections[0].name}, ${registration.selections[0].batch}) yang masih menunggu pembayaran.`
+      : ` yang masih menunggu pembayaran:\n${registration.selections.map(s => `• ${s.name} · ${s.batch}`).join('\n')}`;
+    return [
+      `Halo ${address}, kami mau mengingatkan pendaftaran Holiday Class untuk ${invoice.seasonal_student_name}${selection}`,
+      `⏰ Batas pembayarannya ${due}. Setelah itu, invoice ini tidak berlaku lagi.`,
+      `Link pembayaran: ${link}`,
+      'Bingung pilih cara bayar? Balas pesan ini, nanti kami bantu langkah demi langkah 😊',
+    ].join('\n\n');
+  }
+  const paid = kind === 'paid_group' || invoice.status === 'PAID';
   const group = kind === 'registration_group' || kind === 'paid_group';
   const header = paid ? '*Holiday Class · Pembayaran diterima*' : group
     ? '*Holiday Class · Pendaftaran baru*' : '*Invoice Holiday Class Clevio*';

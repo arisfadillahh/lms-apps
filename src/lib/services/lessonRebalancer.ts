@@ -1,31 +1,30 @@
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { buildClassLessonOrderIndex, buildClassLessonTitle } from '@/lib/dao/classLessonsDao';
 import { hasClassReachedTemplate, type LessonSessionSnapshot } from '@/lib/lessonTemplateSyncPolicy';
+import { compareClassBlocksInLessonOrder } from '@/lib/services/lessonBlockOrder';
+import type { TablesRow, TablesUpdate } from '@/types/supabase';
 
 /**
- * Re-assigns lessons to valid sessions for a specific class - GLOBAL SCOPE.
- * This ensures "Rolling" behavior where a lesson spills over to the next block's session if needed.
- * It also handles multi-part lessons by ensuring they are assigned sequentially.
- *
- * IMPORTANT: We clear all session_id assignments first, then re-assign sequentially.
- * This prevents silent failures from UNIQUE constraints when swapping session_ids concurrently.
+ * Re-assigns future lessons for an existing class. The initial full-history
+ * path is retained for newly instantiated classes without any links.
  */
 export async function reassignLessonsToSessions(classId: string): Promise<void> {
     const supabase = getSupabaseAdmin();
 
-    // 1. Get ALL lessons for the class, fetching start_date for chronological sorting
-    //    IMPORTANT: Sort by class_blocks.start_date (not blocks.order_index) to match
-    //    lessonAutoAssign.ts behavior. This prevents lesson order from jumping/reversing
-    //    when a class starts mid-curriculum (e.g. starting from Block 3).
+    // Existing classes keep completed and past links; only a newly instantiated
+    // class with no links needs the initial full-history assignment below.
     const { data: lessons, error: lessonError } = await supabase
         .from('class_lessons')
         .select(`
             id, 
-            order_index, 
+            order_index,
+            session_id,
             class_blocks!inner (
                 id,
                 class_id,
-                start_date
+                start_date,
+                created_at,
+                blocks(order_index)
             )
         `)
         .eq('class_blocks.class_id', classId);
@@ -40,15 +39,20 @@ export async function reassignLessonsToSessions(classId: string): Promise<void> 
         return;
     }
 
-    // Sort by class_blocks.start_date (chronological), then by lesson order_index within block.
-    // This matches the sort logic in lessonAutoAssign.ts (buildLessonQueue).
-    const sortedLessons = lessons.sort((a: any, b: any) => {
-        const dateA = new Date(a.class_blocks?.start_date ?? 0).getTime();
-        const dateB = new Date(b.class_blocks?.start_date ?? 0).getTime();
+    if (lessons.some((lesson) => lesson.session_id)) {
+        const { autoAssignLessonsForClass } = await import('@/lib/services/lessonAutoAssign');
+        await autoAssignLessonsForClass(classId, { mode: 'rebuild_future' });
+        return;
+    }
 
-        if (dateA !== dateB) {
-            return dateA - dateB;
-        }
+    // A new class has no assignment history. Fill all sessions in block and
+    // lesson order, including backdated sessions created by classAutoPlanner.
+    const sortedLessons = lessons.sort((a, b) => {
+        const blockDiff = compareClassBlocksInLessonOrder(
+            { ...a.class_blocks, block_order_index: a.class_blocks?.blocks?.order_index },
+            { ...b.class_blocks, block_order_index: b.class_blocks?.blocks?.order_index },
+        );
+        if (blockDiff !== 0) return blockDiff;
         if (a.order_index !== b.order_index) {
             return a.order_index - b.order_index;
         }
@@ -143,7 +147,7 @@ export async function syncClassLessonsStructure(classId: string): Promise<void> 
             .select('*')
             .eq('class_block_id', block.id);
 
-        const existingMap = new Map<string, any[]>(); // template_id -> list of lessons
+        const existingMap = new Map<string, TablesRow<'class_lessons'>[]>(); // template_id -> list of lessons
         existingLessons?.forEach(l => {
             if (!l.lesson_template_id) return;
             if (!existingMap.has(l.lesson_template_id)) existingMap.set(l.lesson_template_id, []);
@@ -247,7 +251,7 @@ export async function syncClassLessonsStructure(classId: string): Promise<void> 
                 const partNum = i + 1;
                 const expectedOrder = buildClassLessonOrderIndex(template.order_index, partNum);
 
-                const updates: any = {};
+                const updates: TablesUpdate<'class_lessons'> = {};
                 // Check and update fields
                 if (lesson.order_index !== expectedOrder) updates.order_index = expectedOrder;
                 if (lesson.summary !== template.summary) updates.summary = template.summary;

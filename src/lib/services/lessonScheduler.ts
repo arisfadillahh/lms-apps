@@ -7,6 +7,7 @@ import type { SessionRecord } from '@/lib/dao/sessionsDao';
 import type { BlockRecord } from '@/lib/dao/blocksDao';
 import { resolveLessonPartNumber } from './lessonPartNumber';
 import { resolveCoachExampleUrl } from './coachLessonContent';
+import { compareClassBlocksInLessonOrder } from './lessonBlockOrder';
 
 export type LessonSlot = {
     lessonTemplate: LessonTemplateRecord;
@@ -110,10 +111,9 @@ export async function computeLessonSchedule(
     let orderedSlots: LessonSlot[] = [];
 
     if (classBlocks.length > 0) {
-        // Sort class blocks by start date
-        const sortedBlocks = [...classBlocks].sort((a, b) =>
-            new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
-        );
+        // Use the same class-block sequence as the assignment writer. Runtime
+        // date ranges can overlap after manual edits or old assignments.
+        const sortedBlocks = [...classBlocks].sort(compareClassBlocksInLessonOrder);
 
         // Build slots from class_lessons for each block
         const supabase = getSupabaseAdmin();

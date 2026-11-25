@@ -5,6 +5,7 @@ import { addDays } from 'date-fns';
 import { blocksDao, classLessonsDao, classesDao, coderProgressDao, lessonTemplatesDao, sessionsDao } from '@/lib/dao';
 import { buildClassLessonOrderIndex, buildClassLessonTitle } from '@/lib/dao/classLessonsDao';
 import { resolveBlockRuntimeDates, resolveBlockStatus, resolveCurrentBlockIndex, resolveNextBlockTemplateIndex } from '@/lib/services/blockRuntime';
+import { compareClassBlocksInLessonOrder } from '@/lib/services/lessonBlockOrder';
 import {
   resolveForwardAssignmentBlocks,
   resolveForwardAssignmentWindow,
@@ -670,15 +671,5 @@ function formatDateOnly(date: Date): string {
 }
 
 function compareBlocksByScheduleOrder(a: ClassBlockRow, b: ClassBlockRow): number {
-  const createdAtDiff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-  if (createdAtDiff !== 0) {
-    return createdAtDiff;
-  }
-
-  const startDateDiff = new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
-  if (startDateDiff !== 0) {
-    return startDateDiff;
-  }
-
-  return a.id.localeCompare(b.id);
+  return compareClassBlocksInLessonOrder(a, b);
 }

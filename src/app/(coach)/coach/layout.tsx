@@ -50,19 +50,10 @@ export default async function CoachLayout({ children }: { children: ReactNode })
           display: inline-block; white-space: nowrap; direction: ltr;
           -webkit-font-smoothing: antialiased;
         }
-        .active-icon {
-          font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-        }
-        .sidebar-active-indicator {
-          width: 4px; height: 20px;
-          background-color: #6bb3ff;
-          position: absolute; left: 0;
-          border-radius: 0 4px 4px 0;
-        }
       `}</style>
 
       {/* Dark Sidebar — desktop only */}
-      <div className="hidden md:block">
+      <div className="coach-desktop-sidebar hidden md:block">
         <CoachSidebar />
       </div>
 

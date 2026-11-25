@@ -43,8 +43,12 @@ describe('payroll corrections, privacy and transfer recording', () => {
   it('never exposes financial data or another coach through the attendance DTO', () => {
     const p = submitCorrection(draft(), { id: 'r', user_id: 'u', message: 'Tanggal kelas salah' }, before);
     p.corrections!.push({ id: 'other', user_id: 'other', message: 'private', at: before.toISOString(), status: 'WAITING' });
+    const line = p.slips[0].lines[0];
+    p.slips[0].attendance_details = [{ key: line.key, date: line.date, label: line.label, user_id: 'u', kind: 'WEEKLY',
+      delivery: 'OFFLINE', students: 2, cancelled: false, source_identity: 'private-source' }];
     const view = coachPeriodView(p, 'u')!, encoded = JSON.stringify(view);
     expect(view.activities).toHaveLength(1); expect(view.corrections).toHaveLength(1);
+    expect(view.activities[0].delivery).toBe('OFFLINE');
     expect(encoded).not.toMatch(/125000|100000|amount|rate|total|salary|transfers|override_reason|rahasia|private/);
     expect(coachPeriodView(p, 'other')).toBeNull(); expect(view.slipUrl).toBeNull();
   });

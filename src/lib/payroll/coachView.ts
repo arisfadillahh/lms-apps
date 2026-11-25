@@ -7,11 +7,13 @@ const kinds = new Set(['CLASS_SUMMARY', 'WEEKLY', 'EKSKUL', 'TRIAL', 'EVENT', 'T
 export function coachPeriodView(p: PeriodDocument, userId: string) {
   const slip = p.slips.find(s => s.user_id === userId);
   if (!slip) return null;
+  const deliveryByKey = new Map(slip.attendance_details?.map(meeting => [meeting.key, meeting.delivery]));
   return {
     id: p.id, status: p.status, starts_at: p.starts_at, ends_at: p.ends_at,
     correction_deadline: p.correction_deadline, calculated_at: p.calculated_at,
     activities: slip.lines.filter(l => kinds.has(l.kind) && (!l.summary || l.quantity > 0)).map(l => ({
       key: l.key, date: l.date, quantity: l.quantity, label: l.label.split(' — ')[0], kind: l.kind, students: l.students,
+      delivery: deliveryByKey.get(l.key),
       ...projectStudentAttendance(l),
       status: l.details.includes('dibatalkan') ? 'Dibatalkan' : attendanceStatusLabel(l) ?? (l.details.includes('Coach pengganti') ? 'Coach pengganti' : 'Tercatat'),
     })),

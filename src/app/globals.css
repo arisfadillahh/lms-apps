@@ -844,7 +844,7 @@ html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-card-upcoming {
   opacity: 1 !important;
 }
 
-/* Five primary Coach destinations stay reachable with one thumb on phones. */
+/* Coach destinations stay reachable with one thumb on phones. */
 .coach-mobile-nav {
   position: fixed;
   right: 0;
@@ -866,7 +866,7 @@ html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-card-upcoming {
   bottom: 0;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-width: 1023px) and (hover: none) and (pointer: coarse) {
   .coach-attendance-action-strip {
     bottom: calc(70px + env(safe-area-inset-bottom));
   }
@@ -910,8 +910,17 @@ html[data-coder-theme='dark'] [data-coder-modal='true'] .journey-card-upcoming {
   background: #6bb3ff;
 }
 
-@media (max-width: 767px) {
-  .coach-mobile-nav {
+@media (max-width: 767px), (max-width: 1023px) and (hover: none) and (pointer: coarse) {
+  .coach-app-shell .coach-desktop-sidebar {
+    display: none;
+  }
+
+  .coach-app-shell .coach-main {
+    margin-inline-start: 0;
+    padding-block-end: env(safe-area-inset-bottom);
+  }
+
+  .coach-app-shell .coach-mobile-nav {
     display: grid;
   }
 

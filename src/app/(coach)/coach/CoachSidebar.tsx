@@ -3,73 +3,49 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
+import { CalendarClock, ClipboardCheck, History, Images, LayoutDashboard, Receipt } from 'lucide-react';
 import IssueReportButton from '@/components/issue-reports/IssueReportButton';
 
 const NAV_LINKS = [
-    { href: '/coach/dashboard', label: 'Dashboard', icon: 'grid_view' },
-    { href: '/coach/rubrics', label: 'Rubrik & Penilaian', icon: 'analytics' },
-    { href: '/coach/makeup', label: 'Tugas Susulan', icon: 'history_edu' },
-    { href: '/coach/leave', label: 'Pengajuan Izin', icon: 'mail_lock' },
-    { href: '/coach/payroll', label: 'Absensi & Slip Gaji', icon: 'receipt_long' },
-    { href: '/coach/portfolios', label: 'Review Portofolio', icon: 'photo_library' },
+    { href: '/coach/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/coach/rubrics', label: 'Rubrik & Penilaian', icon: ClipboardCheck },
+    { href: '/coach/makeup', label: 'Tugas Susulan', icon: History },
+    { href: '/coach/leave', label: 'Pengajuan Izin', icon: CalendarClock },
+    { href: '/coach/payroll', label: 'Absensi & Slip Gaji', icon: Receipt },
+    { href: '/coach/portfolios', label: 'Review Portofolio', icon: Images },
 ];
 
 export default function CoachSidebar() {
     const pathname = usePathname();
 
     return (
-        <>
-            <style>{`
-                .sidebar-active-indicator {
-                    width: 4px;
-                    height: 20px;
-                    background-color: #6bb3ff;
-                    position: absolute;
-                    left: 0;
-                    border-radius: 0 4px 4px 0;
-                }
-                .material-symbols-outlined {
-                    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-                }
-                .active-icon {
-                    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-                }
-            `}</style>
-            <aside className="fixed left-0 top-0 h-full w-[260px] bg-[#0a1428] text-white flex flex-col z-50">
-                <div className="p-8 pb-4">
-                    <h2 className="text-2xl font-extrabold tracking-tight flex items-center gap-3">
-                        <Image src="/favicon.ico" alt="Clevio" width={32} height={32} className="rounded-md" />
-                        Clevio
-                    </h2>
-                </div>
+        <aside className="fixed left-0 top-0 h-full w-[260px] bg-[#0a1428] text-white flex flex-col z-50">
+            <div className="p-8 pb-4">
+                <h2 className="text-2xl font-extrabold tracking-tight flex items-center gap-3">
+                    <Image src="/favicon.ico" alt="Clevio" width={32} height={32} className="rounded-md" />
+                    Clevio
+                </h2>
+            </div>
 
-                <nav className="flex-grow overflow-y-auto px-4 space-y-1.5 mt-4">
-                    {NAV_LINKS.map((link) => {
-                        const isActive = pathname.startsWith(link.href);
+            <nav aria-label="Navigasi Coach" className="flex-grow overflow-y-auto px-4 space-y-1.5 mt-4">
+                {NAV_LINKS.map(({ href, label, icon: Icon }) => {
+                    const active = pathname.startsWith(href);
+                    return (
+                        <Link key={href} href={href} aria-current={active ? 'page' : undefined}
+                            className={`relative flex items-center gap-3 rounded-lg px-4 py-3 transition-colors ${active
+                                ? 'bg-slate-800/30 font-semibold text-[#6bb3ff]'
+                                : 'font-medium text-slate-400 hover:bg-slate-800/40 hover:text-white'}`}>
+                            {active && <span aria-hidden="true" className="absolute left-0 h-5 w-1 rounded-r bg-[#6bb3ff]" />}
+                            <Icon aria-hidden="true" size={22} className="shrink-0" />
+                            <span>{label}</span>
+                        </Link>
+                    );
+                })}
+            </nav>
 
-                        if (isActive) {
-                            return (
-                                <Link key={link.href} href={link.href} className="relative flex items-center px-4 py-3 text-white bg-slate-800/30 rounded-lg group">
-                                    <div className="sidebar-active-indicator"></div>
-                                    <span className="material-symbols-outlined active-icon mr-3 text-[#6bb3ff]">{link.icon}</span>
-                                    <span className="font-semibold text-[#6bb3ff]">{link.label}</span>
-                                </Link>
-                            );
-                        }
-
-                        return (
-                            <Link key={link.href} href={link.href} className="flex items-center px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800/40 transition-colors rounded-lg group">
-                                <span className="material-symbols-outlined mr-3">{link.icon}</span>
-                                <span className="font-medium">{link.label}</span>
-                            </Link>
-                        );
-                    })}
-                </nav>
-
-                <div className="coach-sidebar-report border-t border-slate-800 px-4 py-4">
-                    <IssueReportButton role="COACH" placement="sidebar" />
-                </div>
-            </aside>
-        </>
+            <div className="coach-sidebar-report border-t border-slate-800 px-4 py-4">
+                <IssueReportButton role="COACH" placement="sidebar" />
+            </div>
+        </aside>
     );
 }

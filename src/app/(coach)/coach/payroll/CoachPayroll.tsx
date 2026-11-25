@@ -12,8 +12,8 @@ import CoachActivityRequests from './CoachActivityRequests';
 import pageStyles from './CoachPayroll.module.css';
 
 const tabs = [
-  { id: 'rekap', label: 'Rekap absen', icon: ListChecks },
-  { id: 'aktivitas', label: 'Absen event', icon: CalendarDays },
+  { id: 'rekap', label: 'Rekap', icon: ListChecks },
+  { id: 'aktivitas', label: 'Kegiatan', icon: CalendarDays },
   { id: 'koreksi', label: 'Koreksi', icon: ClipboardPenLine },
   { id: 'slip', label: 'Slip gaji', icon: FileText },
 ];
@@ -27,11 +27,18 @@ function periodLabel(id: string) {
 }
 
 const statuses = { WAITING: 'Menunggu', IN_PROGRESS: 'Diproses', DONE: 'Selesai', REJECTED: 'Ditolak' };
+type RecapFilter = 'all' | 'review';
+
+function needsAttendanceReview(activity: CoachPeriodView['activities'][number]) {
+  return activity.status !== 'Dibatalkan' && (activity.attendance_status === 'PENDING' || activity.attendance_status === 'PARTIAL');
+}
+
 export default function CoachPayroll({ initialPeriod }: { initialPeriod?: string }) {
   const [data, setData] = useState<{ profile: { name: string } | null; periods: CoachPeriodView[] } | null>(null);
   const [periodId, setPeriodId] = useState(initialPeriod ?? ''), [error, setError] = useState(''), [message, setMessage] = useState(''), [busy, setBusy] = useState(false);
   const [requestId, setRequestId] = useState<string | null>(null);
   const [tab, setTab] = useState('rekap');
+  const [recapFilter, setRecapFilter] = useState<RecapFilter>('all');
   const [clock, setClock] = useState(() => Date.now());
   useEffect(() => { const timer = setInterval(() => setClock(Date.now()), 30000); return () => clearInterval(timer); }, []);
   async function load() {
@@ -41,6 +48,9 @@ export default function CoachPayroll({ initialPeriod }: { initialPeriod?: string
   }
   useEffect(() => { let active = true; fetch('/api/coach/payroll', { cache: 'no-store' }).then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error); if (active) { setData(d); setPeriodId(id => d.periods.some((period: CoachPeriodView) => period.id === id) ? id : d.periods[0]?.id || ''); } }).catch(e => { if (active) setError(e.message); }); return () => { active = false; }; }, []);
   const p = data?.periods.find(p => p.id === periodId);
+  const activities = p?.activities ?? [];
+  const reviewActivities = activities.filter(needsAttendanceReview);
+  const visibleActivities = recapFilter === 'review' ? reviewActivities : activities;
   async function correction(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); setBusy(true); setError(''); setMessage('');
     const form = e.currentTarget, id = requestId ?? crypto.randomUUID(); setRequestId(id);
@@ -52,17 +62,17 @@ export default function CoachPayroll({ initialPeriod }: { initialPeriod?: string
   }
   const canCorrect = p?.status === 'DRAFT' && clock < Date.parse(p.correction_deadline);
   return (
-    <main className={`${styles.root} ${pageStyles.page}`}>
+    <div className={pageStyles.page}>
       <header className={pageStyles.header}>
         <div>
           <h1 className={styles.title}>Absensi &amp; Slip Gaji</h1>
-          <p className={styles.muted}>Lihat rekap, absen event atau training, dan cek slip gaji.</p>
         </div>
         {tab !== 'aktivitas' && !!data?.periods.length && (
           <label className={`${styles.field} ${pageStyles.period}`}>
             Periode
             <select aria-label="Periode" className={styles.select} value={periodId} disabled={busy} onChange={e => {
               setPeriodId(e.target.value);
+              setRecapFilter('all');
               setRequestId(null);
               setMessage('');
               setError('');
@@ -88,24 +98,35 @@ export default function CoachPayroll({ initialPeriod }: { initialPeriod?: string
         </section>}
 
         <TabsContent value="rekap">
-          {p && <section className={styles.panel}>
+          {p && <section className={`${styles.panel} ${pageStyles.recap}`} aria-labelledby="coach-attendance-recap">
             <div className={pageStyles.sectionHeader}>
-              <div><h2>Rekap absensi</h2><p className={styles.muted}>{p.calculated_at ? `Diperbarui ${dateWib(p.calculated_at)} WIB` : 'Menunggu pembaruan'}</p></div>
+              <div><h2 id="coach-attendance-recap">Rekap absensi</h2><p className={styles.muted}>{p.calculated_at ? `Diperbarui ${dateWib(p.calculated_at)} WIB` : 'Menunggu pembaruan'}</p></div>
               {canCorrect && <Button variant="outline" size="sm" onClick={() => setTab('koreksi')}>Ajukan koreksi</Button>}
             </div>
-            {p.activities.length > 0 ? <ul className={pageStyles.activityList}>
-              {p.activities.map(activity => <li key={activity.key}>
-                <div>
-                  <strong>{activity.label}</strong>
-                  <p className={styles.muted}>{activity.date ? `${dateWib(activity.date)} WIB` : 'Rekap bulanan'}</p>
-                </div>
-                <p className={pageStyles.activityKind}>{activityLabels[activity.kind] ?? activity.kind}
-                  {activity.quantity > 1 && <span> · {activity.quantity} sesi</span>}
-                  {activity.students !== undefined && ['WEEKLY', 'EKSKUL', 'TRIAL'].includes(activity.kind) && <span> · {activity.students} anak</span>}
-                </p>
-                <Badge variant="secondary" className={pageStyles.status}>{activity.status}</Badge>
-              </li>)}
-            </ul> : <p className={styles.muted}>Belum ada aktivitas tercatat di periode ini.</p>}
+            {activities.length > 0 && <div className={pageStyles.recapFilters} role="group" aria-label="Filter rekap absensi">
+              <Button variant={recapFilter === 'all' ? 'secondary' : 'ghost'} size="sm" aria-pressed={recapFilter === 'all'} onClick={() => setRecapFilter('all')}>Semua · {activities.length}</Button>
+              <Button variant={recapFilter === 'review' ? 'secondary' : 'ghost'} size="sm" aria-pressed={recapFilter === 'review'} onClick={() => setRecapFilter('review')}>Perlu dicek · {reviewActivities.length}</Button>
+            </div>}
+            {visibleActivities.length ? <ul className={pageStyles.activityList}>
+              {visibleActivities.map(activity => {
+                const isClassMeeting = ['WEEKLY', 'EKSKUL', 'TRIAL'].includes(activity.kind);
+                const kind = activityLabels[activity.kind] ?? activity.kind;
+                const delivery = isClassMeeting && activity.delivery ? ` ${activity.delivery.toLowerCase()}` : '';
+                const statusTone = needsAttendanceReview(activity) ? 'review'
+                  : ['Tercatat', 'Coach pengganti', 'Mengajar dikonfirmasi admin'].includes(activity.status) ? 'recorded' : 'neutral';
+                return <li key={activity.key}>
+                  <div className={pageStyles.activityDetail}>
+                    <strong>{activity.label}</strong>
+                    <p className={pageStyles.activityKind}>{kind}{delivery}
+                      {isClassMeeting && activity.students !== undefined && ` · ${activity.students} anak`}
+                      {activity.quantity > 1 && ` · ${activity.quantity} sesi`}
+                    </p>
+                    <p className={pageStyles.activityDate}>{activity.date ? `${dateWib(activity.date)} WIB` : 'Rekap bulanan'}</p>
+                  </div>
+                  <Badge variant="secondary" className={pageStyles.status} data-tone={statusTone}>{activity.status}</Badge>
+                </li>;
+              })}
+            </ul> : <p className={styles.muted}>{recapFilter === 'review' ? 'Tidak ada absensi siswa yang perlu dicek.' : 'Belum ada aktivitas tercatat di periode ini.'}</p>}
           </section>}
         </TabsContent>
 
@@ -142,6 +163,6 @@ export default function CoachPayroll({ initialPeriod }: { initialPeriod?: string
           </section>}
         </TabsContent>
       </Tabs>
-    </main>
+    </div>
   );
 }

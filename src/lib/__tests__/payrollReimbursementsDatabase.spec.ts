@@ -21,7 +21,7 @@ describe('reimbursement migration, private storage and atomic payroll approval',
       CREATE TABLE storage.objects(id integer PRIMARY KEY,bucket_id text); ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
       GRANT USAGE ON SCHEMA storage TO anon,authenticated; GRANT SELECT,INSERT ON storage.objects TO anon,authenticated;
       CREATE POLICY existing_broad_policy ON storage.objects FOR ALL TO anon,authenticated USING(true) WITH CHECK(true);`);
-    for (const migration of ['20261104100000_payroll.sql', '20261104160000_payroll_allowances.sql', '20261105100000_payroll_controls.sql', '20261105140000_payroll_privileges.sql', '20261106100000_payroll_reimbursements.sql', '20261107080000_payroll_conflict_pt409.sql']) await db.exec(readFileSync(`supabase/migrations/${migration}`, 'utf8'));
+    for (const migration of ['20261104100000_payroll.sql', '20261104160000_payroll_allowances.sql', '20261105100000_payroll_controls.sql', '20261105140000_payroll_privileges.sql', '20261106100000_payroll_reimbursements.sql', '20261107080000_payroll_conflict_pt409.sql', '20261125200000_scoped_payroll_reimbursement_extension.sql']) await db.exec(readFileSync(`supabase/migrations/${migration}`, 'utf8'));
     await db.query("INSERT INTO users(id,username,full_name,role) VALUES($1,'admin','Admin','ADMIN')", [admin]);
     await db.query("INSERT INTO payroll_profiles(id,name,kind) VALUES($1,'Staff Uji','STAFF')", [profile]);
     await db.query('INSERT INTO payroll_periods(id,document) VALUES($1,$2)', [period.id, JSON.stringify({ ...period, calculated_at: '2098-11-01T00:00:00Z', manual: [{ id: 'unrelated', profile_id: profile, label: 'Tunjangan', amount: 300000, date: period.correction_deadline, reason: 'Existing allowance' }] })]);
@@ -96,5 +96,20 @@ describe('reimbursement migration, private storage and atomic payroll approval',
     await db.query('UPDATE payroll_profiles SET active=false WHERE id=$1', [profile]);
     await expect(submit(args(other, 'c'.repeat(64)))).rejects.toThrow(/REIMBURSEMENT_CLOSED/);
     await expect(review(2)).rejects.toThrow(/REIMBURSEMENT_INACTIVE/);
+  });
+  it('allows submission after the normal cutoff only for the designated active recipient', async () => {
+    const scoped = '20000000-0000-4000-8000-000000000002';
+    const unscoped = '20000000-0000-4000-8000-000000000003';
+    const late = createPeriod(2098, 12);
+    const cutoff = new Date(Date.now() - 60000).toISOString();
+    const expiry = new Date(Date.now() + 60000).toISOString();
+    await db.query("INSERT INTO payroll_profiles(id,name,kind) VALUES($1,'Scoped','STAFF'),($2,'Unscoped','STAFF')", [scoped, unscoped]);
+    await db.query('INSERT INTO payroll_periods(id,document) VALUES($1,$2)', [late.id, JSON.stringify({
+      ...late, correction_deadline: cutoff,
+      reimbursement_extension: { profile_id: scoped, expires_at: expiry },
+    })]);
+    const lateArgs = (recipient: string) => [other, recipient, late.id, 'Ongkos aktual', 20000, `${late.id}/${recipient}/${other}.webp`, 500, 'd'.repeat(64)];
+    await expect(submit(lateArgs(unscoped))).rejects.toThrow(/REIMBURSEMENT_CLOSED/);
+    expect((await submit(lateArgs(scoped))).rows[0].result.status).toBe('PENDING');
   });
 });

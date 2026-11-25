@@ -4,6 +4,7 @@ Search this file and the linked monthly log before changing related code.
 
 | Date | Reference | Area | Symptom | Monthly log |
 | --- | --- | --- | --- | --- |
+| 2026-11-25 | INTERNAL-20261125-04 | Payroll | Hasil pengiriman memenuhi halaman dan reimbursement susulan perlu akses khusus penerima | [2026-11](./2026-11.md#internal-20261125-04-pengiriman-susulan-dan-reimbursement-per-penerima) |
 | 2026-11-25 | INTERNAL-20261125-03 | Payroll | Impor spreadsheet macet sebelum WA dan perlu perhitungan transport mandiri | [2026-11](./2026-11.md#internal-20261125-03-payroll-operasional-tanpa-sinkronisasi-spreadsheet) |
 | 2026-11-25 | INTERNAL-20261125-02 | Coder Weekly | Dashboard menampilkan blok lama 100% dan materi blok yang berjalan terkunci | [2026-11](./2026-11.md#internal-20261125-02-coder-weekly-mengikuti-blok-kelas-yang-sudah-berjalan) |
 | 2026-11-25 | INTERNAL-20261125-01 | Dashboard Coder | Status evaluasi yang gagal dimuat bisa menampilkan ajakan evaluasi lama | [2026-11](./2026-11.md#internal-20261125-01-dashboard-coder-menampilkan-refleksi-yang-relevan) |

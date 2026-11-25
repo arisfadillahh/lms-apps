@@ -95,6 +95,15 @@ describe('public reimbursement capability and private receipt handling', () => {
     expect(() => createReimbursementLink(period, profileId, 'javascript:alert(1)', now)).toThrow();
     expect(() => createReimbursementLink(period, profileId, 'https://user:password@lms.clev.io', now)).toThrow();
   });
+  it('issues after-cutoff links only for the scoped recipient and uses the extended expiration', () => {
+    const afterDeadline = new Date('2026-11-25T19:00:00+07:00');
+    const expires_at = '2026-11-25T23:59:00+07:00';
+    const extended = { ...period, reimbursement_extension: { profile_id: profileId, expires_at } };
+    const link = new URL(createReimbursementLink(extended, profileId, 'https://lms.clev.io', afterDeadline));
+    const capability = new URLSearchParams(link.hash.slice(1)).get('token')!;
+    expect(verifyReimbursementToken(capability, secret, afterDeadline)).toMatchObject({ profileId, expiresAt: Date.parse(expires_at) / 1000 });
+    expect(() => createReimbursementLink(extended, requestId, 'https://lms.clev.io', afterDeadline)).toThrow(/ditutup/);
+  });
   it('requires the private capability header, ignores query tokens and does not require an LMS login', async () => {
     expect((await GET(new Request(`${url()}?token=${token()}`))).status).toBe(410);
     expect((await GET(new Request(`${url()}?token=${token()}`, { headers: { 'x-payroll-reimbursement-token': 'invalid' } }))).status).toBe(410);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Send, RefreshCw, CheckCheck, FileText, Users, Settings, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,8 +19,11 @@ import PayrollPeople from './PayrollPeople';
 import PayrollRates from './PayrollRates';
 import PayrollAutomation from './PayrollAutomation';
 import PayrollReimbursements from './PayrollReimbursements';
+import PayrollRecapDelivery from './PayrollRecapDelivery';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
+type SendKind = 'RECAP' | 'SLIP' | 'REIMBURSEMENT';
+const messageLabels: Record<SendKind, string> = { RECAP: 'rekap LMS', SLIP: 'slip final', REIMBURSEMENT: 'link reimbursement' };
 type Data = Awaited<ReturnType<typeof payrollBootstrap>>;
 async function fetchPayrollData(year: number, month: number): Promise<Data> {
   const response = await fetch(`/api/admin/payroll?year=${year}&month=${month}`, { cache: 'no-store' });
@@ -57,6 +60,8 @@ export default function PayrollAdmin({ initialPeriod, initialTab }: { initialPer
   const initial = /^20\d{2}-(0[1-9]|1[0-2])$/.test(initialPeriod ?? '') ? initialPeriod! : currentPeriod().id;
   const [year, setYear] = useState(Number(initial.slice(0, 4))), [month, setMonth] = useState(Number(initial.slice(5)));
   const [tab, setTab] = useState(initialTab === 'attendance' ? 'attendance' : 'period'), [data, setData] = useState<Data | null>(null), [busy, setBusy] = useState(''), [error, setError] = useState(''), [message, setMessage] = useState('');
+  const confirmDialog = useRef<HTMLDialogElement>(null);
+  const [pendingSend, setPendingSend] = useState<{ kind: SendKind; ids: string[]; resend: boolean } | null>(null);
   const [selected, setSelected] = useState<string[]>([]), [detail, setDetail] = useState<string | null>(null);
   const [search, setSearch] = useState(''), [kindFilter, setKindFilter] = useState('ALL'), [paidFilter, setPaidFilter] = useState('ALL'), [deliveryFilter, setDeliveryFilter] = useState('ALL');
   const [editing, setEditing] = useState<PayrollPerson | null>(null), [personKind, setPersonKind] = useState('COACH');
@@ -103,21 +108,27 @@ export default function PayrollAdmin({ initialPeriod, initialTab }: { initialPer
     (deliveryFilter === 'ALL' || delivery(s) === deliveryFilter));
   const focused = period?.slips.find(s => s.profile_id === detail);
   const unpaidSelected = period ? selected.filter(id => !isPaid(period, id)) : [];
-  async function bulk(action: 'transfer' | 'send', kind?: 'RECAP' | 'SLIP', ids = selected, resend = false) {
+  function confirmSend(kind: SendKind, ids: string[], resend = false) {
+    if (!ids.length) return;
+    setPendingSend({ kind, ids, resend });
+    confirmDialog.current?.showModal();
+    confirmDialog.current?.querySelector('button')?.focus();
+  }
+  async function bulk(action: 'transfer' | 'send', kind?: SendKind, ids = selected, resend = false) {
     if (!ids.length) { setError('Pilih minimal satu penerima.'); return; }
-    if (!window.confirm(action === 'transfer' ? 'Tandai sudah ditransfer hanya jika transfer bank benar-benar selesai. Lanjutkan?' : `${resend ? 'Kirim ulang' : 'Kirim'} ${kind === 'SLIP' ? 'slip final' : 'rekap LMS'} ke ${ids.length} penerima?`)) return;
+    if (action === 'transfer' && !window.confirm('Tandai sudah ditransfer hanya jika transfer bank benar-benar selesai. Lanjutkan?')) return;
     setBusy('Memproses'); setError(''); setMessage('');
-    const outcomes: string[] = [];
+    const outcomes: Record<string, number> = {};
     try {
       for (let i = 0; i < ids.length; i += 10) {
         setBusy(`Memproses ${Math.min(i + 10, ids.length)}/${ids.length}`);
         const latest = await load();
         const result = await post(action, { profileIds: ids.slice(i, i + 10), kind, resend }, latest.selected?.revision);
-        if (Array.isArray(result)) for (const r of result) outcomes.push(`${data?.people.find(p => p.id === r.profileId)?.name ?? r.profileId}: ${deliveryLabels[r.status] ?? r.status}${r.error ? ' — ' + r.error : ''}`);
+        if (Array.isArray(result)) for (const row of result) outcomes[row.status] = (outcomes[row.status] ?? 0) + 1;
       }
       await load();
       if (action === 'send') setSelected([]);
-      setMessage(outcomes.join('\n') || (action === 'transfer' ? 'Transfer tercatat. Penerima tetap dipilih; lanjutkan dengan Kirim slip gaji.' : 'Pengiriman diproses.'));
+      setMessage(Object.entries(outcomes).map(([status, count]) => `${count} ${(deliveryLabels[status] ?? status).toLowerCase()}`).join(' · ') || (action === 'transfer' ? 'Transfer tercatat. Penerima tetap dipilih; lanjutkan dengan Kirim slip gaji.' : 'Pengiriman diproses.'));
     } catch (e) { setError(e instanceof Error ? e.message : 'Sebagian tindakan gagal. Muat ulang dan periksa hasil.'); await load().catch(() => undefined); }
     finally { setBusy(''); }
   }
@@ -141,15 +152,21 @@ export default function PayrollAdmin({ initialPeriod, initialTab }: { initialPer
         <div className={styles.actions}><PayrollReimbursements key={`${year}-${month}`} periodId={`${year}-${String(month).padStart(2, '0')}`} canReview onChanged={reimbursementChanged} />{!period && <Button disabled={Boolean(busy)} onClick={() => run('create', { year, month }, 'Periode draft dibuat.')}>Buat periode</Button>}{tab === 'period' && period?.status === 'DRAFT' && <><Button size="sm" variant="outline" disabled={Boolean(busy)} onClick={() => run('calculate', {}, 'Rekap diperbarui.')}>Perbarui rekap</Button><span title={canFinalize ? 'Simpan versi final periode ini' : `Finalisasi setelah ${dateWib(period.ends_at)} WIB; hitung ulang dan selesaikan peringatan dahulu.`}><Button size="sm" disabled={Boolean(busy) || !canFinalize} onClick={() => { if (window.confirm('Finalisasi menyimpan versi tetap. Pastikan seluruh tanggal 25 tercakup dan tidak ada peringatan.')) run('finalize', {}, 'Versi final tersimpan.'); }}>Finalisasi</Button></span></>}</div>
         {tab === 'period' && period?.status === 'DRAFT' && !canFinalize && <p className={styles.rowmeta} role="status">{(period.corrections ?? []).some(r => ['WAITING', 'IN_PROGRESS'].includes(r.status)) ? 'Finalisasi menunggu pengajuan koreksi diselesaikan oleh PIC.' : clock < Date.parse(period.ends_at) ? `Periode masih berjalan. Finalisasi mulai ${dateWib(period.ends_at)} WIB.` : period.warnings.length ? 'Selesaikan peringatan pada rekap sebelum finalisasi.' : 'Klik Perbarui rekap untuk melengkapi aktivitas sampai akhir periode.'}</p>}
         {period && <details className={`${styles.disclosure} ${styles.periodInfo}`}><summary>Info periode</summary><p className={styles.muted}>Aktivitas: {dateWib(period.starts_at)} WIB sampai akhir tanggal 25. Batas koreksi reguler: <strong>{dateWib(period.correction_deadline)} WIB</strong>. Admin tetap dapat merevisi setelah deadline. Aktivitas tanggal 26 masuk periode berikutnya. Pilih bulan/tahun di atas untuk membuka arsip.</p><p className={styles.muted}>{period.status === 'DRAFT' ? `Periksa aktivitas dan koreksi melalui Rincian. Rekap absensi dikirim otomatis tanggal 25. Finalisasi tersedia setelah ${dateWib(period.ends_at)} WIB, sesudah Perbarui rekap dan seluruh peringatan selesai.` : 'Di Pembayaran & slip, centang penerima setelah transfer bank selesai untuk menandai pembayaran, lalu kirim slip. Buka Riwayat periode untuk revisi admin.'}</p><p className={styles.muted}>Rekap otomatis tanggal 25 mulai 09.00 WIB, pengingat mulai 16.00 WIB, deadline koreksi 17.00 WIB. Status WA otomatis: <strong>{data.settings.automation_enabled ? 'Aktif' : 'Dijeda'}</strong>. Pengaturannya ada di Tarif &amp; otomatisasi → Otomatisasi.</p></details>}
-        {period?.status === 'DRAFT' && period.calculated_at && clock >= Date.parse(period.correction_deadline) && <details className={styles.disclosure}>
-          <summary>Pengiriman susulan</summary>
-          <div className={styles.detailPanel}>
-            <p className={styles.muted}>Kirim rekap ke coach dan staf aktif. Coach tanpa nomor WA mendapat notifikasi LMS.</p>
-            <Button size="sm" variant="outline" disabled={Boolean(busy)} onClick={() => { void bulk('send', 'RECAP', data.people.filter(person => person.active).map(person => person.id)); }}>Kirim rekap ke semua penerima aktif</Button>
-          </div>
-        </details>}
       </section>
+      {tab === 'period' && period?.status === 'DRAFT' && period.calculated_at && clock >= Date.parse(period.correction_deadline)
+        && <PayrollRecapDelivery period={period} people={data.people} clock={clock} busy={Boolean(busy)} send={confirmSend} />}
     </>}
+    <dialog ref={confirmDialog} className={styles.payrollSendDialog} aria-labelledby="payroll-send-title" onClose={() => setPendingSend(null)}>
+        <h2 id="payroll-send-title">{pendingSend ? `${pendingSend.resend ? 'Kirim ulang' : 'Kirim'} ${messageLabels[pendingSend.kind]}?` : 'Konfirmasi pengiriman'}</h2>
+        <p className={styles.muted}>Pesan pribadi akan dikirim ke {pendingSend?.ids.length ?? 0} penerima.</p>
+        <div className={styles.toolbar}>
+          <Button type="button" variant="outline" onClick={() => confirmDialog.current?.close()}>Batal</Button>
+          <Button type="button" onClick={() => {
+            confirmDialog.current?.close();
+            if (pendingSend) void bulk('send', pendingSend.kind, pendingSend.ids, pendingSend.resend);
+          }}>Kirim</Button>
+        </div>
+    </dialog>
     {tab === 'period' && <>
       {!period ? <div className={styles.empty}>Belum ada rekap pada periode ini. Pilih arsip lain atau buat periode baru.</div> : <>
       <Tabs value={screen} onValueChange={value => { setWorkspace(value); setSelected([]); setDetail(null); setPaidFilter('ALL'); setDeliveryFilter('ALL'); }} className={styles.workspace}>
@@ -160,7 +177,7 @@ export default function PayrollAdmin({ initialPeriod, initialTab }: { initialPer
         <div className={styles.periodSummary} role="region" aria-label="Ringkasan hasil filter"><span><strong>{visible.length}</strong> penerima</span><span>Total <strong>{rupiah(visible.reduce((n, s) => n + s.total, 0))}</strong></span>{period.synchronized_at && <span>Data diperbarui <strong>{dateWib(period.synchronized_at)} WIB</strong></span>}{screen === 'review' && <span>WA tanggal 25: <strong>{data.settings.automation_enabled ? 'Aktif' : 'Dijeda'}</strong></span>}{screen === 'payment' && <><span>Ditransfer <strong>{rupiah(visible.reduce((n, s) => n + paidAmount(period, s.profile_id), 0))}</strong></span><span>Sisa <strong>{rupiah(visible.reduce((n, s) => n + Math.max(0, s.total - paidAmount(period, s.profile_id)), 0))}</strong></span></>}</div>
         {screen === 'review' && period.warnings.length > 0 && <PayrollReviewWarnings warnings={period.warnings} />}
         {showFilters && <div className={styles.filters}><label className={styles.field}>Kategori<select aria-label="Kategori penerima" className={styles.select} value={kindFilter} onChange={e => { setKindFilter(e.target.value); setSelected([]); }}><option value="ALL">Semua penerima</option><option value="COACH">Coach</option><option value="STAFF">Staf</option><option value="FULLTIME">Fulltime</option><option value="MITRA">Mitra</option></select></label>{screen === 'payment' && <><label className={styles.field}>Transfer<select aria-label="Status transfer" className={styles.select} value={paidFilter} onChange={e => { setPaidFilter(e.target.value); setSelected([]); }}><option value="ALL">Semua status</option><option value="PAID">Sudah ditransfer</option><option value="UNPAID">Belum selesai</option></select></label><label className={styles.field}>Slip WA<select aria-label="Status pengiriman slip" className={styles.select} value={deliveryFilter} onChange={e => { setDeliveryFilter(e.target.value); setSelected([]); }}>{['ALL', 'BELUM', 'SENT', 'FAILED', 'LMS_ONLY', 'NO_CONTACT', 'SENDING', 'SIMULATED'].map(v => <option key={v} value={v}>{({ ALL: 'Semua status', BELUM: 'Belum dikirim', SENT: 'Terkirim WA', FAILED: 'Gagal', LMS_ONLY: 'Hanya LMS', NO_CONTACT: 'Tanpa kontak', SIMULATED: 'Simulasi local', SENDING: 'Sedang dikirim' } as Record<string, string>)[v]}</option>)}</select></label></>}<Button variant="ghost" onClick={() => { setSearch(''); setKindFilter('ALL'); setPaidFilter('ALL'); setDeliveryFilter('ALL'); setSelected([]); }}>Reset filter</Button></div>}
-        {screen === 'payment' && selected.length > 0 ? <section className={styles.selectionBar} aria-label="Tindakan penerima terpilih"><div className={styles.actions}><span className={styles.muted}>{selected.length} dipilih</span><Button disabled={Boolean(busy) || !selected.length} onClick={() => unpaidSelected.length ? bulk('transfer', undefined, unpaidSelected) : bulk('send', 'SLIP')}>{unpaidSelected.length > 0 ? <CheckCheck data-icon="inline-start" /> : <Send data-icon="inline-start" />}{unpaidSelected.length ? 'Tandai sudah transfer' : 'Kirim slip gaji'}</Button><Button variant="ghost" disabled={Boolean(busy)} onClick={() => setSelected([])}>Batal pilih</Button></div><p className={styles.muted}>{unpaidSelected.length ? 'Tandai setelah transfer bank selesai, lalu kirim slip.' : 'Slip dikirim hanya ke penerima terpilih.'}</p></section> : screen === 'payment' && <p className={styles.muted}>Centang penerima untuk menandai transfer yang sudah selesai, lalu kirim slip gaji.</p>}
+        {screen === 'payment' && selected.length > 0 ? <section className={styles.selectionBar} aria-label="Tindakan penerima terpilih"><div className={styles.actions}><span className={styles.muted}>{selected.length} dipilih</span><Button disabled={Boolean(busy) || !selected.length} onClick={() => unpaidSelected.length ? bulk('transfer', undefined, unpaidSelected) : confirmSend('SLIP', selected)}>{unpaidSelected.length > 0 ? <CheckCheck data-icon="inline-start" /> : <Send data-icon="inline-start" />}{unpaidSelected.length ? 'Tandai sudah transfer' : 'Kirim slip gaji'}</Button><Button variant="ghost" disabled={Boolean(busy)} onClick={() => setSelected([])}>Batal pilih</Button></div><p className={styles.muted}>{unpaidSelected.length ? 'Tandai setelah transfer bank selesai, lalu kirim slip.' : 'Slip dikirim hanya ke penerima terpilih.'}</p></section> : screen === 'payment' && <p className={styles.muted}>Centang penerima untuk menandai transfer yang sudah selesai, lalu kirim slip gaji.</p>}
         <p className="text-xs text-muted-foreground sm:hidden">Geser tabel untuk melihat nominal, status, dan tindakan.</p>
         <Table className={styles.table}><TableHeader><TableRow>{screen === 'payment' && <TableHead><input className={styles.checkbox} aria-label="Pilih semua hasil filter" type="checkbox" disabled={Boolean(busy)} checked={visible.length > 0 && visible.every(s => selected.includes(s.profile_id))} onChange={e => setSelected(e.target.checked ? visible.map(s => s.profile_id) : [])} /></TableHead>}<TableHead>Penerima</TableHead>{screen === 'review' && <TableHead>Aktivitas</TableHead>}<TableHead>Total periode</TableHead>{screen === 'payment' && <><TableHead>Transfer</TableHead><TableHead>Pengiriman slip</TableHead></>}<TableHead>Tindakan</TableHead></TableRow></TableHeader><TableBody>{visible.map(s => <TableRow key={s.profile_id}>{screen === 'payment' && <TableCell><input className={styles.checkbox} type="checkbox" aria-label={`Pilih ${s.name}`} disabled={Boolean(busy)} checked={selected.includes(s.profile_id)} onChange={e => setSelected(e.target.checked ? [...selected, s.profile_id] : selected.filter(id => id !== s.profile_id))} /></TableCell>}<TableCell><div className={styles.rowname}>{s.name}</div><div className={styles.rowmeta}>{[s.kind === 'COACH' ? 'Coach' : 'Staf', !s.contract_unconfirmed && (s.contract === 'FULLTIME' ? 'Fulltime' : 'Mitra'), s.job_title && s.job_title !== 'Coach' && s.job_title].filter(Boolean).join(' · ')}</div></TableCell>{screen === 'review' && <TableCell className={styles.muted}>{payrollActivitySummary(s)}</TableCell>}<TableCell className={styles.money}>{rupiah(s.total)}</TableCell>{screen === 'payment' && <><TableCell><Badge variant={isPaid(period, s.profile_id) ? 'default' : 'outline'}>{isPaid(period, s.profile_id) ? 'Sudah ditransfer' : 'Belum selesai'}</Badge><div className={styles.rowmeta}>{rupiah(paidAmount(period, s.profile_id))}{paidAmount(period, s.profile_id) > s.total ? ' · Ada kelebihan tercatat' : ''}</div></TableCell><TableCell><Badge variant={delivery(s) === 'FAILED' ? 'destructive' : 'secondary'}>{deliveryLabels[delivery(s)] ?? 'Perlu diperiksa'}</Badge></TableCell></>}<TableCell><div className={styles.actions}><Button size="sm" variant="outline" onClick={() => { setDetail(s.profile_id); setError(''); setMessage(''); }}>Rincian</Button><Button size="sm" variant="ghost" aria-label={`Pratinjau slip ${s.name}`} onClick={() => openPreview(s)}><FileText data-icon="inline-start" />Pratinjau</Button></div></TableCell></TableRow>)}</TableBody></Table>{visible.length === 0 && <div className={styles.empty}>Belum ada penerima yang cocok. Perbarui rekap atau ubah filter.</div>}
       </section>}

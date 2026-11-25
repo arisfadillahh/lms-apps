@@ -33,7 +33,7 @@ export const payrollCommandSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('removeActivity'), ...period, id, reason }),
   z.object({ action: z.literal('override'), ...period, sourceKey: z.string().min(1).max(300), profileId: id.optional(), amount: nonnegative.optional(), teachingConfirmed:z.boolean().optional(), motorTrip: z.boolean().optional(), quantity: z.number().int().min(0).max(10000).optional(), meetingKeys: z.array(z.string().min(1).max(300)).max(500).optional(), excluded: z.boolean().optional(), mode: mode.optional(), reason }),
   z.object({ action: z.literal('transfer'), ...period, profileIds: ids, reference: z.string().trim().max(300).default('') }),
-  z.object({ action: z.literal('send'), ...period, profileIds: ids, kind: z.enum(['RECAP', 'SLIP']), resend: z.boolean().default(false) }),
+  z.object({ action: z.literal('send'), ...period, profileIds: ids, kind: z.enum(['RECAP', 'SLIP', 'REIMBURSEMENT']), resend: z.boolean().default(false) }),
   z.object({ action: z.literal('recoverDelivery'), ...period, key: z.string().min(1).max(300), reason }),
   z.object({ action: z.literal('classMode'), classId: id, mode }),
   z.object({ action: z.literal('reviewActivity'), id, requestRevision: z.number().int().nonnegative(), status: z.enum(['APPROVED','REJECTED']), mode, reason }),

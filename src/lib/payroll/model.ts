@@ -98,6 +98,7 @@ export interface PeriodDocument {
   source_meetings_checked_at?: string;
   source_meetings_fingerprint?: string;
   class_attendance_from?: string;
+  reimbursement_extension?: { profile_id: string; expires_at: string };
   legacy_class_baseline?: LegacyPayrollSnapshot;
 }
 export interface PeriodRecord { id: string; revision: number; document: PeriodDocument; updated_at?: string }

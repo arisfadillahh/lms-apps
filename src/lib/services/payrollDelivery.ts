@@ -10,6 +10,7 @@ import { profilePhone } from '@/lib/payroll/sources';
 import { attendanceRecapBlockReason, formatAttendanceRecap, formatAttendanceReminder, formatStaffRecap } from '@/lib/payroll/attendanceMessage';
 import { isPaid, PayrollError, wibDate, type PayrollDelivery } from '@/lib/payroll/model';
 import { createReimbursementLink } from './payrollReimbursements';
+import { reimbursementDeadline, reimbursementIsOpen } from '@/lib/payroll/reimbursementDeadline';
 
 export async function sendPayrollBatch(periodId: string, profileIds: string[], kind: PayrollDelivery['kind'], actor: string | null, resend = false) {
   const results: { profileId: string; status: string; error?: string }[] = [];
@@ -48,7 +49,8 @@ async function sendOne(periodId: string, profileId: string, kind: PayrollDeliver
     if (!config.settings.automation_enabled || !config.settings.active_from || config.settings.active_from > wibDate(now)) throw new PayrollError('Otomasi rekap belum diaktifkan admin.');
     if (now.getTime() < scheduledFrom || now.getTime() >= Date.parse(p.correction_deadline)) throw new PayrollError('Rekap otomatis hanya dikirim tanggal 25 pukul 09.00–17.00 WIB; pengingat mulai pukul 16.00 WIB.');
   }
-  if (kind === 'REIMBURSEMENT' && (!profile.active || p.status !== 'DRAFT' || Date.now() >= Date.parse(p.correction_deadline))) throw new PayrollError('Pengajuan reimbursement sudah ditutup atau penerima tidak aktif.');
+  const now = new Date();
+  if (kind === 'REIMBURSEMENT' && (!profile.active || !reimbursementIsOpen(p, profile.id, now))) throw new PayrollError('Pengajuan reimbursement sudah ditutup atau penerima tidak aktif.');
   if (staffRecap && !profile.active) throw new PayrollError('Rekap hanya dikirim ke penerima aktif.');
   if (!staffRecap && (kind === 'RECAP' || kind === 'REMINDER')) {
     if (profile.kind !== 'COACH' || slip.kind !== 'COACH' || !profile.active) throw new PayrollError('Rekap absensi hanya dikirim ke coach aktif.');
@@ -69,9 +71,10 @@ async function sendOne(periodId: string, profileId: string, kind: PayrollDeliver
     const phone = profilePhone(profile, user?.data);
     // The configured site URL is trusted; never use request/forwarded host headers.
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL;
-    const reimbursementUrl = kind !== 'SLIP' && p.status === 'DRAFT' && Date.now() < Date.parse(p.correction_deadline)
-      ? createReimbursementLink(p,profile.id,appUrl || '',new Date()) : '';
-    const reimbursementText = reimbursementUrl ? `\n\nAda reimbursement? Isi judul, nominal, dan foto bukti di sini:\n${reimbursementUrl}\nPaling lambat tanggal 25 pukul 17.00 WIB. Pengajuan diperiksa Admin/Finance.` : '';
+    const reimbursementUrl = kind !== 'SLIP' && reimbursementIsOpen(p, profile.id, now)
+      ? createReimbursementLink(p, profile.id, appUrl || '', now) : '';
+    const deadline = new Date(reimbursementDeadline(p, profile.id)).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+    const reimbursementText = reimbursementUrl ? `\n\nAda reimbursement? Isi judul, nominal, dan foto bukti di sini:\n${reimbursementUrl}\nPaling lambat tanggal 25 pukul ${deadline} WIB. Pengajuan diperiksa Admin/Finance.` : '';
     const message = kind === 'SLIP'
       ? `Slip gaji ${p.id} versi ${p.version}\nHalo ${slip.name}, admin telah mencatat penyelesaian transfer periode ini. Slip PDF terlampir dan tersedia di akun LMS. Hubungi admin jika ada pertanyaan.`
       : kind === 'REIMBURSEMENT' ? `Pengajuan reimbursement · ${new Date(Date.UTC(p.year,p.month-1,1)).toLocaleDateString('id-ID',{month:'long',year:'numeric',timeZone:'Asia/Jakarta'})}\nHalo ${slip.name}.${reimbursementText}`

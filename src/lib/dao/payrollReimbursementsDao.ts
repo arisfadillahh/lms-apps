@@ -8,7 +8,7 @@ const db = () => getSupabaseAdmin() as SupabaseClient;
 function fail(error: { message: string; code?: string; status?: number } | null) {
   if (!error) return;
   if (error.code === 'PT409' || error.code === '40001' || error.code === '23505' || error.status === 409 || error.message.includes('PAYROLL_CONFLICT')) throw new PayrollError('Pengajuan sudah berubah atau terkirim. Muat ulang sebelum mencoba lagi.', 409);
-  if (error.message.includes('REIMBURSEMENT_CLOSED')) throw new PayrollError('Pengajuan ditutup tanggal 25 pukul 17.00 WIB atau periode sudah final.', 410);
+  if (error.message.includes('REIMBURSEMENT_CLOSED')) throw new PayrollError('Batas pengajuan reimbursement sudah berakhir atau periode sudah final.', 410);
   if (error.message.includes('REIMBURSEMENT_REOPEN')) throw new PayrollError('Buka revisi periode final sebelum mengubah persetujuan. Tunggu jika pengiriman sedang berlangsung.', 409);
   if (error.message.includes('REIMBURSEMENT_LIMIT')) throw new PayrollError('Batas 30 pengajuan per periode tercapai. Hubungi admin.', 429);
   if (error.message.includes('REIMBURSEMENT_NOT_FOUND')) throw new PayrollError('Pengajuan tidak ditemukan.', 404);

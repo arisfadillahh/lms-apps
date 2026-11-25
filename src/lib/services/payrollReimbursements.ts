@@ -7,6 +7,7 @@ import { PayrollError, type PeriodDocument } from '@/lib/payroll/model';
 import { issueReimbursementToken, verifyReimbursementToken, ReimbursementTokenError, REIMBURSEMENT_LINK_MAX_AGE_SECONDS } from '@/lib/payroll/reimbursementToken';
 import { MAX_REIMBURSEMENT_AMOUNT, type ReimbursementRequest } from '@/lib/payroll/reimbursementTypes';
 import { prepareReimbursementImage } from './reimbursementImage';
+import { reimbursementDeadline, reimbursementIsOpen } from '@/lib/payroll/reimbursementDeadline';
 
 function secret() {
   const value = process.env.PAYROLL_REIMBURSEMENT_SECRET || process.env.NEXTAUTH_SECRET || '';
@@ -21,8 +22,8 @@ export function createReimbursementLink(period: PeriodDocument, profileId: strin
   let base: URL;
   try { base = new URL(appUrl); } catch { throw new PayrollError('Alamat LMS untuk reimbursement belum tersedia.', 503); }
   if (base.username || base.password || (base.protocol !== 'https:' && !(base.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(base.hostname)))) throw new PayrollError('Alamat LMS untuk reimbursement tidak valid.', 503);
-  if (period.status !== 'DRAFT' || now.getTime() >= Date.parse(period.correction_deadline)) throw new PayrollError('Periode reimbursement sudah ditutup.', 410);
-  const expiry = new Date(Math.min(Date.parse(period.correction_deadline), now.getTime() + REIMBURSEMENT_LINK_MAX_AGE_SECONDS * 1000));
+  if (!reimbursementIsOpen(period, profileId, now)) throw new PayrollError('Periode reimbursement sudah ditutup.', 410);
+  const expiry = new Date(Math.min(Date.parse(reimbursementDeadline(period, profileId)), now.getTime() + REIMBURSEMENT_LINK_MAX_AGE_SECONDS * 1000));
   const url = new URL('/payroll/reimbursement', base.origin);
   // Fragments stay in the browser and never enter reverse-proxy request logs.
   url.hash = new URLSearchParams({ token: issueReimbursementToken(profileId, period.id, expiry, secret(), now) }).toString();
@@ -32,7 +33,7 @@ export async function reimbursementScope(token: string, now = new Date()) {
   const claims = reimbursementClaims(token, now);
   const [profile, period] = await Promise.all([dao.reimbursementProfile(claims.profileId), getPayrollPeriod(claims.periodId)]);
   if (!profile?.active || !period) throw new PayrollError('Tautan reimbursement tidak tersedia. Hubungi admin.', 410);
-  if (period.document.status !== 'DRAFT' || now.getTime() >= Date.parse(period.document.correction_deadline)) throw new PayrollError('Pengajuan ditutup tanggal 25 pukul 17.00 WIB atau periode sudah final.', 410);
+  if (!reimbursementIsOpen(period.document, claims.profileId, now)) throw new PayrollError('Batas pengajuan reimbursement sudah berakhir atau periode sudah final.', 410);
   return { claims, profile, period };
 }
 function publicRequest(request: ReimbursementRequest) {
@@ -44,7 +45,7 @@ function adminRequest(request: ReimbursementRequest, recipientName: string) {
 export async function publicReimbursementMetadata(token: string, now = new Date()) {
   const { claims, profile, period } = await reimbursementScope(token, now);
   const requests = (await dao.listReimbursementRequests(claims.periodId, claims.profileId)).filter(row => row.profile_id === claims.profileId && row.period_id === claims.periodId);
-  return { recipientName: profile.name, periodId: claims.periodId, periodLabel: new Date(Date.UTC(period.document.year, period.document.month - 1, 1)).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta', month: 'long', year: 'numeric' }), deadline: period.document.correction_deadline, canSubmit: requests.length < 30, requests: requests.map(publicRequest) };
+  return { recipientName: profile.name, periodId: claims.periodId, periodLabel: new Date(Date.UTC(period.document.year, period.document.month - 1, 1)).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta', month: 'long', year: 'numeric' }), deadline: reimbursementDeadline(period.document, claims.profileId), canSubmit: requests.length < 30, requests: requests.map(publicRequest) };
 }
 const submissionSchema = z.object({ submissionId: z.string().uuid(), title: z.string().transform(s => s.replace(/\s+/g, ' ').trim()).pipe(z.string().min(3).max(120)), amount: z.string().regex(/^[0-9]{1,10}$/).transform(Number).pipe(z.number().int().min(1).max(MAX_REIMBURSEMENT_AMOUNT)) });
 export async function submitPublicReimbursement(token: string, form: FormData, now = new Date()) {

@@ -139,3 +139,17 @@
 .automationDate { display:grid; gap:12px; padding:16px 0 0; border:0; max-width:560px; }
 .automationDate p { margin:0; }
 .automationDate button { justify-self:start; }
+
+.recapDelivery { gap: 12px; padding: 16px; }
+.recapDeliveryHead { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; }
+.recapDeliveryHead p { margin: 2px 0 0; }
+.recapDeliveryList { margin: 10px 0 0; padding: 0; list-style: none; }
+.recapDeliveryList li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.recapDeliveryList li:last-child { border-bottom: 0; }
+.recapDeliveryList strong { flex-shrink: 0; }
+.recapDeliveryList small { display: block; }
+.payrollSendDialog { border: 1px solid var(--border); border-radius: 14px; padding: 22px; margin: auto; width: min(400px, calc(100% - 32px)); background: var(--background); color: var(--foreground); box-shadow: 0 16px 48px #0c14333b; }
+.payrollSendDialog::backdrop { background: #0c143380; }
+.payrollSendDialog h2 { margin: 0; font-size: 18px; font-weight: 700; }
+.payrollSendDialog p { margin: 6px 0 18px; }
+.payrollSendDialog .toolbar { justify-content: flex-end; }

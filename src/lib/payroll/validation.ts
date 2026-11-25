@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 const id = z.string().uuid();
+const componentId = z.union([id, z.templateLiteral(['transport-motor-opening:', id])]);
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(v => Number.isFinite(Date.parse(v)) && new Date(v).toISOString().slice(0, 10) === v, 'Tanggal tidak valid');
 const amount = z.number().int().min(-1_000_000_000_000).max(1_000_000_000_000);
 const nonnegative = amount.nonnegative();
@@ -26,8 +27,8 @@ export const payrollCommandSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('assignPic'), ...period, userId: id }),
   z.object({ action: z.literal('reviewCorrection'), ...period, id, status: z.enum(['IN_PROGRESS', 'DONE', 'REJECTED']), reason }),
   z.object({ action: z.literal('reverseTransfer'), ...period, transferId: z.string().min(1).max(300), reason }),
-  z.object({ action: z.literal('component'), ...period, id: id.optional(), profileId: id, date, label: z.string().trim().min(1).max(160), amount, reason }),
-  z.object({ action: z.literal('removeComponent'), ...period, id, reason }),
+  z.object({ action: z.literal('component'), ...period, id: componentId.optional(), profileId: id, date, label: z.string().trim().min(1).max(160), amount, reason }),
+  z.object({ action: z.literal('removeComponent'), ...period, id: componentId, reason }),
   z.object({ action: z.literal('activity'), ...period, profileId: id, date, kind: z.enum(['WEEKLY', 'EKSKUL', 'TRIAL', 'EVENT', 'TRAINING_ONLINE', 'TRAINING_OFFLINE', 'OBSERVATION_ONLINE', 'OBSERVATION_OFFLINE']), mode, delivery: z.enum(['ONLINE', 'OFFLINE']).default('ONLINE'), students: z.number().int().min(1).max(500).default(1), label: z.string().trim().min(1).max(160), reason }),
   z.object({ action: z.literal('removeActivity'), ...period, id, reason }),
   z.object({ action: z.literal('override'), ...period, sourceKey: z.string().min(1).max(300), profileId: id.optional(), amount: nonnegative.optional(), teachingConfirmed:z.boolean().optional(), motorTrip: z.boolean().optional(), quantity: z.number().int().min(0).max(10000).optional(), meetingKeys: z.array(z.string().min(1).max(300)).max(500).optional(), excluded: z.boolean().optional(), mode: mode.optional(), reason }),

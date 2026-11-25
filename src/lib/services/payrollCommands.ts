@@ -65,6 +65,9 @@ export async function executePayrollCommand(command: PayrollCommand, actor: stri
       requireDraft(record); assertComponentDate(`${command.date}T12:00:00+07:00`, next);
       const id = command.id ?? randomUUID();
       if (command.id && !next.manual.some(m => m.id === id)) throw new PayrollError('Komponen tidak ditemukan.');
+      if (id.startsWith(MOTOR_TRIP_OPENING_PREFIX) && id !== `${MOTOR_TRIP_OPENING_PREFIX}${command.profileId}`) {
+        throw new PayrollError('Saldo awal motor hanya dapat dikoreksi pada penerima asal.');
+      }
       next.manual = [...next.manual.filter(m => m.id !== id), { id, profile_id: command.profileId, date: `${command.date}T12:00:00+07:00`, label: command.label, amount: command.amount, reason: command.reason }];
       next.calculated_at = null; break;
     }

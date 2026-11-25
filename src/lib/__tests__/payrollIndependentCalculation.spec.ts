@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { LegacyPayrollSnapshot } from '@/lib/payroll/legacyImport';
 import { createPeriod, DEFAULT_RATES, type PeriodDocument } from '@/lib/payroll/model';
+import { payrollCommandSchema } from '@/lib/payroll/validation';
 
 const mocks = vi.hoisted(() => ({ rows: vi.fn(), commit: vi.fn(), config: vi.fn() }));
 vi.mock('server-only', () => ({}));
@@ -57,5 +58,11 @@ describe('LMS calculation with retained import archives', () => {
     const period = imported(10);
     const { document } = await calculatePayroll({ id: period.id, revision: 1, document: period }, now);
     expect(document.slips[0].lines).toMatchObject([{ kind: 'TRANSPORT', amount: 25_000, summary: true }]);
+  });
+
+  it('accepts a scoped opening transport component ID through the admin correction command', () => {
+    const correction = { action: 'removeComponent', periodId: '2026-11', revision: 3, reason: 'Koreksi saldo awal transport' };
+    expect(payrollCommandSchema.safeParse({ ...correction, id: 'transport-motor-opening:65eb8d3b-f5a5-4a0c-8d4c-6cc8a250c993' }).success).toBe(true);
+    expect(payrollCommandSchema.safeParse({ ...correction, id: 'transport-motor-opening:unrecognized' }).success).toBe(false);
   });
 });

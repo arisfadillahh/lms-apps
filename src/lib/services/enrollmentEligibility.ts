@@ -1,6 +1,9 @@
 import type { EnrollmentRecord } from '@/lib/dao/classesDao';
 
-export function isEnrollmentActiveForSession(enrollment: EnrollmentRecord, sessionDateTime: string | null | undefined) {
+export function isEnrollmentActiveForSession(
+  enrollment: Pick<EnrollmentRecord, 'enrolled_at' | 'ended_at' | 'status'>,
+  sessionDateTime: string | null | undefined,
+) {
   const sessionTime = sessionDateTime ? new Date(sessionDateTime).getTime() : NaN;
   const enrolledTime = enrollment.enrolled_at ? new Date(enrollment.enrolled_at).getTime() : NaN;
   const endedTime = enrollment.ended_at ? new Date(enrollment.ended_at).getTime() : NaN;

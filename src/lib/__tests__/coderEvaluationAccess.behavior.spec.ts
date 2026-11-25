@@ -8,9 +8,9 @@ interface Query extends PromiseLike<Result> {
   in: (key: string, values: unknown[]) => Query;
   order: () => Query;
   limit: (n: number) => Query;
-  maybeSingle: () => Promise<{ data: Row | null; error: null }>;
+  maybeSingle: () => Promise<{ data: Row | null; error: Error | null }>;
 }
-const state = vi.hoisted(() => ({ rows: {} as Record<string, Row[]>, role: 'CODER' }));
+const state = vi.hoisted(() => ({ rows: {} as Record<string, Row[]>, role: 'CODER', failingTable: '' }));
 vi.mock('@/lib/auth', () => ({ getSessionOrThrow: async () => ({ user: { id: 'coder-qa', role: state.role } }) }));
 vi.mock('@/lib/services/aiReports', () => ({ generateDraftReportsForClasses: vi.fn() }));
 vi.mock('@/lib/supabaseServer', () => ({ getSupabaseAdmin: () => ({ from: (table: string) => {
@@ -21,13 +21,16 @@ vi.mock('@/lib/supabaseServer', () => ({ getSupabaseAdmin: () => ({ from: (table
     in: (key, values) => { rows = rows.filter(row => values.includes(row[key])); return query; },
     order: () => query,
     limit: n => { rows = rows.slice(0, n); return query; },
-    maybeSingle: async () => ({ data: rows[0] ?? null, error: null }),
+    maybeSingle: async () => table === state.failingTable
+      ? { data: null, error: new Error('Database temporarily unavailable') }
+      : { data: rows[0] ?? null, error: null },
     then: (resolve, reject) => Promise.resolve<Result>({ data: rows, error: null }).then(resolve, reject),
   };
   return query;
 } }) }));
 
 import { GET } from '@/app/api/coder/block-evaluations/route';
+import { resolveCoderEvaluationDashboardMode } from '@/lib/coderEvaluationDashboard';
 const get = (params: string) => GET(new Request(`http://localhost/api/coder/block-evaluations?${params}`));
 
 describe('Coder catch-up evaluation access', () => {
@@ -35,8 +38,9 @@ describe('Coder catch-up evaluation access', () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-11-24T10:00:00Z'));
     state.role = 'CODER';
+    state.failingTable = '';
     state.rows = {
-      enrollments: [{ id: 'enrollment-qa', coder_id: 'coder-qa', class_id: 'class-qa', status: 'ACTIVE' }],
+      enrollments: [{ id: 'enrollment-qa', coder_id: 'coder-qa', class_id: 'class-qa', status: 'ACTIVE', enrolled_at: '2026-10-01T02:00:00Z', ended_at: null }],
       block_evaluation_sessions: [{ id: 'eval-qa', class_id: 'class-qa', block_id: 'block-qa', session_id: 'session-qa', status: 'in_progress', current_question_index: -1, created_at: '2026-10-10T03:20:47Z' }],
       sessions: [{ id: 'session-qa', class_id: 'class-qa', date_time: '2026-10-10T02:00:00Z', status: 'COMPLETED' }],
       block_evaluation_answers: [{ eval_session_id: 'eval-qa', coder_id: 'coder-qa', question_index: 0, answer: 'Jawaban tersimpan' }],
@@ -46,7 +50,7 @@ describe('Coder catch-up evaluation access', () => {
   it('marks the old unstarted presenter for personal catch-up without advancing or closing it', async () => {
     const response = await get('mode=active&classId=class-qa');
     expect(response.status).toBe(200);
-    expect((await response.json()).activeSession).toMatchObject({ selfPaced: true, current_question_index: -1, status: 'in_progress' });
+    expect((await response.json()).activeSession).toMatchObject({ selfPaced: true, current_question_index: -1, status: 'in_progress', submitted: false });
     expect(state.rows.block_evaluation_sessions[0].current_question_index).toBe(-1);
   });
   it('preserves saved answers when the Coder resumes catch-up', async () => {
@@ -59,6 +63,40 @@ describe('Coder catch-up evaluation access', () => {
   it('keeps a fresh presenter coach-controlled even when class attendance is completed', async () => {
     state.rows.block_evaluation_sessions[0].created_at = new Date().toISOString();
     expect((await (await get('mode=active&classId=class-qa')).json()).activeSession.selfPaced).toBe(false);
+  });
+  it('returns the saved submission for the exact meeting and hides the old dashboard card', async () => {
+    state.rows.block_evaluations = [
+      { id: 'other-submission', coder_id: 'coder-qa', class_id: 'class-qa', block_id: 'block-qa', session_id: 'other-session' },
+    ];
+    const readActive = async () => (await get('mode=active&classId=class-qa')).json();
+    expect((await readActive()).activeSession.submitted).toBe(false);
+    state.rows.block_evaluations.push({ ...state.rows.block_evaluations[0], id: 'submission-qa', session_id: 'session-qa' });
+    const { activeSession, serverTime } = await readActive();
+    expect(activeSession.submitted).toBe(true);
+    expect(resolveCoderEvaluationDashboardMode({
+      status: activeSession.status,
+      createdAt: activeSession.created_at,
+      now: new Date(serverTime),
+      evaluationSubmitted: activeSession.submitted,
+      portfolioStarted: false,
+    })).toBe('HIDDEN');
+  });
+  it('does not announce an evaluation from before enrollment unless the coder has attendance for the meeting', async () => {
+    state.rows.enrollments[0].enrolled_at = '2026-10-11T02:00:00Z';
+    const readActive = async () => (await get('mode=active&classId=class-qa')).json();
+    expect((await readActive()).activeSession).toBeNull();
+    state.rows.attendance = [{ id: 'attendance-qa', session_id: 'session-qa', coder_id: 'coder-qa', status: 'PRESENT' }];
+    expect((await readActive()).activeSession).toMatchObject({ selfPaced: true, submitted: false });
+  });
+  it('responds with an error when submission lookup fails instead of reporting an unfinished evaluation', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    state.failingTable = 'block_evaluations';
+    try {
+      expect((await get('mode=active&classId=class-qa')).status).toBe(500);
+      expect((await get('classId=class-qa&blockId=block-qa&sessionId=session-qa')).status).toBe(500);
+    } finally {
+      log.mockRestore();
+    }
   });
   it('does not give an inactive or other-class Coder access to catch-up', async () => {
     expect((await get('mode=active&classId=other-class')).status).toBe(403);

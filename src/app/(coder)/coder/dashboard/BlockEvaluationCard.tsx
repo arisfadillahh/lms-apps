@@ -17,105 +17,85 @@ type BlockEvaluationCardProps = {
 type ActiveEvaluationSession = {
   id: string;
   block_id: string;
-  session_id: string | null;
-  status: 'in_progress' | 'completed' | string;
+  session_id: string;
+  status: string;
   created_at: string;
-  selfPaced?: boolean;
+  selfPaced: boolean;
+  submitted: boolean;
 };
 
 export default function BlockEvaluationCard({ classId, userId }: BlockEvaluationCardProps) {
-  const [activeSession, setActiveSession] = useState<ActiveEvaluationSession | null>(null);
-  const [mode, setMode] = useState<CoderEvaluationDashboardMode>('HIDDEN');
+  const [card, setCard] = useState<{
+    activeSession: ActiveEvaluationSession;
+    mode: Exclude<CoderEvaluationDashboardMode, 'HIDDEN'>;
+  } | null>(null);
 
   useEffect(() => {
-    if (!classId) return;
+    if (!classId || !userId) return;
 
-    // Initial fetch
-    const fetchActiveEval = async () => {
-      if (!userId) return;
+    const lifetime = new AbortController();
+    let timer: number | undefined;
+    const params = new URLSearchParams({ mode: 'active', classId });
 
-      const activeResponse = await fetch(`/api/coder/block-evaluations?mode=active&classId=${encodeURIComponent(classId)}`, { cache: 'no-store' });
-      if (!activeResponse.ok) return;
-      const activePayload = await activeResponse.json();
-      const data = activePayload.activeSession as ActiveEvaluationSession | null;
+    const refreshCard = async () => {
+      const signal = typeof AbortSignal.timeout === 'function' && typeof AbortSignal.any === 'function'
+        ? AbortSignal.any([lifetime.signal, AbortSignal.timeout(10_000)])
+        : lifetime.signal;
 
-      if (data?.session_id) {
-        // Use the API endpoint since direct Supabase queries might be blocked by RLS
-        const params = new URLSearchParams({
-          classId,
-          blockId: data.block_id,
-          sessionId: data.session_id,
-        });
-        let alreadySubmitted = false;
-        let checkedAt = new Date();
+      try {
+        const response = await fetch(`/api/coder/block-evaluations?${params}`, { cache: 'no-store', signal });
+        if (!response.ok) throw new Error('Gagal memeriksa sesi evaluasi.');
 
-        try {
-          const res = await fetch(`/api/coder/block-evaluations?${params.toString()}`);
-          if (res.ok) {
-            const json = await res.json();
-            alreadySubmitted = json.submitted;
-            const serverTime = Date.parse(json.serverTime);
-            if (Number.isFinite(serverTime)) checkedAt = new Date(serverTime);
-          }
-        } catch {
-          // Keep the evaluation action available when its status check is temporarily unavailable.
-        }
-
-        if (!alreadySubmitted) {
-          setMode('EVALUATION');
-          setActiveSession(data);
+        const { activeSession, serverTime } = await response.json() as {
+          activeSession: ActiveEvaluationSession | null;
+          serverTime: string;
+        };
+        if (lifetime.signal.aborted) return;
+        if (!activeSession || typeof activeSession.submitted !== 'boolean') {
+          setCard(null);
           return;
         }
 
-        const recentMode = resolveCoderEvaluationDashboardMode({
-          status: data.status,
-          createdAt: data.created_at,
-          now: checkedAt,
-          evaluationSubmitted: true,
+        const mode = resolveCoderEvaluationDashboardMode({
+          status: activeSession.status,
+          createdAt: activeSession.created_at,
+          now: new Date(serverTime),
+          evaluationSubmitted: activeSession.submitted,
           portfolioStarted: false,
         });
 
-        if (recentMode !== 'PORTFOLIO') {
-          setMode('HIDDEN');
-          setActiveSession(null);
+        if (mode === 'PORTFOLIO') {
+          const portfolioResponse = await fetch(
+            `/api/coder/portfolios?evaluationSessionId=${encodeURIComponent(activeSession.id)}`,
+            { cache: 'no-store', signal },
+          );
+          if (!portfolioResponse.ok) throw new Error('Gagal memeriksa portofolio evaluasi.');
+          const { portfolios } = await portfolioResponse.json();
+          if (lifetime.signal.aborted) return;
+          const alreadyStarted = (portfolios ?? []).some(
+            (portfolio: { evaluation_session_id?: string | null }) => portfolio.evaluation_session_id === activeSession.id,
+          );
+          setCard(alreadyStarted ? null : { activeSession, mode });
           return;
         }
 
-        let alreadyStartedPortfolio = false;
-        try {
-          const portfolioResponse = await fetch(`/api/coder/portfolios?evaluationSessionId=${data.id}`);
-          const portfolioBody = portfolioResponse.ok ? await portfolioResponse.json() : { portfolios: [] };
-          alreadyStartedPortfolio = (portfolioBody.portfolios || []).some(
-            (portfolio: { evaluation_session_id?: string | null }) => portfolio.evaluation_session_id === data.id,
-          );
-        } catch {
-          // A temporary portfolio API failure must not affect the completed evaluation state.
-        }
-
-        const nextMode = resolveCoderEvaluationDashboardMode({
-          status: data.status,
-          createdAt: data.created_at,
-          now: checkedAt,
-          evaluationSubmitted: true,
-          portfolioStarted: alreadyStartedPortfolio,
-        });
-        setMode(nextMode);
-        setActiveSession(nextMode === 'HIDDEN' ? null : data);
-      } else {
-        setMode('HIDDEN');
-        setActiveSession(null);
+        setCard(mode === 'HIDDEN' ? null : { activeSession, mode });
+      } catch {
+        if (!lifetime.signal.aborted) setCard(null);
+      } finally {
+        if (!lifetime.signal.aborted) timer = window.setTimeout(refreshCard, 5000);
       }
     };
 
-    fetchActiveEval();
-    const timer = window.setInterval(fetchActiveEval, 5000);
-
+    void refreshCard();
     return () => {
-      window.clearInterval(timer);
+      lifetime.abort();
+      window.clearTimeout(timer);
     };
   }, [classId, userId]);
 
-  if (!activeSession || mode === 'HIDDEN') return null;
+  if (!card) return null;
+  const { activeSession, mode } = card;
 
   return (
     <div className={`${styles.card} relative rounded-3xl p-6 mb-6 overflow-hidden shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-500`}>

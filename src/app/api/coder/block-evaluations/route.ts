@@ -3,6 +3,7 @@ import { getSessionOrThrow } from '@/lib/auth';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { generateDraftReportsForClasses } from '@/lib/services/aiReports';
 import { isCoderEvaluationSelfPaced } from '@/lib/coderEvaluationMode';
+import { isEnrollmentActiveForSession } from '@/lib/services/enrollmentEligibility';
 
 export async function POST(req: Request) {
   try {
@@ -158,12 +159,13 @@ export async function GET(req: Request) {
     }
 
     if (mode === 'active' && classId) {
-      const { data: enrollment } = await supabase.from('enrollments')
-        .select('id')
+      const { data: enrollment, error: enrollmentError } = await supabase.from('enrollments')
+        .select('status,enrolled_at,ended_at')
         .eq('class_id', classId)
         .eq('coder_id', session.user.id)
         .eq('status', 'ACTIVE')
         .maybeSingle();
+      if (enrollmentError) throw enrollmentError;
       if (!enrollment) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
       const { data: activeSession, error: activeError } = await (supabase as any)
@@ -175,14 +177,54 @@ export async function GET(req: Request) {
         .limit(1)
         .maybeSingle();
       if (activeError) throw activeError;
-      let selfPaced = false;
-      if (activeSession) {
-        const { data: meeting, error: meetingError } = await supabase.from('sessions')
-          .select('date_time,status').eq('id', activeSession.session_id).eq('class_id', classId).maybeSingle();
-        if (meetingError) throw meetingError;
-        selfPaced = isCoderEvaluationSelfPaced({ status: activeSession.status, createdAt: activeSession.created_at, meetingAt: meeting?.date_time, meetingStatus: meeting?.status }, new Date(serverTime));
+      if (!activeSession?.session_id) {
+        return NextResponse.json({ activeSession: null, serverTime });
       }
-      return NextResponse.json({ activeSession: activeSession ? { ...activeSession, selfPaced } : null, serverTime });
+
+      const [meetingResult, submissionResult] = await Promise.all([
+        supabase.from('sessions')
+          .select('date_time,status')
+          .eq('id', activeSession.session_id)
+          .eq('class_id', classId)
+          .maybeSingle(),
+        supabase.from('block_evaluations')
+          .select('id')
+          .eq('coder_id', session.user.id)
+          .eq('class_id', classId)
+          .eq('block_id', activeSession.block_id)
+          .eq('session_id', activeSession.session_id)
+          .limit(1)
+          .maybeSingle(),
+      ]);
+      if (meetingResult.error) throw meetingResult.error;
+      if (submissionResult.error) throw submissionResult.error;
+      const meeting = meetingResult.data;
+      if (!meeting || meeting.status === 'CANCELLED') {
+        return NextResponse.json({ activeSession: null, serverTime });
+      }
+
+      // Match the coach's evaluation roster, including recorded late joiners.
+      if (!isEnrollmentActiveForSession(enrollment, meeting.date_time)) {
+        const { data: attendance, error: attendanceError } = await supabase.from('attendance')
+          .select('id')
+          .eq('session_id', activeSession.session_id)
+          .eq('coder_id', session.user.id)
+          .limit(1)
+          .maybeSingle();
+        if (attendanceError) throw attendanceError;
+        if (!attendance) return NextResponse.json({ activeSession: null, serverTime });
+      }
+
+      const selfPaced = isCoderEvaluationSelfPaced({
+        status: activeSession.status,
+        createdAt: activeSession.created_at,
+        meetingAt: meeting.date_time,
+        meetingStatus: meeting.status,
+      }, new Date(serverTime));
+      return NextResponse.json({
+        activeSession: { ...activeSession, selfPaced, submitted: Boolean(submissionResult.data) },
+        serverTime,
+      });
     }
 
     if (!blockId) {
@@ -202,7 +244,8 @@ export async function GET(req: Request) {
       query = query.eq('session_id', sessionId);
     }
 
-    const { data } = await query.maybeSingle();
+    const { data, error } = await query.limit(1).maybeSingle();
+    if (error) throw error;
 
     return NextResponse.json({ submitted: !!data, id: data?.id ?? null, serverTime });
   } catch (e) {

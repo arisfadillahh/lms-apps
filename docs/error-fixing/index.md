@@ -4,6 +4,7 @@ Search this file and the linked monthly log before changing related code.
 
 | Date | Reference | Area | Symptom | Monthly log |
 | --- | --- | --- | --- | --- |
+| 2026-11-25 | INTERNAL-20261125-01 | Dashboard Coder | Status evaluasi yang gagal dimuat bisa menampilkan ajakan evaluasi lama | [2026-11](./2026-11.md#internal-20261125-01-dashboard-coder-menampilkan-refleksi-yang-relevan) |
 | 2026-11-24 | INTERNAL-20261124-01 | Coder evaluation catch-up | Old presenter at lobby index -1 trapped Coder in waiting room; dark theme made evaluation CTA unreadable | [2026-11](./2026-11.md#internal-20261124-01-coder-evaluation-catch-up-and-dark-action-contrast) |
 | 2026-11-23 | INTERNAL-20261123-03 | Coder Ekskul dashboard and materials | Progress stayed at zero; previous summary/slides missing; lesson detail ignored dark theme | [2026-11](./2026-11.md#internal-20261123-03-coder-ekskul-dashboard-history-and-material-theme) |
 | 2026-11-23 | INTERNAL-20261123-01 | Holiday funnel | Registration measurement, duplicate orders, delivery diagnostics and mobile invoice flow | [2026-11](./2026-11.md#internal-20261123-01-holiday-funnel-review-branch) |

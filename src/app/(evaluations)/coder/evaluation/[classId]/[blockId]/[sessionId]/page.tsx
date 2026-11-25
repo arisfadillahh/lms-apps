@@ -91,12 +91,20 @@ export default async function BlockEvaluationPage({
           <p className="mt-3 text-white/70">
             Jawaban evaluasimu sudah tersimpan. Kamu tidak perlu mengisi sesi yang sama lagi.
           </p>
-          <Link
-            href="/coder/dashboard"
-            className="mt-7 inline-flex min-h-12 items-center justify-center rounded-2xl bg-white px-6 py-3 font-black text-clevio-navy transition-colors hover:bg-slate-100"
-          >
-            Kembali ke Dashboard
-          </Link>
+          <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href="/coder/materials"
+              className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-white px-6 py-3 font-black text-clevio-navy transition-colors hover:bg-slate-100"
+            >
+              Buka Materi
+            </Link>
+            <Link
+              href="/coder/dashboard"
+              className="inline-flex min-h-12 items-center justify-center rounded-2xl px-6 py-3 font-bold hover:bg-white/10"
+            >
+              Kembali ke Dashboard
+            </Link>
+          </div>
         </section>
       </main>
     );

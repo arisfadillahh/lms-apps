@@ -34,6 +34,25 @@ it('adds one automatic trip for confirmed teaching and honours session exception
 });
 
 describe('payroll calendar and automatic fee policy', () => {
+  it.each([
+    ['EVENT', 180000], ['TRAINING_ONLINE', 25000], ['TRAINING_OFFLINE', 50000],
+  ] as const)('pays fulltime coaches for %s while respecting exclusions and cancellations', (kind, amount) => {
+    const fulltimeActivity = activity({ key: 'paid', user_id: 'u2', kind, mode: 'FULLTIME' });
+    const period = createPeriod(2026, 11);
+    period.overrides.excluded = { excluded: true, reason: 'Dikecualikan oleh admin' };
+    const result = calc([
+      fulltimeActivity, fulltimeActivity,
+      { ...fulltimeActivity, key: 'cancelled', cancelled: true },
+      { ...fulltimeActivity, key: 'excluded' },
+      { ...fulltimeActivity, key: 'staff', user_id: 'staff:p3' },
+    ], period);
+    const coach = result.slips.find(slip => slip.profile_id === 'p2')!;
+    expect(coach.lines.filter(line => line.kind === kind)).toMatchObject([
+      { key: 'cancelled', amount: 0 }, { key: 'excluded', amount: 0 }, { key: 'paid', amount, mode: 'FULLTIME' },
+    ]);
+    expect(coach.total).toBe(3000000 + amount);
+    expect(result.slips.find(slip => slip.profile_id === 'p3')!.total).toBe(3000000);
+  });
   it('keeps all of the 25th and starts a fresh period at midnight WIB on the 26th', () => {
     expect(currentPeriod(new Date('2026-11-25T23:59:59+07:00')).id).toBe('2026-11');
     expect(currentPeriod(new Date('2026-11-26T00:00:00+07:00')).id).toBe('2026-12');

@@ -159,6 +159,13 @@ export function resolveTeachingMode(term: PayrollTerm, activity: { kind: string;
   return activity.mode ?? 'FULLTIME';
 }
 
+const coachActivityFees = new Set<ActivityKind>(['EVENT', 'TRAINING_ONLINE', 'TRAINING_OFFLINE']);
+
+export function isActivityFeeCoveredBySalary(personKind: PersonKind, contract: Contract, kind: ActivityKind, mode: Contract): boolean {
+  if (kind === 'GOAL' || (personKind === 'COACH' && coachActivityFees.has(kind))) return false;
+  return (kind === 'TRIAL' && contract === 'FULLTIME') || mode === 'FULLTIME';
+}
+
 export function calculatePeriod(input: {
   period: PeriodDocument; people: PayrollPerson[]; terms: PayrollTerm[]; cards: RateCard[];
   activities: Activity[]; now?: Date; sourceWarnings?: string[];
@@ -211,7 +218,8 @@ export function calculatePeriod(input: {
     const feeEligible = teachingDecision ?? a.fee_eligible;
     const pendingWarning = attendanceValidationWarning(a.label, a.date, a);
     if (!a.cancelled && pendingWarning && !attendanceOverride) warnings.add(pendingWarning);
-    const nonPayable = a.cancelled || override?.excluded === true || feeEligible === false || (a.kind !== 'GOAL' && ((a.kind === 'TRIAL' && term.contract === 'FULLTIME') || mode === 'FULLTIME'));
+    const nonPayable = a.cancelled || override?.excluded === true || feeEligible === false
+      || isActivityFeeCoveredBySalary(person.kind, term.contract, a.kind, mode);
     let rate = 0;
     if (a.kind === 'WEEKLY' || a.kind === 'EKSKUL') {
       const emptyRosterResolved = a.attendance_status === 'ALL_ABSENT' && a.attendance_expected === 0;

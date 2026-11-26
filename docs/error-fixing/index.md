@@ -4,6 +4,7 @@ Search this file and the linked monthly log before changing related code.
 
 | Date | Reference | Area | Symptom | Monthly log |
 | --- | --- | --- | --- | --- |
+| 2026-11-26 | INTERNAL-20261126-03 | Payroll kegiatan | Event dan training coach dapat Rp0 saat mode fulltime | [2026-11](./2026-11.md#internal-20261126-03-fee-event-dan-training-coach-fulltime) |
 | 2026-11-26 | INTERNAL-20261126-02 | Rekap payroll | Sesi tanpa peserta menampilkan peringatan presensi 0/0 | [2026-11](./2026-11.md#internal-20261126-02-sesi-tanpa-peserta-di-rekap-payroll) |
 | 2026-11-26 | INTERNAL-20261126-01 | Penutupan kelas | Arsip kelas tertahan oleh periode pembayaran yang masih aktif | [2026-11](./2026-11.md#internal-20261126-01-penutupan-kelas-dan-pembayaran-dalam-satu-langkah) |
 | 2026-11-26 | BUG-96E00DD9 | Rubrik dan Rapor Ekskul | Nilai lengkap untuk seluruh sesi Ekskul tersimpan tanpa draf akhir semester | [2026-11](./2026-11.md#bug-96e00dd9-draf-akhir-semester-ekskul-tidak-muncul-dari-rubrik) |

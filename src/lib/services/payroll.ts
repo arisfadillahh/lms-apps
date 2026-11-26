@@ -2,7 +2,7 @@ import 'server-only';
 import * as dao from '@/lib/dao/payrollDao';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { buildPayrollActivities, type AttendanceSource, type SessionSource, type ClassSource, type EnrollmentSource, type LeaveSource, type TrialSource, type AssessmentSource } from '@/lib/payroll/sources';
-import { calculatePeriod, createPeriod, currentPeriod, effective, inPeriod, PayrollError, wibDate, resolveTeachingMode, type Activity, type PeriodRecord, type PeriodDocument } from '@/lib/payroll/model';
+import { calculatePeriod, createPeriod, currentPeriod, effective, inPeriod, isActivityFeeCoveredBySalary, PayrollError, wibDate, resolveTeachingMode, type Activity, type PeriodRecord, type PeriodDocument } from '@/lib/payroll/model';
 import { approvedRequestActivities, type ActivityRequest } from '@/lib/payroll/activityRequests';
 import { attendanceAdmins } from './payrollNotifications';
 import { calculateSynchronizedPeriod } from '@/lib/payroll/synchronizedPeriod';
@@ -76,7 +76,8 @@ export async function payrollMeetingCandidates(period: PeriodDocument, now = new
     const override = period.overrides[m.key];
     const person = override?.profile_id ? config.people.find(p => p.id === override.profile_id) : config.people.find(p => p.user_id === m.user_id);
     const term = person && effective(config.terms.filter(t => t.profile_id === person.id),wibDate(m.date));
-    return { ...m, fee_eligible: m.fee_eligible !== false && (term?.contract === 'MITRA' || (term?.contract === 'FULLTIME' && m.kind !== 'TRIAL' && resolveTeachingMode(term, m, override) === 'MITRA')) };
+    const feeEligible = person && term && !isActivityFeeCoveredBySalary(person.kind, term.contract, m.kind, resolveTeachingMode(term, m, override));
+    return { ...m, fee_eligible: m.fee_eligible !== false && Boolean(feeEligible) };
   });
 }
 

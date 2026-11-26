@@ -18,7 +18,7 @@ import { resolveBlockProgress } from '@/lib/services/classBlockProgress';
 import { normalizeClassMeetingUrl } from '@/lib/classMeetingUrl';
 import { isValidTransferTarget } from '@/lib/services/classTransferPolicy';
 import { getClassMotorTransportRules } from '@/lib/dao/payrollDao';
-import { hasAutomaticMotorTransport } from '@/lib/payroll/transport';
+import { resolveClassTransportType } from '@/lib/payroll/transport';
 
 import EnrollCoderForm from './EnrollCoderForm';
 import CoderJourneyOverride from './CoderJourneyOverride';
@@ -223,12 +223,13 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
         <ClassPayrollMode classId={klass.id} mode={klass.payroll_mode ?? null} />
       </header>
 
-      {deliveryMode === 'OFFLINE' && <ClassMotorTransport
+      <ClassMotorTransport
         classId={klass.id}
         coachId={klass.coach_id}
         coachName={coachMap.get(klass.coach_id) ?? 'coach utama'}
-        enabled={hasAutomaticMotorTransport(motorRules.get(klass.id) ?? [], klass.coach_id, new Date().toISOString())}
-      />}
+        deliveryMode={deliveryMode}
+        transportType={resolveClassTransportType(motorRules.get(klass.id) ?? [], klass.coach_id, new Date().toISOString())}
+      />
 
       <section style={scheduleCardStyle} aria-labelledby="class-lifecycle-title">
         <div style={scheduleCardContentStyle}>

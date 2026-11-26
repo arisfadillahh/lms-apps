@@ -103,7 +103,7 @@ export default function PayrollCorrection({ line, people, profileId, busy, candi
         </label>
         <label className={transport.option}>
           <input type="radio" name="motorTrip" value="NO" defaultChecked={override?.motor_trip === false} />
-          <span><strong>Tanpa transport motor</strong><small>Gunakan saat coach datang dengan kendaraan lain.</small></span>
+          <span><strong>Tanpa biaya motor</strong><small>Pilih untuk transport umum yang diurus langsung oleh admin, atau sesi tanpa ongkos transport.</small></span>
         </label>
       </div>
     </fieldset>}

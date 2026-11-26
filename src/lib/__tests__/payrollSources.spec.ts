@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildPayrollActivities, profilePhone, type TrialSource, type AssessmentSource } from '@/lib/payroll/sources';
 import { createPeriod, type PayrollPerson } from '@/lib/payroll/model';
+import { resolveClassTransportType, type ClassMotorTransportRule } from '@/lib/payroll/transport';
 
 const period = createPeriod(2026, 11);
 const now = new Date('2026-11-26T01:00:00Z');
@@ -29,6 +30,28 @@ it('uses the transport setting effective at the session for the offline class co
     expect(buildPayrollActivities({ ...source, sessions: [{ ...session, ...change }] }).activities[0].automatic_motor_trip).toBeUndefined();
   }
   expect(buildPayrollActivities({ ...source, classes: data.classes }).activities[0].automatic_motor_trip).toBeUndefined();
+});
+
+it('keeps legacy motor trips eligible and distinguishes admin-paid public transport from no transport', () => {
+  const data = base();
+  const rules: ClassMotorTransportRule[] = [
+    { effectiveAt: '2026-11-25T14:00:00+07:00', coachId: 'u1' },
+    { effectiveAt: '2026-11-25T19:00:00+07:00', coachId: null, assignedCoachId: 'u1', transportType: 'PUBLIC_TRANSPORT' },
+    { effectiveAt: '2026-11-25T21:00:00+07:00', coachId: null, assignedCoachId: 'u1', transportType: 'NONE' },
+  ];
+  const date = (time: string) => `2026-11-25T${time}:00+07:00`;
+  expect(resolveClassTransportType(rules, 'u1', date('18:00'))).toBe('MOTOR');
+  expect(resolveClassTransportType(rules, 'u1', date('20:00'))).toBe('PUBLIC_TRANSPORT');
+  expect(resolveClassTransportType(rules, 'u1', date('22:00'))).toBe('NONE');
+  expect(resolveClassTransportType(rules, 'u2', date('22:00'))).toBeNull();
+
+  const activities = buildPayrollActivities({
+    ...data,
+    classes: [{ ...data.classes[0], delivery_mode: 'OFFLINE' }],
+    sessions: ['18:00', '20:00', '22:00'].map(time => ({ ...data.sessions[0], id: time, date_time: date(time) })),
+    classMotorTransport: new Map([['c', rules]]),
+  }).activities;
+  expect(activities.filter(activity => activity.automatic_motor_trip).map(activity => activity.key)).toEqual(['session:18:00']);
 });
 const trial = (id = 't1', patch: Partial<TrialSource> = {}): TrialSource => ({ id, student_name: 'Anak contoh', phone: '081234567890', trial_mode: 'ONLINE', status: 'SCHEDULED', coach_id: 'u1', scheduled_at: '2026-11-20T10:00:00+07:00', duration_minutes: 60, ...patch });
 const submitted = (trialId = 't1', patch: Partial<AssessmentSource> = {}): AssessmentSource => ({ id: `assessment:${trialId}`, trial_id: trialId, coach_id: 'u1', status: 'PENDING_ADMIN_REVIEW', submitted_at: '2026-11-20T11:00:00+07:00', invoice_id: null, payment_confirmed_at: null, coder_id: null, ...patch });

@@ -87,7 +87,7 @@ export default function PayrollDetailDialog({ period, slip, people, meetingCandi
           const f = fields(event);
           void save('component', { profileId: slip.profile_id, date: f.date, label: f.label, amount: Number(f.amount), reason: f.reason }, 'Komponen disimpan dan total diperbarui.');
         }}><fieldset className={styles.form} disabled={busy}>
-          <p className={`${styles.muted} ${styles.wide}`}>Untuk ongkos transport umum, isi tanggal perjalanan, nama kelas, dan ongkos sesuai bukti. Gunakan angka negatif untuk potongan. Tunjangan rutin diatur lewat profil staf.</p>
+          <p className={`${styles.muted} ${styles.wide}`}>Untuk transport umum, catat hanya ongkos yang masih perlu dibayar lewat payroll. Isi tanggal, nama kelas, dan ongkos sesuai bukti. Gunakan angka negatif untuk potongan. Tunjangan rutin diatur lewat profil staf.</p>
           <label className={styles.field}>Tanggal<Input name="date" type="date" defaultValue={`${period.id}-25`} required /></label>
           <label className={styles.field}>Label<Input name="label" placeholder="Transport / tunjangan / potongan" required /></label>
           <label className={styles.field}>Nominal (negatif untuk potongan)<Input name="amount" type="number" step="1" required /></label>

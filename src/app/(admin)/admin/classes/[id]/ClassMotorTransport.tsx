@@ -4,24 +4,33 @@ import { useId, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check, ChevronDown, Route } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { MOTOR_TRIP_RATE } from '@/lib/payroll/transport';
+import { CLASS_TRANSPORT_TYPES, MOTOR_TRIP_RATE, type ClassTransportType } from '@/lib/payroll/transport';
 import styles from '../../payroll/MotorTransport.module.css';
 
-export default function ClassMotorTransport({ classId, coachId, coachName, enabled }: {
+const rate = `Rp${MOTOR_TRIP_RATE.toLocaleString('id-ID')}`;
+const transportOptions: Record<ClassTransportType, { label: string; detail: string }> = {
+  MOTOR: { label: 'Motor', detail: `${rate} otomatis per sesi offline yang selesai dan absensinya terkonfirmasi.` },
+  PUBLIC_TRANSPORT: { label: 'Transport umum', detail: 'Ongkos sesuai bukti diurus langsung oleh admin.' },
+  NONE: { label: 'Tanpa ongkos', detail: 'Pilih untuk coach yang mengajar tanpa penggantian transport.' },
+};
+
+export default function ClassMotorTransport({ classId, coachId, coachName, deliveryMode, transportType }: {
   classId: string;
   coachId: string;
   coachName: string;
-  enabled: boolean;
+  deliveryMode: 'ONLINE' | 'OFFLINE';
+  transportType: ClassTransportType | null;
 }) {
   const router = useRouter();
   const id = useId();
   const editButton = useRef<HTMLButtonElement>(null);
   const [editing, setEditing] = useState(false);
-  const [selected, setSelected] = useState(enabled);
+  const [selected, setSelected] = useState(transportType);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const rate = `Rp${MOTOR_TRIP_RATE.toLocaleString('id-ID')}`;
+  const isOffline = deliveryMode === 'OFFLINE';
+  const status = isOffline ? transportType ? transportOptions[transportType].label : 'Belum dipilih' : 'Tanpa ongkos';
 
   function closeEditor() {
     setEditing(false);
@@ -34,13 +43,13 @@ export default function ClassMotorTransport({ classId, coachId, coachName, enabl
         <span className={styles.symbol}><Route size={20} aria-hidden="true" /></span>
         <div>
           <div className={styles.titleLine}>
-            <h2 id={`${id}-title`}>Transport motor</h2>
-            <span className={styles.status} data-enabled={enabled}>{enabled ? 'Otomatis aktif' : 'Manual'}</span>
+            <h2 id={`${id}-title`}>Transport coach</h2>
+            <span className={styles.status} data-enabled={isOffline && transportType === 'MOTOR'}>{status}</span>
           </div>
-          <p>{coachName} · <strong>{rate}</strong> per sesi offline</p>
+          <p>{isOffline ? <>{coachName} · {transportType === 'MOTOR' ? <><strong>{rate}</strong> otomatis per sesi</> : transportType === 'PUBLIC_TRANSPORT' ? 'Ongkos diurus admin' : 'Kelas tatap muka'}</> : 'Kelas online · Ongkos transport Rp0'}</p>
         </div>
       </div>
-      <button
+      {isOffline && <button
         type="button"
         ref={editButton}
         className={styles.editButton}
@@ -49,58 +58,54 @@ export default function ClassMotorTransport({ classId, coachId, coachName, enabl
         disabled={busy}
         onClick={() => {
           if (editing) { closeEditor(); return; }
-          setSelected(enabled);
+          setSelected(transportType);
           setError('');
           setMessage('');
           setEditing(true);
         }}
       >
-        Atur transport motor
+        Atur transport
         <ChevronDown size={16} aria-hidden="true" />
-      </button>
+      </button>}
     </div>
     <div id={`${id}-editor`} hidden={!editing}>
-      {editing && <form aria-labelledby={`${id}-title`} className={styles.editor} onSubmit={async event => {
+      {isOffline && editing && <form aria-labelledby={`${id}-title`} className={styles.editor} onSubmit={async event => {
         event.preventDefault();
-        if (busy || selected === enabled) return;
+        if (busy || !selected || selected === transportType) return;
         setBusy(true);
         setError('');
         try {
           const response = await fetch(`/api/admin/classes/${classId}/motor-transport`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ coachId, enabled: selected }),
+            body: JSON.stringify({ coachId, transportType: selected }),
           });
           const body = await response.json();
-          if (!response.ok) throw new Error(body.error || 'Gagal menyimpan transport motor.');
-          setMessage(selected ? 'Transport motor otomatis diaktifkan.' : 'Transport motor diubah ke pencatatan manual.');
+          if (!response.ok) throw new Error(body.error || 'Gagal menyimpan pengaturan transport.');
+          setMessage(`Transport disimpan sebagai ${transportOptions[selected].label.toLowerCase()}.`);
           setEditing(false);
           router.refresh();
           requestAnimationFrame(() => editButton.current?.focus());
         } catch (cause) {
-          setError(cause instanceof Error ? cause.message : 'Gagal menyimpan transport motor.');
+          setError(cause instanceof Error ? cause.message : 'Gagal menyimpan pengaturan transport.');
         } finally {
           setBusy(false);
         }
       }}>
         <fieldset className={styles.choices} disabled={busy}>
-          <legend>Cara mencatat transport motor</legend>
+          <legend>Jenis transport coach utama</legend>
           <div className={styles.classOptions}>
-            <label className={styles.option}>
-              <input type="radio" name="classMotor" checked={selected} onChange={() => setSelected(true)} />
-              <span><strong>Otomatis</strong><small>Masuk ke rekap coach utama setelah sesi selesai dan absensi terkonfirmasi.</small></span>
-            </label>
-            <label className={styles.option}>
-              <input type="radio" name="classMotor" checked={!selected} onChange={() => setSelected(false)} />
-              <span><strong>Manual</strong><small>Admin mencatat perjalanan di Koreksi sesi.</small></span>
-            </label>
+            {CLASS_TRANSPORT_TYPES.map(type => <label key={type} className={styles.option}>
+              <input type="radio" name="classTransport" value={type} checked={selected === type} onChange={() => setSelected(type)} />
+              <span><strong>{transportOptions[type].label}</strong><small>{transportOptions[type].detail}</small></span>
+            </label>)}
           </div>
         </fieldset>
         <p className={styles.hint}>Perubahan berlaku untuk sesi berikutnya. Transport coach pengganti diatur lewat Koreksi sesi.</p>
         {error && <p role="alert" className={styles.error}>{error}</p>}
         <div className={styles.actions}>
           <Button type="button" variant="ghost" disabled={busy} onClick={closeEditor}>Batal</Button>
-          <Button type="submit" disabled={busy || selected === enabled}>{busy ? 'Menyimpan…' : 'Simpan pengaturan'}</Button>
+          <Button type="submit" disabled={busy || !selected || selected === transportType}>{busy ? 'Menyimpan…' : 'Simpan pengaturan'}</Button>
         </div>
       </form>}
     </div>

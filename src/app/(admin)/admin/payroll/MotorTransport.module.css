@@ -82,7 +82,7 @@
 }
 
 .choices legend { margin-bottom: 8px; padding: 0; font-size: .88rem; font-weight: 800; }
-.classOptions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.classOptions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(175px, 100%), 1fr)); gap: 8px; }
 .sessionOptions { display: grid; gap: 6px; }
 .option {
   display: flex;

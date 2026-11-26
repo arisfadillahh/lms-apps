@@ -2,7 +2,7 @@ import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { createPeriod, PayrollError, type PayrollPerson, type PayrollTerm, type RateCard, type PayrollSettings, type PeriodRecord, type PeriodDocument } from '@/lib/payroll/model';
-import { CLASS_MOTOR_TRANSPORT_ACTION, type ClassMotorTransportRule } from '@/lib/payroll/transport';
+import { CLASS_MOTOR_TRANSPORT_ACTION, CLASS_TRANSPORT_TYPES, type ClassMotorTransportRule, type ClassTransportType } from '@/lib/payroll/transport';
 
 // Additive tables have local domain types until the next generated DB type refresh.
 function db(): SupabaseClient { return getSupabaseAdmin() as SupabaseClient; }
@@ -61,21 +61,27 @@ export async function getClassMotorTransportRules(classIds: string[]) {
   const rules = new Map<string, ClassMotorTransportRule[]>();
   for (const row of rows) {
     const classId = String(row.entity_key).slice('class:'.length);
-    const after = row.after_data as { coachId?: string | null } | null;
+    const after = row.after_data as Partial<Omit<ClassMotorTransportRule, 'effectiveAt'>> | null;
     const history = rules.get(classId) ?? [];
-    history.push({ effectiveAt: String(row.created_at), coachId: after?.coachId ?? null });
+    history.push({
+      effectiveAt: String(row.created_at),
+      coachId: after?.coachId ?? null,
+      assignedCoachId: after?.assignedCoachId,
+      transportType: after?.transportType && CLASS_TRANSPORT_TYPES.includes(after.transportType) ? after.transportType : undefined,
+    });
     rules.set(classId, history);
   }
   return rules;
 }
 
-export async function saveClassMotorTransportRule(classId: string, coachId: string | null, actorId: string) {
-  // The dated audit event is the setting. Disabling it leaves past entries intact.
+export async function saveClassMotorTransportRule(classId: string, assignedCoachId: string, transportType: ClassTransportType | null, actorId: string) {
+  // Older payroll releases interpret coachId as motor eligibility. Keep it empty
+  // for every other transport type so a rollback cannot pay the motor fee.
   const { error } = await db().from('payroll_audit').insert({
     entity_key: `class:${classId}`,
     action: CLASS_MOTOR_TRANSPORT_ACTION,
     actor_id: actorId,
-    after_data: { coachId },
+    after_data: { coachId: transportType === 'MOTOR' ? assignedCoachId : null, assignedCoachId, transportType },
   });
   fail(error);
 }

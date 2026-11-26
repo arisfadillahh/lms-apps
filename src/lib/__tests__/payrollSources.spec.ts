@@ -9,6 +9,27 @@ const base = () => ({ period, now, sessions: [{ id: 's', class_id: 'c', date_tim
   enrollments: [{ class_id: 'c', coder_id: 'a', enrolled_at: '2026-10-01T00:00:00Z', ended_at: null as string | null, status: 'ACTIVE' }],
   leaves: [] as { session_id: string; status: string; substitute_coach_id: string | null }[], trials: [] as TrialSource[],
   assessments: [] as AssessmentSource[], invoices: [] as { id: string; status: string }[] });
+
+it('uses the transport setting effective at the session for the offline class coach', () => {
+  const data = base();
+  const classMotorTransport = new Map([['c', [
+    { effectiveAt: '2026-11-25T12:00:00+07:00', coachId: 'u1' },
+    { effectiveAt: '2026-11-25T21:00:00+07:00', coachId: null },
+  ]]]);
+  const source = { ...data, classes: [{ ...data.classes[0], delivery_mode: 'OFFLINE' as const }], classMotorTransport };
+  const session = data.sessions[0];
+  expect(buildPayrollActivities(source).activities[0].automatic_motor_trip).toBe(true);
+  for (const change of [
+    { date_time: '2026-11-25T11:59:00+07:00' },
+    { date_time: '2026-11-25T21:00:00+07:00' },
+    { substitute_coach_id: 'u2' },
+    { status: 'CANCELLED' },
+    { status: 'SCHEDULED' },
+  ]) {
+    expect(buildPayrollActivities({ ...source, sessions: [{ ...session, ...change }] }).activities[0].automatic_motor_trip).toBeUndefined();
+  }
+  expect(buildPayrollActivities({ ...source, classes: data.classes }).activities[0].automatic_motor_trip).toBeUndefined();
+});
 const trial = (id = 't1', patch: Partial<TrialSource> = {}): TrialSource => ({ id, student_name: 'Anak contoh', phone: '081234567890', trial_mode: 'ONLINE', status: 'SCHEDULED', coach_id: 'u1', scheduled_at: '2026-11-20T10:00:00+07:00', duration_minutes: 60, ...patch });
 const submitted = (trialId = 't1', patch: Partial<AssessmentSource> = {}): AssessmentSource => ({ id: `assessment:${trialId}`, trial_id: trialId, coach_id: 'u1', status: 'PENDING_ADMIN_REVIEW', submitted_at: '2026-11-20T11:00:00+07:00', invoice_id: null, payment_confirmed_at: null, coder_id: null, ...patch });
 describe('LMS operational sources feed payroll without coach check-in', () => {

@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto';
 import { inPeriod, PayrollError, type Activity, type PeriodDocument, type PayrollPerson } from './model';
 import { attendanceValidationWarning, evaluateStudentAttendance, hasReasonedAttendanceOverride, isEnrollmentAtSession } from './studentAttendanceState';
 
+import { hasAutomaticMotorTransport, type ClassMotorTransportRule } from './transport.ts';
+
 export interface ClassSource { id: string; name: string; type: 'WEEKLY' | 'EKSKUL'; coach_id: string; delivery_mode: 'ONLINE' | 'OFFLINE'; payroll_mode?: 'FULLTIME' | 'MITRA' | null }
 export interface SessionSource { id: string; class_id: string; date_time: string; status: string; substitute_coach_id: string | null; payroll_mode?: 'FULLTIME' | 'MITRA' | null }
 export interface EnrollmentSource { class_id: string; coder_id: string; enrolled_at: string; ended_at: string | null; status: string; users?: { is_active: boolean } }
@@ -15,6 +17,7 @@ export function buildPayrollActivities(input: {
   leaves: LeaveSource[]; trials: TrialSource[]; assessments: AssessmentSource[];
   invoices: { id: string; status: string }[]; now?: Date;
   attendance?: AttendanceSource[]; attendanceRequiredFrom?: string;
+  classMotorTransport?: ReadonlyMap<string, readonly ClassMotorTransportRule[]>;
 }) {
   const { period, sessions, classes, enrollments, leaves, trials, assessments, invoices } = input;
   const now = input.now ?? new Date();
@@ -40,8 +43,12 @@ export function buildPayrollActivities(input: {
     const validation = state ? { attendance_status: state.status, attendance_expected: state.expected, attendance_recorded: state.recorded, attendance_present: state.present, fee_eligible: state.present > 0 } : {};
     const warning = attendanceValidationWarning(klass.name, s.date_time, validation);
     if (warning && !hasReasonedAttendanceOverride(period.overrides[`session:${s.id}`])) warnings.push(warning);
+    const motorRules = input.classMotorTransport?.get(klass.id);
+    const automaticMotorTrip = klass.delivery_mode === 'OFFLINE' && s.status === 'COMPLETED' && !cancelled
+      && payee === klass.coach_id && motorRules && hasAutomaticMotorTransport(motorRules, payee, s.date_time);
     activities.push({ key: `session:${s.id}`, user_id: payee, date: s.date_time, label: klass.name,
       kind: klass.type, delivery: klass.delivery_mode, mode: s.payroll_mode ?? klass.payroll_mode ?? 'FULLTIME', ...(s.payroll_mode ? { session_mode: s.payroll_mode } : {}), students, cancelled, ...validation,
+      ...(automaticMotorTrip ? { automatic_motor_trip: true } : {}),
       details: [klass.type, klass.delivery_mode, `${students} anak aktif`, payee !== klass.coach_id ? 'Coach pengganti' : 'Coach utama',
         !s.payroll_mode && !klass.payroll_mode ? 'Mode belum ditetapkan admin' : ''].filter(Boolean).join(' · ') });
   }

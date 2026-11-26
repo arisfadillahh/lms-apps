@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({ rows: vi.fn(), commit: vi.fn(), config: vi.fn(
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/dao/payrollDao', () => ({
   payrollRows: mocks.rows, getPayrollConfig: mocks.config, commitPayrollPeriod: mocks.commit,
+  getClassMotorTransportRules: async () => new Map(),
 }));
 vi.mock('@/lib/services/payrollNotifications', () => ({ attendanceAdmins: async () => [] }));
 

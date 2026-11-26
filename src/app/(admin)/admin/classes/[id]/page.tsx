@@ -17,6 +17,8 @@ import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonS
 import { resolveBlockProgress } from '@/lib/services/classBlockProgress';
 import { normalizeClassMeetingUrl } from '@/lib/classMeetingUrl';
 import { isValidTransferTarget } from '@/lib/services/classTransferPolicy';
+import { getClassMotorTransportRules } from '@/lib/dao/payrollDao';
+import { hasAutomaticMotorTransport } from '@/lib/payroll/transport';
 
 import EnrollCoderForm from './EnrollCoderForm';
 import CoderJourneyOverride from './CoderJourneyOverride';
@@ -26,6 +28,7 @@ import SetCoderStatusButton from './SetCoderStatusButton';
 import SessionsTable from './SessionsTable';
 import EditCoachForm from './EditCoachForm';
 import ClassPayrollMode from './ClassPayrollMode';
+import ClassMotorTransport from './ClassMotorTransport';
 import AttendanceRecapTable from './AttendanceRecapTable';
 import ChangeClassScheduleModal from './ChangeClassScheduleModal';
 import EditClassLinkModal from './EditClassLinkModal';
@@ -84,12 +87,13 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
     await sessionsDao.ensureFutureSessions(classIdParam);
   }
 
-  const [sessions, enrollments, coaches, coders, allClasses] = await Promise.all([
+  const [sessions, enrollments, coaches, coders, allClasses, motorRules] = await Promise.all([
     sessionsDao.listSessionsByClass(classIdParam),
     classesDao.listEnrollmentsByClass(classIdParam, { includeInactive: true }),
     usersDao.listUsersByRole('COACH'),
     usersDao.listUsersByRole('CODER'),
     classesDao.listClasses(),
+    getClassMotorTransportRules(klass.delivery_mode === 'OFFLINE' ? [klass.id] : []),
   ]);
 
   const classBlocks = await classesDao.getClassBlocks(classIdParam);
@@ -217,6 +221,12 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
           </span>
         </div>
         <ClassPayrollMode classId={klass.id} mode={klass.payroll_mode ?? null} />
+        {klass.delivery_mode === 'OFFLINE' && <ClassMotorTransport
+          classId={klass.id}
+          coachId={klass.coach_id}
+          coachName={coachMap.get(klass.coach_id) ?? 'coach utama'}
+          enabled={hasAutomaticMotorTransport(motorRules.get(klass.id) ?? [], klass.coach_id, new Date().toISOString())}
+        />}
       </header>
 
       <section style={scheduleCardStyle} aria-labelledby="class-lifecycle-title">

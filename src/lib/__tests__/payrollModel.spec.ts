@@ -11,6 +11,28 @@ const now = new Date('2026-11-26T01:00:00Z');
 const activity = (patch: Partial<Activity> = {}): Activity => ({ key: 's1', user_id: 'u1', date: '2026-11-25T19:00:00+07:00', label: 'Kelas', kind: 'WEEKLY', delivery: 'ONLINE', mode: 'MITRA', students: 2, cancelled: false, ...patch });
 function calc(activities: Activity[] = [], period = createPeriod(2026, 11), cards = [{ effective_from: '2026-01-01', rates: structuredClone(DEFAULT_RATES) }]) { return calculatePeriod({ period, people, terms, activities, cards, now }); }
 
+it('adds one automatic trip for confirmed teaching and honours session exceptions and opening balances', () => {
+  const source = activity({ delivery: 'OFFLINE', automatic_motor_trip: true, attendance_status: 'CONFIRMED' });
+  const trip = (activities: Activity[], period = createPeriod(2026, 11)) =>
+    calc(activities, period).slips.flatMap(slip => slip.lines.filter(line => line.kind === 'TRANSPORT'));
+
+  expect(trip([source, source])).toMatchObject([{ amount: 35_000, quantity: 1 }]);
+  expect(trip([{ ...source, attendance_status: 'PENDING' }])).toHaveLength(0);
+  expect(trip([{ ...source, attendance_status: 'ALL_ABSENT' }])).toHaveLength(0);
+
+  const exception = createPeriod(2026, 11);
+  exception.overrides.s1 = { motor_trip: false, reason: 'Datang dengan kendaraan lain' };
+  expect(trip([source], exception)).toHaveLength(0);
+  exception.overrides.s1 = { profile_id: 'p2', reason: 'Coach pengganti' };
+  expect(trip([source], exception)).toHaveLength(0);
+  exception.overrides.s1 = { motor_trip: true, reason: 'Motor dikonfirmasi admin' };
+  expect(trip([source], exception)).toHaveLength(1);
+
+  const opening = createPeriod(2026, 11);
+  opening.manual = [{ id: 'transport-motor-opening:p1', profile_id: 'p1', date: source.date, amount: 35_000, label: 'Saldo awal', reason: 'Trip masuk saldo awal' }];
+  expect(trip([source], opening)).toHaveLength(0);
+});
+
 describe('payroll calendar and automatic fee policy', () => {
   it('keeps all of the 25th and starts a fresh period at midnight WIB on the 26th', () => {
     expect(currentPeriod(new Date('2026-11-25T23:59:59+07:00')).id).toBe('2026-11');

@@ -2,6 +2,7 @@ import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { createPeriod, PayrollError, type PayrollPerson, type PayrollTerm, type RateCard, type PayrollSettings, type PeriodRecord, type PeriodDocument } from '@/lib/payroll/model';
+import { CLASS_MOTOR_TRANSPORT_ACTION, type ClassMotorTransportRule } from '@/lib/payroll/transport';
 
 // Additive tables have local domain types until the next generated DB type refresh.
 function db(): SupabaseClient { return getSupabaseAdmin() as SupabaseClient; }
@@ -52,6 +53,32 @@ export async function getPayrollAudit(periodId: string) {
   const { data, error } = await db().from('payroll_audit').select('id,action,actor_id,reason,revision,created_at').eq('entity_key', `period:${periodId}`).order('created_at', { ascending: false }).limit(100); fail(error); return data ?? [];
 }
 
+export async function getClassMotorTransportRules(classIds: string[]) {
+  const rows = await payrollRows('payroll_audit', 'id,entity_key,created_at,after_data', {
+    eq: ['action', CLASS_MOTOR_TRANSPORT_ACTION],
+    in: ['entity_key', classIds.map((id) => `class:${id}`)],
+  });
+  const rules = new Map<string, ClassMotorTransportRule[]>();
+  for (const row of rows) {
+    const classId = String(row.entity_key).slice('class:'.length);
+    const after = row.after_data as { coachId?: string | null } | null;
+    const history = rules.get(classId) ?? [];
+    history.push({ effectiveAt: String(row.created_at), coachId: after?.coachId ?? null });
+    rules.set(classId, history);
+  }
+  return rules;
+}
+
+export async function saveClassMotorTransportRule(classId: string, coachId: string | null, actorId: string) {
+  // The dated audit event is the setting. Disabling it leaves past entries intact.
+  const { error } = await db().from('payroll_audit').insert({
+    entity_key: `class:${classId}`,
+    action: CLASS_MOTOR_TRANSPORT_ACTION,
+    actor_id: actorId,
+    after_data: { coachId },
+  });
+  fail(error);
+}
 // PostgREST defaults to 1000 rows. Explicit pagination prevents silently dropping
 // older sessions, inactive enrollment history, or previously converted children.
 export async function payrollRows(table: string, select: string, filters: { eq?: [string, string]; gte?: [string, string]; lt?: [string, string]; in?: [string, string[]] } = {}): Promise<Record<string, unknown>[]> {

@@ -52,14 +52,15 @@ async function payrollSourceActivities(period: PeriodDocument, now: Date) {
   ]);
   const classIds = [...new Set(sessions.map(s => s.class_id as string))];
   const invoiceIds = [...new Set(assessments.map(a => a.invoice_id as string).filter(Boolean))];
-  const [classes, enrollments, leaves, invoices, attendance] = await Promise.all([
+  const [classes, enrollments, leaves, invoices, attendance, classMotorTransport] = await Promise.all([
     dao.payrollRows('classes', 'id,name,type,coach_id,delivery_mode,payroll_mode', { in: ['id', classIds] }),
     dao.payrollRows('enrollments', 'id,class_id,coder_id,enrolled_at,ended_at,status,users!inner(is_active)', { in: ['class_id', classIds] }),
     dao.payrollRows('coach_leave_requests', 'id,session_id,status,substitute_coach_id', { in: ['session_id', sessions.map(s => s.id as string)] }),
     dao.payrollRows('invoices', 'id,status', { in: ['id', invoiceIds] }),
     dao.payrollRows('attendance', 'session_id,coder_id,status', { in: ['session_id', sessions.map(s=>s.id as string)] }),
+    dao.getClassMotorTransportRules(classIds),
   ]);
-  const built = buildPayrollActivities({ period, sessions: sessions as unknown as SessionSource[], classes: classes as unknown as ClassSource[], enrollments: enrollments as unknown as EnrollmentSource[], leaves: leaves as unknown as LeaveSource[], trials: trials as unknown as TrialSource[], assessments: assessments as unknown as AssessmentSource[], invoices: invoices as { id: string; status: string }[], attendance:attendance as unknown as AttendanceSource[], attendanceRequiredFrom:attendanceFrom(period), now });
+  const built = buildPayrollActivities({ period, sessions: sessions as unknown as SessionSource[], classes: classes as unknown as ClassSource[], enrollments: enrollments as unknown as EnrollmentSource[], leaves: leaves as unknown as LeaveSource[], trials: trials as unknown as TrialSource[], assessments: assessments as unknown as AssessmentSource[], invoices: invoices as { id: string; status: string }[], attendance:attendance as unknown as AttendanceSource[], attendanceRequiredFrom:attendanceFrom(period), classMotorTransport, now });
   return { activities: [...built.activities, ...approvedRequestActivities(requests as unknown as ActivityRequest[]).filter(a => inPeriod(a.date, period) && Date.parse(a.date) <= now.getTime())], warnings: built.warnings };
 }
 

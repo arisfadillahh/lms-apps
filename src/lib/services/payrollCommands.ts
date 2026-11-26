@@ -95,7 +95,7 @@ export async function executePayrollCommand(command: PayrollCommand, actor: stri
       if (command.profileId) {
         if (!config.people.some(p => p.id === command.profileId && p.active)) throw new PayrollError('Penerima pengganti tidak aktif.');
       }
-      const motorTrip = command.motorTrip ?? next.overrides[command.sourceKey]?.motor_trip;
+      const motorTrip = command.motorTrip === null ? undefined : command.motorTrip ?? next.overrides[command.sourceKey]?.motor_trip;
       if (command.motorTrip === true) {
         const meeting = originalSlip?.attendance_details?.find(entry => entry.key === line.key);
         const recipient = config.people.find(person => person.id === (command.profileId ?? originalSlip?.profile_id));

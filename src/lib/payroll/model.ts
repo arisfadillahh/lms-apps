@@ -3,7 +3,7 @@ import type { LegacyIdentityLink } from './legacyIdentity';
 import { attachAttendanceDetails } from './attendanceDetails.ts';
 import { formatAttendanceRecap } from './attendanceMessage.ts';
 import { attendanceValidationWarning, hasReasonedAttendanceOverride, type StudentAttendanceMetadata } from './studentAttendanceState.ts';
-import { MOTOR_TRIP_RATE } from './transport.ts';
+import { MOTOR_TRIP_OPENING_PREFIX, MOTOR_TRIP_RATE } from './transport.ts';
 
 export type Contract = 'MITRA' | 'FULLTIME';
 export type PersonKind = 'COACH' | 'STAFF';
@@ -35,6 +35,7 @@ export interface Activity extends StudentAttendanceMetadata {
   key: string; user_id: string; date: string; label: string; kind: ActivityKind;
   mode: Contract; session_mode?: Contract; delivery: 'ONLINE' | 'OFFLINE'; students: number; cancelled: boolean;
   details?: string;
+  automatic_motor_trip?: boolean;
 }
 export interface ActivityOverride {
   profile_id?: string; amount?: number; excluded?: boolean; mode?: Contract; reason: string;
@@ -226,11 +227,16 @@ export function calculatePeriod(input: {
     slip.lines.push({ key: a.key, date: a.date, label: a.label, kind: a.kind, quantity: 1, rate, amount, mode, students: a.students,
       ...attendanceMetadata,
       details: [a.details, a.cancelled ? 'Aktivitas dibatalkan' : '', nonPayable && !a.cancelled ? 'Tidak menghasilkan tambahan fee' : ''].filter(Boolean).join(' · '), override_reason: override?.reason });
-    if (override?.motor_trip && ['WEEKLY', 'EKSKUL'].includes(a.kind) && a.delivery === 'OFFLINE'
-      && person.kind === 'COACH' && !a.cancelled && !override.excluded) {
+    const confirmedTeaching = teachingDecision ?? a.attendance_status === 'CONFIRMED';
+    const opening = a.automatic_motor_trip ? p.manual.find(m => m.id === `${MOTOR_TRIP_OPENING_PREFIX}${person.id}`) : undefined;
+    const automaticMotorTrip = a.automatic_motor_trip && confirmedTeaching && person.user_id === a.user_id
+      && (!opening || wibDate(a.date) > wibDate(opening.date));
+    if ((override?.motor_trip ?? automaticMotorTrip) && ['WEEKLY', 'EKSKUL'].includes(a.kind) && a.delivery === 'OFFLINE'
+      && person.kind === 'COACH' && !a.cancelled && !override?.excluded) {
       slip.lines.push({ key: `transport-motor:${a.key}`, date: a.date, label: `Transport motor · ${a.label}`,
         kind: 'TRANSPORT', quantity: 1, rate: MOTOR_TRIP_RATE, amount: MOTOR_TRIP_RATE,
-        details: 'Perjalanan motor dikonfirmasi', override_reason: override.reason });
+        details: override?.motor_trip ? 'Perjalanan motor dikonfirmasi' : 'Transport motor otomatis dari pengaturan kelas',
+        override_reason: override?.motor_trip ? override.reason : undefined });
     }
   }
   for (const m of p.manual) {

@@ -58,7 +58,7 @@ export default function PayrollCorrection({ line, people, profileId, busy, candi
       if (method === 'meetings') extra.meetingKeys = selectedAvailable;
     }
     if (!attendanceOnly) extra.amount = manualAmount ? Number(amount) : undefined;
-    if (canRecordMotor) extra.motorTrip = !excluded && fields.motorTrip === 'on';
+    if (canRecordMotor && !excluded) extra.motorTrip = fields.motorTrip === 'AUTO' ? null : fields.motorTrip === 'YES';
     if(!summary && ['WEEKLY','EKSKUL'].includes(line.kind))extra.teachingConfirmed=teaching==='AUTO'?undefined:teaching==='true';
     save(extra);
   }}><fieldset className={styles.correctionFields} disabled={busy}>
@@ -89,7 +89,13 @@ export default function PayrollCorrection({ line, people, profileId, busy, candi
     {hasFinancials && <div className={styles.correctionEstimate} aria-live="polite"><span>{manualAmount ? 'Nominal khusus' : 'Nominal otomatis'}</span><strong>{invalidCount ? '—' : !manualAmount && nativeCalculationChanged && !excluded ? 'Dihitung saat disimpan' : rupiah(manualAmount ? Number(amount) || 0 : automaticAmount)}</strong>{manualAmount ? <p>Nominal khusus sedang digunakan. Pilih tarif otomatis di Pengaturan lanjutan agar nominal mengikuti jumlah.</p> : nativeCalculationChanged && <p>Nominal mengikuti coach dan mode mengajar yang dipilih setelah disimpan.</p>}</div>}
 
     {!summary && <label className={styles.field}>Coach yang mengajar<select className={styles.select} value={recipient} onChange={event => { setRecipient(event.target.value); setSelected([]); }}>{people.filter(p => p.active || p.id === recipient).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>}
-    {canRecordMotor && <label className={styles.checklabel}><input className={styles.checkbox} type="checkbox" name="motorTrip" defaultChecked={override?.motor_trip} disabled={excluded} /> Perjalanan motor terkonfirmasi · {rupiah(MOTOR_TRIP_RATE)} per trip</label>}
+    {canRecordMotor && <label className={styles.field}>Transport motor
+      <select className={styles.select} name="motorTrip" defaultValue={override?.motor_trip === undefined ? 'AUTO' : override.motor_trip ? 'YES' : 'NO'} disabled={excluded}>
+        <option value="AUTO">Ikuti pengaturan kelas</option>
+        <option value="YES">Catat perjalanan motor · {rupiah(MOTOR_TRIP_RATE)}</option>
+        <option value="NO">Tanpa transport motor untuk sesi ini</option>
+      </select>
+    </label>}
     <label className={styles.field}>Alasan koreksi<Input name="reason" placeholder="Contoh: coach datang ke kelas naik motor" minLength={5} maxLength={1000} defaultValue={override?.reason ?? ''} required /></label>
 
     <details className={`${styles.disclosure} ${styles.correctionAdvanced}`}><summary>Pengaturan lanjutan</summary><div className={styles.correctionAdvancedFields}>

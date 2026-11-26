@@ -13,7 +13,7 @@ import {
   hasVisibleOrGeneratableDraft,
 } from '@/lib/services/aiReportGuards';
 import { getRegularReportWindowDays, isRegularReportWindowActive } from '@/lib/services/reportWindows';
-import { isEnrollmentActiveForSession } from '@/lib/services/enrollmentEligibility';
+import { filterEvaluationEnrollmentsForSession, isEnrollmentActiveForSession } from '@/lib/services/enrollmentEligibility';
 
 const EKSKUL_REVIEW_LEVEL_NAME = 'Ekskul';
 const EKSKUL_REPORT_GENERATION_CONCURRENCY = 4;
@@ -69,6 +69,8 @@ export async function generateBlockReportDescriptions(
   const openai = new OpenAI({
     baseURL: 'https://openrouter.ai/api/v1',
     apiKey,
+    timeout: 12_000,
+    maxRetries: 0,
     defaultHeaders: {
       'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://lms.clevio.co',
       'X-Title': 'Clevio LMS',
@@ -504,11 +506,13 @@ async function getOrCreateEkskulReviewBlock(levelId: string, lessonTitle: string
     .select('*')
     .single();
 
-  if (error) {
-    throw new Error(`Failed to create ekskul review block: ${error.message}`);
+  if (!error) return data;
+  if (error.code === '23505') {
+    const { data: racedBlock, error: lookupError } = await supabase
+      .from('blocks').select('*').eq('level_id', levelId).eq('name', blockName).single();
+    if (!lookupError && racedBlock) return racedBlock;
   }
-
-  return data;
+  throw new Error(`Failed to create ekskul review block: ${error.message}`);
 }
 
 async function getOrCreateEkskulReviewLevelId() {
@@ -578,15 +582,15 @@ async function runWithConcurrency<T>(
     }
   });
 
-  await Promise.all(workers);
+  const results = await Promise.allSettled(workers);
+  const failed = results.find((result) => result.status === 'rejected');
+  if (failed) throw failed.reason;
 }
 
 export async function generateDraftReportsForEkskulSession(
   sessionId: string,
   coachId?: string,
-  options: { validateOnly?: boolean } = {},
 ) {
-  const supabase = getSupabaseAdmin();
   const session = await sessionsDao.getSessionById(sessionId);
   if (!session) {
     throw new Error('Sesi ekskul tidak ditemukan.');
@@ -605,7 +609,38 @@ export async function generateDraftReportsForEkskulSession(
     throw new Error('Forbidden');
   }
 
-  const lessonMap = await computeLessonSchedule(klass.id, klass.level_id, klass.ekskul_lesson_plan_id);
+  const [lessonMap, classSessions] = await Promise.all([
+    computeLessonSchedule(klass.id, klass.level_id, klass.ekskul_lesson_plan_id),
+    sessionsDao.listSessionsByClass(klass.id),
+  ]);
+  return generateEkskulDrafts(klass, session, classSessions, lessonMap, false);
+}
+
+const emptyEkskulDraftResult = () => ({ success: true, count: 0, existing: 0, reportIds: [] as string[] });
+
+export async function reconcileEkskulFinalDrafts(classId: string) {
+  const klass = await classesDao.getClassById(classId);
+  if (!klass || klass.type !== 'EKSKUL' || !klass.ekskul_lesson_plan_id
+    || klass.archived_at || klass.lifecycle_status === 'CANCELLED') return emptyEkskulDraftResult();
+
+  const [lessonMap, classSessions] = await Promise.all([
+    computeLessonSchedule(classId, klass.level_id, klass.ekskul_lesson_plan_id),
+    sessionsDao.listSessionsByClass(classId),
+  ]);
+  const finalSession = classSessions.find((session) => session.status === 'COMPLETED' && lessonMap.get(session.id)?.isEkskulFinalSlot);
+  if (!finalSession) return emptyEkskulDraftResult();
+
+  return generateEkskulDrafts(klass, finalSession, classSessions, lessonMap, true);
+}
+
+async function generateEkskulDrafts(
+  klass: NonNullable<Awaited<ReturnType<typeof classesDao.getClassById>>>,
+  session: NonNullable<Awaited<ReturnType<typeof sessionsDao.getSessionById>>>,
+  classSessions: Awaited<ReturnType<typeof sessionsDao.listSessionsByClass>>,
+  lessonMap: Awaited<ReturnType<typeof computeLessonSchedule>>,
+  automatic: boolean,
+) {
+  const supabase = getSupabaseAdmin();
   const lessonSlot = lessonMap.get(session.id);
   if (!lessonSlot) {
     throw new Error('Lesson ekskul tidak ditemukan untuk sesi ini.');
@@ -614,22 +649,27 @@ export async function generateDraftReportsForEkskulSession(
   const activeEnrollments = (await classesDao.listEnrollmentsByClass(klass.id)).filter(
     (enrollment) => enrollment.status === 'ACTIVE',
   );
-  const activeCoderIds = activeEnrollments.map((enrollment) => enrollment.coder_id);
+  const attendanceRecords = await attendanceDao.listAttendanceBySession(session.id);
+  const reportEnrollments = automatic
+    ? filterEvaluationEnrollmentsForSession(activeEnrollments, session.date_time, attendanceRecords)
+    : activeEnrollments;
+  const activeCoderIds = [...new Set(reportEnrollments.map((enrollment) => enrollment.coder_id))];
   if (activeCoderIds.length === 0) {
+    if (automatic) return emptyEkskulDraftResult();
     throw new Error('Tidak ada coder aktif di kelas ini.');
   }
 
-  const attendanceRecords = await attendanceDao.listAttendanceBySession(session.id);
   const attendedCoderIds = new Set(attendanceRecords.map((record) => record.coder_id));
   const missingAttendanceCount = activeCoderIds.filter((coderId) => !attendedCoderIds.has(coderId)).length;
   if (missingAttendanceCount > 0) {
+    if (automatic) return emptyEkskulDraftResult();
     throw new Error(`Lengkapi ${missingAttendanceCount} presensi coder dulu sebelum generate rapor.`);
   }
 
   const allCriteria = await reportsDao.getEvaluationCriteria();
   const criteriaMap = new Map(allCriteria.map((criteria) => [criteria.id, criteria.name]));
   const criteriaIds = allCriteria.map((criteria) => criteria.id);
-  const classSessions = await sessionsDao.listSessionsByClass(klass.id);
+  if (criteriaIds.length === 0) throw new Error('Kriteria penilaian belum tersedia.');
   const classSessionMap = new Map(classSessions.map((classSession) => [classSession.id, classSession]));
   const reportLessonEntries = [...lessonMap.entries()]
     .map(([sessionId, slot]) => ({ session: classSessionMap.get(sessionId), slot }))
@@ -640,19 +680,21 @@ export async function generateDraftReportsForEkskulSession(
     )
     .sort((a, b) => new Date(a.session.date_time).getTime() - new Date(b.session.date_time).getTime());
   const reportSessionIds = reportLessonEntries.map((entry) => entry.session.id);
+  if (automatic && reportSessionIds.length !== lessonSlot.globalIndex + 1) return emptyEkskulDraftResult();
 
   if (reportSessionIds.length === 0) {
     throw new Error('Tidak ada lesson ekskul selesai yang bisa dihitung untuk rapor ini.');
   }
 
-  const { data: evaluations, error: evaluationsError } = await supabase
-    .from('lesson_evaluations')
-    .select('*')
-    .in('session_id', reportSessionIds)
-    .in('coder_id', activeCoderIds);
-
-  if (evaluationsError) {
-    throw new Error(`Failed to fetch lesson evaluations: ${evaluationsError.message}`);
+  const evaluations: Awaited<ReturnType<typeof reportsDao.getLessonEvaluationsBySession>> = [];
+  const pageSize = 500;
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase.from('lesson_evaluations').select('*')
+      .in('session_id', reportSessionIds).in('coder_id', activeCoderIds)
+      .order('id').range(from, from + pageSize - 1);
+    if (error) throw new Error(`Failed to fetch lesson evaluations: ${error.message}`);
+    evaluations.push(...data);
+    if (data.length < pageSize) break;
   }
 
   const evaluationKeySet = new Set(
@@ -667,7 +709,23 @@ export async function generateDraftReportsForEkskulSession(
     return count + (missingForCoder ? 1 : 0);
   }, 0);
   if (incompleteCurrentEvaluationCount > 0) {
+    if (automatic) return emptyEkskulDraftResult();
     throw new Error(`Nilai lesson sesi ini belum lengkap untuk ${incompleteCurrentEvaluationCount} coder. Lengkapi nilai dulu, lalu generate rapor.`);
+  }
+
+  if (automatic) {
+    const assessmentSessions = reportLessonEntries.filter(({ slot }) => slot.partNumber === slot.totalParts);
+    const finalAssessmentIds = assessmentSessions.map(({ session: assessmentSession }) => assessmentSession.id);
+    const attendance = await attendanceDao.listAttendanceForSessions(finalAssessmentIds);
+    const isJourneyComplete = assessmentSessions.every(({ session: assessmentSession }) => {
+      const records = attendance.filter((record) => record.session_id === assessmentSession.id);
+      const attended = new Set(records.map((record) => record.coder_id));
+      const expected = filterEvaluationEnrollmentsForSession(reportEnrollments, assessmentSession.date_time, records);
+      return expected.every(({ coder_id }) => attended.has(coder_id) && criteriaIds.every((criteriaId) =>
+        evaluationKeySet.has(`${coder_id}:${assessmentSession.id}:${criteriaId}`),
+      ));
+    });
+    if (!isJourneyComplete) return emptyEkskulDraftResult();
   }
 
   const coderScores: Record<string, Record<string, number[]>> = Object.fromEntries(
@@ -719,16 +777,8 @@ export async function generateDraftReportsForEkskulSession(
   }
 
   if (!hasVisibleOrGeneratableDraft(existingReportsForReviewBlock ?? [], activeCoderIds)) {
+    if (automatic) return emptyEkskulDraftResult();
     throw new Error('Rapor sesi ini sudah dikirim ke admin. Cek Admin > Status Rapor, atau reject dari admin kalau perlu dikembalikan ke draft.');
-  }
-
-  if (options.validateOnly) {
-    return {
-      success: true,
-      count: 0,
-      existing: 0,
-      reportIds: [],
-    };
   }
 
   const { data: coderUsers } = await supabase
@@ -743,9 +793,15 @@ export async function generateDraftReportsForEkskulSession(
 
   await runWithConcurrency(activeCoderIds, EKSKUL_REPORT_GENERATION_CONCURRENCY, async (coderId) => {
     const existingReport = await reportsDao.getBlockReport(klass.id, reviewBlock.id, coderId);
-    const shouldRefreshDraft = canRefreshAiDraftReport(existingReport);
+    const shouldRefreshDraft = !automatic && canRefreshAiDraftReport(existingReport);
+    let missingCriteriaIds: Set<string> | null = null;
+    if (automatic && existingReport && canRefreshAiDraftReport(existingReport)) {
+      const descriptions = await reportsDao.getBlockReportDescriptions(existingReport.id);
+      const describedCriteriaIds = new Set(descriptions.map((description) => description.criteria_id));
+      missingCriteriaIds = new Set(criteriaIds.filter((id) => !describedCriteriaIds.has(id)));
+    }
     const skipReason = shouldRefreshDraft ? null : getAiReportGenerationSkipReason(existingReport);
-    if (skipReason) {
+    if (skipReason && !missingCriteriaIds?.size) {
       if (existingReport?.status === 'DRAFT') {
         existingCount++;
         reportIds.push(existingReport.id);
@@ -780,18 +836,27 @@ export async function generateDraftReportsForEkskulSession(
       klass.name,
       reviewBlock.name,
       lessonTitlesText,
-      criteriaInput,
+      missingCriteriaIds ? criteriaInput.filter(({ criteriaId }) => missingCriteriaIds.has(criteriaId)) : criteriaInput,
     );
 
-    const newReport = await reportsDao.upsertBlockReport({
+    const reportInput = {
       classId: klass.id,
       blockId: reviewBlock.id,
       coderId,
-      status: 'DRAFT',
+      status: 'DRAFT' as const,
       averageScore: Number(globalAverage.toFixed(2)),
       grade: finalGrade,
       isAiGenerated: true,
-    });
+    };
+    const newReport = shouldRefreshDraft && existingReport
+      ? await reportsDao.refreshAiDraftReport(existingReport.id, reportInput)
+      : existingReport ?? await reportsDao.insertDraftReportIfMissing(reportInput);
+    if (!newReport) return; // Another run inserted this report without changing any existing state.
+
+    if (automatic && existingReport) {
+      const current = await reportsDao.getBlockReport(klass.id, reviewBlock.id, coderId);
+      if (!canRefreshAiDraftReport(current)) return;
+    }
 
     await reportsDao.upsertBlockReportDescriptions(
       aiDescriptions.map((description) => ({
@@ -800,9 +865,11 @@ export async function generateDraftReportsForEkskulSession(
         score: criteriaInput.find((criteria) => criteria.criteriaId === description.criteriaId)?.score ?? 0,
         description: description.description,
       })),
+      { ignoreDuplicates: automatic },
     );
 
-    generatedCount++;
+    if (existingReport && automatic) existingCount++;
+    else generatedCount++;
     reportIds.push(newReport.id);
   });
 

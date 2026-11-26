@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Save, AlertTriangle, ArrowRight, ArrowLeft, FileText, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,7 +18,7 @@ type EvaluationFormClientProps = {
 
 export default function EvaluationFormClient({ sessionId, students, criteriaList, lessonTitle, blockName, initialScores }: EvaluationFormClientProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -83,36 +83,39 @@ export default function EvaluationFormClient({ sessionId, students, criteriaList
     }, 400);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (isPending) return;
     setErrorMessage('');
     if (!isSubmissionReady) {
       setErrorMessage('Mohon lengkapi semua nilai untuk seluruh murid.');
       return;
     }
 
-    startTransition(async () => {
-      try {
-        const res = await fetch(`/api/coach/evaluations`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId, scores })
-        });
+    setIsPending(true);
+    try {
+      const res = await fetch('/api/coach/evaluations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, scores })
+      });
 
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error || 'Gagal menyimpan nilai.');
-        }
-
-        // Close immediately on success as requested
-        setIsExiting(true);
-        setTimeout(() => {
-            router.push('/coach/rubrics');
-            router.refresh();
-        }, 300);
-      } catch (err: any) {
-        setErrorMessage(err.message);
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Gagal menyimpan nilai.');
+      if (result.reportDraftsFailed) {
+        setErrorMessage('Nilai sudah tersimpan. Draf rapor belum berhasil dibuat. Tekan Simpan lagi untuk mencoba ulang.');
+        return;
       }
-    });
+
+      setIsExiting(true);
+      setTimeout(() => {
+        router.push('/coach/rubrics');
+        router.refresh();
+      }, 300);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Gagal menyimpan nilai.');
+    } finally {
+      setIsPending(false);
+    }
   };
 
   if (!students.length) return <div>No students found.</div>;
@@ -302,6 +305,12 @@ export default function EvaluationFormClient({ sessionId, students, criteriaList
                 </motion.div>
               </AnimatePresence>
             </div>
+
+            {errorMessage && (
+              <p role="alert" className="border-t border-red-100 bg-red-50 px-6 py-3 text-sm font-semibold text-red-800">
+                {errorMessage}
+              </p>
+            )}
 
             {/* Footer */}
             <footer className="shrink-0 bg-slate-50 border-t border-slate-100 px-8 py-5 flex items-center justify-between">

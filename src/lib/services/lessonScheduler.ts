@@ -16,6 +16,7 @@ export type LessonSlot = {
     partNumber: number;      // 1 for first part, 2 for second part, etc.
     totalParts: number;      // Total parts for this lesson (based on duration)
     globalIndex: number;     // Position in the full curriculum cycle
+    isEkskulFinalSlot?: boolean;
     explicitSessionId?: string | null; // Explicit session mapping from class_lessons override
     classLessonId?: string;  // ID from class_lessons to allow reverse mapping
 };
@@ -263,6 +264,7 @@ async function buildEkskulSlots(planId: string): Promise<LessonSlot[]> {
         }
     }
 
+    slots[slots.length - 1].isEkskulFinalSlot = true;
     return slots;
 }
 

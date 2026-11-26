@@ -513,9 +513,8 @@ export async function getEkskulMidtermReport(
   return data;
 }
 
-export async function upsertBlockReport(input: UpsertBlockReportInput): Promise<BlockReportRecord> {
-  const supabase = getSupabaseAdmin();
-  const payload: TablesInsert<'block_reports'> = {
+function blockReportPayload(input: UpsertBlockReportInput): TablesInsert<'block_reports'> {
+  return {
     class_id: input.classId,
     block_id: input.blockId,
     coder_id: input.coderId,
@@ -526,10 +525,12 @@ export async function upsertBlockReport(input: UpsertBlockReportInput): Promise<
     coach_id_snapshot: input.coachIdSnapshot ?? null,
     coach_name_snapshot: input.coachNameSnapshot ?? null,
   };
+}
 
-  const { data, error } = await supabase
+export async function upsertBlockReport(input: UpsertBlockReportInput): Promise<BlockReportRecord> {
+  const { data, error } = await getSupabaseAdmin()
     .from('block_reports')
-    .upsert(payload, { onConflict: 'class_id,block_id,coder_id' })
+    .upsert(blockReportPayload(input), { onConflict: 'class_id,block_id,coder_id' })
     .select('*')
     .single();
 
@@ -540,6 +541,33 @@ export async function upsertBlockReport(input: UpsertBlockReportInput): Promise<
   return data;
 }
 
+export async function insertDraftReportIfMissing(input: UpsertBlockReportInput): Promise<BlockReportRecord | null> {
+  const { data, error } = await getSupabaseAdmin()
+    .from('block_reports')
+    .upsert({ ...blockReportPayload(input), status: 'DRAFT' }, {
+      onConflict: 'class_id,block_id,coder_id',
+      ignoreDuplicates: true,
+    })
+    .select('*')
+    .maybeSingle();
+
+  if (error) throw new Error(`Failed to insert report draft: ${error.message}`);
+  return data;
+}
+
+export async function refreshAiDraftReport(id: string, input: UpsertBlockReportInput): Promise<BlockReportRecord | null> {
+  const { data, error } = await getSupabaseAdmin()
+    .from('block_reports')
+    .update({ average_score: input.averageScore, grade: input.grade })
+    .eq('id', id)
+    .eq('status', 'DRAFT')
+    .eq('is_ai_generated', true)
+    .select('*')
+    .maybeSingle();
+
+  if (error) throw new Error(`Failed to refresh report draft: ${error.message}`);
+  return data;
+}
 export async function getBlockReport(classId: string, blockId: string, coderId: string): Promise<BlockReportRecord | null> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
@@ -591,7 +619,10 @@ export type UpsertBlockReportDescriptionInput = {
   description: string;
 };
 
-export async function upsertBlockReportDescriptions(descriptions: UpsertBlockReportDescriptionInput[]): Promise<void> {
+export async function upsertBlockReportDescriptions(
+  descriptions: UpsertBlockReportDescriptionInput[],
+  { ignoreDuplicates = false } = {},
+): Promise<void> {
   const supabase = getSupabaseAdmin();
   if (descriptions.length === 0) return;
   
@@ -604,7 +635,7 @@ export async function upsertBlockReportDescriptions(descriptions: UpsertBlockRep
 
   const { error } = await supabase
     .from('block_report_descriptions')
-    .upsert(payload, { onConflict: 'report_id,criteria_id' });
+    .upsert(payload, { onConflict: 'report_id,criteria_id', ignoreDuplicates });
 
   if (error) {
     throw new Error(`Failed to upsert block report descriptions: ${error.message}`);

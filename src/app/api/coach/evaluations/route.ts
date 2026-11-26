@@ -1,16 +1,16 @@
 import { after, NextResponse } from 'next/server';
 
-import { getSessionOrThrow } from '@/lib/auth';
+import { getServerAuthSession } from '@/lib/auth';
 import { attendanceDao, sessionsDao, reportsDao, classesDao } from '@/lib/dao';
 import type { UpsertLessonEvaluationInput } from '@/lib/dao/reportsDao';
 import { filterEvaluationEnrollmentsForSession } from '@/lib/services/enrollmentEligibility';
 import { computeLessonSchedule } from '@/lib/services/lessonScheduler';
-import { generateDraftReportsForClasses } from '@/lib/services/aiReports';
+import { generateDraftReportsForClasses, reconcileEkskulFinalDrafts } from '@/lib/services/aiReports';
 
 export async function POST(req: Request) {
   try {
-    const sessionUser = await getSessionOrThrow();
-    if (!sessionUser || sessionUser.user.role !== 'COACH') {
+    const sessionUser = await getServerAuthSession();
+    if (!sessionUser?.user.isActive || sessionUser.user.role !== 'COACH') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -81,6 +81,16 @@ export async function POST(req: Request) {
 
     // Save lesson evaluations
     await reportsDao.upsertLessonEvaluations(evaluationsToUpsert);
+
+    if (klass.type === 'EKSKUL') {
+      try {
+        const result = await reconcileEkskulFinalDrafts(klass.id);
+        return NextResponse.json({ success: true, reportDraftsCreated: result.count });
+      } catch (error) {
+        console.error('[CoachEvaluation] Failed to reconcile Ekskul final drafts', { classId: klass.id, sessionId, error });
+        return NextResponse.json({ success: true, reportDraftsFailed: true });
+      }
+    }
 
     after(async () => {
       try {

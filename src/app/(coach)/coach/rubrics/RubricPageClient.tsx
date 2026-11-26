@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -85,7 +85,7 @@ function EvaluationModal({
   onSaved: (sessionId: string) => void;
 }) {
   const { students, criteriaList, lessonTitle, blockName, sessionId } = data;
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
@@ -115,27 +115,30 @@ function EvaluationModal({
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (isPending) return;
     setErrorMessage('');
     if (!isReady) { setErrorMessage('Lengkapi semua nilai dulu ya.'); return; }
-    startTransition(async () => {
-      try {
-        const res = await fetch('/api/coach/evaluations', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId, scores })
-        });
-        if (!res.ok) {
-          const d = await res.json();
-          throw new Error(d.error || 'Gagal menyimpan nilai.');
-        }
-        // Trigger vanish + close
-        onSaved(sessionId);
-        onClose();
-      } catch (err: any) {
-        setErrorMessage(err.message);
+    setIsPending(true);
+    try {
+      const res = await fetch('/api/coach/evaluations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, scores })
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Gagal menyimpan nilai.');
+      if (result.reportDraftsFailed) {
+        setErrorMessage('Nilai sudah tersimpan. Draf rapor belum berhasil dibuat. Tekan Simpan lagi untuk mencoba ulang.');
+        return;
       }
-    });
+      onSaved(sessionId);
+      onClose();
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Gagal menyimpan nilai.');
+    } finally {
+      setIsPending(false);
+    }
   };
 
   const slideVariants = {
@@ -302,7 +305,7 @@ function EvaluationModal({
           </div>
 
           <div className="flex flex-col items-end gap-1">
-            {errorMessage && <p className="text-xs text-red-500 font-bold">{errorMessage}</p>}
+            {errorMessage && <p role="alert" className="text-xs text-red-500 font-bold">{errorMessage}</p>}
             <button
               onClick={handleSubmit}
               disabled={!isReady || isPending}
@@ -555,7 +558,7 @@ export default function RubricPageClient({ pendingLessons, draftReports }: Rubri
           })}
 
           {/* Draft Reports */}
-          {draftReports.map(report => {
+          {localDrafts.map(report => {
             const gradeLetter = getGradeLetter(Number(report.averageScore || 0));
             return (
               <motion.div

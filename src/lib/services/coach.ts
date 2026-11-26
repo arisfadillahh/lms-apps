@@ -1,5 +1,5 @@
 
-import { attendanceDao, classesDao, sessionsDao, usersDao } from '@/lib/dao';
+import { attendanceDao, classesDao, reportsDao, sessionsDao, usersDao } from '@/lib/dao';
 import type { ClassBlockRecord } from '@/lib/dao/classesDao';
 import { computeLessonSchedule, formatLessonTitle } from '@/lib/services/lessonScheduler';
 import { getSoftwareByBlockId } from '@/lib/dao/blockSoftwareDao';
@@ -273,8 +273,9 @@ export type PendingEvaluationLesson = {
 };
 
 export async function getPendingLessonEvaluationsForCoach(coachId: string): Promise<PendingEvaluationLesson[]> {
-  // 1. Get all classes for this coach
   const classes = await classesDao.listClassesForCoach(coachId);
+  if (classes.length === 0) return [];
+  const criteria = await reportsDao.getEvaluationCriteria();
   const results: PendingEvaluationLesson[] = [];
 
   // 2. For each class, find COMPLETED sessions that belong to the main coach or substitute
@@ -322,16 +323,6 @@ export async function getPendingLessonEvaluationsForCoach(coachId: string): Prom
         continue;
       }
 
-      // 3. RULE: A lesson is pending if ANY active student does NOT have a SUBMITTED or PUBLISHED report for this block.
-      // RULE: A lesson is pending if ANY active student has NO lesson_evaluations for this session.
-      // We check lesson_evaluations directly — block_reports are created separately (H+1 or by system).
-      const { data: existingEvals } = await (await import('@/lib/supabaseServer')).getSupabaseAdmin()
-        .from('lesson_evaluations')
-        .select('coder_id')
-        .eq('session_id', session.id);
-
-      const evaluatedCoderIds = new Set((existingEvals || []).map(e => e.coder_id));
-
       const attendedCoderIds = attendanceBySession.get(session.id) ?? new Set<string>();
       const sessionAttendanceRecords = attendanceRecords.filter((record) => record.session_id === session.id);
       const relevantEnrollments = filterEvaluationEnrollmentsForSession(
@@ -345,8 +336,12 @@ export async function getPendingLessonEvaluationsForCoach(coachId: string): Prom
         (enrollment) => !attendedCoderIds.has(enrollment.coder_id),
       ).length;
 
-      const allEvaluated = relevantEnrollments.every(e => evaluatedCoderIds.has(e.coder_id));
-      if (allEvaluated) continue;
+      const evaluations = await reportsDao.getLessonEvaluationsBySession(session.id);
+      const scores = new Set(evaluations.map(({ coder_id, criteria_id }) => `${coder_id}:${criteria_id}`));
+      const allEvaluated = criteria.length > 0 && relevantEnrollments.every(({ coder_id }) =>
+        criteria.every(({ id }) => scores.has(`${coder_id}:${id}`)),
+      );
+      if (allEvaluated && missingAttendanceCount === 0) continue;
 
 
       // Find all session dates that made up this lesson
@@ -449,7 +444,7 @@ export async function getDraftReportsForCoach(coachId: string): Promise<DraftRep
 
   return (data || []).filter((row) => {
     const klass = Array.isArray(row.classes) ? row.classes[0] : row.classes;
-    if ((klass as any)?.type === 'EKSKUL') return true;
+    if (klass?.type === 'EKSKUL') return true;
     if (classBlockLookupFailed) return true;
     const classBlock = classBlockByKey.get(`${row.class_id}:${row.block_id}`);
     return isRegularReportWindowActive(classBlock, now);

@@ -9,6 +9,13 @@ export type LessonSessionSnapshot = {
   status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
 };
 
+/** A class can teach a complete version that is no longer in the shared curriculum. */
+export function usesArchivedLessonPlan(
+  lessons: ReadonlyArray<{ lesson_templates: { is_archived: boolean } | null }>,
+): boolean {
+  return lessons.length > 0 && lessons.every((lesson) => lesson.lesson_templates?.is_archived === true);
+}
+
 export function hasLessonStarted(
   lessons: ClassLessonSyncCandidate[],
   sessionsById: ReadonlyMap<string, LessonSessionSnapshot>,

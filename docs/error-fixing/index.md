@@ -4,6 +4,7 @@ Search this file and the linked monthly log before changing related code.
 
 | Date | Reference | Area | Symptom | Monthly log |
 | --- | --- | --- | --- | --- |
+| 2026-11-26 | BUG-69181243 | Coach lesson plan | Innovator Senin displayed the shared MakeCode curriculum instead of the class's HTML + JS plan | [2026-11](./2026-11.md#bug-69181243-innovator-senin-used-a-different-block-5-plan) |
 | 2026-11-25 | BUG-C79BF09E | Coach lesson plan | Future lessons from overlapping blocks appeared out of curriculum order | [2026-11](./2026-11.md#bug-c79bf09e-coach-lesson-plan-blocks-interleaved) |
 | 2026-11-25 | INTERNAL-20261125-05 | Rekap Coach | Sidebar sempat menampilkan nama ikon dan rekap sulit dipindai di HP | [2026-11](./2026-11.md#internal-20261125-05-ikon-sidebar-dan-rekap-absensi-coach-di-hp) |
 | 2026-11-25 | INTERNAL-20261125-04 | Payroll | Hasil pengiriman memenuhi halaman dan reimbursement susulan perlu akses khusus penerima | [2026-11](./2026-11.md#internal-20261125-04-pengiriman-susulan-dan-reimbursement-per-penerima) |

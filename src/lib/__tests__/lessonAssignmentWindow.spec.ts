@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  mapSlotsBetweenAssignedSessions,
   resolveForwardAssignmentBlocks,
   resolveForwardAssignmentWindow,
 } from '@/lib/services/lessonAssignmentWindow';
@@ -11,6 +12,30 @@ const sessions = [
   { id: 'session-3', date_time: '2026-06-19T09:15:00.000Z' },
   { id: 'session-4', date_time: '2026-06-26T09:15:00.000Z' },
 ];
+
+describe('lesson schedule display', () => {
+  it('does not put a future lesson into an old unmapped session', () => {
+    const first = { globalIndex: 0, explicitSessionId: 'session-1' };
+    const lastCompleted = { globalIndex: 1, explicitSessionId: 'session-3' };
+    const next = { globalIndex: 2, explicitSessionId: null };
+    const schedule = mapSlotsBetweenAssignedSessions(sessions, [first, lastCompleted, next]);
+
+    expect(schedule.get('session-1')).toBe(first);
+    expect(schedule.has('session-2')).toBe(false);
+    expect(schedule.get('session-3')).toBe(lastCompleted);
+    expect(schedule.get('session-4')).toBe(next);
+  });
+
+  it('fills a matching gap without recycling a slot that already has a session', () => {
+    const first = { globalIndex: 0, explicitSessionId: 'session-1' };
+    const middle = { globalIndex: 1, explicitSessionId: null };
+    const last = { globalIndex: 2, explicitSessionId: 'session-3' };
+    const schedule = mapSlotsBetweenAssignedSessions(sessions, [first, middle, last]);
+
+    expect(schedule.get('session-2')).toBe(middle);
+    expect(schedule.has('session-4')).toBe(false);
+  });
+});
 
 describe('resolveForwardAssignmentWindow', () => {
   it('ignores old lesson and session holes before the latest completed assignment', () => {

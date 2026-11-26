@@ -1,6 +1,6 @@
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import { buildClassLessonOrderIndex, buildClassLessonTitle } from '@/lib/dao/classLessonsDao';
-import { hasClassReachedTemplate, type LessonSessionSnapshot } from '@/lib/lessonTemplateSyncPolicy';
+import { hasClassReachedTemplate, usesArchivedLessonPlan, type LessonSessionSnapshot } from '@/lib/lessonTemplateSyncPolicy';
 import { compareClassBlocksInLessonOrder } from '@/lib/services/lessonBlockOrder';
 import type { TablesRow, TablesUpdate } from '@/types/supabase';
 
@@ -142,10 +142,17 @@ export async function syncClassLessonsStructure(classId: string): Promise<void> 
         if (!templates) continue;
 
         // 3. Fetch existing class_lessons for this block
-        const { data: existingLessons } = await supabase
+        const { data: existingLessons, error: existingError } = await supabase
             .from('class_lessons')
-            .select('*')
+            .select('*, lesson_templates(is_archived)')
             .eq('class_block_id', block.id);
+
+        if (existingError) {
+            throw new Error(`Failed to inspect class lesson plan: ${existingError.message}`);
+        }
+        // The plan already chosen for this class is complete. Shared edits must
+        // not append current curriculum lessons to the class's pinned version.
+        if (usesArchivedLessonPlan(existingLessons ?? [])) continue;
 
         const existingMap = new Map<string, TablesRow<'class_lessons'>[]>(); // template_id -> list of lessons
         existingLessons?.forEach(l => {

@@ -8,6 +8,7 @@ import type { BlockRecord } from '@/lib/dao/blocksDao';
 import { resolveLessonPartNumber } from './lessonPartNumber';
 import { resolveCoachExampleUrl } from './coachLessonContent';
 import { compareClassBlocksInLessonOrder } from './lessonBlockOrder';
+import { mapSlotsBetweenAssignedSessions } from './lessonAssignmentWindow';
 
 export type LessonSlot = {
     lessonTemplate: LessonTemplateRecord;
@@ -197,42 +198,7 @@ export async function computeLessonSchedule(
         .filter(s => s.status !== 'CANCELLED')
         .sort((a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime());
 
-    const result = new Map<string, LessonSlot>();
-    const unassignedSessions: typeof activeSessions = [];
-    const unassignedSlots: LessonSlot[] = [];
-
-    // 1. Assign explicit overrides first
-    // If a lesson has multiple parts and only 1 session override, 
-    // it overwrites so the mapping points to that slot (usually the last parsed if same ID)
-    orderedSlots.forEach(slot => {
-        if (slot.explicitSessionId && activeSessions.some(s => s.id === slot.explicitSessionId)) {
-            result.set(slot.explicitSessionId, slot);
-        } else {
-            unassignedSlots.push(slot);
-        }
-    });
-
-    // Determine which sessions still need mapping
-    activeSessions.forEach(session => {
-        if (!result.has(session.id)) {
-            unassignedSessions.push(session);
-        }
-    });
-
-    // 2. Sequentially assign the remaining sessions to the unassigned slots (no wrap-around).
-    // Using modulo would cause lessons to loop back to the beginning when sessions > slots,
-    // making it appear as if the curriculum jumps back to Lesson 1 mid-series.
-    unassignedSessions.forEach((session, index) => {
-        if (unassignedSlots.length > 0 && index < unassignedSlots.length) {
-            result.set(session.id, unassignedSlots[index]);
-        } else if (unassignedSlots.length === 0 && orderedSlots.length > 0 && index < orderedSlots.length) {
-            // Fallback: all slots were explicitly assigned, use orderedSlots for any remaining
-            result.set(session.id, orderedSlots[index]);
-        }
-        // If index >= slot count: session has no lesson mapping — intentionally left unmapped.
-    });
-
-    return result;
+    return mapSlotsBetweenAssignedSessions(activeSessions, orderedSlots);
 }
 
 import { getSupabaseAdmin } from '@/lib/supabaseServer';

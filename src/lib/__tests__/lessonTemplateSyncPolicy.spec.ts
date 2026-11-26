@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   hasClassReachedTemplate,
   hasLessonStarted,
+  usesArchivedLessonPlan,
   type LessonSessionSnapshot,
 } from '@/lib/lessonTemplateSyncPolicy';
 
@@ -13,6 +14,16 @@ function sessions(...items: LessonSessionSnapshot[]) {
 }
 
 describe('lesson template sync snapshot policy', () => {
+  it('keeps a pinned plan separate from shared curriculum edits', () => {
+    const pinned = { lesson_templates: { is_archived: true } };
+    const shared = { lesson_templates: { is_archived: false } };
+
+    expect(usesArchivedLessonPlan([pinned, pinned])).toBe(true);
+    expect(usesArchivedLessonPlan([pinned, shared])).toBe(false);
+    expect(usesArchivedLessonPlan([pinned, { lesson_templates: null }])).toBe(false);
+    expect(usesArchivedLessonPlan([])).toBe(false);
+  });
+
   it('allows synchronization before the lesson starts', () => {
     expect(hasLessonStarted(
       [{ session_id: 'future' }],

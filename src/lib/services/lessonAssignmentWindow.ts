@@ -8,6 +8,47 @@ export type AssignmentWindowSession = {
   date_time: string;
 };
 
+/** Keep saved links authoritative and infer only slots between their neighbours. */
+export function mapSlotsBetweenAssignedSessions<T extends {
+  globalIndex: number;
+  explicitSessionId?: string | null;
+}>(orderedSessions: ReadonlyArray<{ id: string }>, orderedSlots: readonly T[]): Map<string, T> {
+  const activeIds = new Set(orderedSessions.map((session) => session.id));
+  const explicit = new Map<string, T>();
+  const available: T[] = [];
+  for (const slot of orderedSlots) {
+    if (slot.explicitSessionId && activeIds.has(slot.explicitSessionId)) {
+      explicit.set(slot.explicitSessionId, slot);
+    } else {
+      available.push(slot);
+    }
+  }
+
+  const nextAnchor = new Map<string, number>();
+  let upper = Number.POSITIVE_INFINITY;
+  for (const { id } of [...orderedSessions].reverse()) {
+    nextAnchor.set(id, upper);
+    upper = explicit.get(id)?.globalIndex ?? upper;
+  }
+
+  const result = new Map(explicit);
+  const used = new Set<T>();
+  let lower = -1;
+  for (const { id } of orderedSessions) {
+    const slot = explicit.get(id) ?? available.find((candidate) => (
+      candidate.globalIndex > lower
+      && candidate.globalIndex < (nextAnchor.get(id) ?? Number.POSITIVE_INFINITY)
+      && !used.has(candidate)
+    ));
+    if (slot) {
+      lower = slot.globalIndex;
+      result.set(id, slot);
+      used.add(slot);
+    }
+  }
+  return result;
+}
+
 export type ForwardAssignmentWindow<
   TLesson extends AssignmentWindowLesson,
   TSession extends AssignmentWindowSession,

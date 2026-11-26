@@ -8,6 +8,7 @@ import { dateWib, rupiah } from '@/lib/payroll/presentation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import styles from './PayrollAdmin.module.css';
+import transport from './MotorTransport.module.css';
 import { attendanceStatusLabel } from '@/lib/payroll/studentAttendanceState';
 
 type CorrectionLine = Pick<PayrollLine, 'key' | 'date' | 'label' | 'kind' | 'quantity' | 'mode' | 'students' | 'source_identity' | 'source_counter' | 'attendance_status' | 'summary_before'> & Partial<Pick<PayrollLine, 'rate' | 'quantity_rate' | 'amount' | 'summary' | 'override_reason'>>;
@@ -86,16 +87,26 @@ export default function PayrollCorrection({ line, people, profileId, busy, candi
       {canChooseMeetings && initialQuantity > available.length && !override?.meeting_keys && <p className={styles.meetingIncomplete}>Baru {available.length} dari {initialQuantity} {label} punya detail tanggal yang dapat dipilih. Gunakan Ubah jumlah bila detailnya belum lengkap. Tanggal perlu dilengkapi sebelum rekap detail dikirim.</p>}
     </> : <label className={styles.field}>Pencatatan aktivitas<select className={styles.select} value={String(excluded)} onChange={event => { const next = event.target.value === 'true'; setExcluded(next); if (next) setManualAmount(false); }}><option value="false">Dihitung</option><option value="true">Tidak dihitung</option></select></label>}
 
-    {hasFinancials && <div className={styles.correctionEstimate} aria-live="polite"><span>{manualAmount ? 'Nominal khusus' : 'Nominal otomatis'}</span><strong>{invalidCount ? '—' : !manualAmount && nativeCalculationChanged && !excluded ? 'Dihitung saat disimpan' : rupiah(manualAmount ? Number(amount) || 0 : automaticAmount)}</strong>{manualAmount ? <p>Nominal khusus sedang digunakan. Pilih tarif otomatis di Pengaturan lanjutan agar nominal mengikuti jumlah.</p> : nativeCalculationChanged && <p>Nominal mengikuti coach dan mode mengajar yang dipilih setelah disimpan.</p>}</div>}
+    {hasFinancials && <div className={styles.correctionEstimate} aria-live="polite"><span>{canRecordMotor ? (manualAmount ? 'Fee mengajar khusus' : 'Fee mengajar sesi') : (manualAmount ? 'Nominal khusus' : 'Nominal otomatis')}</span><strong>{invalidCount ? '—' : !manualAmount && nativeCalculationChanged && !excluded ? 'Dihitung saat disimpan' : rupiah(manualAmount ? Number(amount) || 0 : automaticAmount)}</strong>{manualAmount ? <p>Nominal khusus sedang digunakan. Pilih tarif otomatis di Pengaturan lanjutan agar nominal mengikuti jumlah.</p> : nativeCalculationChanged && <p>Nominal mengikuti coach dan mode mengajar yang dipilih setelah disimpan.</p>}</div>}
 
     {!summary && <label className={styles.field}>Coach yang mengajar<select className={styles.select} value={recipient} onChange={event => { setRecipient(event.target.value); setSelected([]); }}>{people.filter(p => p.active || p.id === recipient).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>}
-    {canRecordMotor && <label className={styles.field}>Transport motor
-      <select className={styles.select} name="motorTrip" defaultValue={override?.motor_trip === undefined ? 'AUTO' : override.motor_trip ? 'YES' : 'NO'} disabled={excluded}>
-        <option value="AUTO">Ikuti pengaturan kelas</option>
-        <option value="YES">Catat perjalanan motor · {rupiah(MOTOR_TRIP_RATE)}</option>
-        <option value="NO">Tanpa transport motor untuk sesi ini</option>
-      </select>
-    </label>}
+    {canRecordMotor && <fieldset className={transport.choices} disabled={excluded}>
+      <legend>Transport motor sesi ini</legend>
+      <div className={transport.sessionOptions}>
+        <label className={transport.option}>
+          <input type="radio" name="motorTrip" value="AUTO" defaultChecked={override?.motor_trip === undefined} />
+          <span><strong>Ikuti pengaturan kelas</strong><small>Terapkan aturan kelas yang berlaku pada tanggal sesi ini.</small></span>
+        </label>
+        <label className={transport.option}>
+          <input type="radio" name="motorTrip" value="YES" defaultChecked={override?.motor_trip === true} />
+          <span><strong>Catat perjalanan motor</strong><small>Tambahkan {rupiah(MOTOR_TRIP_RATE)} untuk coach yang mengajar.</small></span>
+        </label>
+        <label className={transport.option}>
+          <input type="radio" name="motorTrip" value="NO" defaultChecked={override?.motor_trip === false} />
+          <span><strong>Tanpa transport motor</strong><small>Gunakan saat coach datang dengan kendaraan lain.</small></span>
+        </label>
+      </div>
+    </fieldset>}
     <label className={styles.field}>Alasan koreksi<Input name="reason" placeholder="Contoh: coach datang ke kelas naik motor" minLength={5} maxLength={1000} defaultValue={override?.reason ?? ''} required /></label>
 
     <details className={`${styles.disclosure} ${styles.correctionAdvanced}`}><summary>Pengaturan lanjutan</summary><div className={styles.correctionAdvancedFields}>

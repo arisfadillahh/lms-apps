@@ -221,13 +221,14 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
           </span>
         </div>
         <ClassPayrollMode classId={klass.id} mode={klass.payroll_mode ?? null} />
-        {klass.delivery_mode === 'OFFLINE' && <ClassMotorTransport
-          classId={klass.id}
-          coachId={klass.coach_id}
-          coachName={coachMap.get(klass.coach_id) ?? 'coach utama'}
-          enabled={hasAutomaticMotorTransport(motorRules.get(klass.id) ?? [], klass.coach_id, new Date().toISOString())}
-        />}
       </header>
+
+      {deliveryMode === 'OFFLINE' && <ClassMotorTransport
+        classId={klass.id}
+        coachId={klass.coach_id}
+        coachName={coachMap.get(klass.coach_id) ?? 'coach utama'}
+        enabled={hasAutomaticMotorTransport(motorRules.get(klass.id) ?? [], klass.coach_id, new Date().toISOString())}
+      />}
 
       <section style={scheduleCardStyle} aria-labelledby="class-lifecycle-title">
         <div style={scheduleCardContentStyle}>

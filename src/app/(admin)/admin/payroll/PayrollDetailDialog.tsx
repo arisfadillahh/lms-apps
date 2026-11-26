@@ -26,7 +26,7 @@ export default function PayrollDetailDialog({ period, slip, people, meetingCandi
   const [view, setView] = useState<View>('overview');
   const [correction, setCorrection] = useState<PayrollLine | null>(null);
   const [sessionFilter, setSessionFilter] = useState<{ kind: string; label: string } | 'pending' | null>(null);
-  const correctionBack = useRef<View>('overview');
+  const [correctionBack, setCorrectionBack] = useState<View>('overview');
   const backButton = useRef<HTMLButtonElement>(null);
   const body = useRef<HTMLDivElement>(null), alert = useRef<HTMLParagraphElement>(null);
   const componentButton = useRef<HTMLButtonElement>(null), activityButton = useRef<HTMLButtonElement>(null);
@@ -36,7 +36,7 @@ export default function PayrollDetailDialog({ period, slip, people, meetingCandi
   const sessionLines = slip.lines.filter(line => !line.summary && !['SALARY','ALLOWANCE','ADJUSTMENT'].includes(line.kind));
   const visibleSessions = sessionLines.filter(line => sessionFilter === 'pending' ? needsAttendance(line)
     : !sessionFilter || (line.kind === sessionFilter.kind && payrollSessionLabel(slip, line) === sessionFilter.label));
-  const backView = view === 'correction' ? correctionBack.current : 'overview';
+  const backView = view === 'correction' ? correctionBack : 'overview';
   const title = { sessions: sessionFilter === 'pending' ? 'Absensi belum lengkap' : sessionFilter?.label ?? 'Daftar sesi', overview: `Rincian ${slip.name}`, component: 'Tambahan / potongan', activity: 'Aktivitas manual', correction: 'Koreksi aktivitas' }[view];
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export default function PayrollDetailDialog({ period, slip, people, meetingCandi
     clearFeedback(); previousView.current = view; setView(next);
   }
   function correct(line: PayrollLine) {
-    correctionBack.current = view; setCorrection(line); changeView('correction');
+    setCorrectionBack(view); setCorrection(line); changeView('correction');
   }
   async function save(action: string, extra: Record<string, unknown>, success: string) {
     if (await run(action, extra, success)) { previousView.current = view; setView(backView); }
@@ -87,7 +87,7 @@ export default function PayrollDetailDialog({ period, slip, people, meetingCandi
           const f = fields(event);
           void save('component', { profileId: slip.profile_id, date: f.date, label: f.label, amount: Number(f.amount), reason: f.reason }, 'Komponen disimpan dan total diperbarui.');
         }}><fieldset className={styles.form} disabled={busy}>
-          <p className={`${styles.muted} ${styles.wide}`}>Khusus periode ini. Nominal negatif menjadi potongan; tunjangan rutin diatur lewat profil staf.</p>
+          <p className={`${styles.muted} ${styles.wide}`}>Untuk ongkos transport umum, isi tanggal perjalanan, nama kelas, dan ongkos sesuai bukti. Gunakan angka negatif untuk potongan. Tunjangan rutin diatur lewat profil staf.</p>
           <label className={styles.field}>Tanggal<Input name="date" type="date" defaultValue={`${period.id}-25`} required /></label>
           <label className={styles.field}>Label<Input name="label" placeholder="Transport / tunjangan / potongan" required /></label>
           <label className={styles.field}>Nominal (negatif untuk potongan)<Input name="amount" type="number" step="1" required /></label>

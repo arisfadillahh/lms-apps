@@ -214,7 +214,8 @@ export function calculatePeriod(input: {
     const nonPayable = a.cancelled || override?.excluded === true || feeEligible === false || (a.kind !== 'GOAL' && ((a.kind === 'TRIAL' && term.contract === 'FULLTIME') || mode === 'FULLTIME'));
     let rate = 0;
     if (a.kind === 'WEEKLY' || a.kind === 'EKSKUL') {
-      if (a.students <= 0 && !a.cancelled && !override?.excluded && teachingDecision !== false && override?.amount === undefined) warnings.add(`Tidak ada peserta aktif: ${a.label}`);
+      const emptyRosterResolved = a.attendance_status === 'ALL_ABSENT' && a.attendance_expected === 0;
+      if (a.students <= 0 && !emptyRosterResolved && !a.cancelled && !override?.excluded && teachingDecision !== false && override?.amount === undefined) warnings.add(`Tidak ada peserta aktif: ${a.label}`);
       rate = a.students > 0 ? card.rates[`${a.kind}_${a.delivery}`][Math.min(a.students, 3) - 1] : 0;
     } else rate = card.rates[a.kind];
     const amount = financialDecision ? money(override!.amount!) : nonPayable ? 0 : rate;

@@ -40,7 +40,13 @@ export function buildPayrollActivities(input: {
     const students = roster.size;
     const state = !cancelled && cutoff !== null && Date.parse(s.date_time) >= cutoff
       ? evaluateStudentAttendance(roster, (input.attendance ?? []).filter(row => row.session_id === s.id)) : null;
-    const validation = state ? { attendance_status: state.status, attendance_expected: state.expected, attendance_recorded: state.recorded, attendance_present: state.present, fee_eligible: state.present > 0 } : {};
+    const validation = state ? {
+      attendance_status: state.expected === 0 ? 'ALL_ABSENT' as const : state.status,
+      attendance_expected: state.expected,
+      attendance_recorded: state.recorded,
+      attendance_present: state.present,
+      fee_eligible: state.present > 0,
+    } : {};
     const warning = attendanceValidationWarning(klass.name, s.date_time, validation);
     if (warning && !hasReasonedAttendanceOverride(period.overrides[`session:${s.id}`])) warnings.push(warning);
     const motorRules = input.classMotorTransport?.get(klass.id);

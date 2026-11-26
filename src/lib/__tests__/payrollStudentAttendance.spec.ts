@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateStudentAttendance, isEnrollmentAtSession } from '@/lib/payroll/studentAttendanceState';
+import { attendanceStatusLabel, evaluateStudentAttendance, isEnrollmentAtSession } from '@/lib/payroll/studentAttendanceState';
 import { buildPayrollActivities, type AttendanceSource, type AssessmentSource, type TrialSource } from '@/lib/payroll/sources';
 import { calculatePeriod, createPeriod, DEFAULT_RATES, finalize, resolveTeachingMode, type ActivityOverride, type PayrollPerson, type Slip } from '@/lib/payroll/model';
 import { payrollActivitySummary, payrollSessionLabel, payrollSlipRows } from '@/lib/payroll/presentation';
@@ -92,6 +92,20 @@ describe('attendance validated coach class fees with explicit cutover', () => {
     const { p, line } = calculate(input);
     expect(line).toMatchObject({ students: 3, rate: 100000, amount: 100000, attendance_status: 'PARTIAL', attendance_recorded: 1, attendance_present: 1, fee_eligible: true });
     expect(p.warnings).toHaveLength(1); expect(() => finalize(p, 'admin', now)).toThrow(/peringatan/);
+  });
+  it('keeps a completed session after all enrollments end as zero fee without blocking payroll', () => {
+    const input = fixture();
+    input.enrollments = input.enrollments.map(e => ({
+      ...e, status: 'INACTIVE', ended_at: '2026-11-11T23:59:59+07:00',
+    }));
+    const { p, line, slip } = calculate(input);
+    expect(line).toMatchObject({
+      quantity: 1, students: 0, amount: 0, attendance_status: 'ALL_ABSENT',
+      attendance_expected: 0, attendance_recorded: 0, attendance_present: 0, fee_eligible: false,
+    });
+    expect(attendanceStatusLabel(slip.attendance_details![0])).toBe('Tidak ada peserta aktif');
+    expect(p.warnings).toEqual([]);
+    expect(finalize(p, 'admin', now).status).toBe('FINAL');
   });
   it('validates a past scheduled session without a separate coach check-in, using student attendance only', () => {
     const input = fixture(); input.sessions[0].status = 'SCHEDULED'; input.attendance = recorded(['PRESENT', 'ABSENT', 'EXCUSED']);

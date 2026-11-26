@@ -49,7 +49,7 @@ export function attendanceStatusLabel(metadata: StudentAttendanceMetadata): stri
   if (metadata.teaching_confirmed === true) return 'Mengajar dikonfirmasi admin';
   if (metadata.attendance_status === 'PENDING') return 'Menunggu absensi siswa';
   if (metadata.attendance_status === 'PARTIAL') return 'Absensi siswa belum lengkap';
-  if (metadata.attendance_status === 'ALL_ABSENT') return 'Tidak ada siswa hadir';
+  if (metadata.attendance_status === 'ALL_ABSENT') return metadata.attendance_expected === 0 ? 'Tidak ada peserta aktif' : 'Tidak ada siswa hadir';
   return null;
 }
 export function projectStudentAttendance(metadata: StudentAttendanceMetadata): StudentAttendanceMetadata {

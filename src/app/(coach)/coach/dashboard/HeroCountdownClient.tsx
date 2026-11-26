@@ -6,6 +6,7 @@ import SubstituteBadge from '@/components/coach/SubstituteBadge';
 import MitraBadge from '@/components/coach/MitraBadge';
 import { format, differenceInSeconds } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
+import { BookOpen, CalendarDays, DoorOpen, Hourglass } from 'lucide-react';
 
 interface LessonInfo {
     title: string;
@@ -52,79 +53,65 @@ export default function HeroCountdownClient({ session }: { session: NextSessionP
         return () => clearInterval(interval);
     }, [session.date_time]);
 
+    const actionClass = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm font-bold text-white transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:bg-white/5';
+
     return (
-        <div className="relative w-full z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                    <span className="flex items-center gap-1.5 px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-full text-[10px] font-bold text-red-400 uppercase tracking-widest">
-                        <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                        </span>
-                        {timeLeft.isLive ? 'LIVE NOW' : 'LIVE SOON'}
+        <div className="@container relative z-10 grid min-w-0 gap-3">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
+                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2.5 py-1 font-bold text-emerald-200">
+                    <span aria-hidden="true" className="size-1.5 rounded-full bg-emerald-400" />
+                    {timeLeft.isLive ? 'Sesi berlangsung' : 'Sesi mendatang'}
+                </span>
+                <time dateTime={session.date_time} className="inline-flex min-w-0 items-center gap-1.5 text-slate-200">
+                    <CalendarDays size={14} className="shrink-0" aria-hidden="true" />
+                    <span>{format(new Date(session.date_time), "EEEE, dd MMM \u2022 HH:mm 'WIB'", { locale: localeId })}</span>
+                </time>
+                {!timeLeft.isLive && (
+                    <span className="inline-flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-slate-300">
+                        <span className="inline-flex items-center gap-1.5"><Hourglass size={13} aria-hidden="true" /> Mulai dalam</span>
+                        <strong className="tabular-nums text-white">
+                            {timeLeft.days > 0 ? `${String(timeLeft.days).padStart(2, '0')}d ` : ''}
+                            {String(timeLeft.hours).padStart(2, '0')}h{' '}
+                            {String(timeLeft.minutes).padStart(2, '0')}m{' '}
+                            {String(timeLeft.seconds).padStart(2, '0')}s
+                        </strong>
                     </span>
-                    <div className="h-4 w-px bg-white/10"></div>
-                    <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase tracking-widest">
-                        <span className="material-symbols-outlined text-sm">timer</span>
-                        {timeLeft.isLive ? 'Sesi Berlangsung' : 'Sesi Mendatang'}
-                    </div>
-                </div>
-                <div>
-                    <h2 className="text-3xl font-extrabold tracking-tight mb-2">{session.class_name}</h2>
-                    {session.isMitraSession && <MitraBadge />}
-                    {session.isSubstitute && (
-                        <SubstituteBadge coachName={session.replacedCoachName} />
-                    )}
-                    <div className="flex flex-wrap items-center gap-4 mb-3">
-                        <p className="text-slate-300 text-sm flex items-center gap-2">
-                            <span className="material-symbols-outlined text-sm text-slate-400">schedule</span>
-                            {format(new Date(session.date_time), "EEEE, dd MMMM \u2022 HH:mm 'WIB'", { locale: localeId })}
-                        </p>
-                        {session.lesson && (
-                            <div className="px-3 py-1 bg-white/5 rounded-lg border border-white/10 flex items-center gap-2">
-                                <span className="text-[10px] font-bold text-emerald-400 uppercase">Materi</span>
-                                <span className="text-sm font-bold text-white">{session.lesson.title}</span>
+                )}
+            </div>
+            <div className="grid min-w-0 gap-3 @min-[32rem]:flex @min-[32rem]:flex-wrap @min-[32rem]:items-end @min-[32rem]:justify-between">
+                <div className="min-w-0 @min-[32rem]:flex-[1_1_12rem]">
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
+                        <h2 className="min-w-0 wrap-anywhere text-xl font-extrabold leading-tight tracking-tight @min-[32rem]:text-2xl">{session.class_name}</h2>
+                        {(session.isMitraSession || session.isSubstitute) && (
+                            <div className="flex min-w-0 flex-wrap items-center gap-2 wrap-anywhere [&>*]:my-0 [&_svg]:shrink-0 @max-[22rem]:[&_span[aria-hidden=true]]:hidden">
+                                {session.isMitraSession && <MitraBadge />}
+                                {session.isSubstitute && <SubstituteBadge coachName={session.replacedCoachName} />}
                             </div>
                         )}
                     </div>
-                    {!timeLeft.isLive && (
-                        <div className="inline-flex bg-black/30 border border-white/10 px-4 py-2 rounded-xl text-xs font-bold text-emerald-400 items-center gap-2">
-                            <span className="material-symbols-outlined text-emerald-400 animate-pulse text-sm">hourglass_empty</span>
-                            MULAI DALAM
-                            <span className="text-white ml-1 text-sm tracking-wider">
-                                {timeLeft.days > 0 ? `${String(timeLeft.days).padStart(2, '0')}d ` : ''}
-                                {String(timeLeft.hours).padStart(2, '0')}h{' '}
-                                {String(timeLeft.minutes).padStart(2, '0')}m{' '}
-                                {String(timeLeft.seconds).padStart(2, '0')}s
-                            </span>
-                        </div>
+                    {session.lesson && (
+                        <p className="mt-1 wrap-anywhere text-sm leading-snug text-slate-200">
+                            <span className="mr-1.5 font-semibold text-emerald-200">Materi</span>
+                            {session.lesson.title}
+                        </p>
                     )}
                 </div>
-            </div>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mt-6 md:mt-0 w-full md:w-auto md:ml-auto md:justify-end">
-                {timeLeft.isZoomActive ? (
-                    <Link href={`/coach/sessions/${session.id}/attendance`} className="w-full sm:w-auto justify-center px-6 py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-2xl border border-white/10 transition-all flex items-center gap-2 backdrop-blur-sm transform hover:-translate-y-0.5 active:translate-y-0">
-                        <span className="material-symbols-outlined">meeting_room</span>
-                        <span className="hidden sm:inline">Buka Kelas</span>
-                    </Link>
-                ) : (
-                    <div className="relative group">
-                        <button disabled className="w-full sm:w-auto justify-center px-8 py-4 bg-slate-800/50 text-slate-500 font-bold rounded-2xl border border-slate-700/50 flex items-center gap-2 cursor-not-allowed">
-                            <span className="material-symbols-outlined opacity-50">door_front</span>
-                            Buka Kelas
+                <div className="grid max-w-full grid-cols-[repeat(auto-fit,minmax(min(100%,7.75rem),1fr))] gap-2 @min-[25rem]:flex @min-[25rem]:flex-wrap">
+                    {timeLeft.isZoomActive ? (
+                        <Link href={`/coach/sessions/${session.id}/attendance`} className={actionClass}>
+                            <DoorOpen size={16} aria-hidden="true" /> Buka Kelas
+                        </Link>
+                    ) : (
+                        <button type="button" disabled title="Tersedia saat 30 menit sebelum kelas" className={actionClass}>
+                            <DoorOpen size={16} aria-hidden="true" /> Buka Kelas
                         </button>
-                        <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none -top-12 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-bold px-4 py-2 rounded-xl whitespace-nowrap shadow-xl border border-slate-700 z-50">
-                            Tersedia saat 30 menit sebelum kelas
-                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900 border-b border-r border-slate-700 rotate-45"></div>
-                        </div>
-                    </div>
-                )}
-                {session.lesson?.slide_url && (
-                    <a href={session.lesson.slide_url} target="_blank" rel="noreferrer" className="w-full sm:w-auto justify-center px-6 py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-2xl border border-white/10 transition-all flex items-center gap-2 backdrop-blur-sm transform hover:-translate-y-0.5 active:translate-y-0">
-                        <span className="material-symbols-outlined">menu_book</span>
-                        <span className="hidden sm:inline">Buka Modul</span>
-                    </a>
-                )}
+                    )}
+                    {session.lesson?.slide_url && (
+                        <a href={session.lesson.slide_url} target="_blank" rel="noreferrer" className={actionClass}>
+                            <BookOpen size={16} aria-hidden="true" /> Buka Modul
+                        </a>
+                    )}
+                </div>
             </div>
         </div>
     );

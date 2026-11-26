@@ -79,15 +79,15 @@ export default async function CoachDashboardPage() {
             `}</style>
 
             <StaggerContainer className="mt-8">
-                <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-6">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_clamp(17rem,33%,22.5rem)]">
                     <div className="contents">
                         <CoachDraftReportsAlert coachId={session.user.id} />
                         <CoachPortfolioReviewAlert coachId={session.user.id} />
                         <MobilePwaOnboardingCard role="COACH" />
-                        <StaggerItem className="lg:col-start-1 lg:row-start-1">
+                        <StaggerItem className="min-w-0 lg:col-start-1 lg:row-start-1">
                             <section>
-                                <div className="bg-gradient-to-r from-[#0f172a] to-[#1e3a5f] rounded-3xl p-6 md:p-8 text-white shadow-2xl relative overflow-hidden group border border-white/5">
-                                    <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
+                                <div className="bg-gradient-to-r from-[#0f172a] to-[#1e3a5f] rounded-3xl p-4 sm:p-5 text-white shadow-2xl relative overflow-hidden group border border-white/5">
+                                    <div aria-hidden="true" className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
                                         {/* Far layer - tiny, blurry, slow */}
                                         <div className="absolute top-0 left-0 w-full h-[200%] animate-marquee-up-slow">
                                             <div className="absolute top-0 w-full h-1/2">
@@ -131,7 +131,7 @@ export default async function CoachDashboardPage() {
                                                 <HeroCountdownClient session={nextSession} />
                                             </>
                                         ) : (
-                                            <div className="text-center w-full py-8">
+                                            <div className="text-center w-full py-4">
                                                 <h2 className="text-2xl font-bold mb-2">Belum ada sesi mendatang</h2>
                                                 <p className="text-slate-400">Anda dapat bersantai atau mengecek tugas susulan.</p>
                                             </div>

@@ -239,7 +239,9 @@ export default async function AdminClassDetailPage({ params }: PageProps) {
           </h2>
           <p style={scheduleDescriptionStyle}>Reminder WhatsApp, notifikasi PWA, dan aktivitas sesi hanya berjalan ketika kelas berstatus aktif. Menyelesaikan atau meniadakan kelas juga menutup enrollment dan sesi mendatang.</p>
         </div>
-        <ClassLifecycleControl classId={classIdParam} currentStatus={klass.lifecycle_status} />
+        {klass.archived_at ? <span className="badge badge-neutral">Diarsipkan</span> : (
+          <ClassLifecycleControl classId={classIdParam} currentStatus={klass.lifecycle_status} />
+        )}
       </section>
 
       <section style={scheduleCardStyle} aria-labelledby="recurring-schedule-title">

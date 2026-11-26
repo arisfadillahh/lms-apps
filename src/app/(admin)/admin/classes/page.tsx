@@ -1,6 +1,5 @@
 
 
-// import DeleteClassButton from './DeleteClassButton'; // Moved to Client Component
 import ClassListClient from './ClassListClient';
 
 import { blocksDao, classLessonsDao, classesDao, levelsDao, sessionsDao, usersDao } from '@/lib/dao';
@@ -21,7 +20,7 @@ export default async function AdminClassesPage() {
   const supabase = getSupabaseAdmin();
 
   const [classes, coaches, levels, { data: ekskulPlansRaw }, { data: enrollmentsRaw }] = await Promise.all([
-    classesDao.listClasses(),
+    classesDao.listClasses({ includeArchived: true }),
     usersDao.listUsersByRole('COACH'),
     levelsDao.listLevels(),
     supabase.from('ekskul_lesson_plans').select('id, name').eq('is_active', true).order('name'),
@@ -34,7 +33,7 @@ export default async function AdminClassesPage() {
   }, {});
 
   const classProgressEntries = await Promise.all(
-    classes.map(async (klass) => {
+    classes.filter((klass) => !klass.archived_at).map(async (klass) => {
       const [classBlocks, sessions] = await Promise.all([
         classesDao.getClassBlocks(klass.id),
         sessionsDao.listSessionsByClass(klass.id),

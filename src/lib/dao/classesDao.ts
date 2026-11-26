@@ -13,12 +13,15 @@ export type ClassRecord = TablesRow<'classes'>;
 export type ClassBlockRecord = TablesRow<'class_blocks'>;
 export type EnrollmentRecord = TablesRow<'enrollments'>;
 
-class ClassDeletionBlockedError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'ClassDeletionBlockedError';
-  }
-}
+export type ClassClosure = {
+  archived: boolean;
+  className: string;
+  sessions: number;
+  enrollments: number;
+  paymentPeriods: number;
+  openInvoices: number;
+  pendingPlacements: number;
+};
 
 export type CreateClassBlockInput = {
   classId: string;
@@ -242,55 +245,14 @@ export async function deleteClassBlock(id: string): Promise<void> {
   }
 }
 
-export async function deleteClass(id: string): Promise<void> {
-  const supabase = getSupabaseAdmin();
-
-  const { count: activeEnrollmentCount, error: enrollmentError } = await supabase
-    .from('enrollments')
-    .select('id', { count: 'exact', head: true })
-    .eq('class_id', id)
-    .eq('status', 'ACTIVE');
-
-  if (enrollmentError) {
-    throw new Error(`Failed to check active enrollments: ${enrollmentError.message}`);
-  }
-  if ((activeEnrollmentCount ?? 0) > 0) {
-    throw new ClassDeletionBlockedError(
-      `Kelas masih memiliki ${activeEnrollmentCount} siswa aktif. Pindahkan atau nonaktifkan siswa terlebih dahulu.`,
-    );
-  }
-
-  const { data: paymentPeriods, error: paymentPeriodLookupError } = await supabase
-    .from('coder_payment_periods')
-    .select('id, status')
-    .eq('class_id', id);
-
-  if (paymentPeriodLookupError) {
-    throw new Error(`Failed to check payment periods: ${paymentPeriodLookupError.message}`);
-  }
-
-  const activePaymentPeriodCount = (paymentPeriods ?? []).filter(
-    (period) => period.status === 'ACTIVE',
-  ).length;
-  if (activePaymentPeriodCount > 0) {
-    throw new ClassDeletionBlockedError(
-      `Kelas masih terhubung ke ${activePaymentPeriodCount} periode pembayaran aktif. Selesaikan pemindahan pembayaran terlebih dahulu.`,
-    );
-  }
-
-  const { data: archivedClasses, error } = await supabase
-    .from('classes')
-    .update({ archived_at: new Date().toISOString() })
-    .eq('id', id)
-    .in('lifecycle_status', ['ENDED', 'CANCELLED'])
-    .is('archived_at', null)
-    .select('id');
-
-  if (error) throw new Error(`Failed to archive class: ${error.message}`);
-  if (archivedClasses?.length === 1) {
-    return;
-  }
-  throw new ClassDeletionBlockedError('Kelas harus berstatus selesai atau ditiadakan sebelum diarsipkan.');
+export async function closeAndArchiveClass(id: string, actorId: string, confirmationName?: string): Promise<ClassClosure> {
+  const { data, error } = await getSupabaseAdmin().rpc('close_and_archive_class' as never, {
+    p_class_id: id,
+    p_actor_id: actorId,
+    p_confirmation_name: confirmationName ?? null,
+  } as never);
+  if (error) throw error;
+  return data as unknown as ClassClosure;
 }
 
 export async function updateClassBlock(

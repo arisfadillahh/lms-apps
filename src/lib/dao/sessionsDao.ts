@@ -309,7 +309,7 @@ function toDateOnly(date: Date): string {
 export async function ensureFutureSessions(classId: string, weeksAhead = 12): Promise<number> {
   const supabase = getSupabaseAdmin();
   const classRecord = await getClassById(classId);
-  if (!classRecord) return 0;
+  if (!classRecord || classRecord.archived_at || ['ENDED', 'CANCELLED'].includes(classRecord.lifecycle_status)) return 0;
   if (classRecord.type === 'EKSKUL') return 0;
 
   // 1. Determine target end date (now + weeksAhead)

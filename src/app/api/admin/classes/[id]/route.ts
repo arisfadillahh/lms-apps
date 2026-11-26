@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
 
-import { getSessionOrThrow } from '@/lib/auth';
+import { getServerAuthSession, getSessionOrThrow } from '@/lib/auth';
 import { normalizeClassMeetingUrl } from '@/lib/classMeetingUrl';
 import { classesDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
@@ -112,47 +112,37 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   });
 }
 
-export async function DELETE(request: NextRequest, context: RouteContext) {
-  const session = await getSessionOrThrow();
-  await assertRole(session, 'ADMIN');
-
-  const params = await context.params;
-  const classId = params.id;
-
-  if (!classId) {
-    return NextResponse.json({ error: 'Invalid class id' }, { status: 400 });
+async function classClosure(request: NextRequest, context: RouteContext, apply: boolean) {
+  const session = await getServerAuthSession();
+  if (!session) return NextResponse.json({ error: 'Silakan masuk kembali.' }, { status: 401 });
+  if (session.user.role !== 'ADMIN') return NextResponse.json({ error: 'Akses admin diperlukan.' }, { status: 403 });
+  const { id } = await context.params;
+  if (!z.string().uuid().safeParse(id).success) {
+    return NextResponse.json({ error: 'ID kelas tidak valid.' }, { status: 400 });
   }
-
+  let confirmationName: string | undefined;
+  if (apply) {
+    const payload = z.object({ confirmationName: z.string().trim().min(1) }).safeParse(await request.json().catch(() => null));
+    if (!payload.success) return NextResponse.json({ error: 'Konfirmasi nama kelas diperlukan.' }, { status: 400 });
+    confirmationName = payload.data.confirmationName;
+  }
   try {
-    const payload = await request.json().catch(() => null) as { confirmationName?: unknown } | null;
-    const confirmationName = typeof payload?.confirmationName === 'string'
-      ? payload.confirmationName.trim()
-      : '';
-    const klass = await classesDao.getClassById(classId);
-
-    if (!klass) {
-      return NextResponse.json({ error: 'Kelas tidak ditemukan' }, { status: 404 });
-    }
-
-    if (!confirmationName || confirmationName !== klass.name.trim()) {
-      return NextResponse.json(
-        { error: 'Nama kelas tidak cocok. Penghapusan dibatalkan.' },
-        { status: 400 },
-      );
-    }
-
-    await classesDao.deleteClass(classId);
+    const closure = await classesDao.closeAndArchiveClass(id, session.user.id, confirmationName);
+    return NextResponse.json(closure, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
-    if (error instanceof Error && error.name === 'ClassDeletionBlockedError') {
-      return NextResponse.json({ error: error.message }, { status: 409 });
+    const dbError = error as { code?: string; message?: string };
+    if (dbError.code === 'PT403' || dbError.code === 'PT404' || dbError.code === 'PT409') {
+      return NextResponse.json({ error: dbError.message }, { status: Number(dbError.code.slice(2)) });
     }
-
-    console.error('Failed to delete class', error);
-    return NextResponse.json(
-      { error: 'Kelas gagal diarsipkan. Silakan coba lagi.' },
-      { status: 500 },
-    );
+    console.error('Failed to close class', { classId: id, error });
+    return NextResponse.json({ error: 'Penutupan kelas belum bisa dikonfirmasi. Coba lagi.' }, { status: 500 });
   }
+}
 
-  return NextResponse.json({ success: true });
+export async function GET(request: NextRequest, context: RouteContext) {
+  return classClosure(request, context, false);
+}
+
+export async function DELETE(request: NextRequest, context: RouteContext) {
+  return classClosure(request, context, true);
 }

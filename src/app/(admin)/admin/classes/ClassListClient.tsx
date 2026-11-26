@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { Clock, Plus, Search, Users } from 'lucide-react';
-import DeleteClassButton from './DeleteClassButton';
+import CloseClassDialog from './CloseClassDialog';
 import ActionDropdown from '@/components/admin/ActionDropdown';
 
 type ClassListItem = {
@@ -13,6 +14,8 @@ type ClassListItem = {
     type: 'WEEKLY' | 'EKSKUL' | string;
     coach_id: string | null;
     level_id: string | null;
+    lifecycle_status: string;
+    archived_at: string | null;
     schedule_day: string | null;
     schedule_time: string | null;
     studentCount?: number;
@@ -37,18 +40,25 @@ interface ClassListClientProps {
 }
 
 export default function ClassListClient({ initialClasses, coaches, levels }: ClassListClientProps) {
+    const router = useRouter();
     const [activeTab, setActiveTab] = useState<'WEEKLY' | 'EKSKUL'>('WEEKLY');
     const [searchTerm, setSearchTerm] = useState('');
     const [levelFilter, setLevelFilter] = useState('ALL');
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [coachFilter, setCoachFilter] = useState('ALL');
+    const [showArchived, setShowArchived] = useState(false);
+    const [closingClass, setClosingClass] = useState<ClassListItem>();
+    const [archivedMessage, setArchivedMessage] = useState('');
+    const [justArchived, setJustArchived] = useState<string[]>([]);
 
     // Create maps for quick lookup
     const coachMap = new Map(coaches.map((coach) => [coach.id, coach]));
     const levelMap = new Map(levels.map((level) => [level.id, level]));
 
     // Filter classes
-    const filteredClasses = initialClasses.filter((klass) => {
+    const visibleClasses = initialClasses.filter((klass) => showArchived
+        ? Boolean(klass.archived_at) : !klass.archived_at && !justArchived.includes(klass.id));
+    const filteredClasses = visibleClasses.filter((klass) => {
         if (klass.type !== activeTab) return false;
 
         const term = searchTerm.toLowerCase();
@@ -61,20 +71,14 @@ export default function ClassListClient({ initialClasses, coaches, levels }: Cla
 
         const matchesLevel = levelFilter === 'ALL' || klass.level_id === levelFilter;
         
-        const isCompleted = klass.name?.toLowerCase().includes('completed');
-        const isDraft = klass.name?.toLowerCase().includes('draft');
-        let currentStatus = 'ACTIVE';
-        if (isCompleted) currentStatus = 'COMPLETED';
-        else if (isDraft) currentStatus = 'DRAFT';
-
-        const matchesStatus = statusFilter === 'ALL' || currentStatus === statusFilter;
+        const matchesStatus = statusFilter === 'ALL' || klass.lifecycle_status === statusFilter;
         const matchesCoach = coachFilter === 'ALL' || klass.coach_id === coachFilter;
 
         return matchesSearch && matchesLevel && matchesStatus && matchesCoach;
     });
 
-    const weeklyCount = initialClasses.filter(c => c.type === 'WEEKLY').length;
-    const ekskulCount = initialClasses.filter(c => c.type === 'EKSKUL').length;
+    const weeklyCount = visibleClasses.filter(c => c.type === 'WEEKLY').length;
+    const ekskulCount = visibleClasses.filter(c => c.type === 'EKSKUL').length;
 
     function levelTagClass(levelId: string | null) {
         if (!levelId) return 'tag-ekskul';
@@ -87,6 +91,7 @@ export default function ClassListClient({ initialClasses, coaches, levels }: Cla
 
     return (
         <div>
+            {archivedMessage && <p role="status" className="mb-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-semibold">{archivedMessage}</p>}
             {/* Tabs */}
             <div className="tabs">
                 <div className={`tab ${activeTab === 'WEEKLY' ? 'active' : ''}`} onClick={() => setActiveTab('WEEKLY')}>
@@ -99,6 +104,10 @@ export default function ClassListClient({ initialClasses, coaches, levels }: Cla
 
             {/* Filters */}
             <div className="filters" style={{ marginBottom: 18 }}>
+                <button type="button" className="btn btn-sm btn-ghost" aria-pressed={showArchived}
+                    onClick={() => { setShowArchived((value) => !value); setStatusFilter('ALL'); }}>
+                    {showArchived ? 'Lihat kelas berjalan' : 'Lihat arsip'}
+                </button>
                 <div className="searchbar" style={{ maxWidth: 300, flex: 'none' }}>
                     <Search size={16} />
                     <input
@@ -113,9 +122,10 @@ export default function ClassListClient({ initialClasses, coaches, levels }: Cla
                 </select>
                 <select className="input" style={{ width: 'auto' }} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
                     <option value="ALL">Semua Status</option>
-                    <option value="ACTIVE">Active</option>
-                    <option value="DRAFT">Draft</option>
-                    <option value="COMPLETED">Completed</option>
+                    <option value="ACTIVE">Aktif</option>
+                    <option value="PAUSED">Dijeda</option>
+                    <option value="ENDED">Selesai</option>
+                    <option value="CANCELLED">Ditiadakan</option>
                 </select>
                 <select className="input" style={{ width: 'auto' }} value={coachFilter} onChange={(e) => setCoachFilter(e.target.value)}>
                     <option value="ALL">Semua Coach</option>
@@ -131,12 +141,7 @@ export default function ClassListClient({ initialClasses, coaches, levels }: Cla
                     const coach = klass.coach_id ? coachMap.get(klass.coach_id) : undefined;
                     const levelName = klass.type === 'EKSKUL' ? 'Ekskul' : (klass.level_id ? levelMap.get(klass.level_id)?.name : null) || 'Ekskul';
 
-                    const isCompleted = klass.name?.toLowerCase().includes('completed');
-                    const isDraft = klass.name?.toLowerCase().includes('draft');
-                    
-                    let status = 'ACTIVE';
-                    if (isCompleted) status = 'COMPLETED';
-                    else if (isDraft) status = 'DRAFT';
+                    const status = klass.lifecycle_status;
 
                     const curriculumProgress = Math.max(0, Math.min(100, Number(klass.curriculumProgress) || 0));
 
@@ -151,17 +156,20 @@ export default function ClassListClient({ initialClasses, coaches, levels }: Cla
                                 <div className="row between">
                                     <div className="row gap-2">
                                         <span className={`chip ${levelTagClass(klass.level_id)}`}>{levelName}</span>
-                                        {status === 'ACTIVE' && <span className="badge badge-success chip-dot">Active</span>}
-                                        {status === 'DRAFT' && <span className="badge badge-info">Draft</span>}
-                                        {status === 'COMPLETED' && <span className="badge badge-neutral">Completed</span>}
+                                        {klass.archived_at ? <span className="badge badge-neutral">Diarsipkan</span> : (
+                                            <span className={`badge ${status === 'ACTIVE' ? 'badge-success chip-dot' : 'badge-neutral'}`}>
+                                                {{ ACTIVE: 'Aktif', PAUSED: 'Dijeda', ENDED: 'Selesai', CANCELLED: 'Ditiadakan' }[status] ?? status}
+                                            </span>
+                                        )}
                                     </div>
-                                    <div style={{ position: 'relative', zIndex: 2 }}>
+                                    {!klass.archived_at && <div style={{ position: 'relative', zIndex: 2 }}>
                                         <ActionDropdown>
-                                            <div className="col gap-1" style={{ padding: '4px' }}>
-                                                <DeleteClassButton classId={hasValidId ? klass.id : ''} className={klass.name ?? 'Kelas'} />
-                                            </div>
+                                            <button type="button" className="rounded-md px-3 py-2 text-left text-sm font-bold text-red-700 hover:bg-red-500/10 dark:text-red-300"
+                                                disabled={!hasValidId} onClick={(event) => { event.stopPropagation(); setClosingClass(klass); }}>
+                                                Tutup &amp; arsipkan kelas
+                                            </button>
                                         </ActionDropdown>
-                                    </div>
+                                    </div>}
                                 </div>
                                 
                                 <div>
@@ -202,7 +210,7 @@ export default function ClassListClient({ initialClasses, coaches, levels }: Cla
                     );
                 })}
 
-                <Link href="#create-class-form" style={{ textDecoration: 'none', display: 'flex' }}>
+                {!showArchived && <Link href="#create-class-form" style={{ textDecoration: 'none', display: 'flex' }}>
                     <div className="class-card" style={{
                         border: '1px dashed var(--border-strong)',
                         background: 'var(--surface-2)',
@@ -224,8 +232,22 @@ export default function ClassListClient({ initialClasses, coaches, levels }: Cla
                             <div className="muted" style={{ fontSize: 11.5, marginTop: 2 }}>dari template atau kosong</div>
                         </div>
                     </div>
-                </Link>
+                </Link>}
             </div>
+            {showArchived && filteredClasses.length === 0 && <p className="muted my-4 text-sm">Belum ada kelas di arsip untuk pilihan ini.</p>}
+            {closingClass && <CloseClassDialog
+                key={closingClass.id}
+                classId={closingClass.id}
+                className={closingClass.name ?? 'Kelas'}
+                coachName={closingClass.coach_id ? coachMap.get(closingClass.coach_id)?.full_name : null}
+                onDismiss={() => setClosingClass(undefined)}
+                onArchived={(name) => {
+                    setJustArchived((current) => [...current, closingClass.id]);
+                    setArchivedMessage(`${name} berhasil diarsipkan.`);
+                    setClosingClass(undefined);
+                    router.refresh();
+                }}
+            />}
         </div>
     );
 }

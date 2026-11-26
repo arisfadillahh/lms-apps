@@ -105,8 +105,18 @@ export function formatStaffRecap(period: PeriodDocument, slip: Slip): string {
   return `Rekap staf - ${monthLabel(period)}\nHalo ${clean(slip.name)}, ini ringkasan aktivitas dan transport di LMS.\n\n${rows.join('\n') || 'Belum ada aktivitas atau transport tercatat untuk periode ini.'}\n\nKalau ada catatan yang perlu dilengkapi, hubungi admin.`;
 }
 
-export function formatAttendanceReminder(period: PeriodDocument, slip: Slip, appUrl?: string): string {
-  const blocked = attendanceRecapBlockReason(slip);
-  if (blocked) return blocked;
-  return `Pengingat rekap mengajar - ${monthLabel(period)}\nHalo ${clean(slip.name)}, pastikan rekap mengajarmu sudah sesuai.\n\nBATAS KOREKSI: ${deadlineLabel(period)} pukul 17.00 WIB.\nKalau ada yang perlu dikoreksi, ajukan di LMS sebelum batas itu.${coachLink(period, appUrl)}`;
+export function formatCoachRecapNotice(
+  period: PeriodDocument,
+  name: string,
+  now: Date,
+  appUrl: string | undefined,
+  reminder: boolean,
+): string {
+  const heading = reminder ? 'Pengingat rekap mengajar' : 'Rekap mengajar';
+  const correction = now.getTime() < Date.parse(period.correction_deadline)
+    ? `Ajukan koreksi paling lambat ${deadlineLabel(period)} pukul 17.00 WIB.`
+    : 'Hubungi admin jika ada yang perlu dikoreksi.';
+  const link = coachLink(period, appUrl);
+  const next = link || '\nBuka menu Absensi & Slip Gaji di LMS.';
+  return `${heading} - ${monthLabel(period)}\nHalo ${clean(name)}, cek rekap mengajarmu di LMS.${next}\n\n${correction}`;
 }

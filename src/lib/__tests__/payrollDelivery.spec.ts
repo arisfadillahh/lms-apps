@@ -55,7 +55,7 @@ describe('private payroll delivery, transfer gating and retries', () => {
     expect((await sendPayrollBatch(record.id, ['p1'], 'RECAP', 'admin'))[0].status).toBe('SENT');
     expect(mocks.text).toHaveBeenCalledWith(phone, expect.stringContaining('Rekap mengajar'));
     expect(mocks.wa).not.toHaveBeenCalled(); expect(mocks.pdf).not.toHaveBeenCalled();
-    expect(mocks.notify).toHaveBeenCalledWith('u1', expect.any(String), expect.stringContaining('hubungi admin'), 'PAYROLL', expect.objectContaining({ actionUrl: '/coach/payroll?period=2026-10' }));
+    expect(mocks.notify).toHaveBeenCalledWith('u1', expect.any(String), expect.stringContaining('Hubungi admin'), 'PAYROLL', expect.objectContaining({ actionUrl: '/coach/payroll?period=2026-10' }));
     expect(mocks.text.mock.calls[0][1]).not.toMatch(/17\.00|token=scoped/);
     await sendPayrollBatch(record.id, ['p1'], 'RECAP', 'admin');
     expect(mocks.text).toHaveBeenCalledTimes(1);
@@ -132,12 +132,16 @@ describe('private payroll delivery, transfer gating and retries', () => {
     expect(mocks.pdf).toHaveBeenCalled(); expect(mocks.wa).not.toHaveBeenCalled(); expect(mocks.text).not.toHaveBeenCalled();
   });
 
-  it('blocks cumulative attendance without dated meetings before claiming delivery or notifying the coach', async () => {
-    record.document.slips[0].unresolved_attendance = 3;
-    const result = await sendPayrollBatch(record.id, ['p1'], 'RECAP', 'admin');
-    expect(result[0]).toMatchObject({ status: 'FAILED', error: expect.stringContaining('3 aktivitas belum memiliki tanggal dan nama kelas') });
-    expect(mocks.commit).not.toHaveBeenCalled(); expect(mocks.notify).not.toHaveBeenCalled(); expect(mocks.text).not.toHaveBeenCalled();
-    expect((await sendPayrollBatch(record.id, ['p1'], 'REMINDER', 'admin'))[0].status).toBe('FAILED');
+  it.each(['RECAP', 'REMINDER'] as const)('sends a link-only %s even if the coach recap has incomplete dated meetings', async kind => {
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://lms.clev.io');
+    const slip = record.document.slips[0];
+    slip.unresolved_attendance = 3;
+    slip.lines = [{ key: 's1', date: '2026-10-20T08:00:00Z', kind: 'WEEKLY', label: 'Weekly Robotik', quantity: 1, rate: 100000, amount: 100000, details: '' }];
+    expect((await sendPayrollBatch(record.id, ['p1'], kind, 'admin'))[0].status).toBe('SENT');
+    const message = mocks.text.mock.calls[0][1];
+    expect(message).toContain('https://lms.clev.io/coach/payroll?period=2026-10');
+    expect(message).not.toMatch(/Weekly Robotik|100000|Total:|tanggal dan nama kelas/);
+    expect(mocks.notify).toHaveBeenCalledWith('u1', expect.any(String), message, 'PAYROLL', expect.anything());
   });
 
   it('warns admin about incomplete scheduled attendance and continues delivering valid coaches', async () => {
@@ -146,10 +150,10 @@ describe('private payroll delivery, transfer gating and retries', () => {
     record.document.slips.push({ ...record.document.slips[0], profile_id: 'p2', user_id: 'u2', name: 'Coach Lengkap', unresolved_attendance: 0, attendance_details: [] });
     mocks.config.mockResolvedValue({ people: [profile, { ...profile, id: 'p2', user_id: 'u2', name: 'Coach Lengkap' }], settings: { automation_enabled: true, active_from: '2026-01-01' } });
     const result = await sendPayrollBatch(record.id, ['p1', 'p2'], 'RECAP', null);
-    expect(result.map(item => item.status)).toEqual(['FAILED', 'SENT']);
+    expect(result.map(item => item.status)).toEqual(['SENT', 'SENT']);
     expect(mocks.admins).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('3 aktivitas belum memiliki tanggal dan nama kelas'), dedupeKey: 'payroll-attendance-incomplete:2026-10:p1' }));
-    expect(mocks.notify).toHaveBeenCalledTimes(1); expect(mocks.notify.mock.calls[0][0]).toBe('u2');
-    expect(mocks.text).toHaveBeenCalledTimes(1); expect(mocks.pdf).not.toHaveBeenCalled();
+    expect(mocks.notify.mock.calls.map(call => call[0])).toEqual(['u1', 'u2']);
+    expect(mocks.text).toHaveBeenCalledTimes(2); expect(mocks.pdf).not.toHaveBeenCalled();
   });
 
   it('sends the manual staff activity recap to its own number without salary amounts or an expired form', async () => {
@@ -176,6 +180,7 @@ describe('private payroll delivery, transfer gating and retries', () => {
   });
 
   it('keeps reminders short rather than resending the complete dated recap', async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-25T16:00:00+07:00'));
     record.document.slips[0].lines = [{ key: 's1', date: '2026-10-20T08:00:00Z', kind: 'WEEKLY', label: 'Weekly Robotik', quantity: 1, rate: 100000, amount: 100000, details: '' }];
     await sendPayrollBatch(record.id, ['p1'], 'REMINDER', 'admin');
     const message = mocks.text.mock.calls[0][1];

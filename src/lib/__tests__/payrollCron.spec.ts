@@ -71,11 +71,6 @@ describe('payroll cutoff automation', () => {
     await runPayrollCron(new Date('2026-11-25T09:00:00+07:00'));
     expect(mocks.ensure).not.toHaveBeenCalled(); expect(mocks.calculate).not.toHaveBeenCalled(); expect(mocks.send).not.toHaveBeenCalled();
   });
-  it('still sends reimbursement to coach whose meeting dates need completion, without fabricating an attendance recap',async()=>{
-    mocks.send.mockImplementation(async(_p,_ids,kind)=>kind==='RECAP'?[{profileId:'p1',status:'FAILED',error:'Rekap belum dapat dikirim: 2 aktivitas belum memiliki tanggal dan nama kelas.'}]:[]);
-    await runPayrollCron(new Date('2026-11-25T09:00:00+07:00'));
-    expect(mocks.send).toHaveBeenCalledWith('2026-11',['p2','p1'],'REIMBURSEMENT',null);
-  });
   it('uses the freshly calculated LMS slips for coach recap even when the draft has an imported snapshot', async () => {
     const time = new Date('2026-11-25T09:00:00+07:00'), p = createPeriod(2026, 11);
     const record = { id: p.id, revision: 1, document: { ...p, legacy_imports: [{}], slips: [] } };

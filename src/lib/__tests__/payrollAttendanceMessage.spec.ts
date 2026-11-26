@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createPeriod, type PayrollLine, type PayrollMeeting, type Slip } from '@/lib/payroll/model';
-import { attendanceRecapBlockReason, formatAttendanceRecap, formatAttendanceReminder } from '@/lib/payroll/attendanceMessage';
+import { attendanceRecapBlockReason, formatAttendanceRecap, formatCoachRecapNotice } from '@/lib/payroll/attendanceMessage';
 
 const period = createPeriod(2026, 11);
 const slip = (patch: Partial<Slip> = {}): Slip => ({ profile_id: 'p1', user_id: 'u1', name: 'Coach Alsa', job_title: 'Coach', kind: 'COACH', contract: 'MITRA', total: 780000, lines: [], ...patch });
@@ -53,7 +53,6 @@ describe('simple dated coach attendance message', () => {
     const coach = slip(patch);
     expect(attendanceRecapBlockReason(coach)).toContain('Rekap belum dapat dikirim');
     expect(formatAttendanceRecap(period, coach)).toBe(attendanceRecapBlockReason(coach));
-    expect(formatAttendanceReminder(period, coach)).toBe(attendanceRecapBlockReason(coach));
   });
 
   it('treats explicit meeting details as authoritative when aggregate financial lines are still present', () => {
@@ -62,14 +61,20 @@ describe('simple dated coach attendance message', () => {
     expect(formatAttendanceRecap(period, coach)).toContain('15.00 - Weekly Scratch');
   });
 
-  it('uses a short reminder with the same single deadline and no activity list or money', () => {
-    const coach = slip({ attendance_details: [meeting()] });
-    const message = formatAttendanceReminder(period, coach, 'https://lms.clev.io');
-    expect(message).toContain('Pengingat rekap mengajar - November 2026');
-    expect(message).toContain('BATAS KOREKSI: 25 November 2026 pukul 17.00 WIB.');
+  it.each([false, true])('uses a short coach notice with a period link and one deadline (reminder=%s)', reminder => {
+    const message = formatCoachRecapNotice(period, 'Coach Alsa', new Date('2026-11-25T16:00:00+07:00'), 'https://lms.clev.io', reminder);
+    expect(message).toContain(reminder ? 'Pengingat rekap mengajar - November 2026' : 'Rekap mengajar - November 2026');
+    expect(message).toContain('Ajukan koreksi paling lambat 25 November 2026 pukul 17.00 WIB.');
+    expect(message).toContain('https://lms.clev.io/coach/payroll?period=2026-11');
     expect(message.match(/17\.00/g)).toHaveLength(1);
     expect(message).not.toMatch(/Weekly Scratch|Rp|fee|gaji/i);
-    expect(message.length).toBeLessThan(formatAttendanceRecap(period, coach, new Date(), 'https://lms.clev.io').length);
+  });
+
+  it('directs late manual sends to the admin and points to the LMS menu if the URL is invalid', () => {
+    const message = formatCoachRecapNotice(period, 'Coach Alsa', new Date('2026-11-25T17:00:00+07:00'), 'javascript:alert(1)', false);
+    expect(message).toContain('Hubungi admin jika ada yang perlu dikoreksi.');
+    expect(message).toContain('Buka menu Absensi & Slip Gaji di LMS.');
+    expect(message).not.toMatch(/17\.00|javascript/);
   });
 
   it.each(['javascript:alert(1)', 'https://user:secret@evil.example', 'http://public.example', 'bad url'])('omits unsafe app URL %s', url => {

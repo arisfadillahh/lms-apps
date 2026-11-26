@@ -17,9 +17,8 @@ export async function runPayrollCron(now = new Date()) {
   const activeCoaches = new Set(config.people.filter(person => person.kind === 'COACH' && person.active).map(person => person.id));
   const ids = record.document.slips.filter(s => s.kind === 'COACH' && activeCoaches.has(s.profile_id)).map(s => s.profile_id);
   const recap = await sendPayrollBatch(p.id, ids, 'RECAP', null);
-  // Staff have no attendance recap. Coaches with incomplete imported meeting
-  // details still receive their scoped reimbursement form, without false dates.
-  const formOnlyIds = [...config.people.filter(person => person.active && person.kind === 'STAFF').map(person => person.id), ...recap.filter(result => result.status === 'FAILED' && /tanggal dan nama kelas|jumlah aktivitas belum dilengkapi/.test(result.error ?? '')).map(result => result.profileId)];
+  // Coach recap notices already link to the form while it is open.
+  const formOnlyIds = config.people.filter(person => person.active && person.kind === 'STAFF').map(person => person.id);
   const reimbursement = formOnlyIds.length ? await sendPayrollBatch(p.id, formOnlyIds, 'REIMBURSEMENT', null) : [];
   const reminder = local.getUTCHours() >= 16 ? await sendPayrollBatch(p.id, ids, 'REMINDER', null) : [];
   return { period: p.id, recap, reimbursement, reminder };

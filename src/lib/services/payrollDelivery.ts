@@ -7,7 +7,7 @@ import { createPayrollAdminNotifications } from './payrollNotifications';
 import { sendWhatsAppDocument, sendWhatsAppMessage } from '@/lib/services/whatsappClient';
 import { generatePayrollPdf } from '@/lib/pdf/generatePayrollPdf';
 import { profilePhone } from '@/lib/payroll/sources';
-import { attendanceRecapBlockReason, formatAttendanceRecap, formatAttendanceReminder, formatStaffRecap } from '@/lib/payroll/attendanceMessage';
+import { attendanceRecapBlockReason, formatCoachRecapNotice, formatStaffRecap } from '@/lib/payroll/attendanceMessage';
 import { isPaid, PayrollError, wibDate, type PayrollDelivery } from '@/lib/payroll/model';
 import { createReimbursementLink } from './payrollReimbursements';
 import { reimbursementDeadline, reimbursementIsOpen } from '@/lib/payroll/reimbursementDeadline';
@@ -54,10 +54,11 @@ async function sendOne(periodId: string, profileId: string, kind: PayrollDeliver
   if (staffRecap && !profile.active) throw new PayrollError('Rekap hanya dikirim ke penerima aktif.');
   if (!staffRecap && (kind === 'RECAP' || kind === 'REMINDER')) {
     if (profile.kind !== 'COACH' || slip.kind !== 'COACH' || !profile.active) throw new PayrollError('Rekap absensi hanya dikirim ke coach aktif.');
-    const blocked = attendanceRecapBlockReason(slip);
-    if (blocked) {
-      if (automatic) await createPayrollAdminNotifications({ title: 'Rekap mengajar belum dapat dikirim', message: `${slip.name} · ${p.id}. ${blocked}`, type: 'PAYROLL', actionUrl: `/admin/payroll?period=${p.id}`, dedupeKey: `payroll-attendance-incomplete:${p.id}:${profileId}` });
-      throw new PayrollError(blocked);
+    const incomplete = automatic && kind === 'RECAP' ? attendanceRecapBlockReason(slip) : null;
+    if (incomplete) {
+      const details = incomplete.replace(/^Rekap belum dapat dikirim: /, '');
+      await createPayrollAdminNotifications({ title: 'Detail rekap mengajar belum lengkap', message: `${slip.name} · ${p.id}, ${details}`, type: 'PAYROLL', actionUrl: `/admin/payroll?period=${p.id}`, dedupeKey: `payroll-attendance-incomplete:${p.id}:${profileId}` })
+        .catch(error => console.error('[Payroll] Gagal membuat notifikasi detail rekap', error));
     }
   }
   const token = randomUUID();
@@ -79,7 +80,8 @@ async function sendOne(periodId: string, profileId: string, kind: PayrollDeliver
       ? `Slip gaji ${p.id} versi ${p.version}\nHalo ${slip.name}, admin telah mencatat penyelesaian transfer periode ini. Slip PDF terlampir dan tersedia di akun LMS. Hubungi admin jika ada pertanyaan.`
       : kind === 'REIMBURSEMENT' ? `Pengajuan reimbursement · ${new Date(Date.UTC(p.year,p.month-1,1)).toLocaleDateString('id-ID',{month:'long',year:'numeric',timeZone:'Asia/Jakarta'})}\nHalo ${slip.name}.${reimbursementText}`
       : staffRecap ? formatStaffRecap(p, slip)
-      : (kind === 'REMINDER' ? formatAttendanceReminder(p, slip, appUrl) : formatAttendanceRecap(p, slip, new Date(), appUrl)) + reimbursementText;
+      : formatCoachRecapNotice(p, slip.name, now, appUrl, kind === 'REMINDER')
+        + (reimbursementUrl ? `\nReimbursement: ${reimbursementUrl}` : '');
     if (profile.user_id) await createNotification(profile.user_id, kind === 'SLIP' ? `Slip gaji ${p.id}` : kind === 'REIMBURSEMENT' ? `Pengajuan reimbursement ${p.id}` : `Rekap absensi ${p.id}`, message, 'PAYROLL', {
       actionUrl: kind === 'REIMBURSEMENT' ? reimbursementUrl : `/coach/payroll?period=${p.id}`, category: 'PAYROLL', priority: 'HIGH', push: true, dedupeKey: `payroll:${p.id}:${key}${automatic ? ':AUTOMATIC' : ''}`,
     });

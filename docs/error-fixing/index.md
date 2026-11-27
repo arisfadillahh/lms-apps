@@ -4,6 +4,7 @@ Search this file and the linked monthly log before changing related code.
 
 | Date | Reference | Area | Symptom | Monthly log |
 | --- | --- | --- | --- | --- |
+| 2026-11-27 | INTERNAL-20261127-01 | Payroll staf | Kontrak yang mulai pada periode baru memicu peringatan di periode sebelumnya | [2026-11](./2026-11.md#internal-20261127-01-tanggal-mulai-penerima-payroll) |
 | 2026-11-26 | INTERNAL-20261126-03 | Payroll kegiatan | Event dan training coach dapat Rp0 saat mode fulltime | [2026-11](./2026-11.md#internal-20261126-03-fee-event-dan-training-coach-fulltime) |
 | 2026-11-26 | INTERNAL-20261126-02 | Rekap payroll | Sesi tanpa peserta menampilkan peringatan presensi 0/0 | [2026-11](./2026-11.md#internal-20261126-02-sesi-tanpa-peserta-di-rekap-payroll) |
 | 2026-11-26 | INTERNAL-20261126-01 | Penutupan kelas | Arsip kelas tertahan oleh periode pembayaran yang masih aktif | [2026-11](./2026-11.md#internal-20261126-01-penutupan-kelas-dan-pembayaran-dalam-satu-langkah) |

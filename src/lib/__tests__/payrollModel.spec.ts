@@ -34,6 +34,15 @@ it('adds one automatic trip for confirmed teaching and honours session exception
 });
 
 describe('payroll calendar and automatic fee policy', () => {
+  it('excludes recipients who start after the period and still flags recipients with no contract', () => {
+    const result = calculatePeriod({
+      period: createPeriod(2026, 11), people, terms: [
+        terms[0], { ...terms[2], effective_from: '2026-11-26' },
+      ], cards: [{ effective_from: '2026-01-01', rates: DEFAULT_RATES }], activities: [], now,
+    });
+    expect(result.slips.map(slip => slip.profile_id)).toEqual(['p1']);
+    expect(result.warnings).toEqual(['Kontrak belum diatur: Coach fulltime']);
+  });
   it.each([
     ['EVENT', 180000], ['TRAINING_ONLINE', 25000], ['TRAINING_OFFLINE', 50000],
   ] as const)('pays fulltime coaches for %s while respecting exclusions and cancellations', (kind, amount) => {

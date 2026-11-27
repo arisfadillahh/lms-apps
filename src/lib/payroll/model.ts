@@ -180,8 +180,12 @@ export function calculatePeriod(input: {
   const dateForSalary = wibDate(new Date(Math.min(now.getTime(), Date.parse(p.ends_at) - 1)));
   for (const person of people.filter(x => x.active)) {
     if (input.includeRecurring === false) continue;
-    const term = effective(terms.filter(t => t.profile_id === person.id), dateForSalary);
-    if (!term) { warnings.add(`Kontrak belum diatur: ${person.name}`); continue; }
+    const personTerms = terms.filter(t => t.profile_id === person.id);
+    const term = effective(personTerms, dateForSalary);
+    if (!term) {
+      if (personTerms.length === 0) warnings.add(`Kontrak belum diatur: ${person.name}`);
+      continue;
+    }
     if (term.contract === 'FULLTIME' && term.base_salary <= 0) warnings.add(`Gaji pokok fulltime belum diatur: ${person.name}`);
     const lines: PayrollLine[] = slips.get(person.id)?.lines ?? [];
     if (term.contract === 'FULLTIME') lines.push({ key: `salary:${person.id}`, date: dateForSalary, label: 'Gaji tetap', kind: 'SALARY', quantity: 1, rate: money(term.base_salary), amount: money(term.base_salary), details: `Kontrak berlaku ${term.effective_from}` });

@@ -76,13 +76,18 @@ async function sendOne(periodId: string, profileId: string, kind: PayrollDeliver
       ? createReimbursementLink(p, profile.id, appUrl || '', now) : '';
     const deadline = new Date(reimbursementDeadline(p, profile.id)).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
     const reimbursementText = reimbursementUrl ? `\n\nAda reimbursement? Isi judul, nominal, dan foto bukti di sini:\n${reimbursementUrl}\nPaling lambat tanggal 25 pukul ${deadline} WIB. Pengajuan diperiksa Admin/Finance.` : '';
+    const periodLabel = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+      .format(new Date(Date.UTC(p.year, p.month - 1, 1)));
+    const slipTitle = `Slip Gaji Clevio — ${periodLabel}`;
+    const slipOpening = `Halo, ${slip.name}.\n\nPembayaran gaji untuk periode ${periodLabel} telah diproses.`;
+    const financeContact = 'Jika ada pertanyaan atau rincian yang perlu dikonfirmasi, silakan hubungi tim Finance Clevio.';
     const message = kind === 'SLIP'
-      ? `Slip gaji ${p.id} versi ${p.version}\nHalo ${slip.name}, admin telah mencatat penyelesaian transfer periode ini. Slip PDF terlampir dan tersedia di akun LMS. Hubungi admin jika ada pertanyaan.`
-      : kind === 'REIMBURSEMENT' ? `Pengajuan reimbursement · ${new Date(Date.UTC(p.year,p.month-1,1)).toLocaleDateString('id-ID',{month:'long',year:'numeric',timeZone:'Asia/Jakarta'})}\nHalo ${slip.name}.${reimbursementText}`
+      ? `${slipOpening} Anda dapat mengunduh slip gaji di LMS.\n\n${financeContact}`
+      : kind === 'REIMBURSEMENT' ? `Pengajuan reimbursement · ${periodLabel}\nHalo ${slip.name}.${reimbursementText}`
       : staffRecap ? formatStaffRecap(p, slip)
       : formatCoachRecapNotice(p, slip.name, now, appUrl, kind === 'REMINDER')
         + (reimbursementUrl ? `\nReimbursement: ${reimbursementUrl}` : '');
-    if (profile.user_id) await createNotification(profile.user_id, kind === 'SLIP' ? `Slip gaji ${p.id}` : kind === 'REIMBURSEMENT' ? `Pengajuan reimbursement ${p.id}` : `Rekap absensi ${p.id}`, message, 'PAYROLL', {
+    if (profile.user_id) await createNotification(profile.user_id, kind === 'SLIP' ? slipTitle : kind === 'REIMBURSEMENT' ? `Pengajuan reimbursement ${p.id}` : `Rekap absensi ${p.id}`, message, 'PAYROLL', {
       actionUrl: kind === 'REIMBURSEMENT' ? reimbursementUrl : `/coach/payroll?period=${p.id}`, category: 'PAYROLL', priority: 'HIGH', push: true, dedupeKey: `payroll:${p.id}:${key}${automatic ? ':AUTOMATIC' : ''}`,
     });
     if (!phone) {
@@ -99,7 +104,8 @@ async function sendOne(periodId: string, profileId: string, kind: PayrollDeliver
         status = 'SIMULATED'; channel = 'LOCAL_PREVIEW';
       } else {
         if (pdf) {
-          const result = await sendWhatsAppDocument({ phoneNumber: phone, document: pdf, mimeType: 'application/pdf', fileName: `Slip-Gaji-${p.id}-v${p.version}.pdf`, caption: message });
+          const caption = `*${slipTitle}*\n\n${slipOpening} Slip gaji terlampir dalam format PDF untuk arsip Anda.\n\n${financeContact}\n\nTerima kasih,\n*Tim Finance Clevio*`;
+          const result = await sendWhatsAppDocument({ phoneNumber: phone, document: pdf, mimeType: 'application/pdf', fileName: `Slip-Gaji-${p.id}-v${p.version}.pdf`, caption });
           if (!result.success) throw new PayrollError(result.error || 'WhatsApp gagal mengirim slip.');
         } else {
           // Keep long attendance lists complete while staying below WA limits.

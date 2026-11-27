@@ -122,7 +122,21 @@ describe('private payroll delivery, transfer gating and retries', () => {
     record.document.status = 'FINAL';
     record.document.transfers = [{ id: 't1', profile_id: 'p1', amount: 100000, version: 1, at: record.document.ends_at, by: 'admin', reference: '' }];
     expect((await sendPayrollBatch(record.id, ['p1'], 'SLIP', 'admin'))[0].status).toBe('SENT');
-    expect(mocks.wa).toHaveBeenCalledWith(expect.objectContaining({ phoneNumber: phone, mimeType: 'application/pdf' }));
+    expect(mocks.wa).toHaveBeenCalledWith(expect.objectContaining({
+      phoneNumber: phone,
+      mimeType: 'application/pdf',
+      fileName: 'Slip-Gaji-2026-10-v1.pdf',
+      caption: [
+        '*Slip Gaji Clevio — Oktober 2026*',
+        'Halo, Coach.',
+        'Pembayaran gaji untuk periode Oktober 2026 telah diproses. Slip gaji terlampir dalam format PDF untuk arsip Anda.',
+        'Jika ada pertanyaan atau rincian yang perlu dikonfirmasi, silakan hubungi tim Finance Clevio.',
+        'Terima kasih,\n*Tim Finance Clevio*',
+      ].join('\n\n'),
+    }));
+    expect(mocks.notify).toHaveBeenCalledWith('u1', 'Slip Gaji Clevio — Oktober 2026',
+      expect.stringContaining('Anda dapat mengunduh slip gaji di LMS.'), 'PAYROLL',
+      expect.objectContaining({ actionUrl: '/coach/payroll?period=2026-10' }));
     expect(mocks.pdf).toHaveBeenCalled(); expect(mocks.text).not.toHaveBeenCalled();
   });
   it('renders paid slip PDF in local preview without sending it', async () => {

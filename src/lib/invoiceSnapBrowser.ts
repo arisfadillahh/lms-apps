@@ -1,7 +1,7 @@
 import 'server-only';
 import fs from 'node:fs';
-import path from 'node:path';
 import puppeteer from 'puppeteer-core';
+import { provisionedChromiumPath } from '@/lib/provisionedChromium';
 import type { MidtransChargeResponse } from '@/lib/invoiceMidtransClient';
 
 const processState=globalThis as typeof globalThis & { __clevioSnapBrowserSlots?: {running:number} };
@@ -9,11 +9,7 @@ const slots=processState.__clevioSnapBrowserSlots??={running:0};
 const MAX_BROWSERS = 2;
 
 export function paymentBrowserPath() {
-    const configured = [process.env.LMS_PAYMENT_BROWSER_PATH, process.env.PUPPETEER_EXECUTABLE_PATH, process.env.CHROME_BIN];
-    try {
-        const config = JSON.parse(fs.readFileSync(path.join(process.cwd(), '.data', 'payment-browser.json'), 'utf8'));
-        configured.push(config.executablePath);
-    } catch { /* Local development can use an installed browser. */ }
+    const configured = [process.env.LMS_PAYMENT_BROWSER_PATH, process.env.PUPPETEER_EXECUTABLE_PATH, process.env.CHROME_BIN, provisionedChromiumPath()];
     return [...configured, '/usr/bin/chromium', '/usr/bin/chromium-browser', '/opt/google/chrome/chrome',
         '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'].find(p => typeof p === 'string' && fs.existsSync(p));
 }

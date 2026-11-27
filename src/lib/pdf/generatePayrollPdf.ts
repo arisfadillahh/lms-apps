@@ -3,10 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import puppeteer from 'puppeteer-core';
 import { renderPayrollHtml } from '@/lib/payroll/presentation';
+import { provisionedChromiumPath } from '@/lib/provisionedChromium';
 import type { PeriodDocument, Slip } from '@/lib/payroll/model';
 
 export async function generatePayrollPdf(period: PeriodDocument, slip: Slip, version = period.version): Promise<Buffer> {
   const executablePath = [process.env.PUPPETEER_EXECUTABLE_PATH, process.env.CHROME_BIN, process.env.CHROMIUM_PATH,
+    provisionedChromiumPath(),
     '/usr/bin/chromium', '/usr/bin/chromium-browser', '/opt/google/chrome/chrome', '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'].find(p => p && fs.existsSync(p));
   if (!executablePath) throw new Error('Chromium belum tersedia untuk membuat PDF slip.');
   const browser = await puppeteer.launch({ executablePath, headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });

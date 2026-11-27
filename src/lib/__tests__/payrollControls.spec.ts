@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createPeriod, correctionOpen, finalize, isPaid, markTransferred, paidAmount, reverseTransfer, reviewCorrection, submitCorrection, recapMessage, type Slip } from '@/lib/payroll/model';
+import { canRequestPayrollFinalization, createPeriod, correctionOpen, finalize, isPaid, markTransferred, paidAmount, reverseTransfer, reviewCorrection, submitCorrection, recapMessage, type Slip } from '@/lib/payroll/model';
 import { coachPeriodView } from '@/lib/payroll/coachView';
 
 const slip: Slip = { profile_id: 'p', user_id: 'u', name: 'Coach', kind: 'COACH', job_title: 'Coach', contract: 'MITRA', total: 125000, lines: [
@@ -10,6 +10,21 @@ const draft = () => ({ ...createPeriod(2026, 11), slips: [structuredClone(slip)]
 const before = new Date('2026-11-25T16:59:59+07:00'), after = new Date('2026-11-26T00:00:00Z');
 
 describe('payroll corrections, privacy and transfer recording', () => {
+  it('offers the November 2026 manual action before recalculation, then still requires a fresh calculation to finalize', () => {
+    const november = { ...draft(), calculated_at: null };
+    const december = createPeriod(2026, 12);
+    const nextNovember = createPeriod(2027, 11);
+    expect(canRequestPayrollFinalization(november, before.getTime())).toBe(false);
+    expect(canRequestPayrollFinalization(november, after.getTime())).toBe(true);
+    expect(canRequestPayrollFinalization(december, Date.parse(december.ends_at))).toBe(false);
+    expect(canRequestPayrollFinalization(nextNovember, Date.parse(nextNovember.ends_at))).toBe(false);
+    expect(canRequestPayrollFinalization({ ...november, warnings: ['Presensi perlu diperiksa.'] }, after.getTime())).toBe(false);
+    const pending = submitCorrection(november, { id: 'r', user_id: 'u', message: 'Mohon cek presensi' }, before);
+    expect(canRequestPayrollFinalization(pending, after.getTime())).toBe(false);
+    expect(() => finalize(november, 'admin', after)).toThrow(/Hitung ulang/);
+    expect(november.status).toBe('DRAFT');
+    expect(finalize({ ...november, calculated_at: after.toISOString() }, 'admin', after).status).toBe('FINAL');
+  });
   it('uses a firm 17:00 deadline while preserving the complete activity period', () => {
     const p = draft(); expect(correctionOpen(p, before)).toBe(true);
     expect(correctionOpen(p, new Date('2026-11-25T17:00:00+07:00'))).toBe(false);

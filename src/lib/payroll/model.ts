@@ -278,11 +278,21 @@ export function isPaid(p: PeriodDocument, personId: string, total?: number): boo
 function idle(p: PeriodDocument) {
   if (Object.values(p.deliveries).some(d => d.status === 'SENDING')) throw new PayrollError('Ada pengiriman berlangsung. Selesaikan/statuskan pengiriman sebelum mengubah periode.', 409);
 }
+function hasFinalizationCalculation(p: PeriodDocument): boolean {
+  return Boolean(p.calculated_at && Date.parse(p.calculated_at) >= Date.parse(p.ends_at));
+}
+
+export function canRequestPayrollFinalization(p: PeriodDocument, nowMs: number): boolean {
+  if (p.status !== 'DRAFT' || p.warnings.length || (p.corrections ?? []).some(r => r.status === 'WAITING' || r.status === 'IN_PROGRESS')) return false;
+  if (p.id === '2026-11' && nowMs >= Date.parse(p.ends_at)) return true;
+  return hasFinalizationCalculation(p);
+}
+
 export function finalize(p: PeriodDocument, actor: string, now = new Date()): PeriodDocument {
   idle(p);
   if (p.status === 'FINAL') return p;
   if (now.getTime() < Date.parse(p.ends_at)) throw new PayrollError('Periode masih berjalan sampai akhir tanggal 25 WIB. Finalisasi tersedia tanggal 26.');
-  if (!p.calculated_at || Date.parse(p.calculated_at) < Date.parse(p.ends_at)) throw new PayrollError('Hitung ulang setelah periode berakhir agar seluruh sesi tanggal 25 tercakup.');
+  if (!hasFinalizationCalculation(p)) throw new PayrollError('Hitung ulang setelah periode berakhir agar seluruh sesi tanggal 25 tercakup.');
   if (p.warnings.length) throw new PayrollError('Selesaikan peringatan perhitungan sebelum finalisasi.');
   if ((p.corrections ?? []).some(r => r.status === 'WAITING' || r.status === 'IN_PROGRESS')) throw new PayrollError('Selesaikan pengajuan koreksi coach sebelum finalisasi.');
   const next = structuredClone(p);

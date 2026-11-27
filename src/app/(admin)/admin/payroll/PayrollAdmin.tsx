@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DEFAULT_COACH_WORKING_DAYS, canRequestPayrollFinalization, currentPeriod, effective, isPaid, paidAmount, type PayrollPerson, type Slip } from '@/lib/payroll/model';
+import { DEFAULT_COACH_WORKING_DAYS, canRequestPayrollFinalization, currentPeriod, effective, isPaid, paidAmount, type PayrollPerson, type PeriodRecord, type Slip } from '@/lib/payroll/model';
 import { dateWib, rupiah, payrollActivitySummary } from '@/lib/payroll/presentation';
 import type { payrollBootstrap } from '@/lib/services/payroll';
 import styles from './PayrollAdmin.module.css';
@@ -97,7 +97,19 @@ export default function PayrollAdmin({ initialPeriod, initialTab }: { initialPer
   }
   async function run(action: string, extra: Record<string, unknown> = {}, success = 'Perubahan tersimpan.') {
     setBusy(action); setError(''); setMessage('');
-    try { const result = await post(action, extra); if (['component','removeComponent','activity','removeActivity','override'].includes(action)) await post('calculate', {}, result.revision); await load(); setMessage(success); if (action === 'profile') setPersonOpen(false); return true; }
+    try {
+      const result = await post(action, extra);
+      if (action === 'component' || action === 'removeComponent') {
+        const updated: PeriodRecord = result;
+        setData(previous => previous && previous.selected?.id === updated.id ? { ...previous, selected: updated } : previous);
+      } else {
+        if (['activity', 'removeActivity', 'override'].includes(action)) await post('calculate', {}, result.revision);
+        await load();
+      }
+      setMessage(success);
+      if (action === 'profile') setPersonOpen(false);
+      return true;
+    }
     catch (e) { setError(e instanceof Error ? e.message : 'Tindakan gagal.'); await load().catch(() => undefined); return false; }
     finally { setBusy(''); }
   }

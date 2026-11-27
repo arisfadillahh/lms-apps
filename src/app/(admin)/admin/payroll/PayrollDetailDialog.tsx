@@ -5,7 +5,7 @@ import { ArrowLeft, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { isPaid, type PayrollLine, type PayrollMeeting, type PayrollPerson, type PeriodDocument, type Slip } from '@/lib/payroll/model';
+import { isPaid, wibDate, type ManualComponent, type PayrollLine, type PayrollMeeting, type PayrollPerson, type PeriodDocument, type Slip } from '@/lib/payroll/model';
 import { dateWib, payrollSessionLabel, rupiah } from '@/lib/payroll/presentation';
 import PayrollCorrection from './PayrollCorrection';
 import PayrollDetailSummary from './PayrollDetailSummary';
@@ -24,6 +24,7 @@ type Props = {
 
 export default function PayrollDetailDialog({ period, slip, people, meetingCandidates, busy, error, message, previewOpen, close, clearFeedback, run, preview, resend }: Props) {
   const [view, setView] = useState<View>('overview');
+  const [component, setComponent] = useState<ManualComponent | null>(null);
   const [correction, setCorrection] = useState<PayrollLine | null>(null);
   const [sessionFilter, setSessionFilter] = useState<{ kind: string; label: string } | 'pending' | null>(null);
   const [correctionBack, setCorrectionBack] = useState<View>('overview');
@@ -37,7 +38,7 @@ export default function PayrollDetailDialog({ period, slip, people, meetingCandi
   const visibleSessions = sessionLines.filter(line => sessionFilter === 'pending' ? needsAttendance(line)
     : !sessionFilter || (line.kind === sessionFilter.kind && payrollSessionLabel(slip, line) === sessionFilter.label));
   const backView = view === 'correction' ? correctionBack : 'overview';
-  const title = { sessions: sessionFilter === 'pending' ? 'Absensi belum lengkap' : sessionFilter?.label ?? 'Daftar sesi', overview: `Rincian ${slip.name}`, component: 'Tambahan / potongan', activity: 'Aktivitas manual', correction: 'Koreksi aktivitas' }[view];
+  const title = { sessions: sessionFilter === 'pending' ? 'Absensi belum lengkap' : sessionFilter?.label ?? 'Daftar sesi', overview: `Rincian ${slip.name}`, component: component ? 'Ubah tambahan / potongan' : 'Tambahan / potongan', activity: 'Aktivitas manual', correction: 'Koreksi aktivitas' }[view];
 
   useEffect(() => {
     body.current?.scrollTo(0, 0);
@@ -60,6 +61,10 @@ export default function PayrollDetailDialog({ period, slip, people, meetingCandi
   function correct(line: PayrollLine) {
     setCorrectionBack(view); setCorrection(line); changeView('correction');
   }
+  function editComponent(entry: ManualComponent | null) {
+    setComponent(entry);
+    changeView('component');
+  }
   async function save(action: string, extra: Record<string, unknown>, success: string) {
     if (await run(action, extra, success)) { previousView.current = view; setView(backView); }
   }
@@ -75,7 +80,7 @@ export default function PayrollDetailDialog({ period, slip, people, meetingCandi
       </DialogHeader>
       <nav className={styles.detailTools} aria-label="Tindakan rincian">
         {view === 'overview' ? <>
-          {draft && <><Button ref={componentButton} variant="outline" disabled={busy} onClick={() => changeView('component')}>Tambahan / potongan</Button><Button ref={activityButton} variant="outline" disabled={busy} onClick={() => changeView('activity')}>Aktivitas manual</Button></>}
+          {draft && <><Button ref={componentButton} variant="outline" disabled={busy} onClick={() => editComponent(null)}>Tambahan / potongan</Button><Button ref={activityButton} variant="outline" disabled={busy} onClick={() => changeView('activity')}>Aktivitas manual</Button></>}
           <Button variant="ghost" disabled={busy} onClick={() => preview(slip)}><FileText data-icon="inline-start" />Pratinjau slip</Button>
         </> : <Button ref={backButton} variant="ghost" disabled={busy} onClick={() => changeView(backView)}><ArrowLeft data-icon="inline-start" />{backView === 'sessions' ? 'Kembali ke daftar sesi' : 'Kembali ke rincian'}</Button>}
       </nav>
@@ -85,13 +90,13 @@ export default function PayrollDetailDialog({ period, slip, people, meetingCandi
         {message && <p role="status" className={styles.success}>{message}</p>}
         {view === 'component' && draft && <form aria-label="Tambahan / potongan manual" onSubmit={event => {
           const f = fields(event);
-          void save('component', { profileId: slip.profile_id, date: f.date, label: f.label, amount: Number(f.amount), reason: f.reason }, 'Komponen disimpan dan total diperbarui.');
+          void save('component', { id: component?.id, profileId: slip.profile_id, date: f.date, label: f.label, amount: Number(f.amount), reason: f.reason }, 'Komponen disimpan dan total diperbarui.');
         }}><fieldset className={styles.form} disabled={busy}>
           <p className={`${styles.muted} ${styles.wide}`}>Untuk transport umum, catat hanya ongkos yang masih perlu dibayar lewat payroll. Isi tanggal, nama kelas, dan ongkos sesuai bukti. Gunakan angka negatif untuk potongan. Tunjangan rutin diatur lewat profil staf.</p>
-          <label className={styles.field}>Tanggal<Input name="date" type="date" defaultValue={`${period.id}-25`} required /></label>
-          <label className={styles.field}>Label<Input name="label" placeholder="Transport / tunjangan / potongan" required /></label>
-          <label className={styles.field}>Nominal (negatif untuk potongan)<Input name="amount" type="number" step="1" required /></label>
-          <label className={styles.field}>Alasan<Input name="reason" minLength={5} required /></label>
+          <label className={styles.field}>Tanggal<Input name="date" type="date" min={wibDate(period.starts_at)} max={wibDate(new Date(Date.parse(period.ends_at) - 1))} defaultValue={component ? wibDate(component.date) : `${period.id}-25`} required /></label>
+          <label className={styles.field}>Label<Input name="label" placeholder="Transport / tunjangan / potongan" defaultValue={component?.label} required /></label>
+          <label className={styles.field}>Nominal (negatif untuk potongan)<Input name="amount" type="number" step="1" defaultValue={component?.amount} required /></label>
+          <label className={styles.field}>Alasan<Input name="reason" minLength={5} defaultValue={component?.reason} required /></label>
           <Button type="submit">Simpan komponen</Button>
         </fieldset></form>}
         {view === 'activity' && draft && <form aria-label="Aktivitas tambahan" onSubmit={event => {
@@ -131,7 +136,7 @@ export default function PayrollDetailDialog({ period, slip, people, meetingCandi
           </ul>
         </section>}
         {view === 'overview' && <section className={styles.detailPanel} aria-label={`Rincian ${slip.name}`}>
-          <PayrollDetailSummary slip={slip} draft={draft} busy={busy} remove={id => { const reason = window.prompt('Alasan menghapus komponen:'); if (reason) void run('removeComponent', { id, reason }); }} correct={correct} inspect={(kind, label) => { setSessionFilter({ kind, label }); changeView('sessions'); }} />
+          <PayrollDetailSummary slip={slip} draft={draft} busy={busy} manual={period.manual.filter(entry => entry.profile_id === slip.profile_id)} edit={editComponent} remove={id => { const reason = window.prompt('Alasan menghapus komponen:'); if (reason) void run('removeComponent', { id, reason }); }} correct={correct} inspect={(kind, label) => { setSessionFilter({ kind, label }); changeView('sessions'); }} />
           {sessionLines.length > 0 && <Button data-session-list variant="outline" size="sm" onClick={() => { setSessionFilter(null); changeView('sessions'); }}>Lihat semua sesi</Button>}
           {period.activities.filter(a => a.profile_id === slip.profile_id).map(a => <div key={a.id} className={styles.toolbar}><span>{a.label}</span>{draft && <Button variant="ghost" size="sm" disabled={busy} onClick={() => { const reason = window.prompt('Alasan menghapus aktivitas manual:'); if (reason) void run('removeActivity', { id: a.id, reason }); }}>Hapus aktivitas</Button>}</div>)}
           <details className={styles.disclosure}><summary>Pengiriman ulang & riwayat penerima</summary><div className={styles.detailPanel}>

@@ -2,7 +2,7 @@ import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import * as dao from '@/lib/dao/payrollDao';
-import { calculatePayroll, payrollMeetingCandidates, requireDraft, requireReason, assertComponentDate } from './payroll';
+import { calculatePayroll, computePayroll, payrollMeetingCandidates, requireDraft, requireReason, assertComponentDate } from './payroll';
 import { meetingMatchesLine } from '@/lib/payroll/attendanceDetails';
 import { finalize, reopen, markTransferred, reverseTransfer, reviewCorrection, PayrollError, wibDate } from '@/lib/payroll/model';
 import { MOTOR_TRIP_OPENING_PREFIX } from '@/lib/payroll/transport';
@@ -64,7 +64,7 @@ export async function executePayrollCommand(command: PayrollCommand, actor: stri
     case 'component': {
       requireDraft(record); assertComponentDate(`${command.date}T12:00:00+07:00`, next);
       const id = command.id ?? randomUUID();
-      if (command.id && !next.manual.some(m => m.id === id)) throw new PayrollError('Komponen tidak ditemukan.');
+      if (command.id && !next.manual.some(m => m.id === id && m.profile_id === command.profileId)) throw new PayrollError('Komponen tidak ditemukan pada penerima ini.');
       if (id.startsWith(MOTOR_TRIP_OPENING_PREFIX) && id !== `${MOTOR_TRIP_OPENING_PREFIX}${command.profileId}`) {
         throw new PayrollError('Saldo awal motor hanya dapat dikoreksi pada penerima asal.');
       }
@@ -136,6 +136,9 @@ export async function executePayrollCommand(command: PayrollCommand, actor: stri
     default: throw new PayrollError('Tindakan tidak dikenal.');
   }
   if (reason) requireReason(reason);
+  if (command.action === 'component' || command.action === 'removeComponent') {
+    next = await computePayroll(next, now, actor);
+  }
   const saved = await dao.commitPayrollPeriod(record, next, actor, command.action.toUpperCase(), reason);
   if (command.action === 'reviewCorrection') {
     const request = next.corrections!.find(r => r.id === command.id)!;

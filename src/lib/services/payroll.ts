@@ -16,23 +16,27 @@ function attendanceFrom(period: PeriodDocument): string {
 
 export async function calculatePayroll(record: PeriodRecord, now = new Date(), actor: string | null = null): Promise<PeriodRecord> {
   requireDraft(record);
+  const next = await computePayroll(record.document, now, actor);
+  return dao.commitPayrollPeriod(record, next, actor, 'CALCULATE');
+}
+
+export async function computePayroll(document: PeriodDocument, now: Date, actor: string | null): Promise<PeriodDocument> {
   const config = await dao.getPayrollConfig();
-  if (usesLegacyPayrollArchive(record.document)) {
-    const meeting_catalog = await payrollMeetingCandidates(record.document, now);
-    const next = calculateSynchronizedPeriod({ period: { ...record.document, meeting_catalog }, ...config, activities: [], now, includeRecurring: false });
-    return dao.commitPayrollPeriod(record, next, actor, 'CALCULATE');
+  if (usesLegacyPayrollArchive(document)) {
+    const meeting_catalog = await payrollMeetingCandidates(document, now);
+    return calculateSynchronizedPeriod({ period: { ...document, meeting_catalog }, ...config, activities: [], now, includeRecurring: false });
   }
   if (!config.settings.active_from) throw new PayrollError('Atur tanggal mulai pencatatan gaji terlebih dahulu.');
   if (config.people.filter(p => p.active).length === 0) throw new PayrollError('Tambahkan coach/staf dan kontraknya terlebih dahulu.');
   const period = {
-    ...record.document,
-    class_attendance_from: attendanceFrom(record.document),
+    ...document,
+    class_attendance_from: attendanceFrom(document),
     meeting_catalog: [],
   };
   const built = await payrollSourceActivities(period, now);
   const active = built.activities.filter(a => wibDate(a.date) >= config.settings.active_from!);
   for (const a of active) {
-    const override = record.document.overrides[a.key];
+    const override = document.overrides[a.key];
     const profile = override?.profile_id ? config.people.find(p => p.id === override.profile_id) : config.people.find(p => p.user_id === a.user_id);
     const term = profile && effective(config.terms.filter(t => t.profile_id === profile.id), wibDate(a.date));
     if (term?.contract === 'FULLTIME' && !term.working_days?.length && a.fee_eligible!==false && a.details?.includes('Mode belum ditetapkan admin') && !override?.mode && override?.amount === undefined && !override?.excluded && !a.cancelled) built.warnings.push(`Pilih mode fulltime/mitra untuk ${a.label} (${wibDate(a.date)}) atau beri override beralasan.`);
@@ -40,7 +44,7 @@ export async function calculatePayroll(record: PeriodRecord, now = new Date(), a
   const next = calculatePeriod({ period, people: config.people, terms: config.terms, cards: config.cards, activities: active, sourceWarnings: built.warnings, now });
   const eligiblePics = await attendanceAdmins();
   if (!eligiblePics.some(a => a.id === next.pic_id)) next.pic_id = eligiblePics.find(a => a.id === actor)?.id ?? eligiblePics[0]?.id ?? null;
-  return dao.commitPayrollPeriod(record, next, actor, 'CALCULATE');
+  return next;
 }
 
 async function payrollSourceActivities(period: PeriodDocument, now: Date) {

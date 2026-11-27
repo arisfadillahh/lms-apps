@@ -178,6 +178,15 @@ export function calculatePeriod(input: {
   const warnings = new Set(input.sourceWarnings ?? []);
   const slips = new Map<string, Slip>((input.seedSlips ?? []).map(s => [s.profile_id, structuredClone(s)]));
   const dateForSalary = wibDate(new Date(Math.min(now.getTime(), Date.parse(p.ends_at) - 1)));
+  if (input.includeRecurring !== false && now.getTime() >= Date.parse(p.ends_at)) {
+    const inactiveStaff = new Set(people.filter(person => !person.active && person.kind === 'STAFF').map(person => person.id));
+    for (const previous of p.slips) {
+      if (!inactiveStaff.has(previous.profile_id) || !previous.lines.some(line => line.kind === 'SALARY')) continue;
+      // Preserve established salary and allowances when recalculating a closed period after deactivation.
+      const recurring = previous.lines.filter(line => ['SALARY', 'ALLOWANCE'].includes(line.kind));
+      slips.set(previous.profile_id, { ...previous, lines: recurring, total: 0 });
+    }
+  }
   for (const person of people.filter(x => x.active)) {
     if (input.includeRecurring === false) continue;
     const personTerms = terms.filter(t => t.profile_id === person.id);

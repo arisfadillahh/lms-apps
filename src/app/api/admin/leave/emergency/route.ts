@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { getSessionOrThrow } from '@/lib/auth';
 import { coachLeaveDao, sessionsDao, usersDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
+import { refreshPayrollAfterSubstituteChange } from '@/lib/services/payroll';
 
 const emergencyLeaveSchema = z.object({
     coachId: z.string().uuid(),
@@ -59,6 +60,7 @@ export async function POST(request: NextRequest) {
 
         // Assign substitute to the session
         await sessionsDao.assignSubstituteCoach(sessionId, substituteCoachId);
+        await refreshPayrollAfterSubstituteChange(sessionId);
 
         return NextResponse.json({ success: true, leaveRequest });
     } catch (error: any) {

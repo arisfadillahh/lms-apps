@@ -43,6 +43,8 @@ Perhitungan, transfer, dan pengiriman memiliki status terpisah. Mengirim ulang s
 
 ## Periode dan deadline koreksi
 
+Rekap payroll dihitung ulang dari data LMS saat presensi, trial, potongan, dan pengaturan payroll tertentu berubah. Job cadangan memproses draf periode berjalan setiap hari pukul 08.50 WIB. Job notifikasi tanggal 25 berjalan terpisah pukul 09.00–16.59 WIB dan memakai hasil hitung pagi. Jika hasil hitung pagi belum ada, job ini mencoba menghitungnya sebelum kirim. Rekap, formulir staf, dan pengingat memiliki catatan pengiriman tersendiri per periode dan penerima. Finalisasi tetap dilakukan admin.
+
 Contoh periode **November 2026** mencakup **26 Oktober pukul 00.00 WIB sampai 25 November pukul 23.59.59 WIB**. Sesi tanggal 25 malam tetap masuk November. Aktivitas mulai tanggal 26 masuk periode berikutnya.
 
 **BATAS LAPORAN KOREKSI REGULER COACH: TANGGAL 25 PUKUL 17.00 WIB.** Pesan ini tercantum di pesan teks rekap WA, notifikasi LMS, dan halaman coach. Form coach ditutup tepat pukul 17.00. Pesan coach tidak menawarkan pengecualian. **Catatan internal admin/PIC:** bila menerima laporan terlambat, perbaiki aktivitas yang sudah ada atau tambahkan kategori aktivitas yang belum tercatat, lengkap dengan tanggal, penerima, jumlah anak/online-offline bila relevan, serta alasan. Periode final harus dibuka revisi dahulu.

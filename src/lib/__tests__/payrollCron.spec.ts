@@ -15,18 +15,19 @@ describe('payroll cutoff automation', () => {
   });
   it.each([true, false])('does nothing without a configured start date even when the WA flag is %s', async automation_enabled => {
     mocks.config.mockResolvedValue({ settings: { automation_enabled }, people: [{ id: 'p1', kind: 'COACH', active: true }] });
-    await runPayrollCron(new Date('2026-11-25T09:00:00+07:00'));
+    await runPayrollCron(new Date('2026-11-25T09:00:00+07:00'), 'notify');
     expect(mocks.ensure).not.toHaveBeenCalled(); expect(mocks.calculate).not.toHaveBeenCalled(); expect(mocks.send).not.toHaveBeenCalled();
   });
   it.each([true, false])('does nothing without active recipients even when the WA flag is %s', async automation_enabled => {
     mocks.config.mockResolvedValue({ settings: { automation_enabled, active_from: '2026-01-01' }, people: [{ id: 'p1', kind: 'COACH', active: false }] });
-    await runPayrollCron(new Date('2026-11-25T16:00:00+07:00'));
+    await runPayrollCron(new Date('2026-11-25T16:00:00+07:00'), 'notify');
     expect(mocks.ensure).not.toHaveBeenCalled(); expect(mocks.calculate).not.toHaveBeenCalled(); expect(mocks.send).not.toHaveBeenCalled();
   });
   it('continues recording/calculating while WA is paused and sends no recap, reminder or reimbursement', async () => {
     mocks.config.mockResolvedValue({ settings: { automation_enabled: false, active_from: '2026-01-01' }, people: [{ id: 'p1', kind: 'COACH', active: true }, { id: 'p2', kind: 'STAFF', active: true }] });
     const time = new Date('2026-11-25T16:00:00+07:00');
     expect(await runPayrollCron(time)).toEqual({ period: '2026-11', calculated: true, whatsappPaused: true });
+    expect(await runPayrollCron(time, 'notify')).toEqual({ period: '2026-11', whatsappPaused: true });
     expect(mocks.ensure).toHaveBeenCalledWith(2026, 11); expect(mocks.calculate).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ id: '2026-11' }), time);
     expect(mocks.send).not.toHaveBeenCalled();
   });
@@ -44,12 +45,12 @@ describe('payroll cutoff automation', () => {
     expect(mocks.calculate).toHaveBeenCalled(); expect(mocks.send).not.toHaveBeenCalled();
   });
   it('sends coach recap at 09:00 WIB using profile IDs', async () => {
-    await runPayrollCron(new Date('2026-11-25T09:00:00+07:00'));
+    await runPayrollCron(new Date('2026-11-25T09:00:00+07:00'), 'notify');
     expect(mocks.send).toHaveBeenCalledWith('2026-11', ['p1'], 'RECAP', null);
     expect(mocks.send).toHaveBeenCalledWith('2026-11', ['p2'], 'REIMBURSEMENT', null);
   });
   it('adds the firm deadline reminder at 16:00 WIB', async () => {
-    await runPayrollCron(new Date('2026-11-25T16:00:00+07:00'));
+    await runPayrollCron(new Date('2026-11-25T16:00:00+07:00'), 'notify');
     expect(mocks.send).toHaveBeenCalledWith('2026-11', ['p1'], 'REMINDER', null);
   });
   it('still calculates the 25th after 17:00 without reopening coach corrections', async () => {
@@ -62,13 +63,13 @@ describe('payroll cutoff automation', () => {
   });
   it('excludes inactive or removed coach profiles and staff from automatic attendance messages', async () => {
     mocks.config.mockResolvedValue({ settings: { automation_enabled: true, active_from: '2026-01-01' }, people: [{ id: 'p1', kind: 'COACH', active: false }, { id: 'p2', kind: 'STAFF', active: true }] });
-    await runPayrollCron(new Date('2026-11-25T16:00:00+07:00'));
+    await runPayrollCron(new Date('2026-11-25T16:00:00+07:00'), 'notify');
     expect(mocks.send).toHaveBeenCalledWith('2026-11', [], 'RECAP', null);
     expect(mocks.send).toHaveBeenCalledWith('2026-11', [], 'REMINDER', null);
   });
   it.each([true, false])('does not begin calculation before its configured start date even when the WA flag is %s', async automation_enabled => {
     mocks.config.mockResolvedValue({ settings: { automation_enabled, active_from: '2026-11-26' }, people: [{ id: 'p1', kind: 'COACH', active: true }] });
-    await runPayrollCron(new Date('2026-11-25T09:00:00+07:00'));
+    await runPayrollCron(new Date('2026-11-25T09:00:00+07:00'), 'notify');
     expect(mocks.ensure).not.toHaveBeenCalled(); expect(mocks.calculate).not.toHaveBeenCalled(); expect(mocks.send).not.toHaveBeenCalled();
   });
   it('uses the freshly calculated LMS slips for coach recap even when the draft has an imported snapshot', async () => {
@@ -76,14 +77,37 @@ describe('payroll cutoff automation', () => {
     const record = { id: p.id, revision: 1, document: { ...p, legacy_imports: [{}], slips: [] } };
     mocks.ensure.mockResolvedValue(record);
     mocks.calculate.mockResolvedValue({ ...record, document: { ...record.document, slips: [{ kind: 'COACH', profile_id: 'p1' }] } });
-    await runPayrollCron(time);
+    await runPayrollCron(time, 'notify');
     expect(mocks.calculate).toHaveBeenCalledExactlyOnceWith(record, time);
     expect(mocks.send).toHaveBeenCalledWith('2026-11', ['p1'], 'RECAP', null);
     expect(mocks.send).toHaveBeenCalledWith('2026-11', ['p2'], 'REIMBURSEMENT', null);
   });
+  it('keeps the daily calculation independent of month-end messaging', async () => {
+    await runPayrollCron(new Date('2026-11-25T08:50:00+07:00'), 'daily');
+    expect(mocks.calculate).toHaveBeenCalledTimes(1);
+    expect(mocks.send).not.toHaveBeenCalled();
+  });
+  it('reuses the morning calculation during notification retries', async () => {
+    const record = await mocks.ensure(2026, 11);
+    record.document.calculated_at = '2026-11-25T08:50:00+07:00';
+    mocks.ensure.mockResolvedValue(record);
+    await runPayrollCron(new Date('2026-11-25T09:01:00+07:00'), 'daily');
+    await runPayrollCron(new Date('2026-11-25T09:10:00+07:00'), 'notify');
+    await runPayrollCron(new Date('2026-11-25T16:00:00+07:00'), 'notify');
+    expect(mocks.calculate).not.toHaveBeenCalled();
+    expect(mocks.send).toHaveBeenCalledWith('2026-11', ['p1'], 'REMINDER', null);
+  });
+  it('ignores notify requests outside the 25th delivery window', async () => {
+    for (const time of ['2026-11-24T10:00:00+07:00','2026-11-25T08:59:00+07:00','2026-11-25T17:00:00+07:00']) {
+      await runPayrollCron(new Date(time), 'notify');
+    }
+    expect(mocks.ensure).not.toHaveBeenCalled();
+    expect(mocks.calculate).not.toHaveBeenCalled();
+    expect(mocks.send).not.toHaveBeenCalled();
+  });
   it('does not send from a stale draft if LMS calculation itself fails', async () => {
     mocks.calculate.mockRejectedValue(new Error('Calculation failed'));
-    await expect(runPayrollCron(new Date('2026-11-25T09:00:00+07:00'))).rejects.toThrow('Calculation failed');
+    await expect(runPayrollCron(new Date('2026-11-25T09:00:00+07:00'), 'notify')).rejects.toThrow('Calculation failed');
     expect(mocks.send).not.toHaveBeenCalled();
   });
 });

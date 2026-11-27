@@ -4,6 +4,7 @@ Search this file and the linked monthly log before changing related code.
 
 | Date | Reference | Area | Symptom | Monthly log |
 | --- | --- | --- | --- | --- |
+| 2026-11-27 | INTERNAL-20261127-04 | Otomasi payroll | Dua cron menghitung ulang draf dan mencoba pengiriman yang sama | [2026-11](./2026-11.md#internal-20261127-04-jadwal-hitung-ulang-payroll) |
 | 2026-11-27 | INTERNAL-20261127-03 | Komponen payroll | Potongan lama staf nonaktif membuat hitung ulang dan penyimpanan komponen gagal | [2026-11](./2026-11.md#internal-20261127-03-komponen-manual-payroll-gagal-dihitung-setelah-staf-nonaktif) |
 | 2026-11-27 | INTERNAL-20261127-02 | Finalisasi payroll | Edit komponen mengunci tombol Finalisasi November sampai rekap dihitung ulang | [2026-11](./2026-11.md#internal-20261127-02-tombol-finalisasi-november-setelah-edit) |
 | 2026-11-27 | INTERNAL-20261127-01 | Payroll staf | Kontrak yang mulai pada periode baru memicu peringatan di periode sebelumnya | [2026-11](./2026-11.md#internal-20261127-01-tanggal-mulai-penerima-payroll) |

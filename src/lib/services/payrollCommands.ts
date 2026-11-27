@@ -2,7 +2,7 @@ import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { getSupabaseAdmin } from '@/lib/supabaseServer';
 import * as dao from '@/lib/dao/payrollDao';
-import { calculatePayroll, computePayroll, payrollMeetingCandidates, requireDraft, requireReason, assertComponentDate } from './payroll';
+import { calculatePayroll, computePayroll, payrollMeetingCandidates, refreshCurrentPayrollAfterChange, requireDraft, requireReason, assertComponentDate } from './payroll';
 import { meetingMatchesLine } from '@/lib/payroll/attendanceDetails';
 import { finalize, reopen, markTransferred, reverseTransfer, reviewCorrection, PayrollError, wibDate } from '@/lib/payroll/model';
 import { MOTOR_TRIP_OPENING_PREFIX } from '@/lib/payroll/transport';
@@ -30,14 +30,20 @@ export async function executePayrollCommand(command: PayrollCommand, actor: stri
       if (!old || old.kind !== command.kind || old.user_id !== (command.kind === 'COACH' ? command.userId : null)) throw new PayrollError('Identitas penerima tidak dapat dipindahkan; ubah kontraknya atau buat penerima baru.');
     }
     const profileId = await dao.savePayrollProfile({ id: command.id, user_id: command.kind === 'COACH' ? command.userId : null, kind: command.kind, name, job_title: command.jobTitle, staff_phone: command.kind === 'STAFF' ? command.staffPhone : null, active: command.active }, { effective_from: command.effectiveFrom, contract: command.contract, base_salary: command.baseSalary, working_days: command.kind === 'COACH' && command.contract === 'FULLTIME' ? command.workingDays : null, position_allowance: command.positionAllowance, other_allowances: command.otherAllowances }, actor);
+    await refreshCurrentPayrollAfterChange(command.effectiveFrom, now);
     return { id: profileId };
   }
-  if (command.action === 'rates') { await dao.savePayrollRates({ effective_from: command.effectiveFrom, rates: command.rates }, actor); return { success: true }; }
+  if (command.action === 'rates') {
+    await dao.savePayrollRates({ effective_from: command.effectiveFrom, rates: command.rates }, actor);
+    await refreshCurrentPayrollAfterChange(command.effectiveFrom, now);
+    return { success: true };
+  }
   if (command.action === 'settings') { await dao.savePayrollSettings({ active_from: command.activeFrom, automation_enabled: command.automationEnabled }, actor); return { success: true }; }
   if (command.action === 'create') return dao.ensurePayrollPeriod(command.year, command.month);
   if (command.action === 'classMode') {
     const { error } = await db.rpc('payroll_set_class_mode' as never, { p_class_id: command.classId, p_mode: command.mode, p_actor_id: actor } as never);
     if (error) throw new PayrollError('Kelas tidak ditemukan/gagal diperbarui.');
+    await refreshCurrentPayrollAfterChange(wibDate(now), now);
     return { success: true };
   }
   let record = await dao.getPayrollPeriod(command.periodId);

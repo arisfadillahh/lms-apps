@@ -20,6 +20,33 @@ export async function calculatePayroll(record: PeriodRecord, now = new Date(), a
   return dao.commitPayrollPeriod(record, next, actor, 'CALCULATE');
 }
 
+export async function refreshCurrentPayrollAfterChange(effectiveFrom: string, now = new Date()): Promise<void> {
+  const today = wibDate(now);
+  if (effectiveFrom > today) return;
+  try {
+    const { settings, people } = await dao.getPayrollConfig();
+    if (!settings.active_from || settings.active_from > today || !people.some(person => person.active)) return;
+    const { year, month } = currentPeriod(now);
+    const record = await dao.ensurePayrollPeriod(year, month);
+    if (record.document.status === 'DRAFT') await calculatePayroll(record, now);
+  } catch (error) {
+    // The source change is already committed. The daily run can recover the draft.
+    console.error('[Payroll] Pembaruan rekap setelah perubahan sumber gagal:', error);
+  }
+}
+
+export async function refreshPayrollAfterSubstituteChange(sessionId: string, now = new Date()): Promise<void> {
+  try {
+    const { getSessionById } = await import('@/lib/dao/sessionsDao');
+    const session = await getSessionById(sessionId);
+    if (session && Date.parse(session.date_time) <= now.getTime()) {
+      await refreshCurrentPayrollAfterChange(wibDate(session.date_time), now);
+    }
+  } catch (error) {
+    console.error('[Payroll] Pemeriksaan sesi setelah perubahan izin gagal:', error);
+  }
+}
+
 export async function computePayroll(document: PeriodDocument, now: Date, actor: string | null): Promise<PeriodDocument> {
   const config = await dao.getPayrollConfig();
   if (usesLegacyPayrollArchive(document)) {

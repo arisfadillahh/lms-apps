@@ -5,6 +5,8 @@ import { getClassById } from '@/lib/dao/classesDao';
 import { saveClassMotorTransportRule } from '@/lib/dao/payrollDao';
 import { canAccessMenu } from '@/lib/permissions';
 import { CLASS_TRANSPORT_TYPES } from '@/lib/payroll/transport';
+import { wibDate } from '@/lib/payroll/model';
+import { refreshCurrentPayrollAfterChange } from '@/lib/services/payroll';
 
 const command = z.object({
   classId: z.string().uuid(),
@@ -33,6 +35,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     }
     const transportType = parsed.data.transportType ?? (parsed.data.enabled ? 'MOTOR' : null);
     await saveClassMotorTransportRule(klass.id, klass.coach_id, transportType, session.user.id);
+    const now = new Date();
+    await refreshCurrentPayrollAfterChange(wibDate(now), now);
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: 'Gagal menyimpan pengaturan transport.' }, { status: 500 });

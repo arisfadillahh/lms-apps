@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { getSessionOrThrow } from '@/lib/auth';
 import { coachLeaveDao, sessionsDao, usersDao } from '@/lib/dao';
 import { assertRole } from '@/lib/roles';
+import { refreshPayrollAfterSubstituteChange } from '@/lib/services/payroll';
 
 const updateSchema = z.object({
   status: z.enum(['PENDING', 'APPROVED', 'REJECTED']),
@@ -59,6 +60,10 @@ export async function PATCH(request: Request, props: { params: Promise<{ id: str
     await sessionsDao.assignSubstituteCoach(existing.session_id, substituteCoachId);
   } else if (parsed.data.status === 'REJECTED') {
     await sessionsDao.assignSubstituteCoach(existing.session_id, null);
+  }
+
+  if (existing.status === 'APPROVED' || parsed.data.status === 'APPROVED') {
+    await refreshPayrollAfterSubstituteChange(existing.session_id);
   }
 
   // Try to send notification to coach if preference is enabled

@@ -3,17 +3,17 @@ import type { LegacyPayrollSnapshot } from '@/lib/payroll/legacyImport';
 import { createPeriod, DEFAULT_RATES, type PeriodDocument } from '@/lib/payroll/model';
 import { payrollCommandSchema } from '@/lib/payroll/validation';
 
-const mocks = vi.hoisted(() => ({ rows: vi.fn(), commit: vi.fn(), config: vi.fn(), period: vi.fn() }));
+const mocks = vi.hoisted(() => ({ rows: vi.fn(), commit: vi.fn(), config: vi.fn(), period: vi.fn(), ensure: vi.fn() }));
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/supabaseServer', () => ({ getSupabaseAdmin: () => ({}) }));
 vi.mock('@/lib/dao/notificationsDao', () => ({ createNotification: vi.fn() }));
 vi.mock('@/lib/dao/payrollDao', () => ({
-  payrollRows: mocks.rows, getPayrollConfig: mocks.config, commitPayrollPeriod: mocks.commit, getPayrollPeriod: mocks.period,
+  payrollRows: mocks.rows, getPayrollConfig: mocks.config, commitPayrollPeriod: mocks.commit, getPayrollPeriod: mocks.period, ensurePayrollPeriod: mocks.ensure,
   getClassMotorTransportRules: async () => new Map(),
 }));
 vi.mock('@/lib/services/payrollNotifications', () => ({ attendanceAdmins: async () => [] }));
 
-import { calculatePayroll } from '@/lib/services/payroll';
+import { calculatePayroll, refreshCurrentPayrollAfterChange } from '@/lib/services/payroll';
 import { executePayrollCommand } from '@/lib/services/payrollCommands';
 
 const snapshot = (period: string): LegacyPayrollSnapshot => ({
@@ -29,6 +29,7 @@ describe('LMS calculation with retained import archives', () => {
 
   beforeEach(() => {
     mocks.commit.mockClear();
+    mocks.ensure.mockClear();
     mocks.config.mockResolvedValue({
       settings: { active_from: '2026-10-26' },
       people: [{ id: 'p1', user_id: 'coach', name: 'Coach', kind: 'COACH', active: true }],
@@ -39,6 +40,26 @@ describe('LMS calculation with retained import archives', () => {
       ? [{ id: 'event', activity_at: '2026-11-06T12:00:00+07:00', coach_id: 'coach', label: 'LMS event', kind: 'EVENT', status: 'APPROVED', mode: 'MITRA' }]
       : []);
     mocks.commit.mockImplementation(async (record, document) => ({ ...record, document }));
+  });
+
+  it('refreshes only the current draft after effective changes and preserves the same payable lines on repeated refreshes', async () => {
+    const document = createPeriod(2026, 11);
+    const record = { id: document.id, revision: 3, document };
+    mocks.ensure.mockResolvedValue(record);
+    await refreshCurrentPayrollAfterChange('2026-11-26', now);
+    expect(mocks.ensure).not.toHaveBeenCalled();
+    await refreshCurrentPayrollAfterChange('2026-11-24', now);
+    expect(mocks.ensure).toHaveBeenCalledWith(2026, 11);
+    expect(mocks.commit).toHaveBeenCalledTimes(1);
+    const first = mocks.commit.mock.calls[0][1];
+    mocks.ensure.mockResolvedValue({ ...record, revision: 4, document: first });
+    await refreshCurrentPayrollAfterChange('2026-11-24', new Date(now.getTime()+60_000));
+    const second = mocks.commit.mock.calls[1][1];
+    expect(second.slips).toEqual(first.slips);
+    expect(second.slips[0].lines.filter((line: { kind: string }) => line.kind === 'EVENT')).toHaveLength(1);
+    mocks.ensure.mockResolvedValue({ ...record, revision: 5, document: { ...second, status: 'FINAL' } });
+    await refreshCurrentPayrollAfterChange('2026-11-24', now);
+    expect(mocks.commit).toHaveBeenCalledTimes(2);
   });
 
   it('updates a late deduction and the total in one commit when another staff member is now inactive', async () => {
